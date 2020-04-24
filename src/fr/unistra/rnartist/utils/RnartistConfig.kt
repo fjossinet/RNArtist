@@ -147,7 +147,7 @@ object RnartistConfig {
         get() {
             val client: HttpClient = HttpClient.newHttpClient()
             val request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://raw.githubusercontent.com/fjossinet/RNArtist/master/properties.json?token=AAC7CTBSCXTGUZPJAN6YXPC6VQGWG"))
+                    .uri(URI.create("https://raw.githubusercontent.com/fjossinet/RNArtist/master/properties.json"))
                     .build()
             try {
                 val response: HttpResponse<String> = client.send(request,
