@@ -82,6 +82,7 @@ object Backend {
     }
 }
 
+//Nice class from Ahmed Tarek https://bit.ly/2VIJfO3
 class Multipart
 /**
  * This constructor initializes a new HTTP POST request with content type
