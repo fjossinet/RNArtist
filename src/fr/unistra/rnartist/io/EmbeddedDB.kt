@@ -158,7 +158,7 @@ class EmbeddedDB(val mediator: Mediator) {
     fun addTheme(name:String, author:String, drawingConfiguration:Map<String,String>):NitriteId {
         val doc = createDocument("name",name)
         doc.put("author", author)
-        doc.put("drawingConfiguration", mediator.toolbox.theme)
+        doc.put("theme", mediator.toolbox.theme)
         val r = this.userDB.getCollection("Themes").insert(doc)
         return r.first()
     }

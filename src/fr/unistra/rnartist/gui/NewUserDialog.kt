@@ -1,6 +1,8 @@
 package fr.unistra.rnartist.gui
 
+import fr.unistra.rnartist.RNArtist
 import fr.unistra.rnartist.RnartistConfig
+import fr.unistra.rnartist.io.Backend
 import javafx.application.Application
 import javafx.collections.FXCollections
 import javafx.concurrent.Task
@@ -106,11 +108,10 @@ class NewUserDialog(application: Application): Dialog<ButtonType>() {
         val pi = ProgressIndicator()
         val box = VBox(pi)
         box.alignment = Pos.CENTER
-        var userID:String? = null
 
-        while (userID == null) {
+        while (RnartistConfig.userID == null) {
             val result = this.showAndWait()
-            if (userID != null) {
+            if (RnartistConfig.userID != null) {
 
             }
             else if (result.isPresent) {
@@ -136,14 +137,8 @@ class NewUserDialog(application: Application): Dialog<ButtonType>() {
 
                         override fun call():Pair<Boolean, Exception?> {
                             try {
-                            val client: HttpClient = HttpClient.newHttpClient()
-                            val request = HttpRequest.newBuilder()
-                                    .uri(URI.create(RnartistConfig.website+"/register?name=${URLEncoder.encode(name.text.trim(), "UTF-8")}&country=${URLEncoder.encode(country.value.trim(), "UTF-8")}&lab=${URLEncoder.encode(labo.text.trim(), "UTF-8")}"))
-                                    .build()
-                                val response: HttpResponse<String> = client.send(request,
-                                        HttpResponse.BodyHandlers.ofString())
-                                userID = UUID.randomUUID().toString()
-                                RnartistConfig.userID = userID
+                                Backend.registerUser(name.text.trim(), country.value.trim(), labo.text.trim())
+
                             } catch (e:Exception) {
                                 e.printStackTrace()
                                 return Pair(false,e)

@@ -24,7 +24,7 @@ import java.util.prefs.BackingStoreException
 object RnartistConfig {
 
     enum class ThemeParameter {
-        AColor, UColor, GColor, CColor, XColor, SecondaryColor, TertiaryColor, HaloWidth, HaloOpacity, TertiaryOpacity, SecondaryInteractionWidth, TertiaryInteractionWidth, TertiaryInteractionStyle, ResidueBorder, FontName, ModuloXRes, ModuloYRes, ModuloSizeRes
+        AColor, UColor, GColor, CColor, XColor, SecondaryColor, TertiaryColor, HaloWidth, TertiaryOpacity, SecondaryInteractionWidth, TertiaryInteractionWidth, TertiaryInteractionStyle, ResidueBorder, FontName, ModuloXRes, ModuloYRes, ModuloSizeRes
     }
 
     @JvmField
@@ -79,7 +79,6 @@ object RnartistConfig {
             ThemeParameter.SecondaryInteractionWidth.toString() to "4",
             ThemeParameter.TertiaryInteractionWidth.toString() to "2",
             ThemeParameter.HaloWidth.toString() to "10",
-            ThemeParameter.HaloOpacity.toString() to "50",
             ThemeParameter.TertiaryOpacity.toString() to "50",
             ThemeParameter.TertiaryInteractionStyle.toString() to "Dashed",
             ThemeParameter.FontName.toString() to "Tahoma",

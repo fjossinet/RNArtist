@@ -69,7 +69,7 @@ public class RNArtist extends Application {
         final SwingNode swingNode = new SwingNode();
         swingNode.setOnMouseDragged(mouseEvent -> {
             if (mediator.getGraphicsContext() != null) {
-                mediator.getDrawingConfiguration().setQuickDraw(true);
+                mediator.getTheme().setQuickDraw(true);
                 double transX = mouseEvent.getX() - mediator.getCanvas2D().getTranslateX();
                 double transY = mouseEvent.getY() - mediator.getCanvas2D().getTranslateY();
                 mediator.getGraphicsContext().moveView(transX, transY);
@@ -79,7 +79,7 @@ public class RNArtist extends Application {
             }
         });
         swingNode.setOnMouseReleased(mouseEvent -> {
-            mediator.getDrawingConfiguration().setQuickDraw(false);
+            mediator.getTheme().setQuickDraw(false);
             mediator.getCanvas2D().setTranslateX(0.0);
             mediator.getCanvas2D().setTranslateY(0.0);
             mediator.getCanvas2D().repaint();
@@ -90,14 +90,14 @@ public class RNArtist extends Application {
         });
         swingNode.setOnScroll(scrollEvent -> {
             if (mediator.getGraphicsContext() != null) {
-                mediator.getDrawingConfiguration().setQuickDraw(true);
+                mediator.getTheme().setQuickDraw(true);
                 scrollCounter++;
 
                 Thread th = new Thread(() -> {
                     try {
                         Thread.sleep(100);
                         if (scrollCounter == 1) {
-                            mediator.getDrawingConfiguration().setQuickDraw(false);
+                            mediator.getTheme().setQuickDraw(false);
                             mediator.getCanvas2D().repaint();
                         }
                         scrollCounter--;
@@ -149,7 +149,7 @@ public class RNArtist extends Application {
                 dialog.setContentText("Please enter your project name:");
                 Optional<String> projectName = dialog.showAndWait();
                 if (projectName.isPresent()) {
-                    BufferedImage image = mediator.getCanvas2D().screenCapture();
+                    BufferedImage image = mediator.getCanvas2D().screenCapture(null);
                     if (image != null) {
                         NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getCanvas2D().getSecondaryStructureDrawing().get(), mediator.getTertiaryStructure());
                         File pngFile = new File(new File(new File(mediator.getEmbeddedDB().getRootDir(), "images"), "user"), id.toString() + ".png");

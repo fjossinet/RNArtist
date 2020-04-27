@@ -14,7 +14,7 @@ class Mediator(val rnartist: RNArtist) {
     val projectManager = ProjectManager(this)
 
     lateinit var canvas2D: Canvas2D
-    val drawingConfiguration = Theme(this)
+    val theme = Theme(this)
     val graphicsContext = GraphicContext(this)
     var tertiaryStructure:TertiaryStructure? = null
     var chimeraDriver: ChimeraDriver? = null

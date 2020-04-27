@@ -28,8 +28,6 @@ class Theme(val mediator: Mediator) {
 
     var haloWidth = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.HaloWidth.toString()))
         get() = mediator.toolbox.haloWidth.value
-    var haloOpacity = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.HaloOpacity.toString()))
-        get() = mediator.toolbox.haloOpacity.value
     var tertiaryOpacity = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryOpacity.toString()))
         get() = mediator.toolbox._3dOpacity.value
     var tertiaryInteractionStyle = if (RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryInteractionStyle.toString()) == "Dashed")  DASHED else SOLID
@@ -68,8 +66,8 @@ class Theme(val mediator: Mediator) {
         get() = mediator.toolbox.xColor
     var SecondaryColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.SecondaryColor.toString()))
         get() = mediator.toolbox.get2dInteractionColor()
-    var TertiaryColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryColor.toString()))
-        get() = mediator.toolbox.get3dInteractionColor()
+    var TertiaryColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryColor.toString()), tertiaryOpacity.toDouble()/100.0)
+        get() = javafx.scene.paint.Color.web(mediator.toolbox.get3dInteractionColor().toString(), tertiaryOpacity.toDouble()/100.0)
     var fontName = RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.FontName.toString())
         get() = mediator.toolbox.fontName
     var displayResidueNames = true

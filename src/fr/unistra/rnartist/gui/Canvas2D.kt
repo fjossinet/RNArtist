@@ -1,6 +1,5 @@
 package fr.unistra.rnartist.gui
 
-import fr.unistra.rnartist.gui.Mediator
 import fr.unistra.rnartist.model.SecondaryStructure
 import fr.unistra.rnartist.model.SecondaryStructureDrawing
 import javafx.beans.property.SimpleObjectProperty
@@ -24,7 +23,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     fun load2D(ss:SecondaryStructure) {
-        this.secondaryStructureDrawing.value = SecondaryStructureDrawing(ss, this.bounds, mediator.drawingConfiguration)
+        this.secondaryStructureDrawing.value = SecondaryStructureDrawing(ss, this.bounds, mediator.theme)
         this.repaint()
     }
 
@@ -55,7 +54,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         g.drawImage(this.offScreenBuffer, 0, 0, this)
     }
 
-    fun screenCapture(): BufferedImage? {
+    fun screenCapture(secondaryStructureDrawing:SecondaryStructureDrawing?): BufferedImage? {
         var bufferedImage: BufferedImage? = null
         mediator.graphicsContext.viewX -= mediator.graphicsContext.screen_capture_area!!.minX
         mediator.graphicsContext.viewY -= mediator.graphicsContext.screen_capture_area!!.minY
@@ -69,7 +68,10 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
         g2.background = Color.white
-        this.secondaryStructureDrawing.get().draw(g2, mediator.graphicsContext);
+        if (secondaryStructureDrawing != null)
+            secondaryStructureDrawing.draw(g2, mediator.graphicsContext);
+        else
+            this.secondaryStructureDrawing.get().draw(g2, mediator.graphicsContext);
         g2.dispose()
         mediator.graphicsContext.viewX += mediator.graphicsContext.screen_capture_area!!.minX
         mediator.graphicsContext.viewY += mediator.graphicsContext.screen_capture_area!!.minY

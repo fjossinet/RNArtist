@@ -71,6 +71,24 @@ fun parseRnaml(f: File?): SecondaryStructure? {
     return ss
 }
 
+fun parseVienna(reader: Reader): SecondaryStructure? {
+    val sequence = StringBuffer()
+    val bn = StringBuffer()
+    val name = StringBuffer()
+    val `in` = BufferedReader(reader)
+    var line: String? = null
+    while (`in`.readLine().also { line = it } != null) {
+        if (line!!.startsWith(">"))
+            name.append(line!!.substring(1))
+        else if (line!!.matches(Regex("^[AUGC]+$"))) {
+            sequence.append(line)
+        } else if (line!!.matches(Regex("^[\\.\\(\\)\\{\\}\\[\\]]+$"))) {
+            bn.append(line)
+        }
+    }
+    return SecondaryStructure(RNA(name.toString(),sequence.toString()), bracketNotation = bn.toString())
+}
+
 @Throws(Exception::class)
 fun parseCT(reader: Reader): SecondaryStructure? {
     val sequence = StringBuffer()

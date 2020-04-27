@@ -133,6 +133,12 @@ public class ProjectManager {
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
+                            }  else if (f.getName().endsWith(".fasta") || f.getName().endsWith(".fas") || f.getName().endsWith(".vienna")) {
+                                try {
+                                    ss = parseVienna(new FileReader(f));
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                             }
                             if (ss != null)
                                 mediator.getCanvas2D().load2D(ss);
