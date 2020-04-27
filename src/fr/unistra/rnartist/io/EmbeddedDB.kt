@@ -1,16 +1,12 @@
 package fr.unistra.rnartist.io
 
 import fr.unistra.rnartist.gui.Mediator
-import fr.unistra.rnartist.gui.Toolbox
 import fr.unistra.rnartist.model.*
-import fr.unistra.rnartist.utils.RnartistConfig
-import fr.unistra.rnartist.utils.copyFile
-import fr.unistra.rnartist.utils.getImage
+import fr.unistra.rnartist.RnartistConfig
 import org.dizitart.no2.*
 import org.dizitart.no2.Document.createDocument
 import org.dizitart.no2.IndexOptions.indexOptions
 import org.dizitart.no2.filters.Filters.eq
-import java.awt.image.BufferedImage
 import java.awt.image.RenderedImage
 import java.io.File
 import java.net.URL
@@ -149,7 +145,7 @@ class EmbeddedDB(val mediator: Mediator) {
         }
         //we set the current drawingConfiguration as it was during the saving of this project
         val drawingConfiguration = doc.get("drawingConfiguration") as Map<String,String>
-        mediator.toolbox.loadDrawingConfiguration(drawingConfiguration)
+        mediator.toolbox.loadTheme(drawingConfiguration)
 
         //we set the current graphicsContext as it was during the saving of this project
         val graphicsContext = doc.get("graphicsContext") as Map<String,String>
@@ -162,7 +158,7 @@ class EmbeddedDB(val mediator: Mediator) {
     fun addTheme(name:String, author:String, drawingConfiguration:Map<String,String>):NitriteId {
         val doc = createDocument("name",name)
         doc.put("author", author)
-        doc.put("drawingConfiguration", mediator.toolbox.drawingConfiguration)
+        doc.put("drawingConfiguration", mediator.toolbox.theme)
         val r = this.userDB.getCollection("Themes").insert(doc)
         return r.first()
     }
@@ -208,7 +204,7 @@ class EmbeddedDB(val mediator: Mediator) {
             //j.radius
         }
         //save infos to clone the design (DrawingConfiguration)
-        doc.put("drawingConfiguration", mediator.toolbox.drawingConfiguration)
+        doc.put("drawingConfiguration", mediator.toolbox.theme)
         //save infos to clone the GraphicsContext (zoom, translation)
         doc.put("graphicsContext", mutableMapOf<String,String>(
                 "viewX" to "${mediator.graphicsContext.viewX}",

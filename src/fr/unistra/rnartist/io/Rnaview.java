@@ -1,7 +1,7 @@
 package fr.unistra.rnartist.io;
 
 import fr.unistra.rnartist.gui.Mediator;
-import fr.unistra.rnartist.gui.RNArtist;
+import fr.unistra.rnartist.RNArtist;
 import fr.unistra.rnartist.model.SecondaryStructure;
 import fr.unistra.rnartist.model.TertiaryStructure;
 import org.apache.commons.io.FileUtils;
@@ -12,7 +12,7 @@ import java.net.URL;
 import static fr.unistra.rnartist.io.ParsersKt.parseRnaml;
 import static fr.unistra.rnartist.io.ParsersKt.writePDB;
 import static fr.unistra.rnartist.io.UtilsKt.createTemporaryFile;
-import static fr.unistra.rnartist.utils.RnartistConfig.getUserDir;
+import static fr.unistra.rnartist.RnartistConfig.getUserDir;
 
 public class Rnaview extends Computation {
 

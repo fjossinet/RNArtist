@@ -1,6 +1,6 @@
 package fr.unistra.rnartist.gui
 
-import fr.unistra.rnartist.utils.RnartistConfig
+import fr.unistra.rnartist.RnartistConfig
 import javafx.application.Application
 import javafx.collections.FXCollections
 import javafx.concurrent.Task
@@ -19,6 +19,7 @@ import javafx.stage.StageStyle
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URI
+import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -57,7 +58,7 @@ class NewUserDialog(application: Application): Dialog<ButtonType>() {
             application.hostServices.showDocument(RnartistConfig.website)
         }
         val im = ImageView()
-        im.image = Image("fr/unistra/rnartist/utils/images/logo.png")
+        im.image = Image("fr/unistra/rnartist/io/images/logo.png")
         form.add(im, 0, 0, 2, 1)
         form.add(header, 0, 1, 2, 1)
         val flow = FlowPane()
@@ -134,16 +135,17 @@ class NewUserDialog(application: Application): Dialog<ButtonType>() {
                     val task = object: Task<Pair<Boolean, Exception?>>() {
 
                         override fun call():Pair<Boolean, Exception?> {
+                            try {
                             val client: HttpClient = HttpClient.newHttpClient()
                             val request = HttpRequest.newBuilder()
-                                    .uri(URI.create(RnartistConfig.website))
+                                    .uri(URI.create(RnartistConfig.website+"/register?name=${URLEncoder.encode(name.text.trim(), "UTF-8")}&country=${URLEncoder.encode(country.value.trim(), "UTF-8")}&lab=${URLEncoder.encode(labo.text.trim(), "UTF-8")}"))
                                     .build()
-                            try {
                                 val response: HttpResponse<String> = client.send(request,
                                         HttpResponse.BodyHandlers.ofString())
                                 userID = UUID.randomUUID().toString()
                                 RnartistConfig.userID = userID
                             } catch (e:Exception) {
+                                e.printStackTrace()
                                 return Pair(false,e)
                             }
                             return Pair(true,null)

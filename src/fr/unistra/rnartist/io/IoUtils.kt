@@ -1,4 +1,4 @@
-package fr.unistra.rnartist.utils
+package fr.unistra.rnartist.io
 
 import java.awt.Image
 import java.io.*

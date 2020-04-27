@@ -1,6 +1,6 @@
 package fr.unistra.rnartist.gui;
 
-import fr.unistra.rnartist.utils.RnartistConfig;
+import fr.unistra.rnartist.RnartistConfig;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -61,8 +61,8 @@ public class Toolbox {
         TabPane root = new TabPane();
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        this.create2DOptionsPanel(root);
-        this.create2DThemesPanel(root);
+        this.createThemePanel(root);
+        this.createAllThemesPanel(root);
         this.create3DViewerPanel(root);
 
         Scene scene = new Scene(root);
@@ -75,7 +75,7 @@ public class Toolbox {
         this.stage.setY(0);
     }
 
-    private void create2DOptionsPanel(TabPane root) {
+    private void createThemePanel(TabPane root) {
         final HBox hbox = new HBox();
         hbox.setPadding(new javafx.geometry.Insets(10, 12, 15, 12));
         hbox.setSpacing(10);
@@ -98,7 +98,7 @@ public class Toolbox {
         };
 
         fontNames.setOnAction(eventHandler);
-        fontNames.setValue(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.FontName.toString()));
+        fontNames.setValue(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.FontName.toString()));
 
         GridPane grid = new GridPane();
         grid.setVgap(15);
@@ -112,7 +112,7 @@ public class Toolbox {
         grid.add(fontNames, column, ++row,6,1);
 
         moduloXRes = new Spinner<Integer>();
-        moduloXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 10, Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.ModuloXRes.toString()))));
+        moduloXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 10, Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.ModuloXRes.toString()))));
         moduloXRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -122,7 +122,7 @@ public class Toolbox {
             }
         });
         moduloYRes = new Spinner<Integer>();
-        moduloYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 10, Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.ModuloYRes.toString()))));
+        moduloYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 10, Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.ModuloYRes.toString()))));
         moduloYRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -133,7 +133,7 @@ public class Toolbox {
         });
 
         moduloSizeRes = new Spinner<Double>();
-        moduloSizeRes.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0.5, 1.5, Float.parseFloat(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.ModuloSizeRes.toString())), 0.1));
+        moduloSizeRes.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0.5, 1.5, Float.parseFloat(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.ModuloSizeRes.toString())), 0.1));
         moduloSizeRes.valueProperty().addListener(new ChangeListener<Double>() {
             @Override
             public void changed(ObservableValue<? extends Double> observable, Double oldValue, Double newValue) {
@@ -174,7 +174,7 @@ public class Toolbox {
                 protected Object doInBackground() throws Exception {
                     Map<String, String> colors = RnartistConfig.defaultColorSchemes.get(colorSchemeChoices.getValue());
                     try {
-                        loadDrawingConfiguration(colors);
+                        loadTheme(colors);
                         mediator.getCanvas2D().repaint();
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -200,7 +200,7 @@ public class Toolbox {
             }
         });
         aPicker.setStyle("-fx-color-label-visible: false ;");
-        aPicker.setValue(Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.AColor.toString())));
+        aPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.AColor.toString())));
         grid.add(new Label("A"), column, ++row, 1, 1);
         grid.add(aPicker, ++column , row, 1, 1);
 
@@ -212,7 +212,7 @@ public class Toolbox {
             }
         });
         uPicker.setStyle("-fx-color-label-visible: false ;");
-        uPicker.setValue(Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.UColor.toString())));
+        uPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.UColor.toString())));
         grid.add(new Label("U"),++column , row, 1, 1);
         grid.add(uPicker, ++column, row, 2, 1);
 
@@ -225,7 +225,7 @@ public class Toolbox {
 
         });
         xPicker.setStyle("-fx-color-label-visible: false ;");
-        xPicker.setValue(Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.XColor.toString())));
+        xPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.XColor.toString())));
         grid.add(new Label("X"), ++column, row, 1, 1);
         grid.add(xPicker, ++column, row, 2, 1);
 
@@ -239,7 +239,7 @@ public class Toolbox {
 
         });
         gPicker.setStyle("-fx-color-label-visible: false ;");
-        gPicker.setValue(Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.GColor.toString())));
+        gPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.GColor.toString())));
         grid.add(new Label("G"), column, ++row, 1, 1);
         grid.add(gPicker, ++column, row, 2, 1);
 
@@ -252,7 +252,7 @@ public class Toolbox {
 
         });
         cPicker.setStyle("-fx-color-label-visible: false ;");
-        cPicker.setValue(Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.CColor.toString())));
+        cPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.CColor.toString())));
         grid.add(new Label("C"), ++column, row, 1, 1);
         grid.add(cPicker, ++column, row, 2, 1);
 
@@ -266,7 +266,7 @@ public class Toolbox {
 
         });
         _2dPicker.setStyle("-fx-color-label-visible: false ;");
-        _2dPicker.setValue(Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.SecondaryColor.toString())));
+        _2dPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.SecondaryColor.toString())));
         grid.add(new Label("Secondaries"), column, ++row, 2,1);
         ++column;
         ++column;
@@ -282,7 +282,7 @@ public class Toolbox {
 
         });
         _3dPicker.setStyle("-fx-color-label-visible: false ;");
-        _3dPicker.setValue(Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.TertiaryColor.toString())));
+        _3dPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryColor.toString())));
         grid.add(new Label("Tertiaries"), column, ++row, 2,1);
         ++column;
         ++column;
@@ -297,7 +297,7 @@ public class Toolbox {
         grid.add(new Label("Residues"), column, ++row, 2,1);
         residueBorder = new ComboBox<>();
         residueBorder.getItems().addAll("0", "1", "2", "3", "4");
-        residueBorder.setValue(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.ResidueBorder.toString()));
+        residueBorder.setValue(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.ResidueBorder.toString()));
         residueBorder.setCellFactory(new ShapeCellFactory());
         residueBorder.setButtonCell(new ShapeCell());
         ++column;
@@ -313,7 +313,7 @@ public class Toolbox {
 
         secondaryInteractionWidth = new ComboBox<>();
         secondaryInteractionWidth.getItems().addAll("1", "2", "3", "4", "5", "6", "7", "8", "9");
-        secondaryInteractionWidth.setValue(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.SecondaryInteractionWidth.toString()));
+        secondaryInteractionWidth.setValue(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.SecondaryInteractionWidth.toString()));
         secondaryInteractionWidth.setCellFactory(new ShapeCellFactory());
         secondaryInteractionWidth.setButtonCell(new ShapeCell());
         ++column;
@@ -330,7 +330,7 @@ public class Toolbox {
         column = 0;
         tertiaryInteractionWidth = new ComboBox<>();
         tertiaryInteractionWidth.getItems().addAll("0","1", "2", "3", "4", "5", "6", "7");
-        tertiaryInteractionWidth.setValue(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.TertiaryInteractionWidth.toString()));
+        tertiaryInteractionWidth.setValue(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryInteractionWidth.toString()));
         tertiaryInteractionWidth.setCellFactory(new ShapeCellFactory());
         tertiaryInteractionWidth.setButtonCell(new ShapeCell());
         grid.add(tertiaryInteractionWidth, column, ++row,2,1);
@@ -343,7 +343,7 @@ public class Toolbox {
 
         tertiaryInteractionStyle = new ComboBox<>();
         tertiaryInteractionStyle.getItems().addAll("Solid", "Dashed");
-        tertiaryInteractionStyle.setValue(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.TertiaryInteractionStyle.toString()));
+        tertiaryInteractionStyle.setValue(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryInteractionStyle.toString()));
         tertiaryInteractionStyle.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
@@ -355,7 +355,7 @@ public class Toolbox {
         ++column;
         ++column;
         _3dOpacity = new Spinner<Integer>();
-        _3dOpacity.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100, Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.TertiaryOpacity.toString()))));
+        _3dOpacity.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100, Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryOpacity.toString()))));
         _3dOpacity.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -376,7 +376,7 @@ public class Toolbox {
         ++column;
         grid.add(new Label("s"), ++column, row, 1, 1);
         haloWidth = new Spinner<Integer>();
-        haloWidth.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 20, Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.HaloWidth.toString()))));
+        haloWidth.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 20, Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.HaloWidth.toString()))));
         haloWidth.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -388,7 +388,7 @@ public class Toolbox {
         grid.add(haloWidth, ++column, row, 1, 1);
         grid.add(new Label("o"), ++column, row, 1, 1);
         haloOpacity = new Spinner<Integer>();
-        haloOpacity.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100, Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.HaloOpacity.toString()))));
+        haloOpacity.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100, Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.HaloOpacity.toString()))));
         haloOpacity.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -403,11 +403,45 @@ public class Toolbox {
         ScrollPane sp = new ScrollPane(hbox);
         sp.setFitToWidth(true);
         sp.setFitToHeight(true);
-        Tab sketch = new Tab("2D Options", sp);
-        root.getTabs().add(sketch);
+
+        GridPane saveForm = new GridPane();
+        ColumnConstraints cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        saveForm.getColumnConstraints().addAll(new ColumnConstraints(),cc);
+        saveForm.setHgap(5);
+        saveForm.setVgap(10);
+        saveForm.setPadding(new Insets(10, 10, 10, 10));
+
+        Label title = new Label("Name");
+        saveForm.add(title, 0, 0);
+
+        TextField nameField = new TextField();
+        saveForm.add(nameField, 1, 0);
+        nameField.setPromptText("Choose a Theme Name");
+
+        Button save = new Button("Save My Current Theme");
+        saveForm.add(save, 0, 1,2,1);
+        GridPane.setHalignment(save, HPos.CENTER);
+
+        save.setOnMouseClicked(new EventHandler<MouseEvent>() {
+
+            @Override
+            public void handle(MouseEvent e)  {
+                NitriteId id = mediator.getEmbeddedDB().addTheme(nameField.getText().trim(), "Fabrice Jossinet",  mediator.getToolbox().getTheme());
+                //themesList.add(0,new Theme(id, nameField.getText().trim(), "Fabrice Jossinet"));
+            }
+        });
+
+        VBox vbox =  new VBox();
+        vbox.setFillWidth(true);
+        vbox.getChildren().add(saveForm);
+        vbox.getChildren().add(sp);
+        VBox.setVgrow(sp, Priority.ALWAYS);
+        Tab theme = new Tab("Current Theme", vbox);
+        root.getTabs().add(theme);
     }
 
-    private void create2DThemesPanel(TabPane root) {
+    private void createAllThemesPanel(TabPane root) {
         VBox vbox =  new VBox();
         vbox.setFillWidth(true);
 
@@ -431,39 +465,38 @@ public class Toolbox {
             }
         });
 
-        GridPane saveForm = new GridPane();
+        GridPane reloadForm = new GridPane();
         ColumnConstraints cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
-        saveForm.getColumnConstraints().addAll(new ColumnConstraints(),cc);
-        saveForm.setHgap(5);
-        saveForm.setVgap(10);
-        saveForm.setPadding(new Insets(10, 10, 10, 10));
+        reloadForm.getColumnConstraints().addAll(new ColumnConstraints(),cc);
+        reloadForm.setHgap(5);
+        reloadForm.setVgap(10);
+        reloadForm.setPadding(new Insets(10, 10, 10, 10));
 
-        Label title = new Label("Name");
-        saveForm.add(title, 0, 0);
+        /*Label title = new Label("Name");
+        reloadForm.add(title, 0, 0);
 
         TextField nameField = new TextField();
-        saveForm.add(nameField, 1, 0);
-        nameField.setPromptText("Choose a Theme Nameç");
+        reloadForm.add(nameField, 1, 0);
+        nameField.setPromptText("Choose a Theme Name");*/
 
-        Button save = new Button("Save My 2D Options");
-        saveForm.add(save, 0, 1,2,1);
-        GridPane.setHalignment(save, HPos.CENTER);
+        Button reload = new Button("Reload");
+        reloadForm.add(reload, 0, 0,2,1);
+        GridPane.setHalignment(reload, HPos.CENTER);
 
-        save.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        reload.setOnMouseClicked(new EventHandler<MouseEvent>() {
 
             @Override
             public void handle(MouseEvent e)  {
-                NitriteId id = mediator.getEmbeddedDB().addTheme(nameField.getText().trim(), "Fabrice Jossinet",  mediator.getToolbox().getDrawingConfiguration());
-                themesList.add(0,new Theme(id, nameField.getText().trim(), "Fabrice Jossinet"));
+
             }
         });
 
-        vbox.getChildren().add(saveForm);
+        vbox.getChildren().add(reloadForm);
         vbox.getChildren().add(listView);
         VBox.setVgrow(listView, Priority.ALWAYS);
 
-        Tab themes = new Tab("2D Themes", vbox);
+        Tab themes = new Tab("All Themes", vbox);
         root.getTabs().add(themes);
     }
 
@@ -472,47 +505,47 @@ public class Toolbox {
         root.getTabs().add(_3dViewer);
     }
 
-    public void loadDrawingConfiguration(Map<String,String> configuration) {
-        aPicker.setValue(javafx.scene.paint.Color.web(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.AColor.toString(), aPicker.getValue().toString())));
-        uPicker.setValue(javafx.scene.paint.Color.web(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.UColor.toString(), uPicker.getValue().toString())));
-        gPicker.setValue(javafx.scene.paint.Color.web(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.GColor.toString(), gPicker.getValue().toString())));
-        cPicker.setValue(javafx.scene.paint.Color.web(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.CColor.toString(), cPicker.getValue().toString())));
-        xPicker.setValue(javafx.scene.paint.Color.web(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.XColor.toString(), xPicker.getValue().toString())));
-        _2dPicker.setValue(javafx.scene.paint.Color.web(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.SecondaryColor.toString(), _2dPicker.getValue().toString())));
-        _3dPicker.setValue(javafx.scene.paint.Color.web(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.TertiaryColor.toString(), _3dPicker.getValue().toString())));
-        _3dOpacity.getValueFactory().setValue(Integer.parseInt(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.TertiaryOpacity.toString(), _3dOpacity.getValue().toString())));
-        haloOpacity.getValueFactory().setValue(Integer.parseInt(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.HaloOpacity.toString(), haloOpacity.getValue().toString())));
-        haloWidth.getValueFactory().setValue(Integer.parseInt(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.HaloWidth.toString(), haloWidth.getValue().toString())));
-        secondaryInteractionWidth.setValue(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth()));
-        tertiaryInteractionWidth.setValue(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.TertiaryInteractionWidth.toString(),""+getTertiaryInteractionWidth()));
-        residueBorder.setValue(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.ResidueBorder.toString(),""+getResidueBorder()));
-        tertiaryInteractionStyle.setValue(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue()));
-        fontNames.setValue(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.FontName.toString(), getFontName()));
-        moduloXRes.getValueFactory().setValue(Integer.parseInt(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.ModuloXRes.toString(), ""+getModuloXRes())));
-        moduloYRes.getValueFactory().setValue(Integer.parseInt(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.ModuloYRes.toString(), ""+getModuloYRes())));
-        moduloSizeRes.getValueFactory().setValue(Double.parseDouble(configuration.getOrDefault(RnartistConfig.ConfigurationParameter.ModuloSizeRes.toString(), ""+getModuloSizeRes())));
+    public void loadTheme(Map<String,String> theme) {
+        aPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(RnartistConfig.ThemeParameter.AColor.toString(), aPicker.getValue().toString())));
+        uPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(RnartistConfig.ThemeParameter.UColor.toString(), uPicker.getValue().toString())));
+        gPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(RnartistConfig.ThemeParameter.GColor.toString(), gPicker.getValue().toString())));
+        cPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(RnartistConfig.ThemeParameter.CColor.toString(), cPicker.getValue().toString())));
+        xPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(RnartistConfig.ThemeParameter.XColor.toString(), xPicker.getValue().toString())));
+        _2dPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(RnartistConfig.ThemeParameter.SecondaryColor.toString(), _2dPicker.getValue().toString())));
+        _3dPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(RnartistConfig.ThemeParameter.TertiaryColor.toString(), _3dPicker.getValue().toString())));
+        _3dOpacity.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(RnartistConfig.ThemeParameter.TertiaryOpacity.toString(), _3dOpacity.getValue().toString())));
+        haloOpacity.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(RnartistConfig.ThemeParameter.HaloOpacity.toString(), haloOpacity.getValue().toString())));
+        haloWidth.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(RnartistConfig.ThemeParameter.HaloWidth.toString(), haloWidth.getValue().toString())));
+        secondaryInteractionWidth.setValue(theme.getOrDefault(RnartistConfig.ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth()));
+        tertiaryInteractionWidth.setValue(theme.getOrDefault(RnartistConfig.ThemeParameter.TertiaryInteractionWidth.toString(),""+getTertiaryInteractionWidth()));
+        residueBorder.setValue(theme.getOrDefault(RnartistConfig.ThemeParameter.ResidueBorder.toString(),""+getResidueBorder()));
+        tertiaryInteractionStyle.setValue(theme.getOrDefault(RnartistConfig.ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue()));
+        fontNames.setValue(theme.getOrDefault(RnartistConfig.ThemeParameter.FontName.toString(), getFontName()));
+        moduloXRes.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(RnartistConfig.ThemeParameter.ModuloXRes.toString(), ""+getModuloXRes())));
+        moduloYRes.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(RnartistConfig.ThemeParameter.ModuloYRes.toString(), ""+getModuloYRes())));
+        moduloSizeRes.getValueFactory().setValue(Double.parseDouble(theme.getOrDefault(RnartistConfig.ThemeParameter.ModuloSizeRes.toString(), ""+getModuloSizeRes())));
     }
 
-    public Map<String,String> getDrawingConfiguration() {
+    public Map<String,String> getTheme() {
         Map<String, String> configuration = new HashMap<String, String>();
-        configuration.put(RnartistConfig.ConfigurationParameter.AColor.toString(), aPicker.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.UColor.toString(), uPicker.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.GColor.toString(), gPicker.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.CColor.toString(), cPicker.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.XColor.toString(), xPicker.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.SecondaryColor.toString(), _2dPicker.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.TertiaryColor.toString(), _3dPicker.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.TertiaryOpacity.toString(), _3dOpacity.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.HaloOpacity.toString(), haloOpacity.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.HaloWidth.toString(), haloWidth.getValue().toString());
-        configuration.put(RnartistConfig.ConfigurationParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth());
-        configuration.put(RnartistConfig.ConfigurationParameter.TertiaryInteractionWidth.toString(), ""+getTertiaryInteractionWidth());
-        configuration.put(RnartistConfig.ConfigurationParameter.ResidueBorder.toString(), ""+getResidueBorder());
-        configuration.put(RnartistConfig.ConfigurationParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue());
-        configuration.put(RnartistConfig.ConfigurationParameter.FontName.toString(), getFontName());
-        configuration.put(RnartistConfig.ConfigurationParameter.ModuloXRes.toString(), ""+getModuloXRes());
-        configuration.put(RnartistConfig.ConfigurationParameter.ModuloYRes.toString(), ""+getModuloYRes());
-        configuration.put(RnartistConfig.ConfigurationParameter.ModuloSizeRes.toString(), ""+getModuloSizeRes());
+        configuration.put(RnartistConfig.ThemeParameter.AColor.toString(), aPicker.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.UColor.toString(), uPicker.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.GColor.toString(), gPicker.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.CColor.toString(), cPicker.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.XColor.toString(), xPicker.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.SecondaryColor.toString(), _2dPicker.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.TertiaryColor.toString(), _3dPicker.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.TertiaryOpacity.toString(), _3dOpacity.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.HaloOpacity.toString(), haloOpacity.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.HaloWidth.toString(), haloWidth.getValue().toString());
+        configuration.put(RnartistConfig.ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth());
+        configuration.put(RnartistConfig.ThemeParameter.TertiaryInteractionWidth.toString(), ""+getTertiaryInteractionWidth());
+        configuration.put(RnartistConfig.ThemeParameter.ResidueBorder.toString(), ""+getResidueBorder());
+        configuration.put(RnartistConfig.ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue());
+        configuration.put(RnartistConfig.ThemeParameter.FontName.toString(), getFontName());
+        configuration.put(RnartistConfig.ThemeParameter.ModuloXRes.toString(), ""+getModuloXRes());
+        configuration.put(RnartistConfig.ThemeParameter.ModuloYRes.toString(), ""+getModuloYRes());
+        configuration.put(RnartistConfig.ThemeParameter.ModuloSizeRes.toString(), ""+getModuloSizeRes());
         return configuration;
     }
 
@@ -672,6 +705,7 @@ public class Toolbox {
         private final Label name = new Label();
         private final Label author = new Label();
         private final AnchorPane content = new AnchorPane();
+        private final Button share;
 
         public ThemeCell() {
             name.setStyle("-fx-font-weight: bold; -fx-font-size: 1.2em;");
@@ -682,7 +716,14 @@ public class Toolbox {
             buttons.setSpacing(5);
             buttons.setPadding(new Insets(5,5,5,5));
             buttons.getChildren().add(new Button("",new Glyph("FontAwesome", FontAwesome.Glyph.EYE)));
-            buttons.getChildren().add(new Button("",new Glyph("FontAwesome", FontAwesome.Glyph.GLOBE)));
+            this.share = new Button("",new Glyph("FontAwesome", FontAwesome.Glyph.GLOBE));
+            this.share.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    mediator.getToolbox().getTheme();
+                }
+            });
+            buttons.getChildren().add(share);
             buttons.getChildren().add(new Button("",new Glyph("FontAwesome", FontAwesome.Glyph.SAVE)));
             GridPane.setConstraints(buttons, 0, 2,2,1);
             gridPane.getColumnConstraints().add(new ColumnConstraints(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Priority.NEVER, HPos.LEFT, true));

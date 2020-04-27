@@ -1,16 +1,15 @@
 package fr.unistra.rnartist.gui
 
+import fr.unistra.rnartist.gui.Mediator
 import fr.unistra.rnartist.model.SecondaryStructure
 import fr.unistra.rnartist.model.SecondaryStructureDrawing
 import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.value.ChangeListener
-import javafx.beans.value.ObservableValue
 import java.awt.*
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
-class Canvas2D(val mediator:Mediator): JPanel() {
+class Canvas2D(val mediator: Mediator): JPanel() {
 
     var secondaryStructureDrawing = SimpleObjectProperty<SecondaryStructureDrawing>()
     lateinit private var offScreenBuffer: Image

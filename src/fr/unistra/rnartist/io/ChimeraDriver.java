@@ -2,7 +2,7 @@ package fr.unistra.rnartist.io;
 
 import fr.unistra.rnartist.gui.Mediator;
 import fr.unistra.rnartist.model.*;
-import fr.unistra.rnartist.utils.RnartistConfig;
+import fr.unistra.rnartist.RnartistConfig;
 
 import javax.swing.*;
 import java.io.*;

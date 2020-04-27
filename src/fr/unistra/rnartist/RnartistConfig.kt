@@ -1,8 +1,7 @@
-package fr.unistra.rnartist.utils
+package fr.unistra.rnartist
 
 import com.google.gson.Gson
 import fr.unistra.rnartist.gui.Mediator
-import fr.unistra.rnartist.gui.RNArtist
 import javafx.scene.paint.Color
 import org.apache.commons.lang3.tuple.MutablePair
 import org.jdom.Document
@@ -24,7 +23,7 @@ import java.util.prefs.BackingStoreException
 
 object RnartistConfig {
 
-    enum class ConfigurationParameter {
+    enum class ThemeParameter {
         AColor, UColor, GColor, CColor, XColor, SecondaryColor, TertiaryColor, HaloWidth, HaloOpacity, TertiaryOpacity, SecondaryInteractionWidth, TertiaryInteractionWidth, TertiaryInteractionStyle, ResidueBorder, FontName, ModuloXRes, ModuloYRes, ModuloSizeRes
     }
 
@@ -36,57 +35,57 @@ object RnartistConfig {
     @JvmField
     val defaultColorSchemes: Map<String, Map<String, String>> = mapOf(
             "Candies" to mapOf<String, String>(
-                ConfigurationParameter.AColor.toString() to  Color.rgb(0, 192, 255).toString(),
-                ConfigurationParameter.UColor.toString() to Color.rgb(192, 128, 128).toString(),
-                ConfigurationParameter.GColor.toString() to Color.rgb(128, 192, 0).toString(),
-                ConfigurationParameter.CColor.toString() to Color.rgb(255, 0, 255).toString(),
-                ConfigurationParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
-                ConfigurationParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
-                ConfigurationParameter.TertiaryColor.toString() to Color.rgb(255, 192, 128).toString()
+                ThemeParameter.AColor.toString() to  Color.rgb(0, 192, 255).toString(),
+                ThemeParameter.UColor.toString() to Color.rgb(192, 128, 128).toString(),
+                ThemeParameter.GColor.toString() to Color.rgb(128, 192, 0).toString(),
+                ThemeParameter.CColor.toString() to Color.rgb(255, 0, 255).toString(),
+                ThemeParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
+                ThemeParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
+                ThemeParameter.TertiaryColor.toString() to Color.rgb(255, 192, 128).toString()
             ),
 
             "Grapes" to mapOf<String, String>(
-                    ConfigurationParameter.AColor.toString() to  Color.rgb(128, 128, 0).toString(),
-                    ConfigurationParameter.UColor.toString() to Color.rgb(128, 128, 128).toString(),
-                    ConfigurationParameter.GColor.toString() to Color.rgb(192, 0, 0).toString(),
-                    ConfigurationParameter.CColor.toString() to Color.rgb(255, 128, 0).toString(),
-                    ConfigurationParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
-                    ConfigurationParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
-                    ConfigurationParameter.TertiaryColor.toString() to Color.rgb(255, 192, 128).toString()
+                    ThemeParameter.AColor.toString() to  Color.rgb(128, 128, 0).toString(),
+                    ThemeParameter.UColor.toString() to Color.rgb(128, 128, 128).toString(),
+                    ThemeParameter.GColor.toString() to Color.rgb(192, 0, 0).toString(),
+                    ThemeParameter.CColor.toString() to Color.rgb(255, 128, 0).toString(),
+                    ThemeParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
+                    ThemeParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
+                    ThemeParameter.TertiaryColor.toString() to Color.rgb(255, 192, 128).toString()
             ),
 
             "Metal" to mapOf<String, String>(
-                    ConfigurationParameter.AColor.toString() to  Color.rgb(153, 77, 0).toString(),
-                    ConfigurationParameter.UColor.toString() to Color.rgb(179, 128, 26).toString(),
-                    ConfigurationParameter.GColor.toString() to Color.rgb(179, 179, 179).toString(),
-                    ConfigurationParameter.CColor.toString() to Color.rgb(77, 77, 77).toString(),
-                    ConfigurationParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
-                    ConfigurationParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
-                    ConfigurationParameter.TertiaryColor.toString() to Color.rgb(153, 153, 51).toString()
+                    ThemeParameter.AColor.toString() to  Color.rgb(153, 77, 0).toString(),
+                    ThemeParameter.UColor.toString() to Color.rgb(179, 128, 26).toString(),
+                    ThemeParameter.GColor.toString() to Color.rgb(179, 179, 179).toString(),
+                    ThemeParameter.CColor.toString() to Color.rgb(77, 77, 77).toString(),
+                    ThemeParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
+                    ThemeParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
+                    ThemeParameter.TertiaryColor.toString() to Color.rgb(153, 153, 51).toString()
             )
     )
 
     private var document: Document? = null
     @JvmField
-    var defaultDrawingConfiguration = mutableMapOf<String,String>(
-            ConfigurationParameter.AColor.toString() to Color.rgb(0,192,255).toString(),
-            ConfigurationParameter.UColor.toString() to Color.rgb(192,128,128).toString(),
-            ConfigurationParameter.GColor.toString() to Color.rgb(128,192,0).toString(),
-            ConfigurationParameter.CColor.toString() to Color.rgb(255,0,255).toString(),
-            ConfigurationParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
-            ConfigurationParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
-            ConfigurationParameter.TertiaryColor.toString() to Color.rgb(255, 192,128).toString(),
-            ConfigurationParameter.ResidueBorder.toString() to "2",
-            ConfigurationParameter.SecondaryInteractionWidth.toString() to "4",
-            ConfigurationParameter.TertiaryInteractionWidth.toString() to "2",
-            ConfigurationParameter.HaloWidth.toString() to "10",
-            ConfigurationParameter.HaloOpacity.toString() to "50",
-            ConfigurationParameter.TertiaryOpacity.toString() to "50",
-            ConfigurationParameter.TertiaryInteractionStyle.toString() to "Dashed",
-            ConfigurationParameter.FontName.toString() to "Tahoma",
-            ConfigurationParameter.ModuloXRes.toString() to "0",
-            ConfigurationParameter.ModuloYRes.toString() to "0",
-            ConfigurationParameter.ModuloSizeRes.toString() to "1.0"
+    var defaultTheme = mutableMapOf<String,String>(
+            ThemeParameter.AColor.toString() to Color.rgb(0,192,255).toString(),
+            ThemeParameter.UColor.toString() to Color.rgb(192,128,128).toString(),
+            ThemeParameter.GColor.toString() to Color.rgb(128,192,0).toString(),
+            ThemeParameter.CColor.toString() to Color.rgb(255,0,255).toString(),
+            ThemeParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
+            ThemeParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
+            ThemeParameter.TertiaryColor.toString() to Color.rgb(255, 192,128).toString(),
+            ThemeParameter.ResidueBorder.toString() to "2",
+            ThemeParameter.SecondaryInteractionWidth.toString() to "4",
+            ThemeParameter.TertiaryInteractionWidth.toString() to "2",
+            ThemeParameter.HaloWidth.toString() to "10",
+            ThemeParameter.HaloOpacity.toString() to "50",
+            ThemeParameter.TertiaryOpacity.toString() to "50",
+            ThemeParameter.TertiaryInteractionStyle.toString() to "Dashed",
+            ThemeParameter.FontName.toString() to "Tahoma",
+            ThemeParameter.ModuloXRes.toString() to "0",
+            ThemeParameter.ModuloYRes.toString() to "0",
+            ThemeParameter.ModuloSizeRes.toString() to "1.0"
     )
 
     @JvmStatic
@@ -98,10 +97,10 @@ object RnartistConfig {
             val builder = SAXBuilder()
             try {
                 document = builder.build(configFile)
-                val drawing = document!!.getRootElement().getChild("drawingConfiguration")
+                val drawing = document!!.getRootElement().getChild("theme")
                 if (drawing != null) {
                     for (c in drawing.getChildren()) {
-                        defaultDrawingConfiguration[(c as Element).name] =  (c as Element).text
+                        defaultTheme[(c as Element).name] =  (c as Element).text
                     }
                 }
             } catch (e: JDOMException) {
@@ -109,7 +108,7 @@ object RnartistConfig {
             }
         } else {
             val root = Element("rnartist-config")
-            root.setAttribute("release", RnartistConfig.getRnartistRelease())
+            root.setAttribute("release", getRnartistRelease())
             document = Document(root)
         }
     }
@@ -117,19 +116,19 @@ object RnartistConfig {
     @JvmStatic
     @Throws(IOException::class)
     fun saveConfig(mediator: Mediator) {
-        var drawing = document!!.rootElement.getChild("drawingConfiguration")
+        var drawing = document!!.rootElement.getChild("theme")
         if (drawing == null) {
-            drawing = Element("drawingConfiguration")
+            drawing = Element("theme")
             document!!.rootElement.addContent(drawing)
         } else
             drawing.removeContent()
-        for ((k, v) in mediator.toolbox.drawingConfiguration) {
+        for ((k, v) in mediator.toolbox.theme) {
             val e = Element(k)
             e.setText(v)
             drawing.addContent(e)
         }
         val outputter = XMLOutputter(Format.getPrettyFormat())
-        val writer = FileWriter(File(RnartistConfig.getUserDir(), "config.xml"))
+        val writer = FileWriter(File(getUserDir(), "config.xml"))
         outputter.output(document, writer)
     }
 

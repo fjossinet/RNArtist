@@ -2,9 +2,9 @@ package fr.unistra.rnartist.model
 
 import fr.unistra.rnartist.gui.GraphicContext
 import fr.unistra.rnartist.gui.Mediator
-import fr.unistra.rnartist.utils.RnartistConfig
-import fr.unistra.rnartist.utils.RnartistConfig.DASHED
-import fr.unistra.rnartist.utils.RnartistConfig.SOLID
+import fr.unistra.rnartist.RnartistConfig
+import fr.unistra.rnartist.RnartistConfig.DASHED
+import fr.unistra.rnartist.RnartistConfig.SOLID
 import java.awt.*
 import java.awt.geom.*
 import kotlin.math.hypot
@@ -24,27 +24,27 @@ fun helixDrawingWidth():Double {
     return radiusConst*8.0 /* each residue = 4*radius + 4*radius for the base-pair symbol (1 radius for a shape (squarre, triangle, circle, line) + 2*0.5 radius to have space between the residue circles and the symbols)*/
 }
 
-class DrawingConfiguration(val mediator: Mediator) {
+class Theme(val mediator: Mediator) {
 
-    var haloWidth = Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.HaloWidth.toString()))
+    var haloWidth = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.HaloWidth.toString()))
         get() = mediator.toolbox.haloWidth.value
-    var haloOpacity = Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.HaloOpacity.toString()))
+    var haloOpacity = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.HaloOpacity.toString()))
         get() = mediator.toolbox.haloOpacity.value
-    var tertiaryOpacity = Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.TertiaryOpacity.toString()))
+    var tertiaryOpacity = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryOpacity.toString()))
         get() = mediator.toolbox._3dOpacity.value
-    var tertiaryInteractionStyle = if (RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.TertiaryInteractionStyle.toString()) == "Dashed")  DASHED else SOLID
+    var tertiaryInteractionStyle = if (RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryInteractionStyle.toString()) == "Dashed")  DASHED else SOLID
         get() = mediator.toolbox.tertiaryInteractionStyle
-    var residueBorder = Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.ResidueBorder.toString()))
+    var residueBorder = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.ResidueBorder.toString()))
         get() = mediator.toolbox.residueBorder
-    var secondaryInteractionWidth = Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.SecondaryInteractionWidth.toString()))
+    var secondaryInteractionWidth = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.SecondaryInteractionWidth.toString()))
         get() = mediator.toolbox.secondaryInteractionWidth
-    var tertiaryInteractionWidth = Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.TertiaryInteractionWidth.toString()))
+    var tertiaryInteractionWidth = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryInteractionWidth.toString()))
         get() = mediator.toolbox.tertiaryInteractionWidth
-    var moduloXRes = Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.ModuloXRes.toString()))
+    var moduloXRes = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.ModuloXRes.toString()))
         get() = mediator.toolbox.moduloXRes
-    var moduloYRes = Integer.parseInt(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.ModuloYRes.toString()))
+    var moduloYRes = Integer.parseInt(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.ModuloYRes.toString()))
         get() = mediator.toolbox.moduloYRes
-    var moduloSizeRes = RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.ModuloSizeRes.toString())!!.toFloat()
+    var moduloSizeRes = RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.ModuloSizeRes.toString())!!.toFloat()
         get() = mediator.toolbox.moduloSizeRes
     var ATransX: Float = 0F
     var ATransY: Float = 0F
@@ -56,21 +56,21 @@ class DrawingConfiguration(val mediator: Mediator) {
     var CTransY: Float = 0F
     var XTransX: Float = 0F
     var XTransY: Float = 0F
-    var AColor = javafx.scene.paint.Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.AColor.toString()))
+    var AColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.AColor.toString()))
         get() = mediator.toolbox.aColor
-    var UColor = javafx.scene.paint.Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.UColor.toString()))
+    var UColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.UColor.toString()))
         get() = mediator.toolbox.uColor
-    var GColor = javafx.scene.paint.Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.GColor.toString()))
+    var GColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.GColor.toString()))
         get() = mediator.toolbox.gColor
-    var CColor = javafx.scene.paint.Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.CColor.toString()))
+    var CColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.CColor.toString()))
         get() = mediator.toolbox.cColor
-    var XColor = javafx.scene.paint.Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.XColor.toString()))
+    var XColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.XColor.toString()))
         get() = mediator.toolbox.xColor
-    var SecondaryColor = javafx.scene.paint.Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.SecondaryColor.toString()))
+    var SecondaryColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.SecondaryColor.toString()))
         get() = mediator.toolbox.get2dInteractionColor()
-    var TertiaryColor = javafx.scene.paint.Color.web(RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.TertiaryColor.toString()))
+    var TertiaryColor = javafx.scene.paint.Color.web(RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.TertiaryColor.toString()))
         get() = mediator.toolbox.get3dInteractionColor()
-    var fontName = RnartistConfig.defaultDrawingConfiguration.get(RnartistConfig.ConfigurationParameter.FontName.toString())
+    var fontName = RnartistConfig.defaultTheme.get(RnartistConfig.ThemeParameter.FontName.toString())
         get() = mediator.toolbox.fontName
     var displayResidueNames = true
     var fitToResiduesBetweenBranches = true
@@ -78,7 +78,7 @@ class DrawingConfiguration(val mediator: Mediator) {
     var quickDraw = false
 }
 
-fun pickOptimalFontSize(g: Graphics2D, gc: GraphicContext, dc:DrawingConfiguration, title: String, width: Double, height: Double): Int {
+fun pickOptimalFontSize(g: Graphics2D, gc: GraphicContext, dc:Theme, title: String, width: Double, height: Double): Int {
     var dimension: Dimension? = null
     var fontSize = (100*gc.finalZoomLevel).toInt() //initial value
     do {
@@ -97,7 +97,7 @@ fun getStringBoundsRectangle2D(g: Graphics2D, title: String, font: Font): Dimens
     return Dimension(r.getWidth().toInt(), (lm.ascent-lm.descent).toInt())
 }
 
-class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame:Rectangle2D, val drawingConfig:DrawingConfiguration) {
+class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame:Rectangle2D, val theme:Theme) {
 
     val branches = mutableListOf<JunctionCircle>()
     val helices = mutableListOf<HelixLine>()
@@ -117,7 +117,7 @@ class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame
         }
 
     init {
-        this.secondaryStructure.rna.seq.forEachIndexed { index,char -> this.residues.add(ResidueCircle(index+1, char, drawingConfig))}
+        this.secondaryStructure.rna.seq.forEachIndexed { index,char -> this.residues.add(ResidueCircle(index+1, char, theme))}
         //we start the drawing with the helices with no junction on one side
         var currentPos = 0
         lateinit var lastBranchConstructed: JunctionCircle
@@ -131,8 +131,8 @@ class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame
                 currentPos += 1
                 val remaining:Float = (this.secondaryStructure.length - currentPos + 1).toFloat()
                 if (remaining > 0) {
-                    this.singleStrands.add(SingleStrandLine(SingleStrand(start=currentPos, end=this.secondaryStructure.length), start=bottom, end= if (this.drawingConfig.fitToResiduesBetweenBranches) Point2D.Double(bottom.x + radiusConst*2 * (remaining+1), bottom.y) else Point2D.Double(bottom.x + 200, bottom.y)))
-                    this.residues[this.secondaryStructure.length-1].center = if (this.drawingConfig.fitToResiduesBetweenBranches)
+                    this.singleStrands.add(SingleStrandLine(SingleStrand(start=currentPos, end=this.secondaryStructure.length), start=bottom, end= if (this.theme.fitToResiduesBetweenBranches) Point2D.Double(bottom.x + radiusConst*2 * (remaining+1), bottom.y) else Point2D.Double(bottom.x + 200, bottom.y)))
+                    this.residues[this.secondaryStructure.length-1].center = if (this.theme.fitToResiduesBetweenBranches)
                                         Point2D.Double(bottom.x + radiusConst*2 * (remaining+1), bottom.y)
                                         else Point2D.Double( bottom.x + 200, bottom.y)
                 }
@@ -154,8 +154,8 @@ class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame
                 this.helices.add(HelixLine(nextHelix.third, bottom, top))
 
                 if (residuesBeforeHelix > 0) {
-                    this.singleStrands.add(SingleStrandLine(SingleStrand(start = currentPos+1, end = residuesBeforeHelix), bottom, if (this.drawingConfig.fitToResiduesBetweenBranches) Point2D.Double(bottom.x - radiusConst * 2 *(residuesBeforeHelix+1), bottom.y) else Point2D.Double(bottom.x - 200, bottom.y)))
-                    this.residues[0].center = if (this.drawingConfig.fitToResiduesBetweenBranches) Point2D.Double(bottom.x - radiusConst * 2 * (residuesBeforeHelix+1), bottom.y) else Point2D.Double(bottom.x - 200, bottom.y)
+                    this.singleStrands.add(SingleStrandLine(SingleStrand(start = currentPos+1, end = residuesBeforeHelix), bottom, if (this.theme.fitToResiduesBetweenBranches) Point2D.Double(bottom.x - radiusConst * 2 *(residuesBeforeHelix+1), bottom.y) else Point2D.Double(bottom.x - 200, bottom.y)))
+                    this.residues[0].center = if (this.theme.fitToResiduesBetweenBranches) Point2D.Double(bottom.x - radiusConst * 2 * (residuesBeforeHelix+1), bottom.y) else Point2D.Double(bottom.x - 200, bottom.y)
                 }
 
                 this.branches.add(lastBranchConstructed)
@@ -209,7 +209,7 @@ class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame
                     transX += maxX - (minX+transX)
                 }
 
-                if (this.drawingConfig.fitToResiduesBetweenBranches) {
+                if (this.theme.fitToResiduesBetweenBranches) {
                     val minimalTransX = (nextHelix.first-currentPos+2) * radiusConst*2
 
                     if (transX < minimalTransX) {
@@ -298,27 +298,27 @@ class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame
     }
 
     fun draw (g: Graphics2D, gc:GraphicContext) {
-        if (!drawingConfig.quickDraw) {
+        if (!theme.quickDraw) {
             val at = AffineTransform()
             at.translate(gc.viewX, gc.viewY)
             at.scale(gc.finalZoomLevel, gc.finalZoomLevel)
             val _c = at.createTransformedShape(this.residues.first().circle)
-            g.font = Font(this.drawingConfig.fontName, this.drawingConfig.fontStyle, pickOptimalFontSize(g, gc, this.drawingConfig, this.residues.first().label.name, _c.bounds2D.width, _c.bounds2D.height))
+            g.font = Font(this.theme.fontName, this.theme.fontStyle, pickOptimalFontSize(g, gc, this.theme, this.residues.first().label.name, _c.bounds2D.width, _c.bounds2D.height))
             var r2d = getStringBoundsRectangle2D(g, "A", g.font)
-            this.drawingConfig.ATransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
-            this.drawingConfig.ATransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
+            this.theme.ATransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
+            this.theme.ATransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
             r2d = getStringBoundsRectangle2D(g, "U", g.font)
-            this.drawingConfig.UTransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
-            this.drawingConfig.UTransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
+            this.theme.UTransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
+            this.theme.UTransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
             r2d = getStringBoundsRectangle2D(g, "G", g.font)
-            this.drawingConfig.GTransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
-            this.drawingConfig.GTransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
+            this.theme.GTransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
+            this.theme.GTransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
             r2d = getStringBoundsRectangle2D(g, "C", g.font)
-            this.drawingConfig.CTransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
-            this.drawingConfig.CTransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
+            this.theme.CTransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
+            this.theme.CTransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
             r2d = getStringBoundsRectangle2D(g, "X", g.font)
-            this.drawingConfig.XTransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
-            this.drawingConfig.XTransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
+            this.theme.XTransX = (_c.bounds2D.width - r2d.width).toFloat() / 2F
+            this.theme.XTransY = (_c.bounds2D.height + r2d.height).toFloat() / 2F
         }
         /*for (jC in this.branches) {
             jC.draw(g, gc)
@@ -333,21 +333,21 @@ class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame
         }*/
 
         for (bond in this.phosphodiesterBonds) {
-            bond.draw(g, gc, this.drawingConfig)
+            bond.draw(g, gc, this.theme)
         }
 
 
         for (interaction in this.secondaryInteractions) {
-            interaction.draw(g, gc, this.drawingConfig)
+            interaction.draw(g, gc, this.theme)
         }
 
-        if (!drawingConfig.quickDraw)
+        if (!theme.quickDraw)
             for (interaction in this.tertiaryInteractions) {
-                interaction.draw(g, gc, this.drawingConfig)
+                interaction.draw(g, gc, this.theme)
             }
 
         for (residue in this.residues) {
-            residue.draw(g, gc, this.drawingConfig)
+            residue.draw(g, gc, this.theme)
         }
 
     }
@@ -416,7 +416,7 @@ class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame
     }
 }
 
-class ResidueCircle(val absPos:Int, label:Char, val drawingConfig:DrawingConfiguration) {
+class ResidueCircle(val absPos:Int, label:Char, val drawingConfig:Theme) {
 
     val label:SecondaryStructureElement
     var circle: Ellipse2D? = null
@@ -436,7 +436,7 @@ class ResidueCircle(val absPos:Int, label:Char, val drawingConfig:DrawingConfigu
         }
     }
 
-    fun draw(g: Graphics2D, gc: GraphicContext, drawingConfig:DrawingConfiguration) {
+    fun draw(g: Graphics2D, gc: GraphicContext, theme:Theme) {
         if (this.circle != null) {
             val at = AffineTransform()
             at.translate(gc.viewX,gc.viewY)
@@ -444,21 +444,21 @@ class ResidueCircle(val absPos:Int, label:Char, val drawingConfig:DrawingConfigu
             val _c = at.createTransformedShape(this.circle)
             g.color = getColor()
             g.fill(_c)
-            if (!drawingConfig.quickDraw) {
+            if (!theme.quickDraw) {
                 val previousStroke: Stroke = g.getStroke()
-                g.stroke = BasicStroke(gc.finalZoomLevel.toFloat() * drawingConfig.residueBorder)
+                g.stroke = BasicStroke(gc.finalZoomLevel.toFloat() * theme.residueBorder)
                 g.color = Color.DARK_GRAY
                 g.draw(_c)
                 g.stroke = previousStroke
             }
-            if (g.font.size > 5 && !drawingConfig.quickDraw) {
+            if (g.font.size > 5 && !theme.quickDraw) {
                 g.color = Color.WHITE
                 when (this.label.name) {
-                    "A" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + drawingConfig.ATransX + (drawingConfig.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + drawingConfig.ATransY - (drawingConfig.moduloYRes*gc.finalZoomLevel).toFloat())
-                    "U" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + drawingConfig.UTransX + (drawingConfig.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + drawingConfig.UTransY - (drawingConfig.moduloYRes*gc.finalZoomLevel).toFloat())
-                    "G" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + drawingConfig.GTransX + (drawingConfig.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + drawingConfig.GTransY - (drawingConfig.moduloYRes*gc.finalZoomLevel).toFloat())
-                    "C" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + drawingConfig.CTransX + (drawingConfig.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + drawingConfig.CTransY - (drawingConfig.moduloYRes*gc.finalZoomLevel).toFloat())
-                    "X" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + drawingConfig.XTransX + (drawingConfig.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + drawingConfig.XTransY - (drawingConfig.moduloYRes*gc.finalZoomLevel).toFloat())
+                    "A" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + theme.ATransX + (theme.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + theme.ATransY - (theme.moduloYRes*gc.finalZoomLevel).toFloat())
+                    "U" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + theme.UTransX + (theme.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + theme.UTransY - (theme.moduloYRes*gc.finalZoomLevel).toFloat())
+                    "G" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + theme.GTransX + (theme.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + theme.GTransY - (theme.moduloYRes*gc.finalZoomLevel).toFloat())
+                    "C" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + theme.CTransX + (theme.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + theme.CTransY - (theme.moduloYRes*gc.finalZoomLevel).toFloat())
+                    "X" -> g.drawString(this.label.name, _c.bounds2D.minX.toFloat() + theme.XTransX + (theme.moduloXRes*gc.finalZoomLevel).toFloat(), _c.bounds2D.minY.toFloat() + theme.XTransY - (theme.moduloYRes*gc.finalZoomLevel).toFloat())
                 }
             }
         }
@@ -847,10 +847,10 @@ class JunctionCircle (circlesFromBranchSoFar: MutableList<Triple<Point2D, Double
 
 class SecondaryInteractionLine(val interaction:BasePair, val ssDrawing:SecondaryStructureDrawing) {
 
-    fun draw(g: Graphics2D, gc: GraphicContext, drawingConfig:DrawingConfiguration) {
+    fun draw(g: Graphics2D, gc: GraphicContext, theme:Theme) {
         val previousStroke = g.stroke
-        g.stroke = BasicStroke(gc.finalZoomLevel.toFloat()*drawingConfig.secondaryInteractionWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL)
-        g.color = javaFXToAwt(drawingConfig.SecondaryColor)
+        g.stroke = BasicStroke(gc.finalZoomLevel.toFloat()*theme.secondaryInteractionWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL)
+        g.color = javaFXToAwt(theme.SecondaryColor)
         val center1 = this.ssDrawing.residues[this.interaction.location.start-1].center
         val center2 = this.ssDrawing.residues[this.interaction.location.end-1].center
         if (center1 != null && center2 != null) {
@@ -867,24 +867,24 @@ class SecondaryInteractionLine(val interaction:BasePair, val ssDrawing:Secondary
 
 class TertiaryInteractionLine(val interaction:BasePair, val ssDrawing:SecondaryStructureDrawing) {
 
-    fun draw(g: Graphics2D, gc: GraphicContext, drawingConfig:DrawingConfiguration) {
+    fun draw(g: Graphics2D, gc: GraphicContext, theme:Theme) {
         val previousStroke = g.stroke
         val at = AffineTransform()
         at.translate(gc.viewX, gc.viewY)
         at.scale(gc.finalZoomLevel, gc.finalZoomLevel)
         val center1 = this.ssDrawing.residues[this.interaction.location.start-1].center
         val center2 = this.ssDrawing.residues[this.interaction.location.end-1].center
-        if (drawingConfig.tertiaryInteractionWidth != 0 && center1 != null && center2 != null) {
-            g.color = javaFXToAwt(drawingConfig.TertiaryColor)
-            if (drawingConfig.tertiaryInteractionStyle == DASHED)
-                g.stroke = BasicStroke(gc.finalZoomLevel.toFloat() * drawingConfig.tertiaryInteractionWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL, 0F, floatArrayOf(gc.finalZoomLevel.toFloat() * drawingConfig.tertiaryInteractionWidth * 2), 0F)
+        if (theme.tertiaryInteractionWidth != 0 && center1 != null && center2 != null) {
+            g.color = javaFXToAwt(theme.TertiaryColor)
+            if (theme.tertiaryInteractionStyle == DASHED)
+                g.stroke = BasicStroke(gc.finalZoomLevel.toFloat() * theme.tertiaryInteractionWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL, 0F, floatArrayOf(gc.finalZoomLevel.toFloat() * theme.tertiaryInteractionWidth * 2), 0F)
             else
-                g.stroke = BasicStroke(gc.finalZoomLevel.toFloat()*drawingConfig.tertiaryInteractionWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL)
+                g.stroke = BasicStroke(gc.finalZoomLevel.toFloat()*theme.tertiaryInteractionWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL)
             val (p1, p2) = pointsFrom(center1, center2, radiusConst)
             g.draw(at.createTransformedShape(Line2D.Double(p1, p2)))
         }
-        g.stroke = BasicStroke(gc.finalZoomLevel.toFloat()*drawingConfig.haloWidth)
-        g.color = javaFXToAwt(drawingConfig.TertiaryColor)
+        g.stroke = BasicStroke(gc.finalZoomLevel.toFloat()*theme.haloWidth)
+        g.color = javaFXToAwt(theme.TertiaryColor)
         g.draw(at.createTransformedShape(this.ssDrawing.residues[this.interaction.location.start-1].circle))
         g.draw(at.createTransformedShape(this.ssDrawing.residues[this.interaction.location.end-1].circle))
         g.stroke = previousStroke
@@ -894,7 +894,7 @@ class TertiaryInteractionLine(val interaction:BasePair, val ssDrawing:SecondaryS
 
 class PhosphodiesterBondLine(val start:Int, val end:Int, val ssDrawing:SecondaryStructureDrawing) {
 
-    fun draw(g: Graphics2D, gc:GraphicContext, drawingConfig:DrawingConfiguration) {
+    fun draw(g: Graphics2D, gc:GraphicContext, theme:Theme) {
         val previousStroke = g.stroke
         g.stroke = BasicStroke(gc.finalZoomLevel.toFloat()*2)
         g.color = Color.DARK_GRAY

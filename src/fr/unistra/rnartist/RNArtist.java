@@ -1,6 +1,8 @@
-package fr.unistra.rnartist.gui;
+package fr.unistra.rnartist;
 
-import fr.unistra.rnartist.utils.RnartistConfig;
+import fr.unistra.rnartist.gui.Canvas2D;
+import fr.unistra.rnartist.gui.Mediator;
+import fr.unistra.rnartist.gui.NewUserDialog;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingNode;

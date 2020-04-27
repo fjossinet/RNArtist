@@ -1,7 +1,6 @@
 package fr.unistra.rnartist.io
 
-import fr.unistra.rnartist.gui.RNArtist
-import fr.unistra.rnartist.utils.RnartistConfig
+import fr.unistra.rnartist.RnartistConfig
 import java.io.File
 import java.io.IOException
 

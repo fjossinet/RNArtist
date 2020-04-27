@@ -1,10 +1,9 @@
 package fr.unistra.rnartist.model
 
 import fr.unistra.rnartist.gui.Mediator
-import fr.unistra.rnartist.gui.RNArtist
 import fr.unistra.rnartist.io.Rnaview
 import fr.unistra.rnartist.io.parsePDB
-import fr.unistra.rnartist.utils.RnartistConfig
+import fr.unistra.rnartist.RnartistConfig
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
