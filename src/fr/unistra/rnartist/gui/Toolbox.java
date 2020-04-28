@@ -448,8 +448,8 @@ public class Toolbox {
         GridView<Theme> gridView = new GridView<Theme>(themesList);
         gridView.setHorizontalCellSpacing(5);
         gridView.setVerticalCellSpacing(5);
-        gridView.setCellWidth(200.0);
-        gridView.setCellHeight(150.0);
+        gridView.setCellWidth(400.0);
+        gridView.setCellHeight(300.0);
         gridView.setCellFactory(new Callback<GridView<Theme>, GridCell<Theme>>() {
             @Override
             public GridCell<Theme> call(GridView<Theme> lv) {
@@ -713,7 +713,7 @@ public class Toolbox {
         }
 
         public Image getImage() {
-            return new Image(RnartistConfig.getWebsite()+"/captures/" +this.picture, 200, 150, true, true);
+            return new Image(RnartistConfig.getWebsite()+"/captures/" +this.picture);
         }
     }
 

@@ -66,6 +66,8 @@ object Backend {
                 val previous_finalZoomLevel = mediator.graphicsContext.finalZoomLevel
                 try {
                     var ss = SecondaryStructureDrawing(parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!, mediator.canvas2D.bounds, mediator.theme)
+                    mediator.graphicsContext.viewX = 0.0
+                    mediator.graphicsContext.viewY = 0.0
                     mediator.graphicsContext.finalZoomLevel = 1.45
                     mediator.graphicsContext.screen_capture = true
                     mediator.graphicsContext.screen_capture_area = Rectangle2D.Double( ss.getBounds().centerX*mediator.graphicsContext.finalZoomLevel - 200.0,  ss.getBounds().centerY*mediator.graphicsContext.finalZoomLevel - 150.0, 400.0, 300.0)
