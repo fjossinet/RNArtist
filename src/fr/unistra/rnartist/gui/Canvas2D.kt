@@ -18,7 +18,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     init {
         this.mediator.canvas2D = this
         this.secondaryStructureDrawing.addListener({ obs, old, selected ->
-            mediator.rnartist.activateSaveButton()
+            mediator.rnartist.activateSaveButtons()
         })
     }
 

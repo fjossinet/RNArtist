@@ -110,6 +110,7 @@ object RnartistConfig {
             root.setAttribute("release", getRnartistRelease())
             document = Document(root)
         }
+        recoverWebsite()
     }
 
     @JvmStatic
@@ -141,23 +142,23 @@ object RnartistConfig {
     }
 
     @JvmStatic
-    val website:String?
-        get() {
-            val client: HttpClient = HttpClient.newHttpClient()
-            val request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://raw.githubusercontent.com/fjossinet/RNArtist/master/properties.json"))
-                    .build()
-            try {
-                val response: HttpResponse<String> = client.send(request,
-                        HttpResponse.BodyHandlers.ofString())
-                println(response.body())
-                val properties = Gson().fromJson<GlobalProperties>(response.body() as String, GlobalProperties::class.java)
-                return "http://${properties.website}"
-            } catch (e:Exception) {
-                e.printStackTrace()
-            }
-            return null;
+    private fun recoverWebsite() {
+        val client: HttpClient = HttpClient.newHttpClient()
+        val request = HttpRequest.newBuilder()
+                .uri(URI.create("https://raw.githubusercontent.com/fjossinet/RNArtist/master/properties.json"))
+                .build()
+        try {
+            val response: HttpResponse<String> = client.send(request,
+                    HttpResponse.BodyHandlers.ofString())
+            val properties = Gson().fromJson<GlobalProperties>(response.body() as String, GlobalProperties::class.java)
+            website = "http://${properties.website}"
+        } catch (e:Exception) {
+            e.printStackTrace()
         }
+    }
+
+    @JvmStatic
+    var website:String? = null
 
     @JvmStatic
     var fragmentsLibrary: String?

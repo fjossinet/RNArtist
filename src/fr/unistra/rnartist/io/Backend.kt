@@ -1,7 +1,10 @@
 package fr.unistra.rnartist.io
 
+import com.google.gson.Gson
+import com.google.gson.internal.StringMap
 import fr.unistra.rnartist.RnartistConfig
 import fr.unistra.rnartist.gui.Mediator
+import fr.unistra.rnartist.gui.Toolbox
 import fr.unistra.rnartist.model.SecondaryStructureDrawing
 import javafx.concurrent.Task
 import java.awt.geom.Rectangle2D
@@ -16,6 +19,7 @@ import java.net.http.HttpResponse
 import java.util.*
 import javax.imageio.ImageIO
 
+
 object Backend {
 
     @JvmStatic
@@ -25,17 +29,30 @@ object Backend {
         RnartistConfig.userID = userID
         val client: HttpClient = HttpClient.newHttpClient()
         val request = HttpRequest.newBuilder()
-                .uri(URI.create(RnartistConfig.website+"/register_user?id=${URLEncoder.encode(userID, "UTF-8")}&name=${URLEncoder.encode(name, "UTF-8")}&country=${URLEncoder.encode(country.trim(), "UTF-8")}&lab=${URLEncoder.encode(labo?.trim(), "UTF-8")}"))
+                .uri(URI.create(RnartistConfig.website+"/api/register_user?id=${URLEncoder.encode(userID, "UTF-8")}&name=${URLEncoder.encode(name, "UTF-8")}&country=${URLEncoder.encode(country.trim(), "UTF-8")}&lab=${URLEncoder.encode(labo?.trim(), "UTF-8")}"))
                 .build()
         val response: HttpResponse<String> = client.send(request,
                 HttpResponse.BodyHandlers.ofString())
     }
 
     @JvmStatic
+    @Throws(Exception::class)
+    fun getAllThemes():List<StringMap<String>> {
+        val client: HttpClient = HttpClient.newHttpClient()
+        val request = HttpRequest.newBuilder()
+                .uri(URI.create(RnartistConfig.website+"/api/all_themes"))
+                .build()
+        val response: HttpResponse<String> = client.send(request,
+                HttpResponse.BodyHandlers.ofString())
+        val gson = Gson()
+        return gson.fromJson(response.body(), List::class.java) as List<StringMap<String>>
+    }
+
+    @JvmStatic
     fun submitTheme(mediator: Mediator, name:String, theme:Map<String,String>) {
 
-        val multipart = Multipart(URL(RnartistConfig.website+"/submit_theme"))
-        multipart.addFormField("id", RnartistConfig.userID!!)
+        val multipart = Multipart(URL(RnartistConfig.website+"/api/submit_theme"))
+        multipart.addFormField("userID", RnartistConfig.userID!!)
         multipart.addFormField("name", name)
         for ((k,v) in theme) {
             multipart.addFormField(k, v)
@@ -48,14 +65,12 @@ object Backend {
                 val previous_viewY = mediator.graphicsContext.viewY
                 val previous_finalZoomLevel = mediator.graphicsContext.finalZoomLevel
                 try {
+                    var ss = SecondaryStructureDrawing(parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!, mediator.canvas2D.bounds, mediator.theme)
+                    mediator.graphicsContext.finalZoomLevel = 1.45
                     mediator.graphicsContext.screen_capture = true
-                    mediator.graphicsContext.screen_capture_area = Rectangle2D.Double(mediator.canvas2D.getBounds().getCenterX() - 200.0, mediator.canvas2D.getBounds().getCenterY() - 150.0, 400.0, 300.0)
-                    mediator.graphicsContext.viewX = -134.75
-                    mediator.graphicsContext.viewY = -534.75
-                    mediator.graphicsContext.finalZoomLevel = 1.25
-                    val image = mediator.canvas2D.screenCapture(SecondaryStructureDrawing(parseVienna(StringReader(">test\nAUGCCAAGGCGCAU\n((((.(...)))))"))!!, mediator.canvas2D.bounds, mediator.theme))
-                    val pngFile = createTemporaryFile("toto.png")
-                    println(pngFile?.path)
+                    mediator.graphicsContext.screen_capture_area = Rectangle2D.Double( ss.getBounds().centerX*mediator.graphicsContext.finalZoomLevel - 200.0,  ss.getBounds().centerY*mediator.graphicsContext.finalZoomLevel - 150.0, 400.0, 300.0)
+                    val image = mediator.canvas2D.screenCapture(ss)
+                    val pngFile = File.createTempFile("capture", ".png")
                     ImageIO.write(image, "PNG", pngFile)
                     multipart.addFilePart("capture", pngFile!!, pngFile!!.name, "image")
                     multipart.upload(null)

@@ -136,9 +136,6 @@ public class EmbeddedDBGUI {
         TabPane root = new TabPane();
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        Tab projects = new Tab("Projects", new VBox());
-        root.getTabs().add(projects);
-
         Tab _3D = new Tab("3D", vbox);
         root.getTabs().add(_3D);
 
@@ -149,9 +146,9 @@ public class EmbeddedDBGUI {
         stage.setScene(scene);
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        this.stage.setWidth(300);
+        this.stage.setWidth(440);
         this.stage.setHeight(screenSize.getHeight());
-        this.stage.setX(screenSize.getWidth()-300);
+        this.stage.setX(screenSize.getWidth()-440);
         this.stage.setY(0);
     }
 

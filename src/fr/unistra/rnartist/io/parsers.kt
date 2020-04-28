@@ -80,7 +80,7 @@ fun parseVienna(reader: Reader): SecondaryStructure? {
     while (`in`.readLine().also { line = it } != null) {
         if (line!!.startsWith(">"))
             name.append(line!!.substring(1))
-        else if (line!!.matches(Regex("^[AUGC]+$"))) {
+        else if (line!!.matches(Regex("^[A-Z]+$"))) {
             sequence.append(line)
         } else if (line!!.matches(Regex("^[\\.\\(\\)\\{\\}\\[\\]]+$"))) {
             bn.append(line)

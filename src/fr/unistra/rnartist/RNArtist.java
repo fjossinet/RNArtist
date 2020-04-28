@@ -3,14 +3,15 @@ package fr.unistra.rnartist;
 import fr.unistra.rnartist.gui.Canvas2D;
 import fr.unistra.rnartist.gui.Mediator;
 import fr.unistra.rnartist.gui.NewUserDialog;
+import fr.unistra.rnartist.model.SecondaryStructure;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingNode;
-import javafx.geometry.Orientation;
-import javafx.geometry.Rectangle2D;
+import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.*;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -23,15 +24,18 @@ import javax.swing.*;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Optional;
+
+import static fr.unistra.rnartist.io.ParsersKt.*;
 
 public class RNArtist extends Application {
 
     private Mediator mediator;
     private Stage stage;
     private int scrollCounter = 0;
-    private Button save;
+    private Button saveAs, save;
 
     public static void main(String[] args) {
         launch(args);
@@ -124,20 +128,44 @@ public class RNArtist extends Application {
         root.setCenter(swingNode);
 
         //## TOOLBAR
-        ToolBar toolBar = new ToolBar();
+        HBox toolBar = new HBox();
         root.setTop(toolBar);
 
-        Button open = new Button("Open", new Glyph("FontAwesome", FontAwesome.Glyph.FOLDER_OPEN));
-        toolBar.getItems().add(open);
+        GridPane project = new GridPane();
+        project.setPadding(new Insets(10, 10, 10, 10));
+        project.setVgap(5);
+        project.setHgap(5);
+
+        Label projectTitle = new Label("Project", new Glyph("FontAwesome", FontAwesome.Glyph.ARCHIVE));
+        GridPane.setConstraints(projectTitle, 0, 0);
+        GridPane.setColumnSpan(projectTitle, 5);
+        GridPane.setHalignment(projectTitle, HPos.CENTER);
+        project.getChildren().add(projectTitle);
+
+        Separator sepHor = new Separator();
+        sepHor.setValignment(VPos.CENTER);
+        GridPane.setConstraints(sepHor, 0, 1);
+        GridPane.setColumnSpan(sepHor, 5);
+        project.getChildren().add(sepHor);
+
+        Button open = new Button("New/Open", new Glyph("FontAwesome", FontAwesome.Glyph.FOLDER_OPEN));
         open.setOnAction(actionEvent -> {
             mediator.getProjectManager().getStage().show();
             mediator.getProjectManager().getStage().toFront();
         });
+        GridPane.setConstraints(open, 0, 2);
+        project.getChildren().add(open);
 
-        save = new Button("Save", new Glyph("FontAwesome", FontAwesome.Glyph.SAVE));
-        save.setDisable(true);
-        toolBar.getItems().add(save);
-        save.setOnAction(actionEvent -> {
+        Separator sepVert1 = new Separator();
+        sepVert1.setOrientation(Orientation.VERTICAL);
+        sepVert1.setValignment(VPos.CENTER);
+        GridPane.setConstraints(sepVert1, 1, 2);
+        GridPane.setRowSpan(sepVert1, 1);
+        project.getChildren().add(sepVert1);
+
+        saveAs = new Button("Save As", new Glyph("FontAwesome", FontAwesome.Glyph.SAVE));
+        saveAs.setDisable(true);
+        saveAs.setOnAction(actionEvent -> {
             if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
                 mediator.getGraphicsContext().setScreen_capture(true);
                 mediator.getGraphicsContext().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
@@ -170,51 +198,168 @@ public class RNArtist extends Application {
                 }
             }
         });
+        GridPane.setConstraints(saveAs, 2, 2);
+        project.getChildren().add(saveAs);
 
-        toolBar.getItems().add(new Separator(Orientation.VERTICAL));
+        sepVert1 = new Separator();
+        sepVert1.setOrientation(Orientation.VERTICAL);
+        sepVert1.setValignment(VPos.CENTER);
+        GridPane.setConstraints(sepVert1, 3, 2);
+        GridPane.setRowSpan(sepVert1, 1);
+        project.getChildren().add(sepVert1);
+
+        save = new Button("Save", new Glyph("FontAwesome", FontAwesome.Glyph.SAVE));
+        save.setDisable(true);
+        save.setOnAction(actionEvent -> {
+
+        });
+        GridPane.setConstraints(save, 4, 2);
+        project.getChildren().add(save);
+
+        toolBar.getChildren().add(project);
+
+        toolBar.getChildren().add(new Separator(Orientation.VERTICAL));
+
+        GridPane load2D = new GridPane();
+        load2D.setPadding(new Insets(10, 10, 10, 10));
+        load2D.setVgap(5);
+        load2D.setHgap(5);
+
+        Label load2DTitle = new Label("Load 2D from...", new Glyph("FontAwesome", FontAwesome.Glyph.DOWNLOAD));
+        load2D.setConstraints(load2DTitle, 0, 0);
+        load2D.setColumnSpan(load2DTitle, 5);
+        load2D.setHalignment(load2DTitle, HPos.CENTER);
+        load2D.getChildren().add(load2DTitle);
+
+        sepHor = new Separator();
+        sepHor.setValignment(VPos.CENTER);
+        GridPane.setConstraints(sepHor, 0, 1);
+        GridPane.setColumnSpan(sepHor, 5);
+        load2D.getChildren().add(sepHor);
+
+        Button openFile = new Button("File", new Glyph("FontAwesome", FontAwesome.Glyph.FILE));
+        openFile.setOnAction(actionEvent -> {
+            FileChooser fileChooser = new FileChooser();
+
+            File f = fileChooser.showOpenDialog(null );
+            if (f!= null) {
+                SecondaryStructure ss = null;
+                if (f.getName().endsWith(".ct")) {
+                    try {
+                        ss = parseCT(new FileReader(f));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else if (f.getName().endsWith(".bpseq")) {
+                    try {
+                        ss = parseBPSeq(new FileReader(f));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }  else if (f.getName().endsWith(".fasta") || f.getName().endsWith(".fas") || f.getName().endsWith(".vienna")) {
+                    try {
+                        ss = parseVienna(new FileReader(f));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (ss != null)
+                    mediator.getCanvas2D().load2D(ss);
+            }
+        });
+        GridPane.setConstraints(openFile, 0, 2);
+        load2D.getChildren().add(openFile);
+
+        sepVert1 = new Separator();
+        sepVert1.setOrientation(Orientation.VERTICAL);
+        sepVert1.setValignment(VPos.CENTER);
+        GridPane.setConstraints(sepVert1, 1, 2);
+        GridPane.setRowSpan(sepVert1, 1);
+        load2D.getChildren().add(sepVert1);
+
+        Button database = new Button("Database", new Glyph("FontAwesome", FontAwesome.Glyph.DATABASE));
+        database.setOnAction(actionEvent -> {
+            mediator.getEmbeddedDBGUI().getStage().show();
+            mediator.getEmbeddedDBGUI().getStage().toFront();
+        });
+        GridPane.setConstraints(database, 2, 2);
+        load2D.getChildren().add(database);
+
+        sepVert1 = new Separator();
+        sepVert1.setOrientation(Orientation.VERTICAL);
+        sepVert1.setValignment(VPos.CENTER);
+        GridPane.setConstraints(sepVert1, 3, 2);
+        GridPane.setRowSpan(sepVert1, 1);
+        load2D.getChildren().add(sepVert1);
+
+        Button fromScratch = new Button("Scratch", new Glyph("FontAwesome", FontAwesome.Glyph.MAGIC));
+        fromScratch.setOnAction(actionEvent -> {
+
+        });
+        GridPane.setConstraints(fromScratch, 4, 2);
+        load2D.getChildren().add(fromScratch);
+
+        toolBar.getChildren().add(load2D);
+
+        toolBar.getChildren().add(new Separator(Orientation.VERTICAL));
+
+        GridPane view = new GridPane();
+        view.setPadding(new Insets(10, 10, 10, 10));
+        view.setVgap(5);
+        view.setHgap(5);
+
+        Label viewTitle = new Label("View", new Glyph("FontAwesome", FontAwesome.Glyph.EYE));
+        view.setConstraints(viewTitle, 0, 0);
+        view.setColumnSpan(viewTitle, 3);
+        view.setHalignment(viewTitle, HPos.CENTER);
+        view.getChildren().add(viewTitle);
+
+        sepHor = new Separator();
+        sepHor.setValignment(VPos.CENTER);
+        GridPane.setConstraints(sepHor, 0, 1);
+        GridPane.setColumnSpan(sepHor, 3);
+        view.getChildren().add(sepHor);
 
         Button toolbox = new Button("Toolbox", new Glyph("FontAwesome", FontAwesome.Glyph.WRENCH));
-        toolBar.getItems().add(toolbox);
         toolbox.setOnAction(actionEvent -> {
             mediator.getToolbox().getStage().show();
             mediator.getToolbox().getStage().toFront();
         });
+        GridPane.setConstraints(toolbox, 0, 2);
+        view.getChildren().add(toolbox);
 
-        Button ndbBrowser = new Button("Database", new Glyph("FontAwesome", FontAwesome.Glyph.DATABASE));
-        toolBar.getItems().add(ndbBrowser);
-        ndbBrowser.setOnAction(actionEvent -> {
-            mediator.getEmbeddedDBGUI().getStage().show();
-            mediator.getEmbeddedDBGUI().getStage().toFront();
-        });
-
-        toolBar.getItems().add(new Separator(Orientation.VERTICAL));
+        sepVert1 = new Separator();
+        sepVert1.setOrientation(Orientation.VERTICAL);
+        sepVert1.setValignment(VPos.CENTER);
+        GridPane.setConstraints(sepVert1, 1, 2);
+        GridPane.setRowSpan(sepVert1, 1);
+        view.getChildren().add(sepVert1);
 
         Button about = new Button("About", new Glyph("FontAwesome", FontAwesome.Glyph.INFO_CIRCLE));
-        toolBar.getItems().add(about);
         about.setOnAction(actionEvent -> {
         });
+        GridPane.setConstraints(about, 2, 2);
+        view.getChildren().add(about);
+
+        toolBar.getChildren().add(view);
+
+        toolBar.getChildren().add(new Separator(Orientation.VERTICAL));
 
         stage.setScene(new Scene(root, screen.getBounds().getWidth(), screen.getBounds().getHeight()));
         stage.setTitle("RNArtist");
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        this.stage.setWidth(screenSize.getWidth()-600);
+        this.stage.setWidth(screenSize.getWidth()-440);
         this.stage.setHeight(screenSize.getHeight());
-        this.stage.setX(300);
+        this.stage.setX(440);
         this.stage.setY(0);
-        this.stage.show();
-        this.stage.toFront();
 
-        mediator.getToolbox().getStage().show();
-        mediator.getToolbox().getStage().toFront();
-
-        mediator.getEmbeddedDBGUI().getStage().show();
-        mediator.getEmbeddedDBGUI().getStage().toFront();
-
-
+        mediator.getProjectManager().getStage().show();
+        mediator.getProjectManager().getStage().toFront();
     }
 
-    public void activateSaveButton() {
+    public void activateSaveButtons() {
         this.save.setDisable(false);
+        this.saveAs.setDisable(false);
     }
 
     public Stage getStage() {

@@ -1,18 +1,21 @@
 package fr.unistra.rnartist.gui;
 
+import com.google.gson.internal.StringMap;
 import fr.unistra.rnartist.RnartistConfig;
 import fr.unistra.rnartist.io.Backend;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -21,15 +24,19 @@ import javafx.scene.text.Font;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-import org.controlsfx.glyphfont.FontAwesome;
-import org.controlsfx.glyphfont.Glyph;
-import org.dizitart.no2.Document;
-import org.dizitart.no2.NitriteId;
+import org.controlsfx.control.GridCell;
+import org.controlsfx.control.GridView;
 
 import javax.swing.*;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
 import static javafx.collections.FXCollections.observableList;
@@ -52,6 +59,7 @@ public class Toolbox {
         this.stage = new Stage();
         stage.setTitle("Toolbox");
         this.createScene(stage);
+        new Thread(new LoadThemesFromWebsite()).run();
     }
 
     public Stage getStage() {
@@ -63,15 +71,15 @@ public class Toolbox {
         TabPane root = new TabPane();
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        this.createThemePanel(root);
         this.createAllThemesPanel(root);
+        this.createThemePanel(root);
         this.create3DViewerPanel(root);
 
         Scene scene = new Scene(root);
         stage.setScene(scene);
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        this.stage.setWidth(300);
+        this.stage.setWidth(440);
         this.stage.setHeight(screenSize.getHeight());
         this.stage.setX(0);
         this.stage.setY(0);
@@ -409,17 +417,7 @@ public class Toolbox {
         saveForm.add(nameField, 1, 0);
         nameField.setPromptText("Choose a Theme Name");
 
-        Button saveLocal = new Button("", new Glyph("FontAwesome", FontAwesome.Glyph.SAVE));
-
-        saveLocal.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent e)  {
-                NitriteId id = mediator.getEmbeddedDB().addTheme(nameField.getText().trim(), "Fabrice Jossinet",  mediator.getToolbox().getTheme());
-                themesList.add(0,new Theme(id, nameField.getText().trim(), "Fabrice Jossinet"));
-            }
-        });
-
-        Button shareOnline = new Button("", new Glyph("FontAwesome", FontAwesome.Glyph.GLOBE));
+        Button shareOnline = new Button("Share my Theme");
 
         shareOnline.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
@@ -428,13 +426,9 @@ public class Toolbox {
             }
         });
 
-        HBox buttons = new HBox();
-        buttons.setAlignment(Pos.CENTER_LEFT);
-        buttons.setSpacing(10);
-        buttons.getChildren().add(saveLocal);
-        buttons.getChildren().add(shareOnline);
-        saveForm.add(buttons, 1,1);
-        //GridPane.setHalignment(buttons, HPos.RIGHT);
+        shareOnline.setAlignment(Pos.CENTER_LEFT);
+        saveForm.add(shareOnline, 0, 1,2,1);
+        GridPane.setHalignment(shareOnline, HPos.CENTER);
 
         VBox vbox =  new VBox();
         vbox.setFillWidth(true);
@@ -451,21 +445,15 @@ public class Toolbox {
 
         themesList = FXCollections.observableArrayList();
 
-        for (Document theme: this.mediator.getEmbeddedDB().getThemes().find()) {
-            themesList.add(new Theme(theme.getId(), (String)theme.get("name"), (String)theme.get("author")));
-        }
-
-        ListView<Theme> listView = new ListView<Theme>(themesList);
-        listView.setCellFactory(new Callback<ListView<Theme>, ListCell<Theme>>() {
+        GridView<Theme> gridView = new GridView<Theme>(themesList);
+        gridView.setHorizontalCellSpacing(5);
+        gridView.setVerticalCellSpacing(5);
+        gridView.setCellWidth(200.0);
+        gridView.setCellHeight(150.0);
+        gridView.setCellFactory(new Callback<GridView<Theme>, GridCell<Theme>>() {
             @Override
-            public ListCell<Theme> call(ListView<Theme> lv) {
+            public GridCell<Theme> call(GridView<Theme> lv) {
                 return new ThemeCell();
-            }
-        });
-        listView.getSelectionModel().getSelectedIndices().addListener(new ListChangeListener<Integer>() {
-            @Override
-            public void onChanged(Change<? extends Integer> change) {
-
             }
         });
 
@@ -474,15 +462,8 @@ public class Toolbox {
         cc.setHgrow(Priority.ALWAYS);
         reloadForm.getColumnConstraints().addAll(new ColumnConstraints(),cc);
         reloadForm.setHgap(5);
-        reloadForm.setVgap(10);
+        reloadForm.setVgap(5);
         reloadForm.setPadding(new Insets(10, 10, 10, 10));
-
-        /*Label title = new Label("Name");
-        reloadForm.add(title, 0, 0);
-
-        TextField nameField = new TextField();
-        reloadForm.add(nameField, 1, 0);
-        nameField.setPromptText("Choose a Theme Name");*/
 
         Button reload = new Button("Reload");
         reloadForm.add(reload, 0, 0,2,1);
@@ -492,13 +473,13 @@ public class Toolbox {
 
             @Override
             public void handle(MouseEvent e)  {
-
+                new Thread(new LoadThemesFromWebsite()).run();
             }
         });
 
+        vbox.getChildren().add(gridView);
         vbox.getChildren().add(reloadForm);
-        vbox.getChildren().add(listView);
-        VBox.setVgrow(listView, Priority.ALWAYS);
+        VBox.setVgrow(gridView, Priority.ALWAYS);
 
         Tab themes = new Tab("All Themes", vbox);
         root.getTabs().add(themes);
@@ -697,47 +678,13 @@ public class Toolbox {
         return fontNames.getValue();
     }
 
-    public class ThemeCell extends ListCell<Theme> {
+    public class ThemeCell extends GridCell<Theme> {
 
-        private final GridPane gridPane = new GridPane();
-        private final Label name = new Label();
-        private final Label author = new Label();
+        private final ImageView themeCapture = new ImageView();
         private final AnchorPane content = new AnchorPane();
-        private final Button applyTheme;
-        private NitriteId id;
 
         public ThemeCell() {
-            name.setStyle("-fx-font-weight: bold; -fx-font-size: 1.2em;");
-            GridPane.setConstraints(name, 1, 0);
-            GridPane.setConstraints(author, 1, 1);
-            HBox buttons = new HBox();
-            buttons.setAlignment(Pos.CENTER_RIGHT);
-            buttons.setSpacing(5);
-            buttons.setPadding(new Insets(5,5,5,5));
-            this.applyTheme = new Button("",new Glyph("FontAwesome", FontAwesome.Glyph.EYE));
-            this.applyTheme.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent actionEvent) {
-                    Document doc = mediator.getEmbeddedDB().getThemes().getById(id);
-                    loadTheme((Map<String,String>)doc.get("theme"));
-                }
-            });
-            buttons.getChildren().add(this.applyTheme);
-            buttons.getChildren().add(new Button("",new Glyph("FontAwesome", FontAwesome.Glyph.SAVE)));
-            GridPane.setConstraints(buttons, 0, 2,2,1);
-            gridPane.getColumnConstraints().add(new ColumnConstraints(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Priority.NEVER, HPos.LEFT, true));
-            gridPane.getColumnConstraints().add(new ColumnConstraints(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Priority.ALWAYS, HPos.LEFT, true));
-            gridPane.getRowConstraints().add(new RowConstraints(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Priority.NEVER, VPos.CENTER, true));
-            gridPane.getRowConstraints().add(new RowConstraints(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Priority.NEVER, VPos.CENTER, true));
-            gridPane.getRowConstraints().add(new RowConstraints(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE, Priority.ALWAYS, VPos.CENTER, true));
-            gridPane.setHgap(6);
-            gridPane.setVgap(6);
-            gridPane.getChildren().setAll(name, author, buttons);
-            AnchorPane.setTopAnchor(gridPane, 0d);
-            AnchorPane.setLeftAnchor(gridPane, 0d);
-            AnchorPane.setBottomAnchor(gridPane, 0d);
-            AnchorPane.setRightAnchor(gridPane, 0d);
-            content.getChildren().add(gridPane);
+            content.getChildren().add(themeCapture);
         }
 
         @Override
@@ -745,30 +692,47 @@ public class Toolbox {
             super.updateItem(item, empty);
             setGraphic(null);
             setText(null);
-            setContentDisplay(ContentDisplay.LEFT);
+            setContentDisplay(ContentDisplay.CENTER);
             if (!empty && item != null) {
-                name.setText(item.name);
-                author.setText(item.author);
-                id = item.id;
+                themeCapture.setImage(item.getImage());
                 setGraphic(content);
                 setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
             }
         }
 
-
     }
 
-    class Theme {
+    public class Theme {
 
-        private NitriteId id;
+        private String picture;
         private String name;
-        private String author;
 
-        public Theme(NitriteId id, String name, String author) {
-            this.id = id;
+        public Theme(String picture, String name) {
+            this.picture = picture;
             this.name = name;
-            this.author = author;
+        }
+
+        public Image getImage() {
+            return new Image(RnartistConfig.getWebsite()+"/captures/" +this.picture, 200, 150, true, true);
+        }
+    }
+
+    private class LoadThemesFromWebsite extends Task<Exception> {
+
+        @Override
+        protected Exception call() throws Exception {
+            themesList.clear();
+            try {
+                for (StringMap<String> t:Backend.getAllThemes()) {
+                    themesList.add(new Theme(t.get("picture"), t.get("name")));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
         }
     }
 
 }
+
+

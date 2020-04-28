@@ -290,6 +290,14 @@ class SecondaryStructureDrawing(val secondaryStructure:SecondaryStructure, frame
         }
     }
 
+    fun getBounds():Rectangle {
+        val minX = this.residues.minBy { it.circle!!.minX }!!.circle!!.minX
+        val minY = this.residues.minBy { it.circle!!.minY }!!.circle!!.minY
+        val maxX = this.residues.maxBy { it.circle!!.maxX }!!.circle!!.maxX
+        val maxY = this.residues.maxBy { it.circle!!.maxY }!!.circle!!.maxY
+        return Rectangle(minX.toInt(), minY.toInt(), (maxX-minX).toInt(), (maxY-minY).toInt())
+    }
+
     fun getAllResidues():List<ResidueCircle> {
         val residues = mutableListOf<ResidueCircle>()
         return residues
@@ -1111,5 +1119,3 @@ private fun javaFXToAwt(c: javafx.scene.paint.Color): Color {
 private fun awtColorToJavaFX(c: Color): javafx.scene.paint.Color {
     return javafx.scene.paint.Color.rgb(c.red, c.green, c.blue, c.alpha / 255.0)
 }
-
-

@@ -124,9 +124,9 @@ class RNA(var name:String="A", seq:String):Serializable {
                 this._seq.append("C");
             else if ("a".equals(residue) || "u".equals(residue) || "g".equals(residue) || "c".equals(residue) || "t".equals(residue))
                 this._seq.append(residue);
-            else if ("X" == residue)
+            else if ("X".equals(residue))
                 this._seq.append("X")
-            else if ("N" == residue)
+            else if ("N".equals(residue))
                 this._seq.append("N")
         }
     }
