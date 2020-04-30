@@ -4,8 +4,8 @@ import com.google.gson.Gson
 import com.google.gson.internal.StringMap
 import fr.unistra.rnartist.RnartistConfig
 import fr.unistra.rnartist.gui.Mediator
-import fr.unistra.rnartist.gui.Toolbox
 import fr.unistra.rnartist.model.SecondaryStructureDrawing
+import fr.unistra.rnartist.model.io.parseVienna
 import javafx.concurrent.Task
 import java.awt.geom.Rectangle2D
 import java.io.*

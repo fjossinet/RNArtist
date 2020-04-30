@@ -3,6 +3,7 @@ package fr.unistra.rnartist.io;
 import fr.unistra.rnartist.gui.Mediator;
 import fr.unistra.rnartist.model.*;
 import fr.unistra.rnartist.RnartistConfig;
+import javafx.scene.control.Alert;
 
 import javax.swing.*;
 import java.io.*;
@@ -13,8 +14,8 @@ import java.net.URLEncoder;
 import java.util.*;
 import java.util.List;
 
-import static fr.unistra.rnartist.io.ParsersKt.writePDB;
-import static fr.unistra.rnartist.io.UtilsKt.createTemporaryFile;
+import static fr.unistra.rnartist.model.io.ParsersKt.writePDB;
+import static fr.unistra.rnartist.model.io.UtilsKt.createTemporaryFile;
 
 public class ChimeraDriver extends AbstractTertiaryViewerDriver {
 
@@ -32,8 +33,12 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
             this.run(new String[]{"--start", "ReadStdin"}, null, null);
         } catch (IOException e) {
             if (e.getMessage().startsWith("Cannot run program")) {
-
                 mediator.setChimeraDriver(null);
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Problem with Chimera");
+                alert.setHeaderText("Cannot Run the Chimera Program!");
+                alert.setContentText("Check your Chimera Path in Toolbox -> Settings");
+                alert.showAndWait();
             }
         }
     }

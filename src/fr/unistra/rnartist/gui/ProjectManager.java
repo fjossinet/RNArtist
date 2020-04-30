@@ -1,20 +1,25 @@
 package fr.unistra.rnartist.gui;
 
+import fr.unistra.rnartist.RnartistConfig;
+import fr.unistra.rnartist.model.Project;
 import fr.unistra.rnartist.model.SecondaryStructure;
 import fr.unistra.rnartist.model.TertiaryStructure;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
@@ -25,12 +30,11 @@ import org.dizitart.no2.Document;
 import org.dizitart.no2.NitriteId;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.net.MalformedURLException;
+import java.util.Optional;
 
-import static fr.unistra.rnartist.io.ParsersKt.*;
-import static fr.unistra.rnartist.io.UtilsKt.createTemporaryFile;
+import static fr.unistra.rnartist.model.io.UtilsKt.createTemporaryFile;
 
 public class ProjectManager {
 
@@ -44,8 +48,35 @@ public class ProjectManager {
         this.stage = new Stage();
         stage.setTitle("RNArtist Projects");
         stage.setOnCloseRequest(windowEvent -> {
-            mediator.getRnartist().getStage().show();
-            mediator.getRnartist().getStage().toFront();
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) { //the user has decided to cancel its idea to open an other project
+                mediator.getRnartist().getStage().show();
+                mediator.getRnartist().getStage().toFront();
+            }
+            else { //nothing displayed? So the user want to exit RNArtist -> confirmation
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.initOwner(this.stage);
+                alert.initModality(Modality.WINDOW_MODAL);
+                alert.setTitle("Confirm Exit");
+                alert.setHeaderText(null);
+                alert.setContentText("Are you sure to exit RNArtist?");
+
+                Stage alerttStage = (Stage) alert.getDialogPane().getScene().getWindow();
+                alerttStage.setAlwaysOnTop(true);
+                alerttStage.toFront();
+
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.get() == ButtonType.OK) {
+                    try {
+                        RnartistConfig.saveConfig(mediator);
+                        Platform.exit();
+                        System.exit(0);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    windowEvent.consume();
+                }
+            }
         });
 
         this.projects = FXCollections.observableArrayList();
@@ -119,13 +150,14 @@ public class ProjectManager {
                         mediator.getToolbox().getStage().show();
                     } else {
                         stage.hide();
-                        Pair<SecondaryStructure, TertiaryStructure> project = mediator.getEmbeddedDB().loadProject(ProjectCell.this.getItem().id);
-                        mediator.getCanvas2D().load2D(project.component1());
-                        if (project.component2() != null && mediator.getChimeraDriver() != null) {
-                            mediator.setTertiaryStructure(project.component2());
+                        fr.unistra.rnartist.model.Project project = mediator.getEmbeddedDB().getProject(ProjectCell.this.getItem().id);
+                        mediator.getCanvas2D().load2D(project.getSecondaryStructure());
+                        //TODO load the theme and the graphicsContext
+                        if (project.getTertiaryStructure() != null && mediator.getChimeraDriver() != null) {
+                            mediator.setTertiaryStructure(project.getTertiaryStructure());
                             try {
                                 File tmpF = createTemporaryFile("ts.pdb");
-                                writePDB(mediator.getTertiaryStructure(), true, new FileWriter(tmpF));
+                                fr.unistra.rnartist.model.io.ParsersKt.writePDB(mediator.getTertiaryStructure(), true, new FileWriter(tmpF));
                                 mediator.getChimeraDriver().loadTertiaryStructure(tmpF);
                             } catch (Exception e) {
                                 e.printStackTrace();

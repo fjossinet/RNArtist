@@ -2,6 +2,8 @@ package fr.unistra.rnartist
 
 import com.google.gson.Gson
 import fr.unistra.rnartist.gui.Mediator
+import fr.unistra.rnartist.model.ThemeParameter
+import fr.unistra.rnartist.model.io.getUserDir
 import javafx.scene.paint.Color
 import org.apache.commons.lang3.tuple.MutablePair
 import org.jdom.Document
@@ -22,48 +24,6 @@ import java.util.*
 import java.util.prefs.BackingStoreException
 
 object RnartistConfig {
-
-    enum class ThemeParameter {
-        AColor, UColor, GColor, CColor, XColor, SecondaryColor, TertiaryColor, HaloWidth, TertiaryOpacity, SecondaryInteractionWidth, TertiaryInteractionWidth, TertiaryInteractionStyle, ResidueBorder, FontName, ModuloXRes, ModuloYRes, ModuloSizeRes
-    }
-
-    @JvmField
-    var DASHED: Byte = 0
-    @JvmField
-    var SOLID: Byte = 1
-
-    @JvmField
-    val defaultColorSchemes: Map<String, Map<String, String>> = mapOf(
-            "Candies" to mapOf<String, String>(
-                ThemeParameter.AColor.toString() to  Color.rgb(0, 192, 255).toString(),
-                ThemeParameter.UColor.toString() to Color.rgb(192, 128, 128).toString(),
-                ThemeParameter.GColor.toString() to Color.rgb(128, 192, 0).toString(),
-                ThemeParameter.CColor.toString() to Color.rgb(255, 0, 255).toString(),
-                ThemeParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
-                ThemeParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
-                ThemeParameter.TertiaryColor.toString() to Color.rgb(255, 192, 128).toString()
-            ),
-
-            "Grapes" to mapOf<String, String>(
-                    ThemeParameter.AColor.toString() to  Color.rgb(128, 128, 0).toString(),
-                    ThemeParameter.UColor.toString() to Color.rgb(128, 128, 128).toString(),
-                    ThemeParameter.GColor.toString() to Color.rgb(192, 0, 0).toString(),
-                    ThemeParameter.CColor.toString() to Color.rgb(255, 128, 0).toString(),
-                    ThemeParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
-                    ThemeParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
-                    ThemeParameter.TertiaryColor.toString() to Color.rgb(255, 192, 128).toString()
-            ),
-
-            "Metal" to mapOf<String, String>(
-                    ThemeParameter.AColor.toString() to  Color.rgb(153, 77, 0).toString(),
-                    ThemeParameter.UColor.toString() to Color.rgb(179, 128, 26).toString(),
-                    ThemeParameter.GColor.toString() to Color.rgb(179, 179, 179).toString(),
-                    ThemeParameter.CColor.toString() to Color.rgb(77, 77, 77).toString(),
-                    ThemeParameter.XColor.toString() to Color.LIGHTGRAY.toString(),
-                    ThemeParameter.SecondaryColor.toString() to Color.LIGHTGRAY.toString(),
-                    ThemeParameter.TertiaryColor.toString() to Color.rgb(153, 153, 51).toString()
-            )
-    )
 
     private var document: Document? = null
     @JvmField
@@ -337,16 +297,6 @@ object RnartistConfig {
     @JvmStatic
     fun useLocalAlgorithms(use: Boolean) {
         document!!.rootElement.getChild("local-algorithms").text = "" + use
-    }
-
-    @JvmStatic
-    fun getUserDir(): File {
-        val f = File(StringBuffer(System.getProperty("user.home")).append(System.getProperty("file.separator")).append(".rnartist").toString())
-        if (!f.exists()) {
-            f.mkdir()
-            File(f, "tmp").mkdir()
-        }
-        return f
     }
 
     fun getRnartistRelease(): String? {
