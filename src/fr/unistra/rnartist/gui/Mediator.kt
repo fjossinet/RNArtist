@@ -20,7 +20,7 @@ class Mediator(val rnartist: RNArtist) {
     var webBrowser: WebBrowser? = WebBrowser(this)
 
     lateinit var canvas2D: Canvas2D
-    val theme = Theme(this.toolbox)
+    val theme = Theme(themeConfigurator = toolbox)
     val graphicsContext = GraphicContext()
     var tertiaryStructure:TertiaryStructure? = null
     var chimeraDriver: ChimeraDriver? = null
