@@ -2,8 +2,9 @@ package fr.unistra.rnartist;
 
 import fr.unistra.rnartist.gui.Canvas2D;
 import fr.unistra.rnartist.gui.Mediator;
-import fr.unistra.rnartist.gui.NewUserDialog;
+import fr.unistra.rnartist.gui.RegisterDialog;
 import fr.unistra.rnartist.io.ChimeraDriver;
+import fr.unistra.rnartist.model.RnartistConfig;
 import fr.unistra.rnartist.model.SecondaryStructure;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -24,9 +25,7 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.Optional;
 
 public class RNArtist extends Application {
@@ -58,7 +57,7 @@ public class RNArtist extends Application {
             Optional<ButtonType> result = alert.showAndWait();
             if (result.get() == ButtonType.OK) {
                 try {
-                    RnartistConfig.saveConfig(mediator);
+                    RnartistConfig.saveConfig(mediator.getTheme());
                     Platform.exit();
                     System.exit(0);
                 } catch (Exception e) {
@@ -70,9 +69,9 @@ public class RNArtist extends Application {
         });
         RnartistConfig.loadConfig();
         if (RnartistConfig.getUserID() == null)
-            new NewUserDialog(this);
+            new RegisterDialog(this);
         this.mediator = new Mediator(this);
-        RnartistConfig.saveConfig(mediator);
+        RnartistConfig.saveConfig(mediator.getTheme());
         final SwingNode swingNode = new SwingNode();
         swingNode.setOnMouseDragged(mouseEvent -> {
             if (mediator.getGraphicsContext() != null) {
@@ -227,10 +226,23 @@ public class RNArtist extends Application {
         GridPane.setRowSpan(sepVert1, 1);
         project.getChildren().add(sepVert1);
 
-        export = new Button("Export", new Glyph("FontAwesome", FontAwesome.Glyph.UPLOAD));
+        export = new Button("Export as SVG", new Glyph("FontAwesome", FontAwesome.Glyph.UPLOAD));
         export.setDisable(true);
         export.setOnAction(actionEvent -> {
-
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("SVG Files", "*.svg"));
+            File file = fileChooser.showSaveDialog(stage);
+            if (file != null) {
+                fileChooser.setInitialDirectory(file.getParentFile());
+                PrintWriter writer;
+                try {
+                    writer = new PrintWriter(file);
+                    writer.println(mediator.getCanvas2D().getSecondaryStructureDrawing().get().asSVG());
+                    writer.close();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
         });
         GridPane.setConstraints(export, 6, 2);
         project.getChildren().add(export);
@@ -260,24 +272,25 @@ public class RNArtist extends Application {
         Button openFile = new Button("File", new Glyph("FontAwesome", FontAwesome.Glyph.FILE));
         openFile.setOnAction(actionEvent -> {
             FileChooser fileChooser = new FileChooser();
-            File f = fileChooser.showOpenDialog(null );
-            if (f!= null) {
+            File file = fileChooser.showOpenDialog(stage );
+            if (file != null) {
+                fileChooser.setInitialDirectory(file.getParentFile());
                 SecondaryStructure ss = null;
-                if (f.getName().endsWith(".ct")) {
+                if (file.getName().endsWith(".ct")) {
                     try {
-                        ss = fr.unistra.rnartist.model.io.ParsersKt.parseCT(new FileReader(f));
+                        ss = fr.unistra.rnartist.model.io.ParsersKt.parseCT(new FileReader(file));
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                } else if (f.getName().endsWith(".bpseq")) {
+                } else if (file.getName().endsWith(".bpseq")) {
                     try {
-                        ss = fr.unistra.rnartist.model.io.ParsersKt.parseBPSeq(new FileReader(f));
+                        ss = fr.unistra.rnartist.model.io.ParsersKt.parseBPSeq(new FileReader(file));
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                }  else if (f.getName().endsWith(".fasta") || f.getName().endsWith(".fas") || f.getName().endsWith(".vienna")) {
+                }  else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
                     try {
-                        ss = fr.unistra.rnartist.model.io.ParsersKt.parseVienna(new FileReader(f));
+                        ss = fr.unistra.rnartist.model.io.ParsersKt.parseVienna(new FileReader(file));
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

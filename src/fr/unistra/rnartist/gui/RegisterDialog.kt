@@ -1,8 +1,8 @@
 package fr.unistra.rnartist.gui
 
 import fr.unistra.rnartist.RNArtist
-import fr.unistra.rnartist.RnartistConfig
 import fr.unistra.rnartist.io.Backend
+import fr.unistra.rnartist.model.RnartistConfig
 import javafx.application.Application
 import javafx.collections.FXCollections
 import javafx.concurrent.Task
@@ -29,13 +29,13 @@ import java.util.*
 import java.util.Locale
 
 
-class NewUserDialog(application: Application): Dialog<ButtonType>() {
+class RegisterDialog(application: Application): Dialog<ButtonType>() {
 
     init {
         //this.headerText = "Please Register to Generate your User ID."
         this.headerText = null
         this.initStyle(StageStyle.UNDECORATED)
-        val cancelButtonType = ButtonType("Quit RNArtist", ButtonData.CANCEL_CLOSE)
+        val cancelButtonType = ButtonType("Cancel", ButtonData.CANCEL_CLOSE)
         val registerButtonType = ButtonType("Register", ButtonData.APPLY)
         this.getDialogPane().getButtonTypes().addAll(cancelButtonType, registerButtonType)
 
@@ -116,7 +116,14 @@ class NewUserDialog(application: Application): Dialog<ButtonType>() {
             }
             else if (result.isPresent) {
                 if (result.get().buttonData == ButtonData.CANCEL_CLOSE) {
-                    System.exit(-1)
+                    if (RnartistConfig.userID == null) {
+                        val alert = Alert(Alert.AlertType.INFORMATION)
+                        alert.title = "For your Information"
+                        alert.headerText = "You will use RNArtist without any User ID."
+                        alert.contentText = "If you want to share online your themes or layouts, you will be able to register and get a User ID later."
+                        alert.showAndWait()
+                    }
+                    break
                 } else if (result.get().buttonData == ButtonData.APPLY && (name.text.trim().length == 0 || country.value == null)) {
                     if (name.text.trim().length == 0)
                         labelName.setTextFill(Color.web("red"));
@@ -138,7 +145,6 @@ class NewUserDialog(application: Application): Dialog<ButtonType>() {
                         override fun call():Pair<Boolean, Exception?> {
                             try {
                                 Backend.registerUser(name.text.trim(), country.value.trim(), labo.text.trim())
-
                             } catch (e:Exception) {
                                 e.printStackTrace()
                                 return Pair(false,e)
@@ -155,7 +161,7 @@ class NewUserDialog(application: Application): Dialog<ButtonType>() {
                             root.children.remove(box)
                             val alert = Alert(Alert.AlertType.ERROR)
                             alert.setTitle("Registration problem")
-                            alert.setHeaderText("Please Retry...")
+                            alert.setHeaderText(task.get().second?.message)
                             alert.setContentText("If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com")
                             val sw = StringWriter()
                             val pw = PrintWriter(sw)

@@ -1,8 +1,8 @@
 package fr.unistra.rnartist.gui;
 
 import com.google.gson.internal.StringMap;
-import fr.unistra.rnartist.RnartistConfig;
 import fr.unistra.rnartist.io.Backend;
+import fr.unistra.rnartist.model.RnartistConfig;
 import fr.unistra.rnartist.model.ThemeConfigurator;
 import fr.unistra.rnartist.model.ThemeParameter;
 import javafx.beans.value.ChangeListener;
@@ -20,7 +20,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
@@ -50,8 +49,7 @@ public class Toolbox implements ThemeConfigurator {
     private ComboBox<String> fontNames, residueBorder,
             secondaryInteractionWidth,
             tertiaryInteractionWidth, tertiaryInteractionStyle;
-    private Spinner<Integer> moduloXRes, moduloYRes;
-    private Spinner<Double> moduloSizeRes;
+    private Spinner<Integer> deltaXRes, deltaYRes, deltaFontSize;
     private ObservableList<Theme> themesList;
 
     public Toolbox(Mediator mediator) {
@@ -59,7 +57,7 @@ public class Toolbox implements ThemeConfigurator {
         this.stage = new Stage();
         stage.setTitle("Toolbox");
         this.createScene(stage);
-        new Thread(new LoadThemesFromWebsite()).run();
+        //new Thread(new LoadThemesFromWebsite()).run();
     }
 
     public Stage getStage() {
@@ -73,6 +71,7 @@ public class Toolbox implements ThemeConfigurator {
 
         //this.createAllThemesPanel(root);
         this.createThemePanel(root);
+        this.createLayoutPanel(root);
         this.createSettingsPanel(root);
 
         Scene scene = new Scene(root);
@@ -121,9 +120,9 @@ public class Toolbox implements ThemeConfigurator {
         column = 0;
         grid.add(fontNames, column, ++row,6,1);
 
-        moduloXRes = new Spinner<Integer>();
-        moduloXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 10, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.ModuloXRes.toString()))));
-        moduloXRes.valueProperty().addListener(new ChangeListener<Integer>() {
+        deltaXRes = new Spinner<Integer>();
+        deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaXRes.toString()))));
+        deltaXRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
                 if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
@@ -131,9 +130,9 @@ public class Toolbox implements ThemeConfigurator {
                 }
             }
         });
-        moduloYRes = new Spinner<Integer>();
-        moduloYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 10, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.ModuloYRes.toString()))));
-        moduloYRes.valueProperty().addListener(new ChangeListener<Integer>() {
+        deltaYRes = new Spinner<Integer>();
+        deltaYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaYRes.toString()))));
+        deltaYRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
                 if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
@@ -142,11 +141,11 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        moduloSizeRes = new Spinner<Double>();
-        moduloSizeRes.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0.5, 1.5, Float.parseFloat(RnartistConfig.defaultTheme.get(ThemeParameter.ModuloSizeRes.toString())), 0.1));
-        moduloSizeRes.valueProperty().addListener(new ChangeListener<Double>() {
+        deltaFontSize = new Spinner<Integer>();
+        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-5, 5, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaFontSize.toString()))));
+        deltaFontSize.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
-            public void changed(ObservableValue<? extends Double> observable, Double oldValue, Double newValue) {
+            public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
                 if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
                     mediator.getCanvas2D().repaint();
                 }
@@ -155,11 +154,11 @@ public class Toolbox implements ThemeConfigurator {
 
         column = 0;
         grid.add(new Label("x"), column, ++row, 1, 1);
-        grid.add(moduloXRes, ++column, row, 1, 1);
+        grid.add(deltaXRes, ++column, row, 1, 1);
         grid.add(new Label("y"), ++column, row, 1, 1);
-        grid.add(moduloYRes, ++column, row, 1, 1);
+        grid.add(deltaYRes, ++column, row, 1, 1);
         grid.add(new Label("s"), ++column, row, 1, 1);
-        grid.add(moduloSizeRes, ++column, row, 1, 1);
+        grid.add(deltaFontSize, ++column, row, 1, 1);
 
         column = 0;
 
@@ -182,7 +181,7 @@ public class Toolbox implements ThemeConfigurator {
             new SwingWorker() {
                 @Override
                 protected Object doInBackground() throws Exception {
-                    Map<String, String> colors = defaultColorSchemes.get(colorSchemeChoices.getValue());
+                    Map<String, String> colors = RnartistConfig.defaultColorSchemes.get(colorSchemeChoices.getValue());
                     try {
                         loadTheme(colors);
                         mediator.getCanvas2D().repaint();
@@ -210,7 +209,7 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
         aPicker.setStyle("-fx-color-label-visible: false ;");
-        aPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(ThemeParameter.AColor.toString())));
+        aPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.AColor.toString()))));
         grid.add(new Label("A"), column, ++row, 1, 1);
         grid.add(aPicker, ++column , row, 1, 1);
 
@@ -222,7 +221,7 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
         uPicker.setStyle("-fx-color-label-visible: false ;");
-        uPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(ThemeParameter.UColor.toString())));
+        uPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.UColor.toString()))));
         grid.add(new Label("U"),++column , row, 1, 1);
         grid.add(uPicker, ++column, row, 2, 1);
 
@@ -235,7 +234,7 @@ public class Toolbox implements ThemeConfigurator {
 
         });
         xPicker.setStyle("-fx-color-label-visible: false ;");
-        xPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(ThemeParameter.XColor.toString())));
+        xPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.XColor.toString()))));
         grid.add(new Label("X"), ++column, row, 1, 1);
         grid.add(xPicker, ++column, row, 2, 1);
 
@@ -249,7 +248,7 @@ public class Toolbox implements ThemeConfigurator {
 
         });
         gPicker.setStyle("-fx-color-label-visible: false ;");
-        gPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(ThemeParameter.GColor.toString())));
+        gPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.GColor.toString()))));
         grid.add(new Label("G"), column, ++row, 1, 1);
         grid.add(gPicker, ++column, row, 2, 1);
 
@@ -262,7 +261,7 @@ public class Toolbox implements ThemeConfigurator {
 
         });
         cPicker.setStyle("-fx-color-label-visible: false ;");
-        cPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(ThemeParameter.CColor.toString())));
+        cPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.CColor.toString()))));
         grid.add(new Label("C"), ++column, row, 1, 1);
         grid.add(cPicker, ++column, row, 2, 1);
 
@@ -276,7 +275,7 @@ public class Toolbox implements ThemeConfigurator {
 
         });
         _2dPicker.setStyle("-fx-color-label-visible: false ;");
-        _2dPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryColor.toString())));
+        _2dPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryColor.toString()))));
         grid.add(new Label("Secondaries"), column, ++row, 2,1);
         ++column;
         ++column;
@@ -292,7 +291,7 @@ public class Toolbox implements ThemeConfigurator {
 
         });
         _3dPicker.setStyle("-fx-color-label-visible: false ;");
-        _3dPicker.setValue(Color.web(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryColor.toString())));
+        _3dPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryColor.toString()))));
         grid.add(new Label("Tertiaries"), column, ++row, 2,1);
         ++column;
         ++column;
@@ -445,8 +444,14 @@ public class Toolbox implements ThemeConfigurator {
         vbox.getChildren().add(saveForm);
         vbox.getChildren().add(sp);
         VBox.setVgrow(sp, Priority.ALWAYS);
-        Tab theme = new Tab("Current Theme", vbox);
+        Tab theme = new Tab("Theme", vbox);
         root.getTabs().add(theme);
+    }
+
+    private void createLayoutPanel(TabPane root) {
+        VBox vbox =  new VBox();
+        Tab themes = new Tab("Layout", vbox);
+        root.getTabs().add(themes);
     }
 
     private void createAllThemesPanel(TabPane root) {
@@ -499,6 +504,8 @@ public class Toolbox implements ThemeConfigurator {
         VBox vbox = new VBox();
         vbox.setPadding(new Insets(10, 10, 10, 10));
         vbox.setSpacing(10);
+
+        //---- Chimera
         GridPane chimeraPane = new GridPane();
         ColumnConstraints cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
@@ -509,15 +516,18 @@ public class Toolbox implements ThemeConfigurator {
         chimeraPane.setVgap(10);
         Tab settings = new Tab("Settings", vbox);
         root.getTabs().add(settings);
+
         Label chimeraLabel = new Label("UCSF Chimera Path");
         chimeraLabel.setStyle("-fx-font-size: 15");
         chimeraPane.getChildren().add(chimeraLabel);
-        GridPane.setConstraints(chimeraLabel, 0,0);
+        GridPane.setConstraints(chimeraLabel, 0,0,2,1);
+
         TextField chimeraPath = new TextField();
         chimeraPath.setEditable(false);
         chimeraPath.setText(RnartistConfig.getChimeraPath());
         chimeraPane.getChildren().add(chimeraPath);
         GridPane.setConstraints(chimeraPath, 0,1);
+
         Button chimeraSearch = new Button("Browse");
         chimeraPane.getChildren().add(chimeraSearch);
         GridPane.setConstraints(chimeraSearch, 1,1);
@@ -533,7 +543,7 @@ public class Toolbox implements ThemeConfigurator {
                         chimeraPath.setText(f.getAbsolutePath());
                     RnartistConfig.setChimeraPath(chimeraPath.getText());
                     try {
-                        RnartistConfig.saveConfig(mediator);
+                        RnartistConfig.saveConfig(mediator.getTheme());
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -541,8 +551,74 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        vbox.getChildren().add(new Separator(Orientation.HORIZONTAL));
+        //---- User ID
+        GridPane userIDPane = new GridPane();
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        userIDPane.getColumnConstraints().addAll(cc, new ColumnConstraints());
+        vbox.getChildren().add(userIDPane);
+        userIDPane.setPadding(new Insets(10, 10, 10, 10));
+        userIDPane.setHgap(10);
+        userIDPane.setVgap(10);
 
+        Label userIDLabel = new Label("Your User ID");
+        userIDLabel.setStyle("-fx-font-size: 15");
+        userIDPane.getChildren().add(userIDLabel);
+        GridPane.setConstraints(userIDLabel, 0,0,2,1);
+
+        TextField userID = new TextField();
+        userID.setEditable(false);
+        userID.setPromptText("Click on register to get a User ID");
+        if (RnartistConfig.getUserID() != null)
+            userID.setText(RnartistConfig.getUserID());
+        userIDPane.getChildren().add(userID);
+        GridPane.setConstraints(userID, 0,1);
+
+        Button register = new Button("Register");
+        if (RnartistConfig.getUserID() != null)
+            register.setDisable(true);
+        userIDPane.getChildren().add(register);
+        GridPane.setConstraints(register, 1, 1);
+        register.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                new RegisterDialog(mediator.getRnartist());
+                if (RnartistConfig.getUserID()!= null) {
+                    userID.setText(RnartistConfig.getUserID());
+                    register.setDisable(true);
+                }
+            }
+        });
+
+        //---- Bunch of options
+        GridPane optionsPane = new GridPane();
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        optionsPane.getColumnConstraints().addAll(new ColumnConstraints(),cc);
+        vbox.getChildren().add(optionsPane);
+        optionsPane.setPadding(new Insets(10, 10, 10, 10));
+        optionsPane.setHgap(10);
+        optionsPane.setVgap(10);
+
+        Label svgExport = new Label("Misc Options");
+        svgExport.setStyle("-fx-font-size: 15");
+        optionsPane.getChildren().add(svgExport);
+        GridPane.setConstraints(svgExport, 0,0,2,1);
+        Separator separator = new Separator(Orientation.HORIZONTAL);
+        optionsPane.getChildren().add(separator);
+        GridPane.setConstraints(separator, 0, 1, 2, 1);
+
+        CheckBox svgBrowserFix = new CheckBox();
+        svgBrowserFix.setSelected(RnartistConfig.exportSVGWithBrowserCompatibility());
+        svgBrowserFix.setOnAction(actionEvent -> {
+            RnartistConfig.exportSVGWithBrowserCompatibility(svgBrowserFix.isSelected());
+        });
+        optionsPane.getChildren().add(svgBrowserFix);
+        GridPane.setConstraints(svgBrowserFix, 0,2);
+
+        Label l = new Label("Browser Compatibility for SVG Export");
+        optionsPane.getChildren().add(l);
+        GridPane.setConstraints(l, 1,2);
     }
 
     public void loadTheme(Map<String,String> theme) {
@@ -560,9 +636,9 @@ public class Toolbox implements ThemeConfigurator {
         residueBorder.setValue(theme.getOrDefault(ThemeParameter.ResidueBorder.toString(),""+getResidueBorder()));
         tertiaryInteractionStyle.setValue(theme.getOrDefault(ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue()));
         fontNames.setValue(theme.getOrDefault(ThemeParameter.FontName.toString(), getFontName()));
-        moduloXRes.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.ModuloXRes.toString(), ""+getModuloXRes())));
-        moduloYRes.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.ModuloYRes.toString(), ""+getModuloYRes())));
-        moduloSizeRes.getValueFactory().setValue(Double.parseDouble(theme.getOrDefault(ThemeParameter.ModuloSizeRes.toString(), ""+getModuloSizeRes())));
+        deltaXRes.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.DeltaXRes.toString(), ""+getDeltaXRes())));
+        deltaYRes.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.DeltaYRes.toString(), ""+getDeltaYRes())));
+        deltaFontSize.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.DeltaFontSize.toString(), ""+getDeltaFontSize())));
     }
 
     public Map<String,String> getTheme() {
@@ -581,9 +657,9 @@ public class Toolbox implements ThemeConfigurator {
         theme.put(ThemeParameter.ResidueBorder.toString(), ""+getResidueBorder());
         theme.put(ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue());
         theme.put(ThemeParameter.FontName.toString(), getFontName());
-        theme.put(ThemeParameter.ModuloXRes.toString(), ""+getModuloXRes());
-        theme.put(ThemeParameter.ModuloYRes.toString(), ""+getModuloYRes());
-        theme.put(ThemeParameter.ModuloSizeRes.toString(), ""+getModuloSizeRes());
+        theme.put(ThemeParameter.DeltaXRes.toString(), ""+getDeltaXRes());
+        theme.put(ThemeParameter.DeltaYRes.toString(), ""+getDeltaYRes());
+        theme.put(ThemeParameter.DeltaFontSize.toString(), ""+getDeltaFontSize());
         return theme;
     }
 
@@ -677,37 +753,37 @@ public class Toolbox implements ThemeConfigurator {
 
     @Override
     public String getAColor() {
-        return ""+javaFXToAwt(aPicker.getValue()).getRGB();
+        return getHTMLColorString(javaFXToAwt(aPicker.getValue()));
     }
 
     @Override
     public String getUColor() {
-        return ""+javaFXToAwt(uPicker.getValue()).getRGB();
+        return getHTMLColorString(javaFXToAwt(uPicker.getValue()));
     }
 
     @Override
     public String getCColor() {
-        return ""+javaFXToAwt(cPicker.getValue()).getRGB();
+        return getHTMLColorString(javaFXToAwt(cPicker.getValue()));
     }
 
     @Override
     public String getGColor() {
-        return ""+javaFXToAwt(gPicker.getValue()).getRGB();
+        return getHTMLColorString(javaFXToAwt(gPicker.getValue()));
     }
 
     @Override
     public String getXColor() {
-        return ""+javaFXToAwt(xPicker.getValue()).getRGB();
+        return getHTMLColorString(javaFXToAwt(xPicker.getValue()));
     }
 
     @Override
     public String getSecondaryInteractionColor() {
-        return ""+javaFXToAwt(_2dPicker.getValue()).getRGB();
+        return getHTMLColorString(javaFXToAwt(_2dPicker.getValue()));
     }
 
     @Override
     public String getTertiaryInteractionColor() {
-        return ""+javaFXToAwt(_3dPicker.getValue()).getRGB();
+        return getHTMLColorString(javaFXToAwt(_3dPicker.getValue()));
     }
 
     @Override
@@ -726,18 +802,18 @@ public class Toolbox implements ThemeConfigurator {
     }
 
     @Override
-    public int getModuloXRes() {
-        return moduloXRes.getValue();
+    public int getDeltaXRes() {
+        return deltaXRes.getValue();
     }
 
     @Override
-    public int getModuloYRes() {
-        return moduloYRes.getValue();
+    public int getDeltaYRes() {
+        return deltaYRes.getValue();
     }
 
     @Override
-    public float getModuloSizeRes() {
-        return moduloSizeRes.getValue().floatValue();
+    public int getDeltaFontSize() {
+        return deltaFontSize.getValue().intValue();
     }
 
     @Override
@@ -810,6 +886,10 @@ public class Toolbox implements ThemeConfigurator {
                 (float)c.getGreen(),
                 (float)c.getBlue(),
                 (float)c.getOpacity());
+    }
+
+    private javafx.scene.paint.Color awtColorToJavaFX(java.awt.Color c) {
+        return javafx.scene.paint.Color.rgb(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha() / 255.0);
     }
 
 }

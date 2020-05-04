@@ -2,8 +2,8 @@ package fr.unistra.rnartist.io
 
 import com.google.gson.Gson
 import com.google.gson.internal.StringMap
-import fr.unistra.rnartist.RnartistConfig
 import fr.unistra.rnartist.gui.Mediator
+import fr.unistra.rnartist.model.RnartistConfig
 import fr.unistra.rnartist.model.SecondaryStructureDrawing
 import fr.unistra.rnartist.model.io.parseVienna
 import javafx.concurrent.Task
@@ -26,13 +26,14 @@ object Backend {
     @Throws(Exception::class)
     fun registerUser(name:String, country:String, labo:String?) {
         val userID = UUID.randomUUID().toString()
-        RnartistConfig.userID = userID
         val client: HttpClient = HttpClient.newHttpClient()
         val request = HttpRequest.newBuilder()
                 .uri(URI.create(RnartistConfig.website+"/api/register_user?id=${URLEncoder.encode(userID, "UTF-8")}&name=${URLEncoder.encode(name, "UTF-8")}&country=${URLEncoder.encode(country.trim(), "UTF-8")}&lab=${URLEncoder.encode(labo?.trim(), "UTF-8")}"))
                 .build()
         val response: HttpResponse<String> = client.send(request,
                 HttpResponse.BodyHandlers.ofString())
+        //the id is saved only with the backend was online
+        RnartistConfig.userID = userID
     }
 
     @JvmStatic

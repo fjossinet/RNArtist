@@ -17,7 +17,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
 
     init {
         this.mediator.canvas2D = this
-        this.secondaryStructureDrawing.addListener({ obs, old, selected ->
+        this.secondaryStructureDrawing.addListener({ _, _, _ ->
             mediator.rnartist.activateSaveButtons()
         })
     }
@@ -55,7 +55,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     fun screenCapture(secondaryStructureDrawing:SecondaryStructureDrawing?): BufferedImage? {
-        var bufferedImage: BufferedImage? = null
+        var bufferedImage: BufferedImage?
         mediator.graphicsContext.viewX -= mediator.graphicsContext.screen_capture_area!!.minX
         mediator.graphicsContext.viewY -= mediator.graphicsContext.screen_capture_area!!.minY
         bufferedImage = BufferedImage(mediator.graphicsContext.screen_capture_area!!.width.toInt(),

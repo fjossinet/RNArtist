@@ -2,7 +2,6 @@ package fr.unistra.rnartist.io;
 
 import fr.unistra.rnartist.gui.Mediator;
 import fr.unistra.rnartist.model.*;
-import fr.unistra.rnartist.RnartistConfig;
 import javafx.scene.control.Alert;
 
 import javax.swing.*;
@@ -342,9 +341,9 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
     }
 
     public void color3D(List<ResidueCircle> residues) {
-        final StringBuffer command = new StringBuffer();
+        /*final StringBuffer command = new StringBuffer();
         for (ResidueCircle r: residues)
             command.append("color "+((float)r.getColor().getRed()/(float)255)+","+(float)r.getColor().getGreen()/(float)255+","+(float)r.getColor().getBlue()/(float)255+","+(float)r.getColor().getAlpha()/(float)255+" #0,2:"+(mediator.getTertiaryStructure().getResidue3DAt(r.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(r.getAbsPos()).getLabel() : "") +"; ");
-        this.evaluate(command.toString());
+        this.evaluate(command.toString());*/
     }
 }

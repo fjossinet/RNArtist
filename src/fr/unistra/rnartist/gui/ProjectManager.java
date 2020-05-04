@@ -1,7 +1,7 @@
 package fr.unistra.rnartist.gui;
 
-import fr.unistra.rnartist.RnartistConfig;
 import fr.unistra.rnartist.model.Project;
+import fr.unistra.rnartist.model.RnartistConfig;
 import fr.unistra.rnartist.model.SecondaryStructure;
 import fr.unistra.rnartist.model.TertiaryStructure;
 import javafx.application.Platform;
@@ -67,7 +67,6 @@ public class ProjectManager {
                 Optional<ButtonType> result = alert.showAndWait();
                 if (result.get() == ButtonType.OK) {
                     try {
-                        RnartistConfig.saveConfig(mediator);
                         Platform.exit();
                         System.exit(0);
                     } catch (Exception e) {
