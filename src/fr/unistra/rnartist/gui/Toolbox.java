@@ -2,9 +2,7 @@ package fr.unistra.rnartist.gui;
 
 import com.google.gson.internal.StringMap;
 import fr.unistra.rnartist.io.Backend;
-import fr.unistra.rnartist.model.RnartistConfig;
-import fr.unistra.rnartist.model.ThemeConfigurator;
-import fr.unistra.rnartist.model.ThemeParameter;
+import fr.unistra.rnartist.model.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -13,6 +11,8 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.*;
+import javafx.geometry.Orientation;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Label;
@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static fr.unistra.rnartist.model.DrawingsKt.*;
@@ -448,10 +449,41 @@ public class Toolbox implements ThemeConfigurator {
         root.getTabs().add(theme);
     }
 
+    private FlowPane junctionKnobs = new FlowPane();
+
     private void createLayoutPanel(TabPane root) {
-        VBox vbox =  new VBox();
-        Tab themes = new Tab("Layout", vbox);
+        junctionKnobs.setPadding(new Insets(5, 5, 5, 5));
+        junctionKnobs.setVgap(5);
+        junctionKnobs.setHgap(5);
+        ScrollPane scrollPane = new ScrollPane(junctionKnobs);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
+        Tab themes = new Tab("Layout", scrollPane);
         root.getTabs().add(themes);
+    }
+
+    public void addJunctionKnob(JunctionCircle jc) {
+        VBox vbox = new VBox();
+        vbox.setAlignment(Pos.CENTER);
+        vbox.setPadding(new Insets(5, 5, 5, 5));
+        vbox.setSpacing(5);
+        JunctionKnob knob = new JunctionKnob(jc, this.mediator);
+        vbox.getChildren().add(knob);
+        Label name = new Label(jc.getJunction().getName());
+        vbox.getChildren().add(name);
+        Label type = new Label(jc.getJunction().getType().name());
+        vbox.getChildren().add(type);
+        junctionKnobs.getChildren().add(vbox);
+    }
+
+    public FlowPane getJunctionKnobs() {
+        return junctionKnobs;
+    }
+
+    public void unselectJunctionKnobs() {
+        for (Node node:junctionKnobs.getChildren()) {
+            ((JunctionKnob)((VBox)node).getChildren().get(0)).unselect();
+        }
     }
 
     private void createAllThemesPanel(TabPane root) {
@@ -608,17 +640,34 @@ public class Toolbox implements ThemeConfigurator {
         optionsPane.getChildren().add(separator);
         GridPane.setConstraints(separator, 0, 1, 2, 1);
 
+        Label l = new Label("Browser Compatibility for SVG Export");
+        optionsPane.getChildren().add(l);
+        GridPane.setConstraints(l, 0,2);
+
         CheckBox svgBrowserFix = new CheckBox();
         svgBrowserFix.setSelected(RnartistConfig.exportSVGWithBrowserCompatibility());
         svgBrowserFix.setOnAction(actionEvent -> {
             RnartistConfig.exportSVGWithBrowserCompatibility(svgBrowserFix.isSelected());
         });
         optionsPane.getChildren().add(svgBrowserFix);
-        GridPane.setConstraints(svgBrowserFix, 0,2);
+        GridPane.setConstraints(svgBrowserFix, 1,2);
 
-        Label l = new Label("Browser Compatibility for SVG Export");
+        l = new Label("Selection Fading");
         optionsPane.getChildren().add(l);
-        GridPane.setConstraints(l, 1,2);
+        GridPane.setConstraints(l, 0,3);
+        Slider slider = new Slider(0, 255, RnartistConfig.getSelectionFading());
+        slider.valueProperty().addListener(new ChangeListener<Number>() {
+            public void changed(ObservableValue<? extends Number> ov,
+                                Number old_val, Number new_val) {
+                RnartistConfig.setSelectionFading(new_val.intValue());
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        slider.setShowTickMarks(true);
+        optionsPane.getChildren().add(slider);
+        GridPane.setConstraints(slider, 1,3);
+
+
     }
 
     public void loadTheme(Map<String,String> theme) {

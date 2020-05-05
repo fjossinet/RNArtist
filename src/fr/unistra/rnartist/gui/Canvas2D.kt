@@ -1,5 +1,6 @@
 package fr.unistra.rnartist.gui
 
+import fr.unistra.rnartist.model.JunctionType
 import fr.unistra.rnartist.model.SecondaryStructure
 import fr.unistra.rnartist.model.SecondaryStructureDrawing
 import javafx.beans.property.SimpleObjectProperty
@@ -23,7 +24,13 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     fun load2D(ss:SecondaryStructure) {
+        mediator.graphicsContext.selectedResidues.clear()
+        mediator.toolbox.junctionKnobs.children.clear()
         this.secondaryStructureDrawing.value = SecondaryStructureDrawing(ss, this.bounds, mediator.theme)
+        for (jc in this.secondaryStructureDrawing.get().allJunctions) {
+            if (jc.junction.type != JunctionType.ApicalLoop)
+                mediator.toolbox.addJunctionKnob(jc)
+        }
         this.repaint()
     }
 
