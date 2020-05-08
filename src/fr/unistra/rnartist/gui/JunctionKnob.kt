@@ -6,7 +6,7 @@ import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.shape.Circle
 import javafx.scene.shape.Polygon
-import java.awt.event.MouseEvent
+import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
 
 class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : Pane(){
@@ -16,6 +16,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
     init {
         this.setStyle("-fx-background-color: #ffffff; -fx-border-color: darkgray; -fx-border-width: 2px;");
         this.setPrefSize(150.0,150.0)
+        this.setMaxWidth(150.0)
         this.setOnMouseClicked {
             this.select()
             var selectedCount = connectors.count { it.selected }
@@ -25,6 +26,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
                     if (!c.isInId && c.contains(localMouseClick)) {
                         c.selected = !c.selected
                         c.fill = if (c.selected) Color.STEELBLUE else Color.LIGHTGRAY
+                        c.stroke = if (c.selected) Color.DARKBLUE else Color.DARKGRAY
                         break
                     }
                 }
@@ -34,6 +36,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
                     if (!c.isInId && c.contains(localMouseClick) && c.selected) {
                         c.selected = false
                         c.fill = Color.LIGHTGRAY
+                        c.stroke = Color.DARKGRAY
                         break
                     }
                 }
@@ -51,14 +54,15 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
                 }
             }
             mediator.graphicsContext.selectedResidues.clear()
-            mediator.graphicsContext.selectedResidues.addAll(junctionCircle.junction.location.positions)
-            mediator.graphicsContext.selectedResidues.addAll(junctionCircle.inHelix.location.positions)
-            for (h in junctionCircle.helices) mediator.graphicsContext.selectedResidues.addAll(h.helix.location.positions)
-                mediator.graphicsContext.selectedResidues.addAll(junctionCircle.junction.location.positions)
+            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
+            for (h in junctionCircle.helices) mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(h.helix.location.positions))
+                mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
             this.mediator.canvas2D.repaint()
         }
         val connector = Connector(ConnectorId.s)
         connector.fill = Color.LIGHTGRAY
+        connector.stroke = Color.DARKGRAY
         connector.relocate(75.0-10, 130.0-10)
         connectors.add(connector)
         this.getChildren().addAll(connector);
@@ -72,13 +76,13 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
 
         var up = Polygon()
         up.fill = Color.LIGHTGRAY
-        up.stroke = Color.DARKGRAY
+        up.stroke = Color.BLACK
         up.getPoints().addAll(arrayOf(
                 75.0-15, 75.0-21,
                 75.0+15, 75.0-21,
                 75.0, 75.0-42))
         up.setOnMousePressed {
-            up.fill = Color.STEELBLUE
+            up.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 1.1
             junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
             this.mediator.canvas2D.secondaryStructureDrawing.get().computeResidues(junctionCircle)
@@ -91,13 +95,13 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
 
         var bottom = Polygon()
         bottom.fill = Color.LIGHTGRAY
-        bottom.stroke = Color.DARKGRAY
+        bottom.stroke = Color.BLACK
         bottom.getPoints().addAll(arrayOf(
                 75.0-15, 75.0+21,
                 75.0+15, 75.0+21,
                 75.0, 75.0+42))
         bottom.setOnMousePressed {
-            bottom.fill = Color.STEELBLUE
+            bottom.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 0.9
             junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
             this.mediator.canvas2D.secondaryStructureDrawing.get().computeResidues(junctionCircle)
@@ -110,13 +114,13 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
 
         var left = Polygon()
         left.fill = Color.LIGHTGRAY
-        left.stroke = Color.DARKGRAY
+        left.stroke = Color.BLACK
         left.getPoints().addAll(arrayOf(
                 75.0-21, 75.0-15,
                 75.0-21, 75.0+15,
                 75.0-42, 75.0))
         left.setOnMousePressed {
-            left.fill = Color.STEELBLUE
+            left.fill = Color.BLACK
             //first we search the connector inID (the red circle
             var inIDIndex:Int = 0
             for (connector in this.connectors) {
@@ -133,8 +137,10 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
                     if (!connectors[currentPos].isInId && connectors[currentPos].selected) {
                         connectors[currentPos].selected = false
                         connectors[currentPos].fill = Color.LIGHTGRAY
+                        connectors[currentPos].stroke = Color.DARKGRAY
                         connectors[if (currentPos-1 == -1) 15 else currentPos-1].selected = true
                         connectors[if (currentPos-1 == -1) 15 else currentPos-1].fill = Color.STEELBLUE
+                        connectors[if (currentPos-1 == -1) 15 else currentPos-1].stroke = Color.DARKBLUE
                     }
                     currentPos = (currentPos+1)%16
                 }
@@ -151,17 +157,18 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
         left.setOnMouseReleased {
             left.fill = Color.LIGHTGRAY
         }
-        this.getChildren().addAll(left);
+        if (this.junctionCircle.junction.type != JunctionType.ApicalLoop)
+            this.getChildren().addAll(left);
 
         var right = Polygon()
         right.fill = Color.LIGHTGRAY
-        right.stroke = Color.DARKGRAY
+        right.stroke = Color.BLACK
         right.getPoints().addAll(arrayOf(
                 75.0+21, 75.0-15,
                 75.0+21, 75.0+15,
                 75.0+42, 75.0))
         right.setOnMousePressed {
-            right.fill = Color.STEELBLUE
+            right.fill = Color.BLACK
             //first we search the connector inID (the red circle)
             var inIDIndex:Int = 0
             for (connector in this.connectors) {
@@ -178,8 +185,10 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
                     if (!connectors[currentPos].isInId && connectors[currentPos].selected) {
                         connectors[currentPos].selected = false
                         connectors[currentPos].fill = Color.LIGHTGRAY
+                        connectors[currentPos].stroke = Color.DARKGRAY
                         connectors[(currentPos+1)%16].selected = true
                         connectors[(currentPos+1)%16].fill = Color.STEELBLUE
+                        connectors[(currentPos+1)%16].stroke = Color.DARKBLUE
                     }
                     currentPos = if (currentPos-1 == -1) 15 else currentPos-1
                 }
@@ -196,7 +205,29 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
         right.setOnMouseReleased {
             right.fill = Color.LIGHTGRAY
         }
-        this.getChildren().addAll(right);
+        if (this.junctionCircle.junction.type != JunctionType.ApicalLoop)
+            this.getChildren().addAll(right);
+
+        var centerViewOnJunction = Circle(10.0)
+        centerViewOnJunction.relocate(65.0,65.0)
+        centerViewOnJunction.stroke = Color.BLACK
+        centerViewOnJunction.fill = Color.BLACK
+
+        centerViewOnJunction.setOnMousePressed {
+            centerViewOnJunction.fill = Color.LIGHTGRAY
+            mediator.graphicsContext.selectedResidues.clear()
+            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
+            for (h in junctionCircle.helices) mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(h.helix.location.positions))
+            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.graphicsContext.centerFrameOnSelection(mediator.canvas2D.getBounds())
+            mediator.canvas2D.repaint()
+        }
+
+        centerViewOnJunction.setOnMouseReleased {
+            centerViewOnJunction.fill = Color.BLACK
+        }
+        this.getChildren().addAll(centerViewOnJunction);
 
         this.loadJunctionLayout()
     }
@@ -235,11 +266,13 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
             if (connector.connectorId == junctionCircle.inId) {
                 connector.isInId = true
                 connector.fill = Color.RED
+                connector.stroke = Color.DARKRED
                 connector.selected = false
             } else {
                 junctionCircle.connectedJunctions.keys.toMutableList().forEach { connectorId ->
                     if (connector.connectorId == connectorId) {
                         connector.fill = Color.STEELBLUE
+                        connector.stroke = Color.DARKBLUE
                         connector.selected = true
                     }
                 }
@@ -252,6 +285,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
             connector.isInId = false
             connector.selected = false
             connector.fill = Color.LIGHTGRAY
+            connector.stroke = Color.DARKGRAY
         }
     }
 
@@ -262,6 +296,6 @@ class Connector(val connectorId:ConnectorId, var selected:Boolean = false):Circl
     var isInId = false
 
     init {
-        this.stroke = Color.DARKGRAY
+        this.stroke = if (selected) Color.DARKBLUE else Color.DARKGRAY
     }
 }

@@ -5,6 +5,7 @@ import fr.unistra.rnartist.model.SecondaryStructure
 import fr.unistra.rnartist.model.SecondaryStructureDrawing
 import javafx.beans.property.SimpleObjectProperty
 import java.awt.*
+import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
@@ -24,13 +25,52 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     fun load2D(ss:SecondaryStructure) {
-        mediator.graphicsContext.selectedResidues.clear()
+        mediator.graphicsContext.clear()
         mediator.toolbox.junctionKnobs.children.clear()
+        mediator.toolbox.residues.clear()
         this.secondaryStructureDrawing.value = SecondaryStructureDrawing(ss, this.bounds, mediator.theme)
-        for (jc in this.secondaryStructureDrawing.get().allJunctions) {
-            if (jc.junction.type != JunctionType.ApicalLoop)
-                mediator.toolbox.addJunctionKnob(jc)
+        ss.rna.seq.forEachIndexed { index:Int, res:Char ->
+            mediator.toolbox.residues.add(Residue(index+1, res))
         }
+        for (jc in this.secondaryStructureDrawing.get().allJunctions) {
+            mediator.toolbox.addJunctionKnob(jc)
+        }
+        fit2D()
+    }
+
+    fun center2D() {
+        mediator.graphicsContext.viewX = 0.0
+        mediator.graphicsContext.viewY = 0.0
+        var at = AffineTransform()
+        at.translate(mediator.graphicsContext.viewX, mediator.graphicsContext.viewY)
+        at.scale(mediator.graphicsContext.finalZoomLevel, mediator.graphicsContext.finalZoomLevel)
+        var transformedBounds = at.createTransformedShape(this.secondaryStructureDrawing.get().getBounds())
+        //we center the view on the new structure
+        mediator.graphicsContext.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
+        mediator.graphicsContext.viewY += this.getBounds().bounds2D.centerY - transformedBounds.bounds2D.centerY
+        this.repaint()
+    }
+
+    fun fit2D() {
+        mediator.graphicsContext.viewX = 0.0
+        mediator.graphicsContext.viewY = 0.0
+        mediator.graphicsContext.finalZoomLevel = 1.0
+        var at = AffineTransform()
+        at.translate(mediator.graphicsContext.viewX, mediator.graphicsContext.viewY)
+        at.scale(mediator.graphicsContext.finalZoomLevel, mediator.graphicsContext.finalZoomLevel)
+        var transformedBounds = at.createTransformedShape(this.secondaryStructureDrawing.get().getBounds())
+        //we compute the zoomLevel to fit the structure in the frame of the canvas2D
+        val widthRatio = transformedBounds.bounds2D.width/this.getBounds().width
+        val heightRatio = transformedBounds.bounds2D.height/this.getBounds().height
+        mediator.graphicsContext.finalZoomLevel = if (widthRatio > heightRatio) 1.0/widthRatio else 1.0/heightRatio
+        //We recompute the bounds of the structure with this new zoom level
+        at = AffineTransform()
+        at.translate(mediator.graphicsContext.viewX, mediator.graphicsContext.viewY)
+        at.scale(mediator.graphicsContext.finalZoomLevel, mediator.graphicsContext.finalZoomLevel)
+        transformedBounds = at.createTransformedShape(this.secondaryStructureDrawing.get().getBounds())
+        //we center the view on the new structure
+        mediator.graphicsContext.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
+        mediator.graphicsContext.viewY += this.getBounds().bounds2D.centerY - transformedBounds.bounds2D.centerY
         this.repaint()
     }
 

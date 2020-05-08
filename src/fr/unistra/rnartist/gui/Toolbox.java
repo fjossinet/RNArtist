@@ -11,17 +11,24 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.*;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -30,12 +37,11 @@ import org.controlsfx.control.GridCell;
 import org.controlsfx.control.GridView;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 import static fr.unistra.rnartist.model.DrawingsKt.*;
 import static java.util.stream.Collectors.toList;
@@ -45,13 +51,16 @@ public class Toolbox implements ThemeConfigurator {
 
     private Stage stage;
     private Mediator mediator;
-    private ColorPicker aPicker, uPicker, cPicker, gPicker, xPicker, _2dPicker, _3dPicker;
-    private Spinner<Integer> haloWidth, _3dOpacity;
+    private ColorPicker colorPicker1, colorPicker2, colorPicker3, colorPicker4, colorPicker5, colorPicker6, colorPicker7;
+    private ChoiceBox<String> structuralElement1,structuralElement2,structuralElement3,structuralElement4,structuralElement5,structuralElement6,structuralElement7,
+                                letterColor1,letterColor2,letterColor3,letterColor4,letterColor5,letterColor6,letterColor7;
+    private Slider _3dOpacity, haloWidth;
     private ComboBox<String> fontNames, residueBorder,
             secondaryInteractionWidth,
             tertiaryInteractionWidth, tertiaryInteractionStyle;
     private Spinner<Integer> deltaXRes, deltaYRes, deltaFontSize;
     private ObservableList<Theme> themesList;
+    private ObservableList<Residue> residues;
 
     public Toolbox(Mediator mediator) {
         this.mediator = mediator;
@@ -71,24 +80,41 @@ public class Toolbox implements ThemeConfigurator {
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         //this.createAllThemesPanel(root);
-        this.createThemePanel(root);
         this.createLayoutPanel(root);
+        this.createAnnotationsPanel(root);
+        this.createThemePanel(root);
         this.createSettingsPanel(root);
 
         Scene scene = new Scene(root);
         stage.setScene(scene);
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        this.stage.setWidth(440);
+        this.stage.setWidth(360);
         this.stage.setHeight(screenSize.getHeight());
         this.stage.setX(0);
         this.stage.setY(0);
     }
 
     private void createThemePanel(TabPane root) {
-        final HBox hbox = new HBox();
-        hbox.setPadding(new javafx.geometry.Insets(10, 12, 15, 12));
-        hbox.setSpacing(10);
+
+        VBox vbox =  new VBox();
+        vbox.setFillWidth(true);
+        vbox.setPadding(new Insets(20, 20, 20, 20));
+        vbox.setSpacing(10);
+
+        //++++++ pane for the fonts
+        Label title = new Label("Font");
+        title.setStyle("-fx-font-size: 15");
+        vbox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
+
+        GridPane fontsPane = new GridPane();
+        fontsPane.setHgap(5);
+        fontsPane.setVgap(10);
+        fontsPane.setPadding(new Insets(0, 0, 20, 0));
+
+        ColumnConstraints cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        fontsPane.getColumnConstraints().addAll(new ColumnConstraints(), new ColumnConstraints(),new ColumnConstraints(),new ColumnConstraints(),new ColumnConstraints(),cc);
 
         fontNames = new ComboBox<>(
                 observableList(Font.getFamilies().stream().distinct().collect(toList())));
@@ -109,17 +135,9 @@ public class Toolbox implements ThemeConfigurator {
 
         fontNames.setOnAction(eventHandler);
         fontNames.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.FontName.toString()));
-
-        GridPane grid = new GridPane();
-        grid.setVgap(15);
-        grid.setHgap(5);
-        int row = 0, column = 0;
-        Label b = new Label("Font");
-        b.setStyle("-fx-font-size: 15");
-        Separator separator = new Separator(Orientation.HORIZONTAL);
-        grid.add(new VBox(b, separator), column, row, 6, 1);
-        column = 0;
-        grid.add(fontNames, column, ++row,6,1);
+        fontNames.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setConstraints(fontNames, 0,0,6,1);
+        fontsPane.getChildren().add(fontNames);
 
         deltaXRes = new Spinner<Integer>();
         deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaXRes.toString()))));
@@ -131,6 +149,7 @@ public class Toolbox implements ThemeConfigurator {
                 }
             }
         });
+
         deltaYRes = new Spinner<Integer>();
         deltaYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaYRes.toString()))));
         deltaYRes.valueProperty().addListener(new ChangeListener<Integer>() {
@@ -153,35 +172,47 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        column = 0;
-        grid.add(new Label("x"), column, ++row, 1, 1);
-        grid.add(deltaXRes, ++column, row, 1, 1);
-        grid.add(new Label("y"), ++column, row, 1, 1);
-        grid.add(deltaYRes, ++column, row, 1, 1);
-        grid.add(new Label("s"), ++column, row, 1, 1);
-        grid.add(deltaFontSize, ++column, row, 1, 1);
+        Label l = new Label("x");
+        GridPane.setConstraints(l, 0,1,1,1);
+        fontsPane.getChildren().add(l);
+        GridPane.setConstraints(deltaXRes, 1,1,1,1);
+        fontsPane.getChildren().add(deltaXRes);
 
-        column = 0;
+        l = new Label("y");
+        GridPane.setConstraints(l, 2,1,1,1);
+        fontsPane.getChildren().add(l);
+        GridPane.setConstraints(deltaYRes, 3,1,1,1);
+        fontsPane.getChildren().add(deltaYRes);
 
-        b = new Label("Colors");
-        b.setStyle("-fx-font-size: 15");
-        separator = new Separator(Orientation.HORIZONTAL);
-        grid.add(new VBox(b, separator), column, ++row, 6, 1);
+        l = new Label("s");
+        GridPane.setConstraints(l, 4,1,1,1);
+        fontsPane.getChildren().add(l);
+        GridPane.setConstraints(deltaFontSize, 5,1,1,1);
+        fontsPane.getChildren().add(deltaFontSize);
 
-        column = 0;
+        vbox.getChildren().add(fontsPane);
+
+        //++++++ pane for the Colors
+        title = new Label("Colors");
+        title.setStyle("-fx-font-size: 15");
+        vbox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
+
+        GridPane colorsPane = new GridPane();
+        colorsPane.setHgap(10);
+        colorsPane.setVgap(10);
+        colorsPane.setPadding(new Insets(0, 0, 20, 0));
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        colorsPane.getColumnConstraints().addAll(new ColumnConstraints(),cc,cc);
 
         java.util.List<String> colorSchemes = new ArrayList<String>();
-        colorSchemes.add("Candies");
-        colorSchemes.add("Grapes");
-        colorSchemes.add("Metal");
+        for (String colorSchemeName:RnartistConfig.defaultColorSchemes.keySet())
+            colorSchemes.add(colorSchemeName);
 
         ComboBox<String> colorSchemeChoices = new ComboBox<String>(
                 observableList(colorSchemes));
 
         eventHandler = (event) -> {
-            new SwingWorker() {
-                @Override
-                protected Object doInBackground() throws Exception {
                     Map<String, String> colors = RnartistConfig.defaultColorSchemes.get(colorSchemeChoices.getValue());
                     try {
                         loadTheme(colors);
@@ -189,170 +220,458 @@ public class Toolbox implements ThemeConfigurator {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                    return null;
-                }
-            }.execute();
         };
 
         colorSchemeChoices.setOnAction(eventHandler);
-        colorSchemeChoices.setValue("Candies");
-        grid.add(new Label("Schemes"), column, ++row,2,1);
-        ++column;
-        ++column;
-        grid.add(colorSchemeChoices, column, row,4,1);
+        colorSchemeChoices.setValue("Choose a Scheme");
+        colorSchemeChoices.setMaxWidth(Double.MAX_VALUE);
 
-        column = 0;
-        aPicker = new ColorPicker();
-        aPicker.setOnAction(new EventHandler() {
+        GridPane.setConstraints(colorSchemeChoices, 1,0,2,1);
+        colorsPane.getChildren().add(colorSchemeChoices);
+
+        colorPicker1 = new ColorPicker();
+        colorPicker1.setOnAction(new EventHandler() {
             @Override
             public void handle(javafx.event.Event event) {
                 mediator.getCanvas2D().repaint();
             }
         });
-        aPicker.setStyle("-fx-color-label-visible: false ;");
-        aPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.AColor.toString()))));
-        grid.add(new Label("A"), column, ++row, 1, 1);
-        grid.add(aPicker, ++column , row, 1, 1);
+        colorPicker1.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.AColor.toString()))));
+        colorPicker1.setMaxWidth(Double.MAX_VALUE);
 
-        uPicker = new ColorPicker();
-        uPicker.setOnAction(new EventHandler() {
+        colorPicker2 = new ColorPicker();
+        colorPicker2.setOnAction(new EventHandler() {
             @Override
             public void handle(javafx.event.Event event) {
                 mediator.getCanvas2D().repaint();
             }
         });
-        uPicker.setStyle("-fx-color-label-visible: false ;");
-        uPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.UColor.toString()))));
-        grid.add(new Label("U"),++column , row, 1, 1);
-        grid.add(uPicker, ++column, row, 2, 1);
+        colorPicker2.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.UColor.toString()))));
+        colorPicker2.setMaxWidth(Double.MAX_VALUE);
 
-        xPicker = new ColorPicker();
-        xPicker.setOnAction(new EventHandler() {
+        colorPicker3 = new ColorPicker();
+        colorPicker3.setOnAction(new EventHandler() {
             @Override
             public void handle(javafx.event.Event event) {
                 mediator.getCanvas2D().repaint();
             }
 
         });
-        xPicker.setStyle("-fx-color-label-visible: false ;");
-        xPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.XColor.toString()))));
-        grid.add(new Label("X"), ++column, row, 1, 1);
-        grid.add(xPicker, ++column, row, 2, 1);
+        colorPicker3.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.GColor.toString()))));
+        colorPicker3.setMaxWidth(Double.MAX_VALUE);
 
-        column = 0;
-        gPicker = new ColorPicker();
-        gPicker.setOnAction(new EventHandler() {
+        colorPicker4 = new ColorPicker();
+        colorPicker4.setOnAction(new EventHandler() {
             @Override
             public void handle(javafx.event.Event event) {
                 mediator.getCanvas2D().repaint();
             }
 
         });
-        gPicker.setStyle("-fx-color-label-visible: false ;");
-        gPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.GColor.toString()))));
-        grid.add(new Label("G"), column, ++row, 1, 1);
-        grid.add(gPicker, ++column, row, 2, 1);
+        colorPicker4.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.CColor.toString()))));
+        colorPicker4.setMaxWidth(Double.MAX_VALUE);
 
-        cPicker = new ColorPicker();
-        cPicker.setOnAction(new EventHandler() {
+        colorPicker5 = new ColorPicker();
+        colorPicker5.setOnAction(new EventHandler() {
             @Override
             public void handle(javafx.event.Event event) {
                 mediator.getCanvas2D().repaint();
             }
 
         });
-        cPicker.setStyle("-fx-color-label-visible: false ;");
-        cPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.CColor.toString()))));
-        grid.add(new Label("C"), ++column, row, 1, 1);
-        grid.add(cPicker, ++column, row, 2, 1);
+        colorPicker5.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.XColor.toString()))));
+        colorPicker5.setMaxWidth(Double.MAX_VALUE);
 
-        column = 0;
-        _2dPicker = new ColorPicker();
-        _2dPicker.setOnAction(new EventHandler() {
+        colorPicker6 = new ColorPicker();
+        colorPicker6.setOnAction(new EventHandler() {
+            @Override
+            public void handle(javafx.event.Event event) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        colorPicker6.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryColor.toString()))));
+        colorPicker6.setMaxWidth(Double.MAX_VALUE);
+
+        colorPicker7 = new ColorPicker();
+        colorPicker7.setOnAction(new EventHandler() {
             @Override
             public void handle(javafx.event.Event event) {
                 mediator.getCanvas2D().repaint();
             }
 
         });
-        _2dPicker.setStyle("-fx-color-label-visible: false ;");
-        _2dPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryColor.toString()))));
-        grid.add(new Label("Secondaries"), column, ++row, 2,1);
-        ++column;
-        ++column;
-        grid.add(_2dPicker, ++column, row, 2, 1);
+        colorPicker7.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryColor.toString()))));
+        colorPicker7.setMaxWidth(Double.MAX_VALUE);
 
-        column = 0;
-        _3dPicker = new ColorPicker();
-        _3dPicker.setOnAction(new EventHandler() {
+        l = new Label("Background");
+        GridPane.setConstraints(l, 1,1,1,1);
+        GridPane.setHalignment(l,HPos.CENTER);
+        colorsPane.getChildren().add(l);
+        l = new Label("Character");
+        GridPane.setConstraints(l, 2,1,1,1);
+        GridPane.setHalignment(l,HPos.CENTER);
+        colorsPane.getChildren().add(l);
+
+        this.structuralElement1 = new ChoiceBox();
+        structuralElement1.getItems().addAll("A","U","G","C","X","2D","3D");
+        structuralElement1.setValue("A");
+        GridPane.setConstraints(structuralElement1, 0,2,1,1);
+        colorsPane.getChildren().add(structuralElement1);
+        GridPane.setHalignment(structuralElement1,HPos.CENTER);
+        GridPane.setConstraints(colorPicker1, 1,2,1,1);
+        colorsPane.getChildren().add(colorPicker1);
+        GridPane.setHalignment(colorPicker1,HPos.CENTER);
+        this.letterColor1 = new ChoiceBox<String>();
+        letterColor1.setMaxWidth(Double.MAX_VALUE);
+        letterColor1.getItems().addAll("White", "Black");
+        letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor1.setOnAction(new EventHandler<ActionEvent>() {
             @Override
-            public void handle(javafx.event.Event event) {
+            public void handle(ActionEvent actionEvent) {
                 mediator.getCanvas2D().repaint();
             }
-
         });
-        _3dPicker.setStyle("-fx-color-label-visible: false ;");
-        _3dPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryColor.toString()))));
-        grid.add(new Label("Tertiaries"), column, ++row, 2,1);
-        ++column;
-        ++column;
-        grid.add(_3dPicker, ++column, row, 2, 1);
+        GridPane.setConstraints(letterColor1, 2,2,1,1);
+        colorsPane.getChildren().add(letterColor1);
+        GridPane.setHalignment(letterColor1,HPos.CENTER);
+        this.structuralElement1.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                switch (structuralElement1.getValue()) {
+                    case "A": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "2D": letterColor1.setDisable(true); break;
+                    case "3D": letterColor1.setDisable(true); break;
+                }
+                mediator.canvas2D.repaint();
+            }
+        });
 
-        column = 0;
-        b = new Label("Lines");
-        b.setStyle("-fx-font-size: 15");
-        separator = new Separator(Orientation.HORIZONTAL);
-        grid.add(new VBox(b, separator), column, ++row, 6, 1);
-        column = 0;
-        grid.add(new Label("Residues"), column, ++row, 2,1);
+        this.structuralElement2 = new ChoiceBox();
+        structuralElement2.getItems().addAll("A","U","G","C","X","2D","3D");
+        structuralElement2.setValue("U");
+        GridPane.setConstraints(structuralElement2, 0,3,1,1);
+        colorsPane.getChildren().add(structuralElement2);
+        GridPane.setHalignment(structuralElement2,HPos.CENTER);
+        GridPane.setConstraints(colorPicker2, 1,3,1,1);
+        colorsPane.getChildren().add(colorPicker2);
+        GridPane.setHalignment(colorPicker2,HPos.CENTER);
+        this.letterColor2 = new ChoiceBox<String>();
+        letterColor2.setMaxWidth(Double.MAX_VALUE);
+        letterColor2.getItems().addAll("White", "Black");
+        letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor2.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        GridPane.setConstraints(letterColor2, 2,3,1,1);
+        colorsPane.getChildren().add(letterColor2);
+        GridPane.setHalignment(letterColor2,HPos.CENTER);
+        this.structuralElement2.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                switch (structuralElement2.getValue()) {
+                    case "A": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "2D": letterColor2.setDisable(true); break;
+                    case "3D": letterColor2.setDisable(true); break;
+                }
+                mediator.canvas2D.repaint();
+            }
+        });
+
+        this.structuralElement3 = new ChoiceBox();
+        structuralElement3.getItems().addAll("A","U","G","C","X","2D","3D");
+        structuralElement3.setValue("G");
+        GridPane.setConstraints(structuralElement3, 0,4,1,1);
+        colorsPane.getChildren().add(structuralElement3);
+        GridPane.setHalignment(structuralElement3,HPos.CENTER);
+        GridPane.setConstraints(colorPicker3, 1,4,1,1);
+        colorsPane.getChildren().add(colorPicker3);
+        GridPane.setHalignment(colorPicker3,HPos.CENTER);
+        this.letterColor3 = new ChoiceBox<String>();
+        letterColor3.setMaxWidth(Double.MAX_VALUE);
+        letterColor3.getItems().addAll("White", "Black");
+        letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor3.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        GridPane.setConstraints(letterColor3, 2,4,1,1);
+        colorsPane.getChildren().add(letterColor3);
+        GridPane.setHalignment(letterColor3,HPos.CENTER);
+        this.structuralElement3.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                switch (structuralElement3.getValue()) {
+                    case "A": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "2D": letterColor3.setDisable(true); break;
+                    case "3D": letterColor3.setDisable(true); break;
+                }
+                mediator.canvas2D.repaint();
+            }
+        });
+
+        this.structuralElement4 = new ChoiceBox();
+        structuralElement4.getItems().addAll("A","U","G","C","X","2D","3D");
+        structuralElement4.setValue("C");
+        GridPane.setConstraints(structuralElement4, 0,5,1,1);
+        colorsPane.getChildren().add(structuralElement4);
+        GridPane.setHalignment(structuralElement4,HPos.CENTER);
+        GridPane.setConstraints(colorPicker4, 1,5,1,1);
+        colorsPane.getChildren().add(colorPicker4);
+        GridPane.setHalignment(colorPicker4,HPos.CENTER);
+        this.letterColor4 = new ChoiceBox<String>();
+        letterColor4.setMaxWidth(Double.MAX_VALUE);
+        letterColor4.getItems().addAll("White", "Black");
+        letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor4.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        GridPane.setConstraints(letterColor4, 2,5,1,1);
+        colorsPane.getChildren().add(letterColor4);
+        GridPane.setHalignment(letterColor4,HPos.CENTER);
+        this.structuralElement4.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                switch (structuralElement4.getValue()) {
+                    case "A": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "2D": letterColor4.setDisable(true); break;
+                    case "3D": letterColor4.setDisable(true); break;
+                }
+                mediator.canvas2D.repaint();
+            }
+        });
+
+        this.structuralElement5 = new ChoiceBox();
+        structuralElement5.getItems().addAll("A","U","G","C","X","2D","3D");
+        structuralElement5.setValue("X");
+        GridPane.setConstraints(structuralElement5, 0,6,1,1);
+        colorsPane.getChildren().add(structuralElement5);
+        GridPane.setHalignment(structuralElement5,HPos.CENTER);
+        GridPane.setConstraints(colorPicker5, 1,6,1,1);
+        colorsPane.getChildren().add(colorPicker5);
+        GridPane.setHalignment(colorPicker5,HPos.CENTER);
+        this.letterColor5 = new ChoiceBox<String>();
+        letterColor5.setMaxWidth(Double.MAX_VALUE);
+        letterColor5.getItems().addAll("White", "Black");
+        letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor5.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        GridPane.setConstraints(letterColor5, 2,6,1,1);
+        colorsPane.getChildren().add(letterColor5);
+        GridPane.setHalignment(letterColor5,HPos.CENTER);
+
+        this.structuralElement5.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                switch (structuralElement5.getValue()) {
+                    case "A": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "2D": letterColor5.setDisable(true); break;
+                    case "3D": letterColor5.setDisable(true); break;
+                }
+                mediator.canvas2D.repaint();
+            }
+        });
+
+        this.structuralElement6 = new ChoiceBox();
+        structuralElement6.getItems().addAll("A","U","G","C","X","2D","3D");
+        structuralElement6.setValue("2D");
+        GridPane.setConstraints(structuralElement6, 0,7,1,1);
+        colorsPane.getChildren().add(structuralElement6);
+        GridPane.setHalignment(structuralElement6,HPos.CENTER);
+        GridPane.setConstraints(colorPicker6, 1,7,1,1);
+        colorsPane.getChildren().add(colorPicker6);
+        GridPane.setHalignment(colorPicker6,HPos.CENTER);
+        this.letterColor6  = new <String>ChoiceBox();
+        letterColor6.setMaxWidth(Double.MAX_VALUE);
+        letterColor6.getItems().addAll("White", "Black");
+        letterColor6.setValue("White");
+        letterColor6.setDisable(true);
+        letterColor6.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        GridPane.setConstraints(letterColor6, 2,7,1,1);
+        colorsPane.getChildren().add(letterColor6);
+        GridPane.setHalignment(letterColor6,HPos.CENTER);
+
+        this.structuralElement6.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                switch (structuralElement6.getValue()) {
+                    case "A": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "2D": letterColor6.setDisable(true); break;
+                    case "3D": letterColor6.setDisable(true); break;
+                }
+                mediator.canvas2D.repaint();
+            }
+        });
+
+        this.structuralElement7 = new ChoiceBox<String>();
+        structuralElement7.getItems().addAll("A","U","G","C","X","2D","3D");
+        structuralElement7.setValue("3D");
+        GridPane.setConstraints(structuralElement7, 0,8,1,1);
+        colorsPane.getChildren().add(structuralElement7);
+        GridPane.setHalignment(structuralElement7,HPos.CENTER);
+        GridPane.setConstraints(colorPicker7, 1,8,1,1);
+        colorsPane.getChildren().add(colorPicker7);
+        GridPane.setHalignment(colorPicker7,HPos.CENTER);
+        this.letterColor7 = new ChoiceBox<String>();
+        letterColor7.setMaxWidth(Double.MAX_VALUE);
+        letterColor7.getItems().addAll("White", "Black");
+        letterColor7.setValue("White");
+        letterColor7.setDisable(true);
+        letterColor7.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        GridPane.setConstraints(letterColor7, 2,8,1,1);
+        colorsPane.getChildren().add(letterColor7);
+        GridPane.setHalignment(letterColor7,HPos.CENTER);
+
+        this.structuralElement7.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                switch (structuralElement7.getValue()) {
+                    case "A": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "2D": letterColor7.setDisable(true); break;
+                    case "3D": letterColor7.setDisable(true); break;
+                }
+                mediator.canvas2D.repaint();
+            }
+        });
+
+        vbox.getChildren().add(colorsPane);
+
+        //++++++ pane for the Lines
+        title = new Label("Lines");
+        title.setStyle("-fx-font-size: 15");
+        vbox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
+
+        GridPane linesPane = new GridPane();
+        linesPane.setHgap(10);
+        linesPane.setVgap(10);
+        linesPane.setPadding(new Insets(0, 0, 20, 0));
+
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        linesPane.getColumnConstraints().addAll(new ColumnConstraints(150),cc);
+
+        l = new Label("Residue Borders (px)");
+        GridPane.setConstraints(l, 0,0,1,1);
+        linesPane.getChildren().add(l);
+        GridPane.setHalignment(l,HPos.RIGHT);
+
         residueBorder = new ComboBox<>();
         residueBorder.getItems().addAll("0", "1", "2", "3", "4");
         residueBorder.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.ResidueBorder.toString()));
         residueBorder.setCellFactory(new ShapeCellFactory());
         residueBorder.setButtonCell(new ShapeCell());
-        ++column;
-        grid.add(residueBorder, ++column, row,2,1);
         residueBorder.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
                 mediator.getCanvas2D().repaint();
             }
         });
-        column = 0;
-        grid.add(new Label("Secondaries"), column, ++row, 2,1);
+        residueBorder.setMaxWidth(Double.MAX_VALUE);
+
+        GridPane.setConstraints(residueBorder, 1,0,1,1);
+        linesPane.getChildren().add(residueBorder);
+        GridPane.setHalignment(residueBorder,HPos.CENTER);
+
+        l = new Label("2D Width (px)");
+        GridPane.setConstraints(l, 0,1,1,1);
+        linesPane.getChildren().add(l);
+        GridPane.setHalignment(l,HPos.RIGHT);
 
         secondaryInteractionWidth = new ComboBox<>();
         secondaryInteractionWidth.getItems().addAll("1", "2", "3", "4", "5", "6", "7", "8", "9");
         secondaryInteractionWidth.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryInteractionWidth.toString()));
         secondaryInteractionWidth.setCellFactory(new ShapeCellFactory());
         secondaryInteractionWidth.setButtonCell(new ShapeCell());
-        ++column;
-        grid.add(secondaryInteractionWidth, ++column, row,2,1);
         secondaryInteractionWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
                 mediator.getCanvas2D().repaint();
             }
         });
+        secondaryInteractionWidth.setMaxWidth(Double.MAX_VALUE);
 
-        column = 0;
-        grid.add(new Label("Tertiaries"), column, ++row, 2,1);
-        column = 0;
+        GridPane.setConstraints(secondaryInteractionWidth, 1,1,1,1);
+        linesPane.getChildren().add(secondaryInteractionWidth);
+        GridPane.setHalignment(secondaryInteractionWidth,HPos.CENTER);
+
+        l = new Label("3D Width (px)");
+        GridPane.setConstraints(l, 0,2,1,1);
+        linesPane.getChildren().add(l);
+        GridPane.setHalignment(l,HPos.RIGHT);
+
         tertiaryInteractionWidth = new ComboBox<>();
         tertiaryInteractionWidth.getItems().addAll("0","1", "2", "3", "4", "5", "6", "7");
         tertiaryInteractionWidth.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryInteractionWidth.toString()));
         tertiaryInteractionWidth.setCellFactory(new ShapeCellFactory());
         tertiaryInteractionWidth.setButtonCell(new ShapeCell());
-        grid.add(tertiaryInteractionWidth, column, ++row,2,1);
         tertiaryInteractionWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
                 mediator.getCanvas2D().repaint();
             }
         });
+        tertiaryInteractionWidth.setMaxWidth(Double.MAX_VALUE);
+
+        GridPane.setConstraints(tertiaryInteractionWidth, 1,2,1,1);
+        linesPane.getChildren().add(tertiaryInteractionWidth);
+        GridPane.setHalignment(tertiaryInteractionWidth,HPos.CENTER);
+
+        l = new Label("3D Style");
+        GridPane.setConstraints(l, 0,3,1,1);
+        linesPane.getChildren().add(l);
+        GridPane.setHalignment(l,HPos.RIGHT);
 
         tertiaryInteractionStyle = new ComboBox<>();
-        tertiaryInteractionStyle.getItems().addAll("Solid", "Dashed");
+        tertiaryInteractionStyle.getItems().addAll("solid", "dashed");
         tertiaryInteractionStyle.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryInteractionStyle.toString()));
         tertiaryInteractionStyle.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
@@ -360,74 +679,103 @@ public class Toolbox implements ThemeConfigurator {
                 mediator.getCanvas2D().repaint();
             }
         });
-        ++column;
-        grid.add(tertiaryInteractionStyle, ++column, row,3,1);
-        ++column;
-        ++column;
-        _3dOpacity = new Spinner<Integer>();
-        _3dOpacity.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryOpacity.toString()))));
-        _3dOpacity.valueProperty().addListener(new ChangeListener<Integer>() {
-            @Override
-            public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
+        tertiaryInteractionStyle.setMaxWidth(Double.MAX_VALUE);
+
+        GridPane.setConstraints(tertiaryInteractionStyle, 1,3,1,1);
+        linesPane.getChildren().add(tertiaryInteractionStyle);
+        GridPane.setHalignment(tertiaryInteractionStyle,HPos.CENTER);
+
+        l = new Label("3D Opacity (%)");
+        GridPane.setConstraints(l, 0,4,1,1);
+        linesPane.getChildren().add(l);
+        GridPane.setHalignment(l,HPos.RIGHT);
+
+        _3dOpacity = new Slider(0, 100, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryOpacity.toString()))/255.0*100.0);
+        _3dOpacity.setShowTickLabels(true);
+        _3dOpacity.setShowTickMarks(true);
+        _3dOpacity.setMajorTickUnit(50);
+        _3dOpacity.setMinorTickCount(5);
+        _3dOpacity.valueProperty().addListener(new ChangeListener<Number>() {
+            public void changed(ObservableValue<? extends Number> ov,
+                                Number old_val, Number new_val) {
                 if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
                     mediator.getCanvas2D().repaint();
                 }
             }
         });
-        grid.add(_3dOpacity, ++column, row, 1, 1);
+        _3dOpacity.setShowTickMarks(true);
+        _3dOpacity.setMaxWidth(Double.MAX_VALUE);
 
-        column = 0;
-        b = new Label("Misc");
-        b.setStyle("-fx-font-size: 15");
-        separator = new Separator(Orientation.HORIZONTAL);
-        grid.add(new VBox(b, separator), column, ++row, 6, 1);
-        column = 0;
-        grid.add(new Label("Tertiaries Halo"), column, ++row, 2,1);
-        ++column;
-        grid.add(new Label("s"), ++column, row, 1, 1);
-        haloWidth = new Spinner<Integer>();
-        haloWidth.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 20, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.HaloWidth.toString()))));
-        haloWidth.valueProperty().addListener(new ChangeListener<Integer>() {
-            @Override
-            public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
+        GridPane.setConstraints(_3dOpacity, 1,4,1,1);
+        linesPane.getChildren().add(_3dOpacity);
+        GridPane.setHalignment(_3dOpacity,HPos.CENTER);
+
+        l = new Label("Halo Width (px)");
+        GridPane.setConstraints(l, 0,5,1,1);
+        linesPane.getChildren().add(l);
+        GridPane.setHalignment(l,HPos.RIGHT);
+
+        haloWidth = new Slider(0, 20, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.HaloWidth.toString())));;
+        haloWidth.setShowTickLabels(true);
+        haloWidth.setShowTickMarks(true);
+        haloWidth.setMajorTickUnit(5);
+        haloWidth.setMinorTickCount(1);
+        haloWidth.valueProperty().addListener(new ChangeListener<Number>() {
+            public void changed(ObservableValue<? extends Number> ov,
+                                Number old_val, Number new_val) {
                 if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
                     mediator.getCanvas2D().repaint();
                 }
             }
         });
-        grid.add(haloWidth, ++column, row, 1, 1);
-        hbox.getChildren().add(grid);
+        haloWidth.setMaxWidth(Double.MAX_VALUE);
 
-        ScrollPane sp = new ScrollPane(hbox);
-        sp.setFitToWidth(true);
-        sp.setFitToHeight(true);
+        GridPane.setConstraints(haloWidth, 1,5,1,1);
+        linesPane.getChildren().add(haloWidth);
+        GridPane.setHalignment(haloWidth,HPos.CENTER);
 
-        GridPane saveForm = new GridPane();
-        ColumnConstraints cc = new ColumnConstraints();
-        cc.setHgrow(Priority.ALWAYS);
-        saveForm.getColumnConstraints().addAll(new ColumnConstraints(),cc,new ColumnConstraints(),new ColumnConstraints());
-        saveForm.setHgap(5);
-        saveForm.setVgap(10);
+        vbox.getChildren().add(linesPane);
+
+        //++++++ form to save the theme
+        FlowPane saveForm = new FlowPane();
+        saveForm.setAlignment(Pos.CENTER_RIGHT);
+        saveForm.setHgap(10);
         saveForm.setPadding(new Insets(10, 10, 10, 10));
 
-        Label title = new Label("Name");
-        saveForm.add(title, 0, 0);
+        TextField themeNameField = new TextField();
+        themeNameField.setPromptText("Choose a Theme Name");
 
-        TextField nameField = new TextField();
-        saveForm.add(nameField, 1, 0);
-        nameField.setPromptText("Choose a Theme Name");
-
-        Button shareOnline = new Button("Share my Theme");
+        Button shareOnline = new Button("Share Theme");
 
         shareOnline.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent e) {
-                Backend.submitTheme(mediator, nameField.getText().trim(), mediator.getToolbox().getTheme());
+                Backend.submitTheme(mediator, themeNameField.getText().trim(), mediator.getToolbox().getTheme());
             }
         });
-        saveForm.add(shareOnline, 2, 0);
 
-        Button themesWebpage = new Button("User Community Themes");
+        Button saveTheme = new Button("Set Theme as Default");
+
+        saveTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent e) {
+                mediator.getTheme().save();
+                try {
+                    RnartistConfig.saveConfig(mediator.getTheme());
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Theme Saved!");
+                    alert.setHeaderText("Your current theme is now the default one!");
+                    alert.setContentText(null);
+                    alert.showAndWait();
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
+            }
+        });
+        saveForm.getChildren().add(saveTheme);
+        saveForm.getChildren().add(shareOnline);
+
+        Button themesWebpage = new Button("See User Community Themes");
         themesWebpage.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent e) {
@@ -437,15 +785,18 @@ public class Toolbox implements ThemeConfigurator {
                 mediator.getWebBrowser().rnartistEngine.load(RnartistConfig.getWebsite()+"/themes");
             }
         });
-        saveForm.add(themesWebpage, 0, 1,3,1);
+        //saveForm.add(themesWebpage, 0, 1,6,1);
         GridPane.setHalignment(themesWebpage,HPos.CENTER);
 
-        VBox vbox =  new VBox();
-        vbox.setFillWidth(true);
-        vbox.getChildren().add(saveForm);
-        vbox.getChildren().add(sp);
-        VBox.setVgrow(sp, Priority.ALWAYS);
-        Tab theme = new Tab("Theme", vbox);
+        ScrollPane sp = new ScrollPane(vbox);
+        sp.setFitToWidth(true);
+        sp.setFitToHeight(true);
+
+        VBox parent = new VBox();
+        parent.getChildren().add(sp);
+        VBox.setVgrow(sp,Priority.ALWAYS);
+        parent.getChildren().add(saveForm);
+        Tab theme = new Tab("Theme", parent);
         root.getTabs().add(theme);
     }
 
@@ -464,14 +815,30 @@ public class Toolbox implements ThemeConfigurator {
 
     public void addJunctionKnob(JunctionCircle jc) {
         VBox vbox = new VBox();
+        vbox.setMaxWidth(160.0);
         vbox.setAlignment(Pos.CENTER);
         vbox.setPadding(new Insets(5, 5, 5, 5));
         vbox.setSpacing(5);
         JunctionKnob knob = new JunctionKnob(jc, this.mediator);
         vbox.getChildren().add(knob);
-        Label name = new Label(jc.getJunction().getName());
+        TextField name = new TextField(jc.getJunction().getName());
         vbox.getChildren().add(name);
-        Label type = new Label(jc.getJunction().getType().name());
+        name.setAlignment(Pos.CENTER);
+        name.textProperty().addListener((observable, oldValue, newValue) -> {
+            knob.getJunctionCircle().getJunction().setName(newValue);
+        });
+        TextField location = new TextField(jc.getJunction().getLocation().getDescription());
+        location.setEditable(false);
+        vbox.getChildren().add(location);
+        location.setAlignment(Pos.CENTER);
+        var typeName = jc.getJunction().getType().name();
+        if (typeName.endsWith("Way")) {
+            typeName = typeName.split("Way")[0]+" Way Junction";
+        } else if (typeName.endsWith("Loop")) {
+            typeName = typeName.split("Loop")[0]+" Loop";
+        }
+        Text type = new Text(typeName);
+        type.setFont(Font.font(null, FontWeight.BOLD, 15));
         vbox.getChildren().add(type);
         junctionKnobs.getChildren().add(vbox);
     }
@@ -640,46 +1007,102 @@ public class Toolbox implements ThemeConfigurator {
         optionsPane.getChildren().add(separator);
         GridPane.setConstraints(separator, 0, 1, 2, 1);
 
-        Label l = new Label("Browser Compatibility for SVG Export");
-        optionsPane.getChildren().add(l);
-        GridPane.setConstraints(l, 0,2);
-
         CheckBox svgBrowserFix = new CheckBox();
         svgBrowserFix.setSelected(RnartistConfig.exportSVGWithBrowserCompatibility());
         svgBrowserFix.setOnAction(actionEvent -> {
             RnartistConfig.exportSVGWithBrowserCompatibility(svgBrowserFix.isSelected());
         });
         optionsPane.getChildren().add(svgBrowserFix);
-        GridPane.setConstraints(svgBrowserFix, 1,2);
+        GridPane.setConstraints(svgBrowserFix, 0,2);
 
-        l = new Label("Selection Fading");
+        Label l = new Label("Browser Compatibility for SVG");
         optionsPane.getChildren().add(l);
-        GridPane.setConstraints(l, 0,3);
-        Slider slider = new Slider(0, 255, RnartistConfig.getSelectionFading());
-        slider.valueProperty().addListener(new ChangeListener<Number>() {
-            public void changed(ObservableValue<? extends Number> ov,
-                                Number old_val, Number new_val) {
-                RnartistConfig.setSelectionFading(new_val.intValue());
-                mediator.getCanvas2D().repaint();
-            }
+        GridPane.setConstraints(l, 1,2);
+
+        CheckBox showToolBar = new CheckBox();
+        showToolBar.setSelected(true);
+        showToolBar.setOnAction(actionEvent -> {
+            mediator.getRnartist().showTopToolBars(showToolBar.isSelected());
         });
-        slider.setShowTickMarks(true);
-        optionsPane.getChildren().add(slider);
-        GridPane.setConstraints(slider, 1,3);
+        optionsPane.getChildren().add(showToolBar);
+        GridPane.setConstraints(showToolBar, 0,3);
 
+        l = new Label("Show ToolBar");
+        optionsPane.getChildren().add(l);
+        GridPane.setConstraints(l, 1,3);
 
+        /*CheckBox showStatusBar = new CheckBox();
+        showStatusBar.setSelected(true);
+        showStatusBar.setOnAction(actionEvent -> {
+            mediator.getRnartist().showStatusBar(showStatusBar.isSelected());
+        });
+        optionsPane.getChildren().add(showStatusBar);
+        GridPane.setConstraints(showStatusBar, 0,4);
+
+        l = new Label("Show Status Bar");
+        optionsPane.getChildren().add(l);
+        GridPane.setConstraints(l, 1,4);*/
+    }
+
+    public ObservableList<Residue> getResidues() {
+        return residues;
+    }
+
+    private void createAnnotationsPanel(TabPane root) {
+        TableView<Residue> tableView = new TableView<Residue>();
+        tableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        tableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (newSelection != null) {
+                mediator.getGraphicsContext().getSelectedResidues().clear();
+                for (Residue r:tableView.getSelectionModel().getSelectedItems())
+                    mediator.getGraphicsContext().getSelectedResidues().addAll(mediator.canvas2D.getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(List.of(r.getPosition())));
+                mediator.getGraphicsContext().centerFrameOnSelection(mediator.getCanvas2D().getBounds());
+            } else {
+                mediator.getGraphicsContext().getSelectedResidues().clear();
+            }
+            mediator.getCanvas2D().repaint();
+        });
+
+        TableColumn<Residue, Integer> positionCol= new TableColumn<Residue, Integer>("Position");
+        positionCol.setCellValueFactory(new PropertyValueFactory<>("position"));
+
+        TableColumn<Residue, Character> nameCol= new TableColumn<Residue, Character>("Residue");
+        nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
+
+        TableColumn<Residue, String> labelCol= new TableColumn<Residue, String>("Label");
+        labelCol.setCellValueFactory(new PropertyValueFactory<>("label"));
+
+        TableColumn<Residue, String> modifiedCol= new TableColumn<Residue, String>("Modified As");
+        //modifiedCol.setCellValueFactory(new PropertyValueFactory<>("modified"));
+
+        tableView.getColumns().addAll(positionCol,nameCol,labelCol, modifiedCol);
+        residues = FXCollections.observableArrayList();
+        tableView.setItems(residues);
+        Tab annotations = new Tab("Annotations",  tableView);
+        root.getTabs().add(annotations);
     }
 
     public void loadTheme(Map<String,String> theme) {
-        aPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.AColor.toString(), aPicker.getValue().toString())));
-        uPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.UColor.toString(), uPicker.getValue().toString())));
-        gPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.GColor.toString(), gPicker.getValue().toString())));
-        cPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.CColor.toString(), cPicker.getValue().toString())));
-        xPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.XColor.toString(), xPicker.getValue().toString())));
-        _2dPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.SecondaryColor.toString(), _2dPicker.getValue().toString())));
-        _3dPicker.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.TertiaryColor.toString(), _3dPicker.getValue().toString())));
-        _3dOpacity.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.TertiaryOpacity.toString(), _3dOpacity.getValue().toString())));
-        haloWidth.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.HaloWidth.toString(), haloWidth.getValue().toString())));
+        structuralElement1.setValue("A");
+        colorPicker1.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.AColor.toString(), colorPicker1.getValue().toString())));
+        letterColor1.setValue(theme.getOrDefault(ThemeParameter.AChar.toString(), letterColor1.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
+        structuralElement2.setValue("U");
+        colorPicker2.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.UColor.toString(), colorPicker2.getValue().toString())));
+        letterColor2.setValue(theme.getOrDefault(ThemeParameter.UChar.toString(), letterColor2.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
+        structuralElement3.setValue("G");
+        colorPicker3.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.GColor.toString(), colorPicker4.getValue().toString())));
+        letterColor3.setValue(theme.getOrDefault(ThemeParameter.GChar.toString(), letterColor3.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
+        structuralElement4.setValue("C");
+        letterColor4.setValue(theme.getOrDefault(ThemeParameter.CChar.toString(), letterColor4.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
+        colorPicker4.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.CColor.toString(), colorPicker3.getValue().toString())));
+        structuralElement5.setValue("X");
+        letterColor5.setValue(theme.getOrDefault(ThemeParameter.XChar.toString(), letterColor5.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
+        colorPicker5.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.XColor.toString(), colorPicker5.getValue().toString())));
+        structuralElement6.setValue("2D");
+        colorPicker6.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.SecondaryColor.toString(), colorPicker6.getValue().toString())));
+        structuralElement7.setValue("3D");
+        colorPicker7.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.TertiaryColor.toString(), colorPicker7.getValue().toString())));
+        _3dOpacity.setValue((int)(100.0*255.0/Integer.parseInt(theme.getOrDefault(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0)))));
         secondaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth()));
         tertiaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.TertiaryInteractionWidth.toString(),""+getTertiaryInteractionWidth()));
         residueBorder.setValue(theme.getOrDefault(ThemeParameter.ResidueBorder.toString(),""+getResidueBorder()));
@@ -692,15 +1115,15 @@ public class Toolbox implements ThemeConfigurator {
 
     public Map<String,String> getTheme() {
         Map<String, String> theme = new HashMap<String, String>();
-        theme.put(ThemeParameter.AColor.toString(), aPicker.getValue().toString());
-        theme.put(ThemeParameter.UColor.toString(), uPicker.getValue().toString());
-        theme.put(ThemeParameter.GColor.toString(), gPicker.getValue().toString());
-        theme.put(ThemeParameter.CColor.toString(), cPicker.getValue().toString());
-        theme.put(ThemeParameter.XColor.toString(), xPicker.getValue().toString());
-        theme.put(ThemeParameter.SecondaryColor.toString(), _2dPicker.getValue().toString());
-        theme.put(ThemeParameter.TertiaryColor.toString(), _3dPicker.getValue().toString());
-        theme.put(ThemeParameter.TertiaryOpacity.toString(), _3dOpacity.getValue().toString());
-        theme.put(ThemeParameter.HaloWidth.toString(), haloWidth.getValue().toString());
+        theme.put(ThemeParameter.AColor.toString(), this.getAColor());
+        theme.put(ThemeParameter.UColor.toString(), this.getUColor());
+        theme.put(ThemeParameter.GColor.toString(), this.getGColor());
+        theme.put(ThemeParameter.CColor.toString(), this.getCColor());
+        theme.put(ThemeParameter.XColor.toString(), this.getXColor());
+        theme.put(ThemeParameter.SecondaryColor.toString(), this.getSecondaryInteractionColor());
+        theme.put(ThemeParameter.TertiaryColor.toString(), this.getTertiaryInteractionColor());
+        theme.put(ThemeParameter.TertiaryOpacity.toString(), ""+_3dOpacity.getValue()*255.0/100.0);
+        theme.put(ThemeParameter.HaloWidth.toString(), ""+haloWidth.getValue());
         theme.put(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth());
         theme.put(ThemeParameter.TertiaryInteractionWidth.toString(), ""+getTertiaryInteractionWidth());
         theme.put(ThemeParameter.ResidueBorder.toString(), ""+getResidueBorder());
@@ -733,47 +1156,47 @@ public class Toolbox implements ThemeConfigurator {
 
             switch (shapeType.toLowerCase()) {
                 case "0":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(0);
                     break;
                 case "1":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(1);
                     break;
                 case "2":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(2);
                     break;
                 case "3":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(3);
                     break;
                 case "4":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(4);
                     break;
                 case "5":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(5);
                     break;
                 case "6":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(6);
                     break;
                 case "7":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(7);
                     break;
                 case "8":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(8);
                     break;
                 case "9":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(9);
                     break;
                 case "10":
-                    shape = new Line(0, 10, 20, 10);
+                    shape = new Line(0, 10, 50, 10);
                     shape.setStrokeWidth(10);
                     break;
                 default:
@@ -792,47 +1215,253 @@ public class Toolbox implements ThemeConfigurator {
 
     @Override
     public int getHaloWidth() {
-        return haloWidth.getValue();
+        return (int)haloWidth.getValue();
     }
 
     @Override
     public int getTertiaryOpacity() {
-        return _3dOpacity.getValue();
+        return (int)((double)(_3dOpacity.getValue())/100.0*255);
     }
 
     @Override
     public String getAColor() {
-        return getHTMLColorString(javaFXToAwt(aPicker.getValue()));
+        if (structuralElement1.getValue() == "A")
+            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
+        if (structuralElement2.getValue() == "A")
+            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
+        if (structuralElement3.getValue() == "A")
+            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
+        if (structuralElement4.getValue() == "A")
+            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
+        if (structuralElement5.getValue() == "A")
+            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
+        if (structuralElement6.getValue() == "A")
+            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
+        if (structuralElement7.getValue() == "A")
+            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
+        else
+            return getHTMLColorString(Color.LIGHT_GRAY);
+    }
+
+    @Override
+    public String getAChar() {
+        if (structuralElement1.getValue() == "A")
+            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement2.getValue() == "A")
+            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement3.getValue() == "A")
+            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement4.getValue() == "A")
+            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement5.getValue() == "A")
+            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement6.getValue() == "A")
+            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement7.getValue() == "A")
+            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        else
+            return getHTMLColorString(Color.WHITE);
     }
 
     @Override
     public String getUColor() {
-        return getHTMLColorString(javaFXToAwt(uPicker.getValue()));
+        if (structuralElement1.getValue() == "U")
+            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
+        if (structuralElement2.getValue() == "U")
+            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
+        if (structuralElement3.getValue() == "U")
+            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
+        if (structuralElement4.getValue() == "U")
+            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
+        if (structuralElement5.getValue() == "U")
+            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
+        if (structuralElement6.getValue() == "U")
+            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
+        if (structuralElement7.getValue() == "U")
+            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
+        else
+            return getHTMLColorString(Color.LIGHT_GRAY);
+    }
+
+    @Override
+    public String getUChar() {
+        if (structuralElement1.getValue() == "U")
+            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement2.getValue() == "U")
+            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement3.getValue() == "U")
+            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement4.getValue() == "U")
+            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement5.getValue() == "U")
+            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement6.getValue() == "U")
+            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement7.getValue() == "U")
+            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        else
+            return getHTMLColorString(Color.WHITE);
     }
 
     @Override
     public String getCColor() {
-        return getHTMLColorString(javaFXToAwt(cPicker.getValue()));
+        if (structuralElement1.getValue() == "C")
+            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
+        if (structuralElement2.getValue() == "C")
+            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
+        if (structuralElement3.getValue() == "C")
+            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
+        if (structuralElement4.getValue() == "C")
+            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
+        if (structuralElement5.getValue() == "C")
+            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
+        if (structuralElement6.getValue() == "C")
+            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
+        if (structuralElement7.getValue() == "C")
+            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
+        else {
+            return getHTMLColorString(Color.LIGHT_GRAY);
+        }
+    }
+
+    @Override
+    public String getCChar() {
+        if (structuralElement1.getValue() == "C")
+            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement2.getValue() == "C")
+            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement3.getValue() == "C")
+            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement4.getValue() == "C")
+            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement5.getValue() == "C")
+            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement6.getValue() == "C")
+            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement7.getValue() == "C")
+            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        else
+            return getHTMLColorString(Color.WHITE);
     }
 
     @Override
     public String getGColor() {
-        return getHTMLColorString(javaFXToAwt(gPicker.getValue()));
+        if (structuralElement1.getValue() == "G")
+            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
+        if (structuralElement2.getValue() == "G")
+            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
+        if (structuralElement3.getValue() == "G")
+            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
+        if (structuralElement4.getValue() == "G")
+            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
+        if (structuralElement5.getValue() == "G")
+            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
+        if (structuralElement6.getValue() == "G")
+            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
+        if (structuralElement7.getValue() == "G")
+            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
+        else
+            return getHTMLColorString(Color.LIGHT_GRAY);
+    }
+
+    @Override
+    public String getGChar() {
+        if (structuralElement1.getValue() == "G")
+            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement2.getValue() == "G")
+            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement3.getValue() == "G")
+            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement4.getValue() == "G")
+            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement5.getValue() == "G")
+            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement6.getValue() == "G")
+            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement7.getValue() == "G")
+            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        else
+            return getHTMLColorString(Color.WHITE);
     }
 
     @Override
     public String getXColor() {
-        return getHTMLColorString(javaFXToAwt(xPicker.getValue()));
+        if (structuralElement1.getValue() == "X")
+            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
+        if (structuralElement2.getValue() == "X")
+            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
+        if (structuralElement3.getValue() == "X")
+            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
+        if (structuralElement4.getValue() == "X")
+            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
+        if (structuralElement5.getValue() == "X")
+            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
+        if (structuralElement6.getValue() == "X")
+            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
+        if (structuralElement7.getValue() == "X")
+            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
+        else
+            return getHTMLColorString(Color.LIGHT_GRAY);
+    }
+
+    @Override
+    public String getXChar() {
+        if (structuralElement1.getValue() == "X")
+            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement2.getValue() == "X")
+            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement3.getValue() == "X")
+            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement4.getValue() == "X")
+            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement5.getValue() == "X")
+            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement6.getValue() == "X")
+            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        if (structuralElement7.getValue() == "X")
+            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
+        else
+            return getHTMLColorString(Color.WHITE);
     }
 
     @Override
     public String getSecondaryInteractionColor() {
-        return getHTMLColorString(javaFXToAwt(_2dPicker.getValue()));
+        if (structuralElement1.getValue() == "2D")
+            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
+        if (structuralElement2.getValue() == "2D")
+            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
+        if (structuralElement3.getValue() == "2D")
+            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
+        if (structuralElement4.getValue() == "2D")
+            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
+        if (structuralElement5.getValue() == "2D")
+            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
+        if (structuralElement6.getValue() == "2D")
+            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
+        if (structuralElement7.getValue() == "2D")
+            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
+        else
+            return getHTMLColorString(Color.LIGHT_GRAY);
     }
 
     @Override
     public String getTertiaryInteractionColor() {
-        return getHTMLColorString(javaFXToAwt(_3dPicker.getValue()));
+        if (structuralElement1.getValue() == "3D")
+            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
+        if (structuralElement2.getValue() == "3D")
+            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
+        if (structuralElement3.getValue() == "3D")
+            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
+        if (structuralElement4.getValue() == "3D")
+            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
+        if (structuralElement5.getValue() == "3D")
+            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
+        if (structuralElement6.getValue() == "3D")
+            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
+        if (structuralElement7.getValue() == "3D")
+            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
+        else
+            return getHTMLColorString(Color.LIGHT_GRAY);
     }
 
     @Override
@@ -866,8 +1495,8 @@ public class Toolbox implements ThemeConfigurator {
     }
 
     @Override
-    public byte getTertiaryInteractionStyle() {
-        return tertiaryInteractionStyle.getValue().equals("Dashed") ? DASHED : SOLID;
+    public String getTertiaryInteractionStyle() {
+        return tertiaryInteractionStyle.getValue();
     }
 
     @Override
