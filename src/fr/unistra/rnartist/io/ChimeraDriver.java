@@ -179,17 +179,17 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         //mediator.getSecondaryCanvas().getActivityToolBar().stopActivity();
     }
 
-    public void setPivot(List<String> positions) {
+    public void setPivot(List<String> positions, String chainName) {
         final StringBuffer command = new StringBuffer("cofr #0:");
         for (String pos:positions)
-            command.append(pos+",");
+            command.append(pos+"."+chainName+",");
         this.evaluate(command.substring(0,command.length()-1));
     }
 
-    public void setFocus(List<String> positions) {
+    public void setFocus(List<String> positions, String chainName) {
         final StringBuffer command = new StringBuffer("focus #0:");
         for (String pos:positions)
-            command.append(pos+",");
+            command.append(pos+"."+chainName+",");
         this.evaluate(command.substring(0,command.length()-1));
     }
 
@@ -311,10 +311,11 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         this.selectResidues(positions);
     }
 
-    public void selectResidues(List<String> positions) {
+    public void selectResidues(List<String> positions, String chainName) {
         final StringBuffer command = new StringBuffer("select #0,2:");  //the #2 is to select residues for the refined structure (if any)
         for (String pos:positions)
-            command.append(pos+",");
+            command.append(pos+"."+chainName+",");
+        System.out.println(command.substring(0,command.length()-1));
         this.evaluate(command.substring(0,command.length()-1));
         this.lastSelectedResidues = positions;
     }

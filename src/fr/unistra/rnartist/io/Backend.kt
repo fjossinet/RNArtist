@@ -5,6 +5,8 @@ import com.google.gson.internal.StringMap
 import fr.unistra.rnartist.gui.Mediator
 import fr.unistra.rnartist.model.RnartistConfig
 import fr.unistra.rnartist.model.SecondaryStructureDrawing
+import fr.unistra.rnartist.model.Theme
+import fr.unistra.rnartist.model.WorkingSession
 import fr.unistra.rnartist.model.io.parseVienna
 import javafx.concurrent.Task
 import java.awt.geom.Rectangle2D
@@ -62,35 +64,35 @@ object Backend {
         val task = object: Task<Exception?>() {
 
             override fun call(): Exception? {
-                val previous_viewX = mediator.graphicsContext.viewX
-                val previous_viewY = mediator.graphicsContext.viewY
-                val previous_finalZoomLevel = mediator.graphicsContext.finalZoomLevel
+                val previous_viewX = mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewX
+                val previous_viewY = mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewY
+                val previous_finalZoomLevel = mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel
                 try {
-                    var ss = SecondaryStructureDrawing(parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!, mediator.canvas2D.bounds, mediator.theme)
-                    mediator.graphicsContext.viewX = 0.0
-                    mediator.graphicsContext.viewY = 0.0
-                    mediator.graphicsContext.finalZoomLevel = 1.45
-                    mediator.graphicsContext.screen_capture = true
-                    mediator.graphicsContext.screen_capture_area = Rectangle2D.Double( ss.getBounds().centerX*mediator.graphicsContext.finalZoomLevel - 200.0,  ss.getBounds().centerY*mediator.graphicsContext.finalZoomLevel - 150.0, 400.0, 300.0)
+                    var ss = SecondaryStructureDrawing(parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!, mediator.canvas2D.bounds, Theme(RnartistConfig.defaultTheme,mediator.toolbox), WorkingSession())
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewX = 0.0
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewY = 0.0
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel = 1.45
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture = true
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture_area = Rectangle2D.Double( ss.getBounds().centerX*mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel - 200.0,  ss.getBounds().centerY*mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel - 150.0, 400.0, 300.0)
                     val image = mediator.canvas2D.screenCapture(ss)
                     val pngFile = File.createTempFile("capture", ".png")
                     ImageIO.write(image, "PNG", pngFile)
                     multipart.addFilePart("capture", pngFile!!, pngFile!!.name, "image")
                     multipart.upload(null)
                 } catch (ex: Exception) {
-                    mediator.graphicsContext.screen_capture = false
-                    mediator.graphicsContext.screen_capture_area = null
-                    mediator.graphicsContext.viewX = previous_viewX
-                    mediator.graphicsContext.viewY = previous_viewY
-                    mediator.graphicsContext.finalZoomLevel = previous_finalZoomLevel
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture = false
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture_area = null
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewX = previous_viewX
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewY = previous_viewY
+                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel = previous_finalZoomLevel
                     ex.printStackTrace()
                     return ex
                 }
-                mediator.graphicsContext.screen_capture = false
-                mediator.graphicsContext.screen_capture_area = null
-                mediator.graphicsContext.viewX = previous_viewX
-                mediator.graphicsContext.viewY = previous_viewY
-                mediator.graphicsContext.finalZoomLevel = previous_finalZoomLevel
+                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture = false
+                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture_area = null
+                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewX = previous_viewX
+                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewY = previous_viewY
+                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel = previous_finalZoomLevel
                 return null
             }
         }

@@ -53,11 +53,11 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
                         junctionKnob.loadJunctionLayout()
                 }
             }
-            mediator.graphicsContext.selectedResidues.clear()
-            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
-            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
-            for (h in junctionCircle.helices) mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(h.helix.location.positions))
-                mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.clear()
+            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
+            for (h in junctionCircle.helices) mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(h.helix.location.positions))
+                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
             this.mediator.canvas2D.repaint()
         }
         val connector = Connector(ConnectorId.s)
@@ -215,12 +215,12 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
 
         centerViewOnJunction.setOnMousePressed {
             centerViewOnJunction.fill = Color.LIGHTGRAY
-            mediator.graphicsContext.selectedResidues.clear()
-            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
-            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
-            for (h in junctionCircle.helices) mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(h.helix.location.positions))
-            mediator.graphicsContext.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
-            mediator.graphicsContext.centerFrameOnSelection(mediator.canvas2D.getBounds())
+            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.clear()
+            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
+            for (h in junctionCircle.helices) mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(h.helix.location.positions))
+            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.centerFrameOnSelection(mediator.canvas2D.getBounds())
             mediator.canvas2D.repaint()
         }
 

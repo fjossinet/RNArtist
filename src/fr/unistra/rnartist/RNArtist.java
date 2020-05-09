@@ -6,11 +6,16 @@ import fr.unistra.rnartist.gui.Mediator;
 import fr.unistra.rnartist.gui.RegisterDialog;
 import fr.unistra.rnartist.io.ChimeraDriver;
 import fr.unistra.rnartist.model.*;
+import fr.unistra.rnartist.model.io.Rnaview;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.embed.swing.SwingNode;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.*;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -21,6 +26,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import org.apache.commons.lang3.tuple.Pair;
 import org.controlsfx.glyphfont.FontAwesome;
 import org.controlsfx.glyphfont.Glyph;
 import org.dizitart.no2.NitriteId;
@@ -33,16 +39,19 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 public class RNArtist extends Application {
 
     private Mediator mediator;
     private Stage stage;
     private int scrollCounter = 0;
-    private Button saveAs, save, export;
+    private Button saveAs, save;
     private VBox topToolBars;
     private FlowPane statusBar;
+    private ChoiceBox<SecondaryStructureDrawing> allStructuresChoices;
 
     public static void main(String[] args) {
         launch(args);
@@ -66,7 +75,7 @@ public class RNArtist extends Application {
             Optional<ButtonType> result = alert.showAndWait();
             if (result.get() == ButtonType.OK) {
                 try {
-                    RnartistConfig.saveConfig(mediator.getTheme());
+                    RnartistConfig.saveConfig(null);
                     Platform.exit();
                     System.exit(0);
                 } catch (Exception e) {
@@ -80,21 +89,29 @@ public class RNArtist extends Application {
         if (RnartistConfig.getUserID() == null)
             new RegisterDialog(this);
         this.mediator = new Mediator(this);
-        RnartistConfig.saveConfig(mediator.getTheme());
+        RnartistConfig.saveConfig(null);
         final SwingNode swingNode = new SwingNode();
         swingNode.setOnMouseClicked(mouseEvent -> {
             if (mouseEvent.isControlDown()) {
-                mediator.getGraphicsContext().getSelectedResidues().clear();
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().clear();
                 mediator.getToolbox().unselectJunctionKnobs();
                 for (JunctionCircle jc : mediator.getCanvas2D().getSecondaryStructureDrawing().get().getAllJunctions()) {
                     AffineTransform at = new AffineTransform();
-                    at.translate(mediator.getGraphicsContext().getViewX(), mediator.getGraphicsContext().getViewY());
-                    at.scale(mediator.getGraphicsContext().getFinalZoomLevel(), mediator.getGraphicsContext().getFinalZoomLevel());
+                    at.translate(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewX(), mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewY());
+                    at.scale(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel(), mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel());
                     if (jc.getCircle() != null && at.createTransformedShape(jc.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                        mediator.getGraphicsContext().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(jc.getInHelix().getLocation().getPositions()));
+                        mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(jc.getInHelix().getLocation().getPositions()));
                         for (HelixLine h:jc.getHelices())
-                            mediator.getGraphicsContext().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(h.getHelix().getLocation().getPositions()));
-                        mediator.getGraphicsContext().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(jc.getJunction().getLocation().getPositions()));
+                            mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(h.getHelix().getLocation().getPositions()));
+                        mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(jc.getJunction().getLocation().getPositions()));
+                        if (mediator.getChimeraDriver() != null) {
+                            List<String> positions = new ArrayList<String>(1);
+                            for (ResidueCircle c:mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues()) {
+                                positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
+                            }
+                            mediator.getChimeraDriver().selectResidues(positions, mediator.getCanvas2D().getSecondaryStructureDrawing().get().getSecondaryStructure().getRna().getName());
+                            mediator.getChimeraDriver().setPivot(positions, mediator.getCanvas2D().getSecondaryStructureDrawing().get().getSecondaryStructure().getRna().getName());
+                        }
                         VBox knobFound = null;
                         for (Node child:mediator.getToolbox().getJunctionKnobs().getChildren()) {
                             JunctionKnob knob = (JunctionKnob)((VBox)child).getChildren().get(0);
@@ -113,11 +130,12 @@ public class RNArtist extends Application {
                     List<ResidueCircle> residues = mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResidues();
                     for (ResidueCircle c : residues) {
                         if (c.getCircle() != null && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                            mediator.getGraphicsContext().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(List.of(c.getAbsPos())));
-                            List<String> positions = new ArrayList<String>(1);
-                            positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
-                            if (mediator.getChimeraDriver() != null)
+                            mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(List.of(c.getAbsPos())));
+                            if (mediator.getChimeraDriver() != null) {
+                                List<String> positions = new ArrayList<String>(1);
+                                positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
                                 mediator.getChimeraDriver().selectResidues(positions);
+                            }
                             break;
                         }
                     }
@@ -126,36 +144,38 @@ public class RNArtist extends Application {
             }
         });
         swingNode.setOnMouseDragged(mouseEvent -> {
-            if (mediator.getGraphicsContext() != null) {
-                mediator.getTheme().setQuickDraw(true);
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getTheme().setQuickDraw(true);
                 double transX = mouseEvent.getX() - mediator.getCanvas2D().getTranslateX();
                 double transY = mouseEvent.getY() - mediator.getCanvas2D().getTranslateY();
-                mediator.getGraphicsContext().moveView(transX, transY);
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().moveView(transX, transY);
                 mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
                 mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
                 mediator.getCanvas2D().repaint();
             }
         });
         swingNode.setOnMouseReleased(mouseEvent -> {
-                mediator.getTheme().setQuickDraw(false);
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getTheme().setQuickDraw(false);
                 mediator.getCanvas2D().setTranslateX(0.0);
                 mediator.getCanvas2D().setTranslateY(0.0);
                 mediator.getCanvas2D().repaint();
+            }
         });
         swingNode.setOnMousePressed(mouseEvent -> {
                 mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
                 mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
         });
         swingNode.setOnScroll(scrollEvent -> {
-            if (mediator.getGraphicsContext() != null) {
-                mediator.getTheme().setQuickDraw(true);
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getTheme().setQuickDraw(true);
                 scrollCounter++;
 
                 Thread th = new Thread(() -> {
                     try {
                         Thread.sleep(100);
                         if (scrollCounter == 1) {
-                            mediator.getTheme().setQuickDraw(false);
+                            mediator.getCanvas2D().getSecondaryStructureDrawing().get().getTheme().setQuickDraw(false);
                             mediator.getCanvas2D().repaint();
                         }
                         scrollCounter--;
@@ -165,14 +185,14 @@ public class RNArtist extends Application {
                 });
                 th.setDaemon(true);
                 th.start();
-                Point2D.Double realMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getGraphicsContext().getViewX())/mediator.getGraphicsContext().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getGraphicsContext().getViewY())/mediator.getGraphicsContext().getFinalZoomLevel());
+                Point2D.Double realMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewX())/mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewY())/mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel());
                 double notches = scrollEvent.getDeltaY();
                 if (notches < 0)
-                    mediator.getGraphicsContext().setZoom(1.25);
+                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setZoom(1.25);
                 if (notches > 0)
-                    mediator.getGraphicsContext().setZoom(1.0/1.25);
-                Point2D.Double newRealMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getGraphicsContext().getViewX())/mediator.getGraphicsContext().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getGraphicsContext().getViewY())/mediator.getGraphicsContext().getFinalZoomLevel());
-                this.mediator.getGraphicsContext().moveView((newRealMouse.getX()-realMouse.getX())*mediator.getGraphicsContext().getFinalZoomLevel(),(newRealMouse.getY()-realMouse.getY())*mediator.getGraphicsContext().getFinalZoomLevel());
+                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setZoom(1.0/1.25);
+                Point2D.Double newRealMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewX())/mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewY())/mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel());
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().moveView((newRealMouse.getX()-realMouse.getX())*mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel(),(newRealMouse.getY()-realMouse.getY())*mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel());
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -230,8 +250,8 @@ public class RNArtist extends Application {
         saveAs.setDisable(true);
         saveAs.setOnAction(actionEvent -> {
             if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
-                mediator.getGraphicsContext().setScreen_capture(true);
-                mediator.getGraphicsContext().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture(true);
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
                 mediator.getCanvas2D().repaint();
                 TextInputDialog dialog = new TextInputDialog("My Project");
                 dialog.initModality(Modality.NONE);
@@ -242,7 +262,7 @@ public class RNArtist extends Application {
                 if (projectName.isPresent()) {
                     BufferedImage image = mediator.getCanvas2D().screenCapture(null);
                     if (image != null) {
-                        NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getCanvas2D().getSecondaryStructureDrawing().get(), mediator.getTertiaryStructure(), mediator.getTheme(), mediator.getGraphicsContext());
+                        NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getCanvas2D().getSecondaryStructureDrawing().get(), mediator.getTertiaryStructure());
                         File pngFile = new File(new File(new File(mediator.getEmbeddedDB().getRootDir(), "images"), "user"), id.toString() + ".png");
                         try {
                             ImageIO.write(image, "PNG", pngFile);
@@ -251,12 +271,12 @@ public class RNArtist extends Application {
                         }
                         mediator.getProjectManager().addProject(id, projectName.get().trim());
                     }
-                    mediator.getGraphicsContext().setScreen_capture(false);
-                    mediator.getGraphicsContext().setScreen_capture_area(null);
+                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture(false);
+                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture_area(null);
                     mediator.getCanvas2D().repaint();
                 } else {
-                    mediator.getGraphicsContext().setScreen_capture(false);
-                    mediator.getGraphicsContext().setScreen_capture_area(null);
+                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture(false);
+                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture_area(null);
                     mediator.getCanvas2D().repaint();
                 }
             }
@@ -290,7 +310,7 @@ public class RNArtist extends Application {
         load2D.setVgap(5);
         load2D.setHgap(5);
 
-        Label load2DTitle = new Label("Load 2D from...");
+        Label load2DTitle = new Label("Load Data from...");
         load2DTitle.setStyle("-fx-font-size: 15");
         load2D.setConstraints(load2DTitle, 0, 0);
         load2D.setColumnSpan(load2DTitle, 5);
@@ -309,28 +329,112 @@ public class RNArtist extends Application {
             File file = fileChooser.showOpenDialog(stage );
             if (file != null) {
                 fileChooser.setInitialDirectory(file.getParentFile());
-                SecondaryStructure ss = null;
-                if (file.getName().endsWith(".ct")) {
-                    try {
-                        ss = fr.unistra.rnartist.model.io.ParsersKt.parseCT(new FileReader(file));
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                Task<Pair<List<SecondaryStructureDrawing>,Exception>> loadData = new Task<Pair<List<SecondaryStructureDrawing>,Exception>>() {
+
+                    @Override
+                    protected Pair<List<SecondaryStructureDrawing>,Exception> call() {
+                        SecondaryStructure ss = null;
+                        List<SecondaryStructureDrawing> secondaryStructureDrawings = new ArrayList<SecondaryStructureDrawing>();
+                        try {
+                            if (file.getName().endsWith(".ct")) {
+                                ss = fr.unistra.rnartist.model.io.ParsersKt.parseCT(new FileReader(file));
+                                if (ss != null) {
+                                    ss.getRna().setSource(file.getName());
+                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                }
+                            } else if (file.getName().endsWith(".bpseq")) {
+                                ss = fr.unistra.rnartist.model.io.ParsersKt.parseBPSeq(new FileReader(file));
+                                if (ss != null) {
+                                    ss.getRna().setSource(file.getName());
+                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                }
+                            } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
+                                ss = fr.unistra.rnartist.model.io.ParsersKt.parseVienna(new FileReader(file));
+                                if (ss != null) {
+                                    ss.getRna().setSource(file.getName());
+                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                }
+
+                            } else if (file.getName().endsWith(".pdb")) {
+                                int countBefore = secondaryStructureDrawings.size();
+                                for (TertiaryStructure ts : fr.unistra.rnartist.model.io.ParsersKt.parsePDB(new FileReader(file))) {
+                                    try {
+                                        ss = new Rnaview().annotate(ts);
+                                        if (ss != null) {
+                                            ss.getRna().setSource(file.getName());
+                                            ss.setTertiaryStructure(ts);
+                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                        }
+                                    } catch (FileNotFoundException exception) {
+                                        //do nothing, RNAVIEW can have problem to annotate some RNA (no 2D for example)
+                                    }
+                                }
+                                if (countBefore < secondaryStructureDrawings.size()) {//RNAVIEW was able to annotate at least one RNA molecule
+                                    if (mediator.getChimeraDriver() != null)
+                                        mediator.getChimeraDriver().loadTertiaryStructure(file);
+                                } else { //we generate an Exception to show the Alert dialog
+                                    throw new Exception("RNAVIEW was not able to annotate the 3D structure stored in "+file.getName());
+                                }
+
+                            } else if (file.getName().endsWith(".stk") || file.getName().endsWith(".stockholm")) {
+                                for (SecondaryStructure _ss : fr.unistra.rnartist.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
+                                    _ss.getRna().setSource(file.getName());
+                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(_ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                }
+                            }
+                        } catch (Exception e) {
+                            return Pair.of(secondaryStructureDrawings,e);
+                        }
+                        return Pair.of(secondaryStructureDrawings,null);
                     }
-                } else if (file.getName().endsWith(".bpseq")) {
-                    try {
-                        ss = fr.unistra.rnartist.model.io.ParsersKt.parseBPSeq(new FileReader(file));
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                };
+                loadData.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+                    @Override
+                    public void handle(WorkerStateEvent workerStateEvent) {
+                        try {
+                            if (loadData.get().getRight() != null) {
+                                Alert alert = new Alert(Alert.AlertType.ERROR);
+                                alert.setTitle("File Parsing error");
+                                alert.setHeaderText(loadData.get().getRight().getMessage());
+                                alert.setContentText("If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com");
+                                StringWriter sw = new StringWriter();
+                                PrintWriter pw = new PrintWriter(sw);
+                                loadData.get().getRight().printStackTrace(pw);
+                                String exceptionText = sw.toString();
+
+                                Label label = new Label("The exception stacktrace was:");
+
+                                TextArea textArea = new TextArea(exceptionText);
+                                textArea.setEditable(false);
+                                textArea.setWrapText(true);
+
+                                textArea.setMaxWidth(Double.MAX_VALUE);
+                                textArea.setMaxHeight(Double.MAX_VALUE);
+                                GridPane.setVgrow(textArea, Priority.ALWAYS);
+                                GridPane.setHgrow(textArea, Priority.ALWAYS);
+
+                                GridPane expContent = new GridPane();
+                                expContent.setMaxWidth(Double.MAX_VALUE);
+                                expContent.add(label, 0, 0);
+                                expContent.add(textArea, 0, 1);
+                                alert.getDialogPane().setExpandableContent(expContent);
+                                alert.showAndWait();
+                            } else {
+                                for (SecondaryStructureDrawing drawing : loadData.get().getLeft()) {
+                                    mediator.getAllStructures().add(drawing);
+                                    mediator.getCanvas2D().fit2D(drawing);
+                                }
+                                allStructuresChoices.setValue(mediator.getAllStructures().get(mediator.getAllStructures().size() - 1));
+                            }
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        } catch (ExecutionException e) {
+                            e.printStackTrace();
+                        }
                     }
-                }  else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
-                    try {
-                        ss = fr.unistra.rnartist.model.io.ParsersKt.parseVienna(new FileReader(file));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (ss != null)
-                    mediator.getCanvas2D().load2D(ss);
+                });
+                new Thread(loadData).start();
+
             }
         });
         GridPane.setConstraints(openFile, 0, 2);
@@ -343,14 +447,14 @@ public class RNArtist extends Application {
         GridPane.setRowSpan(sepVert1, 1);
         load2D.getChildren().add(sepVert1);
 
-        Button websites = new Button("Websites", new Glyph("FontAwesome", FontAwesome.Glyph.GLOBE));
-        websites.setOnAction(actionEvent -> {
+        Button databases = new Button("Databases", new Glyph("FontAwesome", FontAwesome.Glyph.GLOBE));
+        databases.setOnAction(actionEvent -> {
             mediator.getWebBrowser().getStage().show();
             mediator.getWebBrowser().getStage().toFront();
             mediator.getWebBrowser().showTab(1);
         });
-        GridPane.setConstraints(websites, 2, 2);
-        load2D.getChildren().add(websites);
+        GridPane.setConstraints(databases, 2, 2);
+        load2D.getChildren().add(databases);
 
         sepVert1 = new Separator();
         sepVert1.setOrientation(Orientation.VERTICAL);
@@ -450,9 +554,63 @@ public class RNArtist extends Application {
 
         topToolBars.getChildren().add(toolBar2);
 
-        Label _2DTitle = new Label("2D");
-        _2DTitle.setStyle("-fx-font-size: 15");
-        //toolBar2.getChildren().add(_2DTitle);
+        GridPane loadAndExport = new GridPane();
+        loadAndExport.setVgap(5.0);
+        loadAndExport.setHgap(5.0);
+        Label l = new Label("View 2D for");
+        GridPane.setHalignment(l, HPos.RIGHT);
+        GridPane.setConstraints(l,0,0);
+        loadAndExport.getChildren().add(l);
+
+        this.allStructuresChoices = new ChoiceBox<SecondaryStructureDrawing>();
+        this.allStructuresChoices.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getCanvas2D().load2D(allStructuresChoices.getValue());
+            }
+        });
+        this.allStructuresChoices.setItems(mediator.getAllStructures());
+        this.allStructuresChoices.setMaxWidth(150);
+        GridPane.setConstraints(this.allStructuresChoices,1,0,3,1);
+        loadAndExport.getChildren().add(this.allStructuresChoices);
+
+        l = new Label("Export 2D as");
+        GridPane.setHalignment(l, HPos.RIGHT);
+        GridPane.setConstraints(l,0,1);
+        loadAndExport.getChildren().add(l);
+
+        Button svg = new Button("SVG");
+        svg.setOnAction(actionEvent -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("SVG Files", "*.svg"));
+            File file = fileChooser.showSaveDialog(stage);
+            if (file != null) {
+                fileChooser.setInitialDirectory(file.getParentFile());
+                PrintWriter writer;
+                try {
+                    writer = new PrintWriter(file);
+                    writer.println(mediator.getCanvas2D().getSecondaryStructureDrawing().get().asSVG());
+                    writer.close();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        svg.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setConstraints(svg,1,1);
+        loadAndExport.getChildren().add(svg);
+
+        Button ct = new Button("CT");
+        ct.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setConstraints(ct,2,1);
+        loadAndExport.getChildren().add(ct);
+
+        Button vienna = new Button("VIENNA");
+        vienna.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setConstraints(vienna,3,1);
+        loadAndExport.getChildren().add(vienna);
+
+        toolBar2.getChildren().add(loadAndExport);
 
         VBox vbox = new VBox();
         vbox.setSpacing(5.0);
@@ -468,7 +626,7 @@ public class RNArtist extends Application {
         Button fit2D = new Button("Fit", new Glyph("FontAwesome", FontAwesome.Glyph.ARROWS_ALT));
         vbox.getChildren().add(fit2D);
         fit2D.setOnAction(actionEvent -> {
-            mediator.canvas2D.fit2D();
+            mediator.canvas2D.fit2D(mediator.canvas2D.getSecondaryStructureDrawing().get());
         });
         fit2D.setMaxWidth(Double.MAX_VALUE);
 
@@ -534,26 +692,6 @@ public class RNArtist extends Application {
         vbox.getChildren().add(slider);
         toolBar2.getChildren().add(vbox);
 
-        export = new Button("Export as SVG", new Glyph("FontAwesome", FontAwesome.Glyph.UPLOAD));
-        toolBar2.getChildren().add(export);
-        export.setDisable(true);
-        export.setOnAction(actionEvent -> {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("SVG Files", "*.svg"));
-            File file = fileChooser.showSaveDialog(stage);
-            if (file != null) {
-                fileChooser.setInitialDirectory(file.getParentFile());
-                PrintWriter writer;
-                try {
-                    writer = new PrintWriter(file);
-                    writer.println(mediator.getCanvas2D().getSecondaryStructureDrawing().get().asSVG());
-                    writer.close();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
         //### Status Bar
         this.statusBar = new FlowPane();
         statusBar.setAlignment(Pos.CENTER_RIGHT);
@@ -586,7 +724,6 @@ public class RNArtist extends Application {
     public void activateSaveButtons() {
         this.save.setDisable(false);
         this.saveAs.setDisable(false);
-        this.export.setDisable(false);
     }
 
     public void showTopToolBars(boolean show) {

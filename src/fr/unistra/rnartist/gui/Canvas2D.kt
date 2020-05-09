@@ -1,8 +1,6 @@
 package fr.unistra.rnartist.gui
 
-import fr.unistra.rnartist.model.JunctionType
-import fr.unistra.rnartist.model.SecondaryStructure
-import fr.unistra.rnartist.model.SecondaryStructureDrawing
+import fr.unistra.rnartist.model.*
 import javafx.beans.property.SimpleObjectProperty
 import java.awt.*
 import java.awt.geom.AffineTransform
@@ -24,53 +22,53 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         })
     }
 
-    fun load2D(ss:SecondaryStructure) {
-        mediator.graphicsContext.clear()
-        mediator.toolbox.junctionKnobs.children.clear()
+    fun load2D(drawing:SecondaryStructureDrawing) {
         mediator.toolbox.residues.clear()
-        this.secondaryStructureDrawing.value = SecondaryStructureDrawing(ss, this.bounds, mediator.theme)
-        ss.rna.seq.forEachIndexed { index:Int, res:Char ->
+        this.secondaryStructureDrawing.value = drawing
+        mediator.toolbox.loadTheme(this.secondaryStructureDrawing.get().theme.themeParams)
+        /*this.secondaryStructureDrawing.value.secondaryStructure.rna.seq.forEachIndexed { index:Int, res:Char ->
             mediator.toolbox.residues.add(Residue(index+1, res))
-        }
+        }*/
+        mediator.toolbox.junctionKnobs.children.clear()
         for (jc in this.secondaryStructureDrawing.get().allJunctions) {
             mediator.toolbox.addJunctionKnob(jc)
         }
-        fit2D()
-    }
-
-    fun center2D() {
-        mediator.graphicsContext.viewX = 0.0
-        mediator.graphicsContext.viewY = 0.0
-        var at = AffineTransform()
-        at.translate(mediator.graphicsContext.viewX, mediator.graphicsContext.viewY)
-        at.scale(mediator.graphicsContext.finalZoomLevel, mediator.graphicsContext.finalZoomLevel)
-        var transformedBounds = at.createTransformedShape(this.secondaryStructureDrawing.get().getBounds())
-        //we center the view on the new structure
-        mediator.graphicsContext.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
-        mediator.graphicsContext.viewY += this.getBounds().bounds2D.centerY - transformedBounds.bounds2D.centerY
         this.repaint()
     }
 
-    fun fit2D() {
-        mediator.graphicsContext.viewX = 0.0
-        mediator.graphicsContext.viewY = 0.0
-        mediator.graphicsContext.finalZoomLevel = 1.0
+    fun center2D() {
+        this.secondaryStructureDrawing.get().workingSession.viewX = 0.0
+        this.secondaryStructureDrawing.get().workingSession.viewY = 0.0
         var at = AffineTransform()
-        at.translate(mediator.graphicsContext.viewX, mediator.graphicsContext.viewY)
-        at.scale(mediator.graphicsContext.finalZoomLevel, mediator.graphicsContext.finalZoomLevel)
+        at.translate(this.secondaryStructureDrawing.get().workingSession.viewX, this.secondaryStructureDrawing.get().workingSession.viewY)
+        at.scale(this.secondaryStructureDrawing.get().workingSession.finalZoomLevel, this.secondaryStructureDrawing.get().workingSession.finalZoomLevel)
         var transformedBounds = at.createTransformedShape(this.secondaryStructureDrawing.get().getBounds())
+        //we center the view on the new structure
+        this.secondaryStructureDrawing.get().workingSession.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
+        this.secondaryStructureDrawing.get().workingSession.viewY += this.getBounds().bounds2D.centerY - transformedBounds.bounds2D.centerY
+        this.repaint()
+    }
+
+    fun fit2D(drawing: SecondaryStructureDrawing) {
+        drawing.workingSession.viewX = 0.0
+        drawing.workingSession.viewY = 0.0
+        drawing.workingSession.finalZoomLevel = 1.0
+        var at = AffineTransform()
+        at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
+        at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
+        var transformedBounds = at.createTransformedShape(drawing.getBounds())
         //we compute the zoomLevel to fit the structure in the frame of the canvas2D
         val widthRatio = transformedBounds.bounds2D.width/this.getBounds().width
         val heightRatio = transformedBounds.bounds2D.height/this.getBounds().height
-        mediator.graphicsContext.finalZoomLevel = if (widthRatio > heightRatio) 1.0/widthRatio else 1.0/heightRatio
+        drawing.workingSession.finalZoomLevel = if (widthRatio > heightRatio) 1.0/widthRatio else 1.0/heightRatio
         //We recompute the bounds of the structure with this new zoom level
         at = AffineTransform()
-        at.translate(mediator.graphicsContext.viewX, mediator.graphicsContext.viewY)
-        at.scale(mediator.graphicsContext.finalZoomLevel, mediator.graphicsContext.finalZoomLevel)
-        transformedBounds = at.createTransformedShape(this.secondaryStructureDrawing.get().getBounds())
+        at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
+        at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
+        transformedBounds = at.createTransformedShape(drawing.getBounds())
         //we center the view on the new structure
-        mediator.graphicsContext.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
-        mediator.graphicsContext.viewY += this.getBounds().bounds2D.centerY - transformedBounds.bounds2D.centerY
+        drawing.workingSession.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
+        drawing.workingSession.viewY += this.getBounds().bounds2D.centerY - transformedBounds.bounds2D.centerY
         this.repaint()
     }
 
@@ -82,10 +80,10 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
         g2.background = Color.white
         g2.color = Color.BLACK
-        if (mediator.graphicsContext.screen_capture)
-            g2.draw(mediator.graphicsContext.screen_capture_area)
+        if (this.secondaryStructureDrawing.get() != null && this.secondaryStructureDrawing.get().workingSession.screen_capture)
+            g2.draw(this.secondaryStructureDrawing.get().workingSession.screen_capture_area)
         if (this.secondaryStructureDrawing.get() != null)
-            this.secondaryStructureDrawing.get().draw(g2, mediator.graphicsContext)
+            this.secondaryStructureDrawing.get().draw(g2)
     }
 
     override fun update(g: Graphics) {
@@ -103,25 +101,25 @@ class Canvas2D(val mediator: Mediator): JPanel() {
 
     fun screenCapture(secondaryStructureDrawing:SecondaryStructureDrawing?): BufferedImage? {
         var bufferedImage: BufferedImage?
-        mediator.graphicsContext.viewX -= mediator.graphicsContext.screen_capture_area!!.minX
-        mediator.graphicsContext.viewY -= mediator.graphicsContext.screen_capture_area!!.minY
-        bufferedImage = BufferedImage(mediator.graphicsContext.screen_capture_area!!.width.toInt(),
-                mediator.graphicsContext.screen_capture_area!!.height.toInt() , BufferedImage.TYPE_INT_ARGB)
+        this.secondaryStructureDrawing.get().workingSession.viewX -= this.secondaryStructureDrawing.get().workingSession.screen_capture_area!!.minX
+        this.secondaryStructureDrawing.get().workingSession.viewY -= this.secondaryStructureDrawing.get().workingSession.screen_capture_area!!.minY
+        bufferedImage = BufferedImage(this.secondaryStructureDrawing.get().workingSession.screen_capture_area!!.width.toInt(),
+                this.secondaryStructureDrawing.get().workingSession.screen_capture_area!!.height.toInt() , BufferedImage.TYPE_INT_ARGB)
         val g2 = bufferedImage.createGraphics()
         g2.color = Color.WHITE
-        g2.fill(Rectangle2D.Double(0.0, 0.0, mediator.graphicsContext.screen_capture_area!!.width,
-                mediator.graphicsContext.screen_capture_area!!.height))
+        g2.fill(Rectangle2D.Double(0.0, 0.0, this.secondaryStructureDrawing.get().workingSession.screen_capture_area!!.width,
+                this.secondaryStructureDrawing.get().workingSession.screen_capture_area!!.height))
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
         g2.background = Color.white
         if (secondaryStructureDrawing != null)
-            secondaryStructureDrawing.draw(g2, mediator.graphicsContext);
+            secondaryStructureDrawing.draw(g2);
         else
-            this.secondaryStructureDrawing.get().draw(g2, mediator.graphicsContext);
+            this.secondaryStructureDrawing.get().draw(g2);
         g2.dispose()
-        mediator.graphicsContext.viewX += mediator.graphicsContext.screen_capture_area!!.minX
-        mediator.graphicsContext.viewY += mediator.graphicsContext.screen_capture_area!!.minY
+        this.secondaryStructureDrawing.get().workingSession.viewX += this.secondaryStructureDrawing.get().workingSession.screen_capture_area!!.minX
+        this.secondaryStructureDrawing.get().workingSession.viewY += this.secondaryStructureDrawing.get().workingSession.screen_capture_area!!.minY
         return bufferedImage
     }
 }

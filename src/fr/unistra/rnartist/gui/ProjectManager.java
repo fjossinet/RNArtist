@@ -142,15 +142,13 @@ public class ProjectManager {
                 public void handle(MouseEvent event) {
                     if (ProjectCell.this.getItem().name.equals("New Project")) {
                         stage.hide();
-                        mediator.getGraphicsContext().setViewX(0.0);
-                        mediator.getGraphicsContext().setViewY(0.0);
-                        mediator.getGraphicsContext().setFinalZoomLevel(1.0);
+                        mediator.getAllStructures().clear();
                         mediator.getRnartist().getStage().show();
                         mediator.getToolbox().getStage().show();
                     } else {
                         stage.hide();
                         fr.unistra.rnartist.model.Project project = mediator.getEmbeddedDB().getProject(ProjectCell.this.getItem().id);
-                        mediator.getCanvas2D().load2D(project.getSecondaryStructure());
+                        //mediator.getAllStructures().add(project.getSecondaryStructure()); //TODO load the secondary structure drawinf
                         //TODO load the theme and the graphicsContext
                         if (project.getTertiaryStructure() != null && mediator.getChimeraDriver() != null) {
                             mediator.setTertiaryStructure(project.getTertiaryStructure());

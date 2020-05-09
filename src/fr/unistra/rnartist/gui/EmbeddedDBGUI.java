@@ -66,7 +66,7 @@ public class EmbeddedDBGUI {
         listView.getSelectionModel().getSelectedIndices().addListener(new ListChangeListener<Integer>() {
             @Override
             public void onChanged(Change<? extends Integer> change) {
-                mediator.getCanvas2D().load2D((SecondaryStructure)mediator.getEmbeddedDB().getPDBSecondaryStructures().getById(listView.getSelectionModel().getSelectedItem().id).get("ss"));
+                //mediator.getAllStructures().add((SecondaryStructure)mediator.getEmbeddedDB().getPDBSecondaryStructures().getById(listView.getSelectionModel().getSelectedItem().id).get("ss"));
             }
         });
 
@@ -195,7 +195,7 @@ public class EmbeddedDBGUI {
                 @Override
                 public void handle(MouseEvent mouseEvent) {
                     SecondaryStructure ss = (SecondaryStructure)mediator.getEmbeddedDB().getPDBSecondaryStructures().getById(StructureCell.this.getItem().id).get("ss");
-                    mediator.getCanvas2D().load2D(ss);
+                    mediator.getAllStructures().add(new SecondaryStructureDrawing(ss,mediator.canvas2D.getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
                     Document doc = mediator.getEmbeddedDB().getPDBTertiaryStructure(ss.getPdbId(),ss.getRna().getName());
                     try {
                         if (doc != null)

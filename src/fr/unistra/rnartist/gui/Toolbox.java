@@ -738,14 +738,14 @@ public class Toolbox implements ThemeConfigurator {
 
         //++++++ form to save the theme
         FlowPane saveForm = new FlowPane();
-        saveForm.setAlignment(Pos.CENTER_RIGHT);
+        saveForm.setAlignment(Pos.CENTER);
         saveForm.setHgap(10);
         saveForm.setPadding(new Insets(10, 10, 10, 10));
 
         TextField themeNameField = new TextField();
         themeNameField.setPromptText("Choose a Theme Name");
 
-        Button shareOnline = new Button("Share Theme");
+        Button shareOnline = new Button("Share");
 
         shareOnline.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
@@ -754,14 +754,13 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        Button saveTheme = new Button("Set Theme as Default");
+        Button saveTheme = new Button("Set as Default");
 
         saveTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent e) {
-                mediator.getTheme().save();
                 try {
-                    RnartistConfig.saveConfig(mediator.getTheme());
+                    RnartistConfig.saveConfig(mediator.getToolbox().getTheme());
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
                     alert.setTitle("Theme Saved!");
                     alert.setHeaderText("Your current theme is now the default one!");
@@ -772,6 +771,17 @@ public class Toolbox implements ThemeConfigurator {
                 }
             }
         });
+
+        Button restoreDefault = new Button("Restore Default");
+
+        restoreDefault.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent e) {
+                loadTheme(RnartistConfig.defaultTheme);
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        saveForm.getChildren().add(restoreDefault);
         saveForm.getChildren().add(saveTheme);
         saveForm.getChildren().add(shareOnline);
 
@@ -942,7 +952,7 @@ public class Toolbox implements ThemeConfigurator {
                         chimeraPath.setText(f.getAbsolutePath());
                     RnartistConfig.setChimeraPath(chimeraPath.getText());
                     try {
-                        RnartistConfig.saveConfig(mediator.getTheme());
+                        RnartistConfig.saveConfig(null); //we save the chimera path, not the theme (perhaps the user is not interested to save the current theme)
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -1053,12 +1063,12 @@ public class Toolbox implements ThemeConfigurator {
         tableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         tableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null) {
-                mediator.getGraphicsContext().getSelectedResidues().clear();
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().clear();
                 for (Residue r:tableView.getSelectionModel().getSelectedItems())
-                    mediator.getGraphicsContext().getSelectedResidues().addAll(mediator.canvas2D.getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(List.of(r.getPosition())));
-                mediator.getGraphicsContext().centerFrameOnSelection(mediator.getCanvas2D().getBounds());
+                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.canvas2D.getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(List.of(r.getPosition())));
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().centerFrameOnSelection(mediator.getCanvas2D().getBounds());
             } else {
-                mediator.getGraphicsContext().getSelectedResidues().clear();
+                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().clear();
             }
             mediator.getCanvas2D().repaint();
         });
@@ -1105,6 +1115,7 @@ public class Toolbox implements ThemeConfigurator {
         _3dOpacity.setValue((int)(100.0*255.0/Integer.parseInt(theme.getOrDefault(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0)))));
         secondaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth()));
         tertiaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.TertiaryInteractionWidth.toString(),""+getTertiaryInteractionWidth()));
+        haloWidth.setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.HaloWidth.toString(),""+getHaloWidth())));
         residueBorder.setValue(theme.getOrDefault(ThemeParameter.ResidueBorder.toString(),""+getResidueBorder()));
         tertiaryInteractionStyle.setValue(theme.getOrDefault(ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue()));
         fontNames.setValue(theme.getOrDefault(ThemeParameter.FontName.toString(), getFontName()));
@@ -1116,14 +1127,19 @@ public class Toolbox implements ThemeConfigurator {
     public Map<String,String> getTheme() {
         Map<String, String> theme = new HashMap<String, String>();
         theme.put(ThemeParameter.AColor.toString(), this.getAColor());
+        theme.put(ThemeParameter.AChar.toString(), this.getAChar());
         theme.put(ThemeParameter.UColor.toString(), this.getUColor());
+        theme.put(ThemeParameter.UChar.toString(), this.getUChar());
         theme.put(ThemeParameter.GColor.toString(), this.getGColor());
+        theme.put(ThemeParameter.GChar.toString(), this.getGChar());
         theme.put(ThemeParameter.CColor.toString(), this.getCColor());
+        theme.put(ThemeParameter.CChar.toString(), this.getCChar());
         theme.put(ThemeParameter.XColor.toString(), this.getXColor());
+        theme.put(ThemeParameter.XChar.toString(), this.getXChar());
         theme.put(ThemeParameter.SecondaryColor.toString(), this.getSecondaryInteractionColor());
         theme.put(ThemeParameter.TertiaryColor.toString(), this.getTertiaryInteractionColor());
-        theme.put(ThemeParameter.TertiaryOpacity.toString(), ""+_3dOpacity.getValue()*255.0/100.0);
-        theme.put(ThemeParameter.HaloWidth.toString(), ""+haloWidth.getValue());
+        theme.put(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0));
+        theme.put(ThemeParameter.HaloWidth.toString(), ""+(int)haloWidth.getValue());
         theme.put(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth());
         theme.put(ThemeParameter.TertiaryInteractionWidth.toString(), ""+getTertiaryInteractionWidth());
         theme.put(ThemeParameter.ResidueBorder.toString(), ""+getResidueBorder());
