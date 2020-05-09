@@ -6,8 +6,8 @@ import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.shape.Circle
 import javafx.scene.shape.Polygon
-import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
+import java.util.*
 
 class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : Pane(){
 
@@ -222,6 +222,14 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
             mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
             mediator.canvas2D.secondaryStructureDrawing.get().workingSession.centerFrameOnSelection(mediator.canvas2D.getBounds())
             mediator.canvas2D.repaint()
+            if (mediator.chimeraDriver != null && mediator.tertiaryStructure != null) {
+                val positions: MutableList<String?> = ArrayList(1)
+                for (c in mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues) {
+                    positions.add(if (mediator.tertiaryStructure != null && mediator.tertiaryStructure!!.getResidue3DAt(c.absPos) != null) mediator.tertiaryStructure!!.getResidue3DAt(c.absPos)!!.label else "" + (c.absPos + 1))
+                }
+                mediator.chimeraDriver!!.selectResidues(positions, mediator.canvas2D.secondaryStructureDrawing.get().secondaryStructure.rna.name)
+                mediator.chimeraDriver!!.setFocus(positions, mediator.canvas2D.secondaryStructureDrawing.get().secondaryStructure.rna.name)
+            }
         }
 
         centerViewOnJunction.setOnMouseReleased {

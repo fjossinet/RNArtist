@@ -162,7 +162,7 @@ public class Toolbox implements ThemeConfigurator {
         });
 
         deltaFontSize = new Spinner<Integer>();
-        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-5, 5, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaFontSize.toString()))));
+        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 5, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaFontSize.toString()))));
         deltaFontSize.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {

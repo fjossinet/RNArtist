@@ -104,13 +104,13 @@ public class RNArtist extends Application {
                         for (HelixLine h:jc.getHelices())
                             mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(h.getHelix().getLocation().getPositions()));
                         mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(jc.getJunction().getLocation().getPositions()));
-                        if (mediator.getChimeraDriver() != null) {
+                        if (mediator.getChimeraDriver() != null && mediator.getTertiaryStructure() != null) {
                             List<String> positions = new ArrayList<String>(1);
                             for (ResidueCircle c:mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues()) {
                                 positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
                             }
                             mediator.getChimeraDriver().selectResidues(positions, mediator.getCanvas2D().getSecondaryStructureDrawing().get().getSecondaryStructure().getRna().getName());
-                            mediator.getChimeraDriver().setPivot(positions, mediator.getCanvas2D().getSecondaryStructureDrawing().get().getSecondaryStructure().getRna().getName());
+                            mediator.getChimeraDriver().setFocus(positions, mediator.getCanvas2D().getSecondaryStructureDrawing().get().getSecondaryStructure().getRna().getName());
                         }
                         VBox knobFound = null;
                         for (Node child:mediator.getToolbox().getJunctionKnobs().getChildren()) {

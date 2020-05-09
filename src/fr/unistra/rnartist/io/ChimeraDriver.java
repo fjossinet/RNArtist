@@ -315,7 +315,6 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         final StringBuffer command = new StringBuffer("select #0,2:");  //the #2 is to select residues for the refined structure (if any)
         for (String pos:positions)
             command.append(pos+"."+chainName+",");
-        System.out.println(command.substring(0,command.length()-1));
         this.evaluate(command.substring(0,command.length()-1));
         this.lastSelectedResidues = positions;
     }
