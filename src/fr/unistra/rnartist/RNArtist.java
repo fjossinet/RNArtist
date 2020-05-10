@@ -638,12 +638,13 @@ public class RNArtist extends Application {
         vbox = new VBox();
         vbox.setSpacing(5.0);
         vbox.setAlignment(Pos.CENTER);
-        vbox.getChildren().add(new Label("Selection Fading (%)"));
+        vbox.getChildren().add(new Label("Unselected Residues Opacity (%)"));
         final Slider slider = new Slider(0, 100, (int)(RnartistConfig.getSelectionFading()/255.0*100.0));
         slider.setShowTickLabels(true);
         slider.setShowTickMarks(true);
         slider.setMajorTickUnit(50);
         slider.setMinorTickCount(5);
+        slider.setShowTickMarks(true);
         slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
@@ -651,34 +652,7 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        slider.setShowTickMarks(true);
         vbox.getChildren().add(slider);
-        toolBar2.getChildren().add(vbox);
-
-        vbox = new VBox();
-        vbox.setSpacing(5.0);
-        vbox.setAlignment(Pos.CENTER);
-        vbox.getChildren().add(new Label("Residue Fading (%)"));
-        final Slider slider2 = new Slider(0, 100, RnartistConfig.getSelectionFading()/255.0*100.0);
-        slider2.setShowTickLabels(true);
-        slider2.setShowTickMarks(true);
-        slider2.setMajorTickUnit(50);
-        slider2.setMinorTickCount(5);
-        slider2.setShowTickMarks(true);
-        vbox.getChildren().add(slider2);
-        toolBar2.getChildren().add(vbox);
-
-        vbox = new VBox();
-        vbox.setSpacing(5.0);
-        vbox.setAlignment(Pos.CENTER);
-        vbox.getChildren().add(new Label("Ticks Fading (%)"));
-        Slider slider3 = new Slider(0, 100, RnartistConfig.getSelectionFading()/255.0*100.0);
-        slider3.setShowTickLabels(true);
-        slider3.setShowTickMarks(true);
-        slider3.setMajorTickUnit(50);
-        slider3.setMinorTickCount(5);
-        slider3.setShowTickMarks(true);
-        vbox.getChildren().add(slider3);
         toolBar2.getChildren().add(vbox);
 
         //### Status Bar

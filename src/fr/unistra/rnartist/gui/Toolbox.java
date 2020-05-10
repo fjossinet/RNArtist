@@ -54,7 +54,7 @@ public class Toolbox implements ThemeConfigurator {
     private ColorPicker colorPicker1, colorPicker2, colorPicker3, colorPicker4, colorPicker5, colorPicker6, colorPicker7;
     private ChoiceBox<String> structuralElement1,structuralElement2,structuralElement3,structuralElement4,structuralElement5,structuralElement6,structuralElement7,
                                 letterColor1,letterColor2,letterColor3,letterColor4,letterColor5,letterColor6,letterColor7;
-    private Slider _3dOpacity, haloWidth;
+    private Slider _3dOpacity, haloWidth, residueCharOpacity;
     private ComboBox<String> fontNames, residueBorder,
             secondaryInteractionWidth,
             tertiaryInteractionWidth, tertiaryInteractionStyle;
@@ -110,7 +110,7 @@ public class Toolbox implements ThemeConfigurator {
         GridPane fontsPane = new GridPane();
         fontsPane.setHgap(5);
         fontsPane.setVgap(10);
-        fontsPane.setPadding(new Insets(0, 0, 20, 0));
+        fontsPane.setPadding(new Insets(0, 0, 5, 0));
 
         ColumnConstraints cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
@@ -189,8 +189,59 @@ public class Toolbox implements ThemeConfigurator {
         fontsPane.getChildren().add(l);
         GridPane.setConstraints(deltaFontSize, 5,1,1,1);
         fontsPane.getChildren().add(deltaFontSize);
-
         vbox.getChildren().add(fontsPane);
+
+        GridPane fontsPane2 = new GridPane();
+        fontsPane2.setHgap(5);
+        fontsPane2.setVgap(10);
+        fontsPane2.setPadding(new Insets(0, 0, 10, 0));
+
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        fontsPane.getColumnConstraints().addAll(new ColumnConstraints(),cc);
+
+        l = new Label("Residue Character Opacity (%)");
+        GridPane.setConstraints(l, 0,0,4,1);
+        GridPane.setValignment(l,VPos.TOP);
+        fontsPane2.getChildren().add(l);
+        this.residueCharOpacity = new Slider(0, 100, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.ResidueCharOpacity.toString()))/255.0*100.0);
+        this.residueCharOpacity.setShowTickLabels(true);
+        this.residueCharOpacity.setShowTickMarks(true);
+        this.residueCharOpacity.setMajorTickUnit(50);
+        this.residueCharOpacity.setMinorTickCount(5);
+        this.residueCharOpacity.setShowTickMarks(true);
+        this.residueCharOpacity.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        GridPane.setConstraints(this.residueCharOpacity, 4,0,2,1);
+        this.residueCharOpacity.setMaxWidth(Double.MAX_VALUE);
+        fontsPane2.getChildren().add(this.residueCharOpacity);
+
+        l = new Label("Ticks Character Opacity (%)");
+        GridPane.setConstraints(l, 0,1,4,1);
+        GridPane.setValignment(l,VPos.TOP);
+        fontsPane2.getChildren().add(l);
+        final Slider slider2 = new Slider(0, 100, 100);
+        slider2.setShowTickLabels(true);
+        slider2.setShowTickMarks(true);
+        slider2.setMajorTickUnit(50);
+        slider2.setMinorTickCount(5);
+        slider2.setShowTickMarks(true);
+        slider2.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                //RnartistConfig.setResidueFading((int)(slider2.getValue()/100.0*255.0));
+                //mediator.getCanvas2D().repaint();
+            }
+        });
+        GridPane.setConstraints(slider2, 4,1,2,1);
+        slider2.setMaxWidth(Double.MAX_VALUE);
+        fontsPane2.getChildren().add(slider2);
+
+        vbox.getChildren().add(fontsPane2);
 
         //++++++ pane for the Colors
         title = new Label("Colors");
@@ -593,7 +644,7 @@ public class Toolbox implements ThemeConfigurator {
         GridPane linesPane = new GridPane();
         linesPane.setHgap(10);
         linesPane.setVgap(10);
-        linesPane.setPadding(new Insets(0, 0, 20, 0));
+        linesPane.setPadding(new Insets(0, 0, 10, 0));
 
         cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
@@ -687,6 +738,7 @@ public class Toolbox implements ThemeConfigurator {
 
         l = new Label("Tertiaries Opacity (%)");
         GridPane.setConstraints(l, 0,4,2,1);
+        GridPane.setValignment(l,VPos.TOP);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
@@ -710,6 +762,7 @@ public class Toolbox implements ThemeConfigurator {
 
         l = new Label("Tertiaries Halo Size (px)");
         GridPane.setConstraints(l, 0,5,2,1);
+        GridPane.setValignment(l,VPos.TOP);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
@@ -1108,7 +1161,8 @@ public class Toolbox implements ThemeConfigurator {
         colorPicker6.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.SecondaryColor.toString(), colorPicker6.getValue().toString())));
         structuralElement7.setValue("3D");
         colorPicker7.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.TertiaryColor.toString(), colorPicker7.getValue().toString())));
-        _3dOpacity.setValue((int)(100.0*255.0/Integer.parseInt(theme.getOrDefault(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0)))));
+        _3dOpacity.setValue((int)(100.0/255.0*Integer.parseInt(theme.getOrDefault(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0)))));
+        residueCharOpacity.setValue((int)(100.0/255.0*Integer.parseInt(theme.getOrDefault(ThemeParameter.ResidueCharOpacity.toString(), ""+(int)(residueCharOpacity.getValue()*255.0/100.0)))));
         secondaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth()));
         tertiaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.TertiaryInteractionWidth.toString(),""+getTertiaryInteractionWidth()));
         haloWidth.setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.HaloWidth.toString(),""+getHaloWidth())));
@@ -1135,6 +1189,7 @@ public class Toolbox implements ThemeConfigurator {
         theme.put(ThemeParameter.SecondaryColor.toString(), this.getSecondaryInteractionColor());
         theme.put(ThemeParameter.TertiaryColor.toString(), this.getTertiaryInteractionColor());
         theme.put(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0));
+        theme.put(ThemeParameter.ResidueCharOpacity.toString(), ""+(int)(residueCharOpacity.getValue()*255.0/100.0));
         theme.put(ThemeParameter.HaloWidth.toString(), ""+(int)haloWidth.getValue());
         theme.put(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth());
         theme.put(ThemeParameter.TertiaryInteractionWidth.toString(), ""+getTertiaryInteractionWidth());
@@ -1233,6 +1288,11 @@ public class Toolbox implements ThemeConfigurator {
     @Override
     public int getTertiaryOpacity() {
         return (int)((double)(_3dOpacity.getValue())/100.0*255);
+    }
+
+    @Override
+    public int getResidueCharOpacity() {
+        return (int) ((double)(residueCharOpacity.getValue()) / 100.0 * 255.0);
     }
 
     @Override
