@@ -1,4 +1,4 @@
-package fr.unistra.rnartist.io
+package fr.unistra.fjossinet.rnartist.io
 
 import java.awt.Image
 import javax.imageio.ImageIO

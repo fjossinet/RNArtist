@@ -1,6 +1,6 @@
-package fr.unistra.rnartist.gui
+package fr.unistra.fjossinet.rnartist.gui
 
-import fr.unistra.rnartist.model.RnartistConfig
+import fr.unistra.fjossinet.rnartist.model.RnartistConfig
 import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
 import javafx.concurrent.Worker

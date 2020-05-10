@@ -1,8 +1,7 @@
-package fr.unistra.rnartist.gui
+package fr.unistra.fjossinet.rnartist.gui
 
-import fr.unistra.rnartist.RNArtist
-import fr.unistra.rnartist.io.Backend
-import fr.unistra.rnartist.model.RnartistConfig
+import fr.unistra.fjossinet.rnartist.io.Backend
+import fr.unistra.fjossinet.rnartist.model.RnartistConfig
 import javafx.application.Application
 import javafx.collections.FXCollections
 import javafx.concurrent.Task
@@ -20,12 +19,6 @@ import javafx.scene.text.Text
 import javafx.stage.StageStyle
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.net.URI
-import java.net.URLEncoder
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.util.*
 import java.util.Locale
 
 
@@ -60,7 +53,7 @@ class RegisterDialog(application: Application): Dialog<ButtonType>() {
             application.hostServices.showDocument(RnartistConfig.website)
         }
         val im = ImageView()
-        im.image = Image("fr/unistra/rnartist/io/images/logo.png")
+        im.image = Image("fr/unistra/fjossinet/rnartist/io/images/logo.png")
         form.add(im, 0, 0, 2, 1)
         form.add(header, 0, 1, 2, 1)
         val flow = FlowPane()

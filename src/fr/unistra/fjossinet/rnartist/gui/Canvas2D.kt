@@ -1,7 +1,6 @@
-package fr.unistra.rnartist.gui
+package fr.unistra.fjossinet.rnartist.gui
 
-import fr.unistra.rnartist.model.*
-import javafx.beans.property.SimpleObjectProperty
+import fr.unistra.fjossinet.rnartist.model.SecondaryStructureDrawing
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
@@ -10,7 +9,7 @@ import javax.swing.JPanel
 
 class Canvas2D(val mediator: Mediator): JPanel() {
 
-    var secondaryStructureDrawing:SecondaryStructureDrawing? = null
+    var secondaryStructureDrawing: SecondaryStructureDrawing? = null
     lateinit private var offScreenBuffer: Image
     var translateX = 0.0
     var translateY = 0.0
@@ -19,7 +18,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         this.mediator.canvas2D = this
     }
 
-    fun load2D(drawing:SecondaryStructureDrawing) {
+    fun load2D(drawing: SecondaryStructureDrawing) {
         mediator.toolbox.residues.clear()
         this.secondaryStructureDrawing = drawing
         this.secondaryStructureDrawing?.let { drawing ->
@@ -104,7 +103,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         g.drawImage(this.offScreenBuffer, 0, 0, this)
     }
 
-    fun screenCapture(secondaryStructureDrawing:SecondaryStructureDrawing?): BufferedImage? {
+    fun screenCapture(secondaryStructureDrawing: SecondaryStructureDrawing?): BufferedImage? {
         this.secondaryStructureDrawing?.let { drawing ->
             var bufferedImage: BufferedImage?
             drawing.workingSession.viewX -= drawing.workingSession.screen_capture_area!!.minX

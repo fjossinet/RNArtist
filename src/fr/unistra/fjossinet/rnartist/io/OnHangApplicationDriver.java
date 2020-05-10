@@ -1,6 +1,6 @@
-package fr.unistra.rnartist.io;
+package fr.unistra.fjossinet.rnartist.io;
 
-import fr.unistra.rnartist.gui.Mediator;
+import fr.unistra.fjossinet.rnartist.gui.Mediator;
 import org.jdesktop.swingworker.SwingWorker;
 
 import java.io.*;

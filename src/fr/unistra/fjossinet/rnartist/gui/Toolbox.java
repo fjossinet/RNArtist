@@ -1,8 +1,9 @@
-package fr.unistra.rnartist.gui;
+package fr.unistra.fjossinet.rnartist.gui;
 
 import com.google.gson.internal.StringMap;
-import fr.unistra.rnartist.io.Backend;
-import fr.unistra.rnartist.model.*;
+import fr.unistra.fjossinet.rnartist.*;
+import fr.unistra.fjossinet.rnartist.io.Backend;
+import fr.unistra.fjossinet.rnartist.model.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -43,7 +44,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
-import static fr.unistra.rnartist.model.DrawingsKt.*;
+import static fr.unistra.fjossinet.rnartist.model.DrawingsKt.getAWTColor;
+import static fr.unistra.fjossinet.rnartist.model.DrawingsKt.getHTMLColorString;
 import static java.util.stream.Collectors.toList;
 import static javafx.collections.FXCollections.observableList;
 

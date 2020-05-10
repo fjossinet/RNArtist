@@ -1,10 +1,10 @@
-package fr.unistra.rnartist.gui
+package fr.unistra.fjossinet.rnartist.gui
 
-import fr.unistra.rnartist.RNArtist
-import fr.unistra.rnartist.io.ChimeraDriver
-import fr.unistra.rnartist.io.getImage
-import fr.unistra.rnartist.model.*
-import fr.unistra.rnartist.model.io.EmbeddedDB
+import fr.unistra.fjossinet.rnartist.io.ChimeraDriver
+import fr.unistra.fjossinet.rnartist.io.getImage
+import fr.unistra.fjossinet.rnartist.model.io.EmbeddedDB
+import fr.unistra.fjossinet.rnartist.*
+import fr.unistra.fjossinet.rnartist.model.*
 import javafx.collections.FXCollections
 import java.awt.image.RenderedImage
 import java.io.File
@@ -22,11 +22,11 @@ class Mediator(val rnartist: RNArtist) {
     var chimeraDriver: ChimeraDriver? = null
 
     //++++++ shortcuts
-    val secondaryStructureDrawing:SecondaryStructureDrawing?
+    val secondaryStructureDrawing: SecondaryStructureDrawing?
         get() {
             return this.canvas2D.secondaryStructureDrawing
         }
-    var tertiaryStructure:TertiaryStructure? = null
+    var tertiaryStructure: TertiaryStructure? = null
         get() {
             return this.secondaryStructure?.tertiaryStructure
         }

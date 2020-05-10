@@ -1,6 +1,7 @@
-package fr.unistra.rnartist.gui
+package fr.unistra.fjossinet.rnartist.gui
 
-import fr.unistra.rnartist.model.*
+import fr.unistra.fjossinet.rnartist.*
+import fr.unistra.fjossinet.rnartist.model.*
 import javafx.scene.layout.Pane
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
@@ -9,7 +10,7 @@ import javafx.scene.shape.Polygon
 import java.awt.geom.Point2D
 import java.util.*
 
-class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : Pane(){
+class JunctionKnob(val junctionCircle: JunctionCircle, val mediator:Mediator) : Pane(){
 
     val connectors = mutableListOf<Connector>()
 
@@ -69,7 +70,11 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
         for (i in 1 until 16) {
             val connector = Connector(getConnectorId(i))
             this.connectors.add(connector)
-            val p = rotatePoint(Point2D.Double(75.0, 130.0), Point2D.Double(75.0,75.0), i*360.0/ 16.0)
+            val p = rotatePoint(
+                Point2D.Double(75.0, 130.0),
+                Point2D.Double(75.0, 75.0),
+                i * 360.0 / 16.0
+            )
             connector.relocate(p.x-10, p.y-10)
             this.getChildren().addAll(connector);
         }
@@ -252,7 +257,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
 
     fun unselect() = this.setStyle("-fx-background-color: #ffffff; -fx-border-color: darkgray; -fx-border-width: 2px;")
 
-    fun getJunctionLayout():Layout {
+    fun getJunctionLayout(): Layout {
         val layout = mutableListOf<ConnectorId>()
         //first we search the circle for the InId
         var startIndex:Int = 0
@@ -302,7 +307,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
 
 }
 
-class Connector(val connectorId:ConnectorId, var selected:Boolean = false):Circle(10.0, if (selected) Color.STEELBLUE else Color.LIGHTGRAY) {
+class Connector(val connectorId: ConnectorId, var selected:Boolean = false):Circle(10.0, if (selected) Color.STEELBLUE else Color.LIGHTGRAY) {
 
     var isInId = false
 

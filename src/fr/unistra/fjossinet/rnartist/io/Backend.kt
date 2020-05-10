@@ -1,13 +1,13 @@
-package fr.unistra.rnartist.io
+package fr.unistra.fjossinet.rnartist.io
 
 import com.google.gson.Gson
 import com.google.gson.internal.StringMap
-import fr.unistra.rnartist.gui.Mediator
-import fr.unistra.rnartist.model.RnartistConfig
-import fr.unistra.rnartist.model.SecondaryStructureDrawing
-import fr.unistra.rnartist.model.Theme
-import fr.unistra.rnartist.model.WorkingSession
-import fr.unistra.rnartist.model.io.parseVienna
+import fr.unistra.fjossinet.rnartist.gui.Mediator
+import fr.unistra.fjossinet.rnartist.model.RnartistConfig
+import fr.unistra.fjossinet.rnartist.model.SecondaryStructureDrawing
+import fr.unistra.fjossinet.rnartist.model.Theme
+import fr.unistra.fjossinet.rnartist.model.WorkingSession
+import fr.unistra.fjossinet.rnartist.model.io.parseVienna
 import javafx.concurrent.Task
 import java.awt.geom.Rectangle2D
 import java.io.*
@@ -69,7 +69,15 @@ object Backend {
                     val previous_viewY = mediator.workingSession!!.viewY
                     val previous_finalZoomLevel = mediator.workingSession!!.finalZoomLevel
                     try {
-                        var ss = SecondaryStructureDrawing(parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!, mediator.canvas2D.bounds, Theme(RnartistConfig.defaultTheme, mediator.toolbox), WorkingSession())
+                        var ss = SecondaryStructureDrawing(
+                            parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!,
+                            mediator.canvas2D.bounds,
+                            Theme(
+                                RnartistConfig.defaultTheme,
+                                mediator.toolbox
+                            ),
+                            WorkingSession()
+                        )
                         mediator.workingSession!!.viewX = 0.0
                         mediator.workingSession!!.viewY = 0.0
                         mediator.workingSession!!.finalZoomLevel = 1.45
