@@ -21,6 +21,7 @@ import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
@@ -638,15 +639,15 @@ public class RNArtist extends Application {
         vbox.setSpacing(5.0);
         vbox.setAlignment(Pos.CENTER);
         vbox.getChildren().add(new Label("Selection Fading (%)"));
-        Slider slider = new Slider(0, 100, (int)(RnartistConfig.getSelectionFading()/255.0*100.0));
+        final Slider slider = new Slider(0, 100, (int)(RnartistConfig.getSelectionFading()/255.0*100.0));
         slider.setShowTickLabels(true);
         slider.setShowTickMarks(true);
         slider.setMajorTickUnit(50);
         slider.setMinorTickCount(5);
-        slider.valueProperty().addListener(new ChangeListener<Number>() {
-            public void changed(ObservableValue<? extends Number> ov,
-                                Number old_val, Number new_val) {
-                RnartistConfig.setSelectionFading((int)((double)(new_val.intValue())/100.0*255.0));
+        slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                RnartistConfig.setSelectionFading((int)(slider.getValue()/100.0*255.0));
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -658,40 +659,26 @@ public class RNArtist extends Application {
         vbox.setSpacing(5.0);
         vbox.setAlignment(Pos.CENTER);
         vbox.getChildren().add(new Label("Residue Fading (%)"));
-        slider = new Slider(0, 100, RnartistConfig.getSelectionFading()/255.0*100.0);
-        slider.setShowTickLabels(true);
-        slider.setShowTickMarks(true);
-        slider.setMajorTickUnit(50);
-        slider.setMinorTickCount(5);
-        slider.valueProperty().addListener(new ChangeListener<Number>() {
-            public void changed(ObservableValue<? extends Number> ov,
-                                Number old_val, Number new_val) {
-                RnartistConfig.setSelectionFading((int)((double)(new_val.intValue())/100.0*255));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        slider.setShowTickMarks(true);
-        vbox.getChildren().add(slider);
+        final Slider slider2 = new Slider(0, 100, RnartistConfig.getSelectionFading()/255.0*100.0);
+        slider2.setShowTickLabels(true);
+        slider2.setShowTickMarks(true);
+        slider2.setMajorTickUnit(50);
+        slider2.setMinorTickCount(5);
+        slider2.setShowTickMarks(true);
+        vbox.getChildren().add(slider2);
         toolBar2.getChildren().add(vbox);
 
         vbox = new VBox();
         vbox.setSpacing(5.0);
         vbox.setAlignment(Pos.CENTER);
         vbox.getChildren().add(new Label("Ticks Fading (%)"));
-        slider = new Slider(0, 100, RnartistConfig.getSelectionFading()/255.0*100.0);
-        slider.setShowTickLabels(true);
-        slider.setShowTickMarks(true);
-        slider.setMajorTickUnit(50);
-        slider.setMinorTickCount(5);
-        slider.valueProperty().addListener(new ChangeListener<Number>() {
-            public void changed(ObservableValue<? extends Number> ov,
-                                Number old_val, Number new_val) {
-                RnartistConfig.setSelectionFading((int)((double)(new_val.intValue())/100.0*255));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        slider.setShowTickMarks(true);
-        vbox.getChildren().add(slider);
+        Slider slider3 = new Slider(0, 100, RnartistConfig.getSelectionFading()/255.0*100.0);
+        slider3.setShowTickLabels(true);
+        slider3.setShowTickMarks(true);
+        slider3.setMajorTickUnit(50);
+        slider3.setMinorTickCount(5);
+        slider3.setShowTickMarks(true);
+        vbox.getChildren().add(slider3);
         toolBar2.getChildren().add(vbox);
 
         //### Status Bar

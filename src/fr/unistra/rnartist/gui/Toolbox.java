@@ -599,8 +599,8 @@ public class Toolbox implements ThemeConfigurator {
         cc.setHgrow(Priority.ALWAYS);
         linesPane.getColumnConstraints().addAll(new ColumnConstraints(150),cc);
 
-        l = new Label("Residue Borders (px)");
-        GridPane.setConstraints(l, 0,0,1,1);
+        l = new Label("Residues Border (px)");
+        GridPane.setConstraints(l, 0,0,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
@@ -617,12 +617,12 @@ public class Toolbox implements ThemeConfigurator {
         });
         residueBorder.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(residueBorder, 1,0,1,1);
+        GridPane.setConstraints(residueBorder, 2,0,1,1);
         linesPane.getChildren().add(residueBorder);
         GridPane.setHalignment(residueBorder,HPos.CENTER);
 
-        l = new Label("2D Width (px)");
-        GridPane.setConstraints(l, 0,1,1,1);
+        l = new Label("Secondaries Line Width (px)");
+        GridPane.setConstraints(l, 0,1,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
@@ -639,12 +639,12 @@ public class Toolbox implements ThemeConfigurator {
         });
         secondaryInteractionWidth.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(secondaryInteractionWidth, 1,1,1,1);
+        GridPane.setConstraints(secondaryInteractionWidth, 2,1,1,1);
         linesPane.getChildren().add(secondaryInteractionWidth);
         GridPane.setHalignment(secondaryInteractionWidth,HPos.CENTER);
 
-        l = new Label("3D Width (px)");
-        GridPane.setConstraints(l, 0,2,1,1);
+        l = new Label("Tertiaries Line Width (px)");
+        GridPane.setConstraints(l, 0,2,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
@@ -661,12 +661,12 @@ public class Toolbox implements ThemeConfigurator {
         });
         tertiaryInteractionWidth.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(tertiaryInteractionWidth, 1,2,1,1);
+        GridPane.setConstraints(tertiaryInteractionWidth, 2,2,1,1);
         linesPane.getChildren().add(tertiaryInteractionWidth);
         GridPane.setHalignment(tertiaryInteractionWidth,HPos.CENTER);
 
-        l = new Label("3D Style");
-        GridPane.setConstraints(l, 0,3,1,1);
+        l = new Label("Tertiaries Line Style");
+        GridPane.setConstraints(l, 0,3,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
@@ -681,12 +681,12 @@ public class Toolbox implements ThemeConfigurator {
         });
         tertiaryInteractionStyle.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(tertiaryInteractionStyle, 1,3,1,1);
+        GridPane.setConstraints(tertiaryInteractionStyle, 2,3,1,1);
         linesPane.getChildren().add(tertiaryInteractionStyle);
         GridPane.setHalignment(tertiaryInteractionStyle,HPos.CENTER);
 
-        l = new Label("3D Opacity (%)");
-        GridPane.setConstraints(l, 0,4,1,1);
+        l = new Label("Tertiaries Opacity (%)");
+        GridPane.setConstraints(l, 0,4,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
@@ -695,23 +695,21 @@ public class Toolbox implements ThemeConfigurator {
         _3dOpacity.setShowTickMarks(true);
         _3dOpacity.setMajorTickUnit(50);
         _3dOpacity.setMinorTickCount(5);
-        _3dOpacity.valueProperty().addListener(new ChangeListener<Number>() {
-            public void changed(ObservableValue<? extends Number> ov,
-                                Number old_val, Number new_val) {
-                if (mediator.getSecondaryStructureDrawing() != null) {
-                    mediator.getCanvas2D().repaint();
-                }
+        _3dOpacity.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
             }
         });
         _3dOpacity.setShowTickMarks(true);
         _3dOpacity.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(_3dOpacity, 1,4,1,1);
+        GridPane.setConstraints(_3dOpacity, 2,4,1,1);
         linesPane.getChildren().add(_3dOpacity);
         GridPane.setHalignment(_3dOpacity,HPos.CENTER);
 
-        l = new Label("Halo Width (px)");
-        GridPane.setConstraints(l, 0,5,1,1);
+        l = new Label("Tertiaries Halo Size (px)");
+        GridPane.setConstraints(l, 0,5,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
@@ -720,17 +718,15 @@ public class Toolbox implements ThemeConfigurator {
         haloWidth.setShowTickMarks(true);
         haloWidth.setMajorTickUnit(5);
         haloWidth.setMinorTickCount(1);
-        haloWidth.valueProperty().addListener(new ChangeListener<Number>() {
-            public void changed(ObservableValue<? extends Number> ov,
-                                Number old_val, Number new_val) {
-                if (mediator.getSecondaryStructureDrawing() != null) {
-                    mediator.getCanvas2D().repaint();
-                }
+        haloWidth.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
             }
         });
         haloWidth.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(haloWidth, 1,5,1,1);
+        GridPane.setConstraints(haloWidth, 2,5,1,1);
         linesPane.getChildren().add(haloWidth);
         GridPane.setHalignment(haloWidth,HPos.CENTER);
 
@@ -1172,47 +1168,47 @@ public class Toolbox implements ThemeConfigurator {
 
             switch (shapeType.toLowerCase()) {
                 case "0":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(0);
                     break;
                 case "1":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(1);
                     break;
                 case "2":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(2);
                     break;
                 case "3":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(3);
                     break;
                 case "4":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(4);
                     break;
                 case "5":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(5);
                     break;
                 case "6":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(6);
                     break;
                 case "7":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(7);
                     break;
                 case "8":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(8);
                     break;
                 case "9":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(9);
                     break;
                 case "10":
-                    shape = new Line(0, 10, 50, 10);
+                    shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(10);
                     break;
                 default:

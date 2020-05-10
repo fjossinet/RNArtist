@@ -77,8 +77,8 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     override fun paintComponent(g: Graphics?) {
+        super.paintComponent(g)
         this.secondaryStructureDrawing?.let { drawing ->
-            super.paintComponent(g)
             val g2 = g as Graphics2D
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
