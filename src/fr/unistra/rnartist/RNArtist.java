@@ -93,70 +93,72 @@ public class RNArtist extends Application {
         final SwingNode swingNode = new SwingNode();
         swingNode.setOnMouseClicked(mouseEvent -> {
             if (mouseEvent.isControlDown()) {
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().clear();
-                mediator.getToolbox().unselectJunctionKnobs();
-                for (JunctionCircle jc : mediator.getCanvas2D().getSecondaryStructureDrawing().get().getAllJunctions()) {
-                    AffineTransform at = new AffineTransform();
-                    at.translate(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewX(), mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewY());
-                    at.scale(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel(), mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel());
-                    if (jc.getCircle() != null && at.createTransformedShape(jc.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                        mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(jc.getInHelix().getLocation().getPositions()));
-                        for (HelixLine h:jc.getHelices())
-                            mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(h.getHelix().getLocation().getPositions()));
-                        mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(jc.getJunction().getLocation().getPositions()));
-                        if (mediator.getChimeraDriver() != null && mediator.getTertiaryStructure() != null) {
-                            List<String> positions = new ArrayList<String>(1);
-                            for (ResidueCircle c:mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues()) {
-                                positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
-                            }
-                            mediator.getChimeraDriver().selectResidues(positions, mediator.getCanvas2D().getSecondaryStructureDrawing().get().getSecondaryStructure().getRna().getName());
-                            mediator.getChimeraDriver().setFocus(positions, mediator.getCanvas2D().getSecondaryStructureDrawing().get().getSecondaryStructure().getRna().getName());
-                        }
-                        VBox knobFound = null;
-                        for (Node child:mediator.getToolbox().getJunctionKnobs().getChildren()) {
-                            JunctionKnob knob = (JunctionKnob)((VBox)child).getChildren().get(0);
-                            if (knob.getJunctionCircle() == jc) {
-                                knobFound = (VBox)child;
-                                knob.select();
-                                break;
-                            }
-                        }
-                        if (knobFound != null) {
-                            mediator.getToolbox().getJunctionKnobs().getChildren().remove(knobFound);
-                            mediator.getToolbox().getJunctionKnobs().getChildren().add(0,knobFound);
-                        }
-                        break;
-                    }
-                    List<ResidueCircle> residues = mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResidues();
-                    for (ResidueCircle c : residues) {
-                        if (c.getCircle() != null && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                            mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(List.of(c.getAbsPos())));
-                            if (mediator.getChimeraDriver() != null) {
+                if (mediator.getSecondaryStructureDrawing() != null) {
+                    mediator.getSelectedResidues().clear();
+                    mediator.getToolbox().unselectJunctionKnobs();
+                    for (JunctionCircle jc : mediator.getSecondaryStructureDrawing().getAllJunctions()) {
+                        AffineTransform at = new AffineTransform();
+                        at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
+                        at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
+                        if (jc.getCircle() != null && at.createTransformedShape(jc.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
+                            mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(jc.getInHelix().getLocation().getPositions()));
+                            for (HelixLine h : jc.getHelices())
+                                mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(h.getHelix().getLocation().getPositions()));
+                            mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(jc.getJunction().getLocation().getPositions()));
+                            if (mediator.getChimeraDriver() != null && mediator.getTertiaryStructure() != null) {
                                 List<String> positions = new ArrayList<String>(1);
-                                positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
-                                mediator.getChimeraDriver().selectResidues(positions);
+                                for (ResidueCircle c : mediator.getWorkingSession().getSelectedResidues()) {
+                                    positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
+                                }
+                                mediator.getChimeraDriver().selectResidues(positions, mediator.getSecondaryStructureDrawing().getSecondaryStructure().getRna().getName());
+                                mediator.getChimeraDriver().setFocus(positions, mediator.getSecondaryStructureDrawing().getSecondaryStructure().getRna().getName());
+                            }
+                            VBox knobFound = null;
+                            for (Node child : mediator.getToolbox().getJunctionKnobs().getChildren()) {
+                                JunctionKnob knob = (JunctionKnob) ((VBox) child).getChildren().get(0);
+                                if (knob.getJunctionCircle() == jc) {
+                                    knobFound = (VBox) child;
+                                    knob.select();
+                                    break;
+                                }
+                            }
+                            if (knobFound != null) {
+                                mediator.getToolbox().getJunctionKnobs().getChildren().remove(knobFound);
+                                mediator.getToolbox().getJunctionKnobs().getChildren().add(0, knobFound);
                             }
                             break;
                         }
+                        List<ResidueCircle> residues = mediator.getSecondaryStructureDrawing().getResidues();
+                        for (ResidueCircle c : residues) {
+                            if (c.getCircle() != null && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
+                                mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(c.getAbsPos())));
+                                if (mediator.getChimeraDriver() != null) {
+                                    List<String> positions = new ArrayList<String>(1);
+                                    positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
+                                    mediator.getChimeraDriver().selectResidues(positions);
+                                }
+                                break;
+                            }
+                        }
                     }
+                    mediator.getCanvas2D().repaint();
                 }
-                mediator.getCanvas2D().repaint();
             }
         });
         swingNode.setOnMouseDragged(mouseEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getTheme().setQuickDraw(true);
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
+                mediator.getTheme().setQuickDraw(true);
                 double transX = mouseEvent.getX() - mediator.getCanvas2D().getTranslateX();
                 double transY = mouseEvent.getY() - mediator.getCanvas2D().getTranslateY();
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().moveView(transX, transY);
+                mediator.getWorkingSession().moveView(transX, transY);
                 mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
                 mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
                 mediator.getCanvas2D().repaint();
             }
         });
         swingNode.setOnMouseReleased(mouseEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getTheme().setQuickDraw(false);
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
+                mediator.getTheme().setQuickDraw(false);
                 mediator.getCanvas2D().setTranslateX(0.0);
                 mediator.getCanvas2D().setTranslateY(0.0);
                 mediator.getCanvas2D().repaint();
@@ -167,15 +169,15 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
         });
         swingNode.setOnScroll(scrollEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getTheme().setQuickDraw(true);
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
+                mediator.getTheme().setQuickDraw(true);
                 scrollCounter++;
 
                 Thread th = new Thread(() -> {
                     try {
                         Thread.sleep(100);
                         if (scrollCounter == 1) {
-                            mediator.getCanvas2D().getSecondaryStructureDrawing().get().getTheme().setQuickDraw(false);
+                            mediator.getTheme().setQuickDraw(false);
                             mediator.getCanvas2D().repaint();
                         }
                         scrollCounter--;
@@ -185,14 +187,14 @@ public class RNArtist extends Application {
                 });
                 th.setDaemon(true);
                 th.start();
-                Point2D.Double realMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewX())/mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewY())/mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel());
+                Point2D.Double realMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getWorkingSession().getViewX())/mediator.getWorkingSession().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getWorkingSession().getViewY())/mediator.getWorkingSession().getFinalZoomLevel());
                 double notches = scrollEvent.getDeltaY();
                 if (notches < 0)
-                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setZoom(1.25);
+                    mediator.getWorkingSession().setZoom(1.25);
                 if (notches > 0)
-                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setZoom(1.0/1.25);
-                Point2D.Double newRealMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewX())/mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getViewY())/mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel());
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().moveView((newRealMouse.getX()-realMouse.getX())*mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel(),(newRealMouse.getY()-realMouse.getY())*mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getFinalZoomLevel());
+                    mediator.getWorkingSession().setZoom(1.0/1.25);
+                Point2D.Double newRealMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getWorkingSession().getViewX())/mediator.getWorkingSession().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getWorkingSession().getViewY())/mediator.getWorkingSession().getFinalZoomLevel());
+                mediator.getWorkingSession().moveView((newRealMouse.getX()-realMouse.getX())*mediator.getWorkingSession().getFinalZoomLevel(),(newRealMouse.getY()-realMouse.getY())*mediator.getWorkingSession().getFinalZoomLevel());
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -249,9 +251,9 @@ public class RNArtist extends Application {
         saveAs = new Button("Save As", new Glyph("FontAwesome", FontAwesome.Glyph.SAVE));
         saveAs.setDisable(true);
         saveAs.setOnAction(actionEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture(true);
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
+                mediator.getWorkingSession().setScreen_capture(true);
+                mediator.getWorkingSession().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
                 mediator.getCanvas2D().repaint();
                 TextInputDialog dialog = new TextInputDialog("My Project");
                 dialog.initModality(Modality.NONE);
@@ -262,7 +264,7 @@ public class RNArtist extends Application {
                 if (projectName.isPresent()) {
                     BufferedImage image = mediator.getCanvas2D().screenCapture(null);
                     if (image != null) {
-                        NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getCanvas2D().getSecondaryStructureDrawing().get(), mediator.getTertiaryStructure());
+                        NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getSecondaryStructureDrawing(), mediator.getTertiaryStructure());
                         File pngFile = new File(new File(new File(mediator.getEmbeddedDB().getRootDir(), "images"), "user"), id.toString() + ".png");
                         try {
                             ImageIO.write(image, "PNG", pngFile);
@@ -271,12 +273,12 @@ public class RNArtist extends Application {
                         }
                         mediator.getProjectManager().addProject(id, projectName.get().trim());
                     }
-                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture(false);
-                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture_area(null);
+                    mediator.getWorkingSession().setScreen_capture(false);
+                    mediator.getWorkingSession().setScreen_capture_area(null);
                     mediator.getCanvas2D().repaint();
                 } else {
-                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture(false);
-                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().setScreen_capture_area(null);
+                    mediator.getWorkingSession().setScreen_capture(false);
+                    mediator.getWorkingSession().setScreen_capture_area(null);
                     mediator.getCanvas2D().repaint();
                 }
             }
@@ -589,7 +591,7 @@ public class RNArtist extends Application {
                 PrintWriter writer;
                 try {
                     writer = new PrintWriter(file);
-                    writer.println(mediator.getCanvas2D().getSecondaryStructureDrawing().get().asSVG());
+                    writer.println(mediator.getSecondaryStructureDrawing().asSVG());
                     writer.close();
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
@@ -626,7 +628,7 @@ public class RNArtist extends Application {
         Button fit2D = new Button("Fit", new Glyph("FontAwesome", FontAwesome.Glyph.ARROWS_ALT));
         vbox.getChildren().add(fit2D);
         fit2D.setOnAction(actionEvent -> {
-            mediator.canvas2D.fit2D(mediator.canvas2D.getSecondaryStructureDrawing().get());
+            mediator.canvas2D.fit2D(mediator.getSecondaryStructureDrawing());
         });
         fit2D.setMaxWidth(Double.MAX_VALUE);
 
@@ -636,7 +638,7 @@ public class RNArtist extends Application {
         vbox.setSpacing(5.0);
         vbox.setAlignment(Pos.CENTER);
         vbox.getChildren().add(new Label("Selection Fading (%)"));
-        Slider slider = new Slider(0, 100, RnartistConfig.getSelectionFading()/255.0*100.0);
+        Slider slider = new Slider(0, 100, (int)(RnartistConfig.getSelectionFading()/255.0*100.0));
         slider.setShowTickLabels(true);
         slider.setShowTickMarks(true);
         slider.setMajorTickUnit(50);
@@ -644,7 +646,7 @@ public class RNArtist extends Application {
         slider.valueProperty().addListener(new ChangeListener<Number>() {
             public void changed(ObservableValue<? extends Number> ov,
                                 Number old_val, Number new_val) {
-                RnartistConfig.setSelectionFading((int)((double)(new_val.intValue())/100.0*255));
+                RnartistConfig.setSelectionFading((int)((double)(new_val.intValue())/100.0*255.0));
                 mediator.getCanvas2D().repaint();
             }
         });

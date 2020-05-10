@@ -164,7 +164,7 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         commandInput.println("write relative 0 format pdb 0 " + f.getAbsolutePath());
         Thread.sleep(3000);
         //List<TertiaryStructure> structures = FileParser.parsePDB(mediator, new FileReader(f));
-        TertiaryStructure newTS = new TertiaryStructure(mediator.getCanvas2D().getSecondaryStructureDrawing().get().getSecondaryStructure().getRna());
+        TertiaryStructure newTS = new TertiaryStructure(mediator.getRna());
         if (mediator.getTertiaryStructure() != null)
             newTS.setPdbId(mediator.getTertiaryStructure().getPdbId());
         mediator.setTertiaryStructure(newTS);

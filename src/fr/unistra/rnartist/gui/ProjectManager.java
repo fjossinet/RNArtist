@@ -48,7 +48,7 @@ public class ProjectManager {
         this.stage = new Stage();
         stage.setTitle("RNArtist Projects");
         stage.setOnCloseRequest(windowEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) { //the user has decided to cancel its idea to open an other project
+            if (mediator.getSecondaryStructureDrawing() != null) { //the user has decided to cancel its idea to open an other project
                 mediator.getRnartist().getStage().show();
                 mediator.getRnartist().getStage().toFront();
             }

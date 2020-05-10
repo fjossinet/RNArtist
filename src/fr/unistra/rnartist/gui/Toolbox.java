@@ -144,7 +144,7 @@ public class Toolbox implements ThemeConfigurator {
         deltaXRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
-                if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
+                if (mediator.getSecondaryStructureDrawing() != null) {
                     mediator.getCanvas2D().repaint();
                 }
             }
@@ -155,7 +155,7 @@ public class Toolbox implements ThemeConfigurator {
         deltaYRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
-                if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
+                if (mediator.getSecondaryStructureDrawing() != null) {
                     mediator.getCanvas2D().repaint();
                 }
             }
@@ -166,7 +166,7 @@ public class Toolbox implements ThemeConfigurator {
         deltaFontSize.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
-                if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
+                if (mediator.getSecondaryStructureDrawing() != null) {
                     mediator.getCanvas2D().repaint();
                 }
             }
@@ -698,7 +698,7 @@ public class Toolbox implements ThemeConfigurator {
         _3dOpacity.valueProperty().addListener(new ChangeListener<Number>() {
             public void changed(ObservableValue<? extends Number> ov,
                                 Number old_val, Number new_val) {
-                if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
+                if (mediator.getSecondaryStructureDrawing() != null) {
                     mediator.getCanvas2D().repaint();
                 }
             }
@@ -723,7 +723,7 @@ public class Toolbox implements ThemeConfigurator {
         haloWidth.valueProperty().addListener(new ChangeListener<Number>() {
             public void changed(ObservableValue<? extends Number> ov,
                                 Number old_val, Number new_val) {
-                if (mediator.getCanvas2D().getSecondaryStructureDrawing().get() != null) {
+                if (mediator.getSecondaryStructureDrawing() != null) {
                     mediator.getCanvas2D().repaint();
                 }
             }
@@ -1063,12 +1063,12 @@ public class Toolbox implements ThemeConfigurator {
         tableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         tableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null) {
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().clear();
+                mediator.getWorkingSession().getSelectedResidues().clear();
                 for (Residue r:tableView.getSelectionModel().getSelectedItems())
-                    mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().addAll(mediator.canvas2D.getSecondaryStructureDrawing().get().getResiduesFromAbsPositions(List.of(r.getPosition())));
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().centerFrameOnSelection(mediator.getCanvas2D().getBounds());
+                    mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(r.getPosition())));
+                mediator.getWorkingSession().centerFrameOnSelection(mediator.getCanvas2D().getBounds());
             } else {
-                mediator.getCanvas2D().getSecondaryStructureDrawing().get().getWorkingSession().getSelectedResidues().clear();
+                mediator.getWorkingSession().getSelectedResidues().clear();
             }
             mediator.getCanvas2D().repaint();
         });

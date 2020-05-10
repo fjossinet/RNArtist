@@ -3,14 +3,12 @@ package fr.unistra.rnartist.gui
 import fr.unistra.rnartist.RNArtist
 import fr.unistra.rnartist.io.ChimeraDriver
 import fr.unistra.rnartist.io.getImage
-import fr.unistra.rnartist.model.SecondaryStructureDrawing
-import fr.unistra.rnartist.model.TertiaryStructure
+import fr.unistra.rnartist.model.*
 import fr.unistra.rnartist.model.io.EmbeddedDB
 import javafx.collections.FXCollections
 import java.awt.image.RenderedImage
 import java.io.File
 import javax.imageio.ImageIO
-
 
 class Mediator(val rnartist: RNArtist) {
 
@@ -20,13 +18,38 @@ class Mediator(val rnartist: RNArtist) {
     val embeddedDBGUI = EmbeddedDBGUI(this)
     val projectManager = ProjectManager(this)
     var webBrowser: WebBrowser? = WebBrowser(this)
-
     lateinit var canvas2D: Canvas2D
+    var chimeraDriver: ChimeraDriver? = null
+
+    //++++++ shortcuts
+    val secondaryStructureDrawing:SecondaryStructureDrawing?
+        get() {
+            return this.canvas2D.secondaryStructureDrawing
+        }
     var tertiaryStructure:TertiaryStructure? = null
         get() {
-            return this.canvas2D.secondaryStructureDrawing.get()?.secondaryStructure?.tertiaryStructure
+            return this.secondaryStructure?.tertiaryStructure
         }
-    var chimeraDriver: ChimeraDriver? = null
+    val selectedResidues:MutableList<ResidueCircle>?
+        get() {
+            return this.workingSession?.selectedResidues
+        }
+    val secondaryStructure: SecondaryStructure?
+        get() {
+            return this.secondaryStructureDrawing?.secondaryStructure
+        }
+    val rna: RNA?
+        get() {
+            return this.secondaryStructure?.rna
+        }
+    val theme: Theme?
+        get() {
+            return this.secondaryStructureDrawing?.theme
+        }
+    val workingSession: WorkingSession?
+        get() {
+            return this.secondaryStructureDrawing?.workingSession
+        }
 
     init {
         val img = File(File(File(embeddedDB.rootDir,"images"),"user"),"New Project.png");

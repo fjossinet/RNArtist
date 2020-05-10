@@ -45,7 +45,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
             selectedCount = connectors.count { it.selected }
             if (selectedCount == this.junctionCircle.junction.type.value - 1) {
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.canvas2D.secondaryStructureDrawing.get().computeResidues(junctionCircle)
+                this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.toolbox.junctionKnobs.children.forEach {
                     var junctionKnob  = ((it as VBox).children.first() as JunctionKnob)
@@ -53,11 +53,11 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
                         junctionKnob.loadJunctionLayout()
                 }
             }
-            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.clear()
-            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
-            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
-            for (h in junctionCircle.helices) mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(h.helix.location.positions))
-                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.selectedResidues?.clear()
+            mediator.selectedResidues?.addAll(this.mediator.secondaryStructureDrawing!!.getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.selectedResidues?.addAll(this.mediator.secondaryStructureDrawing!!.getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
+            for (h in junctionCircle.helices) mediator.selectedResidues?.addAll(this.mediator.secondaryStructureDrawing!!.getResiduesFromAbsPositions(h.helix.location.positions))
+                mediator.selectedResidues?.addAll(this.mediator.secondaryStructureDrawing!!.getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
             this.mediator.canvas2D.repaint()
         }
         val connector = Connector(ConnectorId.s)
@@ -85,7 +85,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
             up.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 1.1
             junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
-            this.mediator.canvas2D.secondaryStructureDrawing.get().computeResidues(junctionCircle)
+            this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
             this.mediator.canvas2D.repaint()
         }
         up.setOnMouseReleased {
@@ -104,7 +104,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
             bottom.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 0.9
             junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
-            this.mediator.canvas2D.secondaryStructureDrawing.get().computeResidues(junctionCircle)
+            this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
             this.mediator.canvas2D.repaint()
         }
         bottom.setOnMouseReleased {
@@ -145,7 +145,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
                     currentPos = (currentPos+1)%16
                 }
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.canvas2D.secondaryStructureDrawing.get().computeResidues(junctionCircle)
+                this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.toolbox.junctionKnobs.children.forEach {
                     var junctionKnob  = ((it as VBox).children.first() as JunctionKnob)
@@ -193,7 +193,7 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
                     currentPos = if (currentPos-1 == -1) 15 else currentPos-1
                 }
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.canvas2D.secondaryStructureDrawing.get().computeResidues(junctionCircle)
+                this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.toolbox.junctionKnobs.children.forEach {
                     var junctionKnob  = ((it as VBox).children.first() as JunctionKnob)
@@ -214,21 +214,24 @@ class JunctionKnob(val junctionCircle:JunctionCircle, val mediator:Mediator) : P
         centerViewOnJunction.fill = Color.BLACK
 
         centerViewOnJunction.setOnMousePressed {
-            centerViewOnJunction.fill = Color.LIGHTGRAY
-            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.clear()
-            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
-            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
-            for (h in junctionCircle.helices) mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(h.helix.location.positions))
-            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues.addAll(this.mediator.canvas2D.secondaryStructureDrawing.get().getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
-            mediator.canvas2D.secondaryStructureDrawing.get().workingSession.centerFrameOnSelection(mediator.canvas2D.getBounds())
-            mediator.canvas2D.repaint()
-            if (mediator.chimeraDriver != null && mediator.tertiaryStructure != null) {
-                val positions: MutableList<String?> = ArrayList(1)
-                for (c in mediator.canvas2D.secondaryStructureDrawing.get().workingSession.selectedResidues) {
-                    positions.add(if (mediator.tertiaryStructure != null && mediator.tertiaryStructure!!.getResidue3DAt(c.absPos) != null) mediator.tertiaryStructure!!.getResidue3DAt(c.absPos)!!.label else "" + (c.absPos + 1))
+            mediator.secondaryStructureDrawing?.let { drawing ->
+                centerViewOnJunction.fill = Color.LIGHTGRAY
+                mediator.selectedResidues!!.clear()
+                mediator.selectedResidues!!.addAll(drawing.getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+                mediator.selectedResidues!!.addAll(drawing.getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
+                for (h in junctionCircle.helices)
+                    mediator.selectedResidues!!.addAll(drawing.getResiduesFromAbsPositions(h.helix.location.positions))
+                mediator.selectedResidues!!.addAll(drawing.getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+                mediator.workingSession!!.centerFrameOnSelection(mediator.canvas2D.getBounds())
+                mediator.canvas2D.repaint()
+                if (mediator.chimeraDriver != null && mediator.tertiaryStructure != null) {
+                    val positions: MutableList<String?> = ArrayList(1)
+                    for (c in mediator.workingSession!!.selectedResidues) {
+                        positions.add(if (mediator.tertiaryStructure != null && mediator.tertiaryStructure!!.getResidue3DAt(c.absPos) != null) mediator.tertiaryStructure!!.getResidue3DAt(c.absPos)!!.label else "" + (c.absPos + 1))
+                    }
+                    mediator.chimeraDriver!!.selectResidues(positions, mediator.rna!!.name)
+                    mediator.chimeraDriver!!.setFocus(positions, mediator.rna!!.name)
                 }
-                mediator.chimeraDriver!!.selectResidues(positions, mediator.canvas2D.secondaryStructureDrawing.get().secondaryStructure.rna.name)
-                mediator.chimeraDriver!!.setFocus(positions, mediator.canvas2D.secondaryStructureDrawing.get().secondaryStructure.rna.name)
             }
         }
 

@@ -64,35 +64,37 @@ object Backend {
         val task = object: Task<Exception?>() {
 
             override fun call(): Exception? {
-                val previous_viewX = mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewX
-                val previous_viewY = mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewY
-                val previous_finalZoomLevel = mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel
-                try {
-                    var ss = SecondaryStructureDrawing(parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!, mediator.canvas2D.bounds, Theme(RnartistConfig.defaultTheme,mediator.toolbox), WorkingSession())
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewX = 0.0
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewY = 0.0
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel = 1.45
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture = true
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture_area = Rectangle2D.Double( ss.getBounds().centerX*mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel - 200.0,  ss.getBounds().centerY*mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel - 150.0, 400.0, 300.0)
-                    val image = mediator.canvas2D.screenCapture(ss)
-                    val pngFile = File.createTempFile("capture", ".png")
-                    ImageIO.write(image, "PNG", pngFile)
-                    multipart.addFilePart("capture", pngFile!!, pngFile!!.name, "image")
-                    multipart.upload(null)
-                } catch (ex: Exception) {
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture = false
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture_area = null
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewX = previous_viewX
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewY = previous_viewY
-                    mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel = previous_finalZoomLevel
-                    ex.printStackTrace()
-                    return ex
+                mediator.secondaryStructureDrawing?.let { drawing ->
+                    val previous_viewX = mediator.workingSession!!.viewX
+                    val previous_viewY = mediator.workingSession!!.viewY
+                    val previous_finalZoomLevel = mediator.workingSession!!.finalZoomLevel
+                    try {
+                        var ss = SecondaryStructureDrawing(parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!, mediator.canvas2D.bounds, Theme(RnartistConfig.defaultTheme, mediator.toolbox), WorkingSession())
+                        mediator.workingSession!!.viewX = 0.0
+                        mediator.workingSession!!.viewY = 0.0
+                        mediator.workingSession!!.finalZoomLevel = 1.45
+                        mediator.workingSession!!.screen_capture = true
+                        mediator.workingSession!!.screen_capture_area = Rectangle2D.Double(ss.getBounds().centerX * mediator.workingSession!!.finalZoomLevel - 200.0, ss.getBounds().centerY * mediator.workingSession!!.finalZoomLevel - 150.0, 400.0, 300.0)
+                        val image = mediator.canvas2D.screenCapture(ss)
+                        val pngFile = File.createTempFile("capture", ".png")
+                        ImageIO.write(image, "PNG", pngFile)
+                        multipart.addFilePart("capture", pngFile!!, pngFile!!.name, "image")
+                        multipart.upload(null)
+                    } catch (ex: Exception) {
+                        mediator.workingSession!!.screen_capture = false
+                        mediator.workingSession!!.screen_capture_area = null
+                        mediator.workingSession!!.viewX = previous_viewX
+                        mediator.workingSession!!.viewY = previous_viewY
+                        mediator.workingSession!!.finalZoomLevel = previous_finalZoomLevel
+                        ex.printStackTrace()
+                        return ex
+                    }
+                    mediator.workingSession!!.screen_capture = false
+                    mediator.workingSession!!.screen_capture_area = null
+                    mediator.workingSession!!.viewX = previous_viewX
+                    mediator.workingSession!!.viewY = previous_viewY
+                    mediator.workingSession!!.finalZoomLevel = previous_finalZoomLevel
                 }
-                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture = false
-                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.screen_capture_area = null
-                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewX = previous_viewX
-                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.viewY = previous_viewY
-                mediator.canvas2D.secondaryStructureDrawing.get().workingSession.finalZoomLevel = previous_finalZoomLevel
                 return null
             }
         }
