@@ -1,9 +1,7 @@
-package fr.unistra.fjossinet.rnartist.gui;
+package io.github.fjossinet.rnartist.gui;
 
-import com.google.gson.internal.StringMap;
-import fr.unistra.fjossinet.rnartist.*;
-import fr.unistra.fjossinet.rnartist.io.Backend;
-import fr.unistra.fjossinet.rnartist.model.*;
+import io.github.fjossinet.rnartist.io.Backend;
+import io.github.fjossinet.rnartist.core.model.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -44,8 +42,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
-import static fr.unistra.fjossinet.rnartist.model.DrawingsKt.getAWTColor;
-import static fr.unistra.fjossinet.rnartist.model.DrawingsKt.getHTMLColorString;
+import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getAWTColor;
+import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
 import static java.util.stream.Collectors.toList;
 import static javafx.collections.FXCollections.observableList;
 
@@ -1623,8 +1621,8 @@ public class Toolbox implements ThemeConfigurator {
         protected Exception call() throws Exception {
             themesList.clear();
             try {
-                for (StringMap<String> t:Backend.getAllThemes()) {
-                    themesList.add(new Theme(t.get("picture"), t.get("name")));
+                for (Map.Entry<String,String> t:Backend.getAllThemes().entrySet()) {
+                    themesList.add(new Theme(t.getKey(), t.getValue()));
                 }
             } catch (Exception e) {
                 e.printStackTrace();

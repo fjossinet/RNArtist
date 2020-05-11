@@ -1,7 +1,7 @@
-package fr.unistra.fjossinet.rnartist.io;
+package io.github.fjossinet.rnartist.io;
 
-import fr.unistra.fjossinet.rnartist.model.Location;
-import fr.unistra.fjossinet.rnartist.model.Residue3D;
+import io.github.fjossinet.rnartist.core.model.Location;
+import io.github.fjossinet.rnartist.core.model.Residue3D;
 
 import java.io.File;
 import java.util.List;

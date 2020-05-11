@@ -1,6 +1,6 @@
-package fr.unistra.fjossinet.rnartist.gui
+package io.github.fjossinet.rnartist.gui
 
-import fr.unistra.fjossinet.rnartist.model.SecondaryStructureDrawing
+import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D

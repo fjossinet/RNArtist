@@ -1,4 +1,4 @@
-package fr.unistra.fjossinet.rnartist.io;
+package io.github.fjossinet.rnartist.io;
 
 import java.io.File;
 import java.io.IOException;

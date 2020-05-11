@@ -1,15 +1,14 @@
-package fr.unistra.fjossinet.rnartist;
+package io.github.fjossinet.rnartist;
 
-import fr.unistra.fjossinet.rnartist.gui.Canvas2D;
-import fr.unistra.fjossinet.rnartist.gui.JunctionKnob;
-import fr.unistra.fjossinet.rnartist.gui.Mediator;
-import fr.unistra.fjossinet.rnartist.gui.RegisterDialog;
-import fr.unistra.fjossinet.rnartist.io.ChimeraDriver;
-import fr.unistra.fjossinet.rnartist.model.*;
-import fr.unistra.fjossinet.rnartist.model.io.Rnaview;
+import io.github.fjossinet.rnartist.gui.Canvas2D;
+import io.github.fjossinet.rnartist.gui.JunctionKnob;
+import io.github.fjossinet.rnartist.gui.Mediator;
+import io.github.fjossinet.rnartist.gui.RegisterDialog;
+import io.github.fjossinet.rnartist.io.ChimeraDriver;
+import io.github.fjossinet.rnartist.core.model.*;
+import io.github.fjossinet.rnartist.core.model.io.Rnaview;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.embed.swing.SwingNode;
 import javafx.event.ActionEvent;
@@ -262,7 +261,7 @@ public class RNArtist extends Application {
                 if (projectName.isPresent()) {
                     BufferedImage image = mediator.getCanvas2D().screenCapture(null);
                     if (image != null) {
-                        NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getSecondaryStructureDrawing(), mediator.getTertiaryStructure());
+                        NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getSecondaryStructureDrawing());
                         File pngFile = new File(new File(new File(mediator.getEmbeddedDB().getRootDir(), "images"), "user"), id.toString() + ".png");
                         try {
                             ImageIO.write(image, "PNG", pngFile);
@@ -329,7 +328,7 @@ public class RNArtist extends Application {
             File file = fileChooser.showOpenDialog(stage );
             if (file != null) {
                 fileChooser.setInitialDirectory(file.getParentFile());
-                Task<Pair<List<SecondaryStructureDrawing>,Exception>> loadData = new Task<Pair<List<SecondaryStructureDrawing>,Exception>>() {
+                javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>,Exception>> loadData = new javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>,Exception>>() {
 
                     @Override
                     protected Pair<List<SecondaryStructureDrawing>,Exception> call() {
@@ -337,19 +336,19 @@ public class RNArtist extends Application {
                         List<SecondaryStructureDrawing> secondaryStructureDrawings = new ArrayList<SecondaryStructureDrawing>();
                         try {
                             if (file.getName().endsWith(".ct")) {
-                                ss = fr.unistra.fjossinet.rnartist.model.io.ParsersKt.parseCT(new FileReader(file));
+                                ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseCT(new FileReader(file));
                                 if (ss != null) {
                                     ss.getRna().setSource(file.getName());
                                     secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
                                 }
                             } else if (file.getName().endsWith(".bpseq")) {
-                                ss = fr.unistra.fjossinet.rnartist.model.io.ParsersKt.parseBPSeq(new FileReader(file));
+                                ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseBPSeq(new FileReader(file));
                                 if (ss != null) {
                                     ss.getRna().setSource(file.getName());
                                     secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
                                 }
                             } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
-                                ss = fr.unistra.fjossinet.rnartist.model.io.ParsersKt.parseVienna(new FileReader(file));
+                                ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseVienna(new FileReader(file));
                                 if (ss != null) {
                                     ss.getRna().setSource(file.getName());
                                     secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
@@ -357,7 +356,7 @@ public class RNArtist extends Application {
 
                             } else if (file.getName().endsWith(".pdb")) {
                                 int countBefore = secondaryStructureDrawings.size();
-                                for (TertiaryStructure ts : fr.unistra.fjossinet.rnartist.model.io.ParsersKt.parsePDB(new FileReader(file))) {
+                                for (TertiaryStructure ts : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parsePDB(new FileReader(file))) {
                                     try {
                                         ss = new Rnaview().annotate(ts);
                                         if (ss != null) {
@@ -377,7 +376,7 @@ public class RNArtist extends Application {
                                 }
 
                             } else if (file.getName().endsWith(".stk") || file.getName().endsWith(".stockholm")) {
-                                for (SecondaryStructure _ss : fr.unistra.fjossinet.rnartist.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
+                                for (SecondaryStructure _ss : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
                                     _ss.getRna().setSource(file.getName());
                                     secondaryStructureDrawings.add(new SecondaryStructureDrawing(_ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
                                 }

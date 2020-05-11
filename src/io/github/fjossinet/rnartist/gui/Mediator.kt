@@ -1,10 +1,10 @@
-package fr.unistra.fjossinet.rnartist.gui
+package io.github.fjossinet.rnartist.gui
 
-import fr.unistra.fjossinet.rnartist.io.ChimeraDriver
-import fr.unistra.fjossinet.rnartist.io.getImage
-import fr.unistra.fjossinet.rnartist.model.io.EmbeddedDB
-import fr.unistra.fjossinet.rnartist.*
-import fr.unistra.fjossinet.rnartist.model.*
+import io.github.fjossinet.rnartist.io.ChimeraDriver
+import io.github.fjossinet.rnartist.io.getImage
+import io.github.fjossinet.rnartist.core.model.io.EmbeddedDB
+import io.github.fjossinet.rnartist.*
+import io.github.fjossinet.rnartist.core.model.*
 import javafx.collections.FXCollections
 import java.awt.image.RenderedImage
 import java.io.File

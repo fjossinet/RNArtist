@@ -1,6 +1,5 @@
-package fr.unistra.fjossinet.rnartist.gui;
+package io.github.fjossinet.rnartist.gui;
 
-import fr.unistra.fjossinet.rnartist.model.*;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -30,7 +29,7 @@ import java.io.FileWriter;
 import java.net.MalformedURLException;
 import java.util.Optional;
 
-import static fr.unistra.fjossinet.rnartist.model.io.UtilsKt.createTemporaryFile;
+import static io.github.fjossinet.rnartist.core.model.io.UtilsKt.createTemporaryFile;
 
 public class ProjectManager {
 
@@ -143,14 +142,14 @@ public class ProjectManager {
                         mediator.getToolbox().getStage().show();
                     } else {
                         stage.hide();
-                        fr.unistra.fjossinet.rnartist.model.Project project = mediator.getEmbeddedDB().getProject(ProjectCell.this.getItem().id);
+                        io.github.fjossinet.rnartist.core.model.Project project = mediator.getEmbeddedDB().getProject(ProjectCell.this.getItem().id);
                         //mediator.getAllStructures().add(project.getSecondaryStructure()); //TODO load the secondary structure drawinf
                         //TODO load the theme and the graphicsContext
                         if (project.getTertiaryStructure() != null && mediator.getChimeraDriver() != null) {
                             mediator.setTertiaryStructure(project.getTertiaryStructure());
                             try {
                                 File tmpF = createTemporaryFile("ts.pdb");
-                                fr.unistra.fjossinet.rnartist.model.io.ParsersKt.writePDB(mediator.getTertiaryStructure(), true, new FileWriter(tmpF));
+                                io.github.fjossinet.rnartist.core.model.io.ParsersKt.writePDB(mediator.getTertiaryStructure(), true, new FileWriter(tmpF));
                                 mediator.getChimeraDriver().loadTertiaryStructure(tmpF);
                             } catch (Exception e) {
                                 e.printStackTrace();

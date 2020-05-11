@@ -1,6 +1,6 @@
-package fr.unistra.fjossinet.rnartist.io;
+package io.github.fjossinet.rnartist.io;
 
-import fr.unistra.fjossinet.rnartist.gui.Mediator;
+import io.github.fjossinet.rnartist.gui.Mediator;
 
 public abstract class AbstractDriver implements Driver {
 

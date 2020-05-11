@@ -1,7 +1,6 @@
-package fr.unistra.fjossinet.rnartist.gui;
+package io.github.fjossinet.rnartist.gui;
 
-import fr.unistra.fjossinet.rnartist.*;
-import fr.unistra.fjossinet.rnartist.model.*;
+import io.github.fjossinet.rnartist.core.model.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -29,9 +28,9 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
-import static fr.unistra.fjossinet.rnartist.model.io.ParsersKt.parsePDB;
-import static fr.unistra.fjossinet.rnartist.model.io.ParsersKt.writePDB;
-import static fr.unistra.fjossinet.rnartist.model.io.UtilsKt.createTemporaryFile;
+import static io.github.fjossinet.rnartist.core.model.io.ParsersKt.parsePDB;
+import static io.github.fjossinet.rnartist.core.model.io.ParsersKt.writePDB;
+import static io.github.fjossinet.rnartist.core.model.io.UtilsKt.createTemporaryFile;
 import static org.dizitart.no2.filters.Filters.*;
 
 public class EmbeddedDBGUI {

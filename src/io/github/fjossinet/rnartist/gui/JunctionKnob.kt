@@ -1,7 +1,6 @@
-package fr.unistra.fjossinet.rnartist.gui
+package io.github.fjossinet.rnartist.gui
 
-import fr.unistra.fjossinet.rnartist.*
-import fr.unistra.fjossinet.rnartist.model.*
+import io.github.fjossinet.rnartist.core.model.*
 import javafx.scene.layout.Pane
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color

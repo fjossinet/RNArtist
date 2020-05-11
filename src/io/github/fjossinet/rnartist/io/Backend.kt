@@ -1,13 +1,12 @@
-package fr.unistra.fjossinet.rnartist.io
+package io.github.fjossinet.rnartist.io
 
 import com.google.gson.Gson
-import com.google.gson.internal.StringMap
-import fr.unistra.fjossinet.rnartist.gui.Mediator
-import fr.unistra.fjossinet.rnartist.model.RnartistConfig
-import fr.unistra.fjossinet.rnartist.model.SecondaryStructureDrawing
-import fr.unistra.fjossinet.rnartist.model.Theme
-import fr.unistra.fjossinet.rnartist.model.WorkingSession
-import fr.unistra.fjossinet.rnartist.model.io.parseVienna
+import io.github.fjossinet.rnartist.gui.Mediator
+import io.github.fjossinet.rnartist.core.model.RnartistConfig
+import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
+import io.github.fjossinet.rnartist.core.model.Theme
+import io.github.fjossinet.rnartist.core.model.WorkingSession
+import io.github.fjossinet.rnartist.core.model.io.parseVienna
 import javafx.concurrent.Task
 import java.awt.geom.Rectangle2D
 import java.io.*
@@ -40,7 +39,7 @@ object Backend {
 
     @JvmStatic
     @Throws(Exception::class)
-    fun getAllThemes():List<StringMap<String>> {
+    fun getAllThemes():LinkedHashMap<String, String> {
         val client: HttpClient = HttpClient.newHttpClient()
         val request = HttpRequest.newBuilder()
                 .uri(URI.create(RnartistConfig.website+"/api/all_themes"))
@@ -48,7 +47,7 @@ object Backend {
         val response: HttpResponse<String> = client.send(request,
                 HttpResponse.BodyHandlers.ofString())
         val gson = Gson()
-        return gson.fromJson(response.body(), List::class.java) as List<StringMap<String>>
+        return gson.fromJson(response.body(), List::class.java) as LinkedHashMap<String, String>
     }
 
     @JvmStatic

@@ -1,8 +1,7 @@
-package fr.unistra.fjossinet.rnartist.io;
+package io.github.fjossinet.rnartist.io;
 
-import fr.unistra.fjossinet.rnartist.*;
-import fr.unistra.fjossinet.rnartist.gui.Mediator;
-import fr.unistra.fjossinet.rnartist.model.*;
+import io.github.fjossinet.rnartist.gui.Mediator;
+import io.github.fjossinet.rnartist.core.model.*;
 import javafx.scene.control.Alert;
 
 import javax.swing.*;
@@ -14,8 +13,8 @@ import java.net.URLEncoder;
 import java.util.*;
 import java.util.List;
 
-import static fr.unistra.fjossinet.rnartist.model.io.ParsersKt.writePDB;
-import static fr.unistra.fjossinet.rnartist.model.io.UtilsKt.createTemporaryFile;
+import static io.github.fjossinet.rnartist.core.model.io.ParsersKt.writePDB;
+import static io.github.fjossinet.rnartist.core.model.io.UtilsKt.createTemporaryFile;
 
 public class ChimeraDriver extends AbstractTertiaryViewerDriver {
 
