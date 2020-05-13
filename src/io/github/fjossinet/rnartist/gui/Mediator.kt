@@ -51,6 +51,22 @@ class Mediator(val rnartist: RNArtist) {
             return this.secondaryStructureDrawing?.workingSession
         }
 
+    val viewX: Double?
+        get() {
+            return this.workingSession?.viewX
+        }
+
+    val viewY: Double?
+        get() {
+            return this.workingSession?.viewY
+        }
+
+    val finalZoomLevel: Double?
+        get() {
+            return this.workingSession?.finalZoomLevel
+        }
+
+
     init {
         val img = File(File(File(embeddedDB.rootDir,"images"),"user"),"New Project.png");
         if (!img.exists())

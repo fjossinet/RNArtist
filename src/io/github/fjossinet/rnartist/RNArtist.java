@@ -130,14 +130,14 @@ public class RNArtist extends Application {
                             found = false;
                             for (ResidueCircle _c : mediator.getWorkingSession().getSelectedResidues().toArray(new ResidueCircle[]{})) {
                                 for (TertiaryInteractionLine tertiary : mediator.getSecondaryStructureDrawing().getTertiaryInteractions()) {
-                                    if (tertiary.getInteraction().getLocation().getStart() == _c.getAbsPos()) {
-                                        ResidueCircle __c = mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(tertiary.getInteraction().getLocation().getEnd())).get(0);
+                                    if (tertiary.getInteraction().getStart() == _c.getAbsPos()) {
+                                        ResidueCircle __c = mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(tertiary.getInteraction().getEnd())).get(0);
                                         if (!mediator.getWorkingSession().getSelectedResidues().contains(__c)) {
                                             mediator.getWorkingSession().getSelectedResidues().add(__c);
                                             found = true;
                                         }
-                                    } else if (tertiary.getInteraction().getLocation().getEnd() == _c.getAbsPos()) {
-                                        ResidueCircle __c = mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(tertiary.getInteraction().getLocation().getStart())).get(0);
+                                    } else if (tertiary.getInteraction().getEnd() == _c.getAbsPos()) {
+                                        ResidueCircle __c = mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(tertiary.getInteraction().getStart())).get(0);
                                         if (!mediator.getWorkingSession().getSelectedResidues().contains(__c)) {
                                             mediator.getWorkingSession().getSelectedResidues().add(__c);
                                             found = true;
