@@ -54,8 +54,8 @@ public class Toolbox implements ThemeConfigurator {
     private ColorPicker colorPicker1, colorPicker2, colorPicker3, colorPicker4, colorPicker5, colorPicker6, colorPicker7;
     private ChoiceBox<String> structuralElement1,structuralElement2,structuralElement3,structuralElement4,structuralElement5,structuralElement6,structuralElement7,
                                 letterColor1,letterColor2,letterColor3,letterColor4,letterColor5,letterColor6,letterColor7;
-    private Slider _3dOpacity, haloWidth, residueCharOpacity;
-    private ComboBox<String> fontNames, residueBorder,
+    private Slider _3dOpacity, haloWidth, residueCharOpacity, secondaryInteractionShift;
+    private ComboBox<String> fontNames, residueBorder, phosphoDiesterWidth,
             secondaryInteractionWidth,
             tertiaryInteractionWidth, tertiaryInteractionStyle;
     private Spinner<Integer> deltaXRes, deltaYRes, deltaFontSize;
@@ -650,13 +650,15 @@ public class Toolbox implements ThemeConfigurator {
         cc.setHgrow(Priority.ALWAYS);
         linesPane.getColumnConstraints().addAll(new ColumnConstraints(150),cc);
 
+        int row = 0;
+
         l = new Label("Residues Border (px)");
-        GridPane.setConstraints(l, 0,0,2,1);
+        GridPane.setConstraints(l, 0,row,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
         residueBorder = new ComboBox<>();
-        residueBorder.getItems().addAll("0", "1", "2", "3", "4");
+        residueBorder.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0");
         residueBorder.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.ResidueBorder.toString()));
         residueBorder.setCellFactory(new ShapeCellFactory());
         residueBorder.setButtonCell(new ShapeCell());
@@ -668,17 +670,43 @@ public class Toolbox implements ThemeConfigurator {
         });
         residueBorder.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(residueBorder, 2,0,1,1);
+        GridPane.setConstraints(residueBorder, 2,row,1,1);
         linesPane.getChildren().add(residueBorder);
         GridPane.setHalignment(residueBorder,HPos.CENTER);
 
+        row++;
+
+        l = new Label("Phosphodiester Line Width (px)");
+        GridPane.setConstraints(l, 0,row,2,1);
+        linesPane.getChildren().add(l);
+        GridPane.setHalignment(l,HPos.RIGHT);
+
+        phosphoDiesterWidth = new ComboBox<>();
+        phosphoDiesterWidth.getItems().addAll("0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
+        phosphoDiesterWidth.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.PhosphodiesterWidth.toString()));
+        phosphoDiesterWidth.setCellFactory(new ShapeCellFactory());
+        phosphoDiesterWidth.setButtonCell(new ShapeCell());
+        phosphoDiesterWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        phosphoDiesterWidth.setMaxWidth(Double.MAX_VALUE);
+
+        GridPane.setConstraints(phosphoDiesterWidth, 2,row,1,1);
+        linesPane.getChildren().add(phosphoDiesterWidth);
+        GridPane.setHalignment(phosphoDiesterWidth,HPos.CENTER);
+
+        row++;
+
         l = new Label("Secondaries Line Width (px)");
-        GridPane.setConstraints(l, 0,1,2,1);
+        GridPane.setConstraints(l, 0,row,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
         secondaryInteractionWidth = new ComboBox<>();
-        secondaryInteractionWidth.getItems().addAll("1", "2", "3", "4", "5", "6", "7", "8", "9");
+        secondaryInteractionWidth.getItems().addAll("0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
         secondaryInteractionWidth.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryInteractionWidth.toString()));
         secondaryInteractionWidth.setCellFactory(new ShapeCellFactory());
         secondaryInteractionWidth.setButtonCell(new ShapeCell());
@@ -690,17 +718,44 @@ public class Toolbox implements ThemeConfigurator {
         });
         secondaryInteractionWidth.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(secondaryInteractionWidth, 2,1,1,1);
+        GridPane.setConstraints(secondaryInteractionWidth, 2,row,1,1);
         linesPane.getChildren().add(secondaryInteractionWidth);
         GridPane.setHalignment(secondaryInteractionWidth,HPos.CENTER);
 
+        row++;
+
+        l = new Label("Secondaries Line Shift (px)");
+        GridPane.setConstraints(l, 0,row,2,1);
+        linesPane.getChildren().add(l);
+        GridPane.setHalignment(l,HPos.RIGHT);
+
+        secondaryInteractionShift = new Slider(0, 10, Double.parseDouble(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryInteractionShift.toString())));
+        secondaryInteractionShift.setShowTickLabels(true);
+        secondaryInteractionShift.setShowTickMarks(true);
+        secondaryInteractionShift.setMajorTickUnit(50);
+        secondaryInteractionShift.setMinorTickCount(5);
+        secondaryInteractionShift.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        secondaryInteractionShift.setShowTickMarks(true);
+        secondaryInteractionShift.setMaxWidth(Double.MAX_VALUE);
+
+        GridPane.setConstraints(secondaryInteractionShift, 2,row,1,1);
+        linesPane.getChildren().add(secondaryInteractionShift);
+        GridPane.setHalignment(secondaryInteractionShift,HPos.CENTER);
+
+        row++;
+
         l = new Label("Tertiaries Line Width (px)");
-        GridPane.setConstraints(l, 0,2,2,1);
+        GridPane.setConstraints(l, 0,row,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
         tertiaryInteractionWidth = new ComboBox<>();
-        tertiaryInteractionWidth.getItems().addAll("0","1", "2", "3", "4", "5", "6", "7");
+        tertiaryInteractionWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
         tertiaryInteractionWidth.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryInteractionWidth.toString()));
         tertiaryInteractionWidth.setCellFactory(new ShapeCellFactory());
         tertiaryInteractionWidth.setButtonCell(new ShapeCell());
@@ -712,12 +767,14 @@ public class Toolbox implements ThemeConfigurator {
         });
         tertiaryInteractionWidth.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(tertiaryInteractionWidth, 2,2,1,1);
+        GridPane.setConstraints(tertiaryInteractionWidth, 2,row,1,1);
         linesPane.getChildren().add(tertiaryInteractionWidth);
         GridPane.setHalignment(tertiaryInteractionWidth,HPos.CENTER);
 
+        row++;
+
         l = new Label("Tertiaries Line Style");
-        GridPane.setConstraints(l, 0,3,2,1);
+        GridPane.setConstraints(l, 0,row,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
@@ -732,12 +789,14 @@ public class Toolbox implements ThemeConfigurator {
         });
         tertiaryInteractionStyle.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(tertiaryInteractionStyle, 2,3,1,1);
+        GridPane.setConstraints(tertiaryInteractionStyle, 2,row,1,1);
         linesPane.getChildren().add(tertiaryInteractionStyle);
         GridPane.setHalignment(tertiaryInteractionStyle,HPos.CENTER);
 
+        row++;
+
         l = new Label("Tertiaries Opacity (%)");
-        GridPane.setConstraints(l, 0,4,2,1);
+        GridPane.setConstraints(l, 0,row,2,1);
         GridPane.setValignment(l,VPos.TOP);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
@@ -756,17 +815,19 @@ public class Toolbox implements ThemeConfigurator {
         _3dOpacity.setShowTickMarks(true);
         _3dOpacity.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(_3dOpacity, 2,4,1,1);
+        GridPane.setConstraints(_3dOpacity, 2,row,1,1);
         linesPane.getChildren().add(_3dOpacity);
         GridPane.setHalignment(_3dOpacity,HPos.CENTER);
 
+        row++;
+
         l = new Label("Tertiaries Halo Size (px)");
-        GridPane.setConstraints(l, 0,5,2,1);
+        GridPane.setConstraints(l, 0,row,2,1);
         GridPane.setValignment(l,VPos.TOP);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
-        haloWidth = new Slider(0, 20, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.HaloWidth.toString())));;
+        haloWidth = new Slider(0, 20, Double.parseDouble(RnartistConfig.defaultTheme.get(ThemeParameter.HaloWidth.toString())));;
         haloWidth.setShowTickLabels(true);
         haloWidth.setShowTickMarks(true);
         haloWidth.setMajorTickUnit(5);
@@ -779,7 +840,7 @@ public class Toolbox implements ThemeConfigurator {
         });
         haloWidth.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(haloWidth, 2,5,1,1);
+        GridPane.setConstraints(haloWidth, 2,row,1,1);
         linesPane.getChildren().add(haloWidth);
         GridPane.setHalignment(haloWidth,HPos.CENTER);
 
@@ -1163,9 +1224,11 @@ public class Toolbox implements ThemeConfigurator {
         colorPicker7.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.TertiaryColor.toString(), colorPicker7.getValue().toString())));
         _3dOpacity.setValue((int)(100.0/255.0*Integer.parseInt(theme.getOrDefault(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0)))));
         residueCharOpacity.setValue((int)(100.0/255.0*Integer.parseInt(theme.getOrDefault(ThemeParameter.ResidueCharOpacity.toString(), ""+(int)(residueCharOpacity.getValue()*255.0/100.0)))));
+        phosphoDiesterWidth.setValue(theme.getOrDefault(ThemeParameter.PhosphodiesterWidth.toString(), ""+getPhosphoDiesterWidth()));
         secondaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth()));
+        secondaryInteractionShift.setValue(Double.parseDouble(theme.getOrDefault(ThemeParameter.SecondaryInteractionShift.toString(), ""+getSecondaryInteractionShift())));
         tertiaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.TertiaryInteractionWidth.toString(),""+getTertiaryInteractionWidth()));
-        haloWidth.setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.HaloWidth.toString(),""+getHaloWidth())));
+        haloWidth.setValue(Double.parseDouble(theme.getOrDefault(ThemeParameter.HaloWidth.toString(),""+getHaloWidth())));
         residueBorder.setValue(theme.getOrDefault(ThemeParameter.ResidueBorder.toString(),""+getResidueBorder()));
         tertiaryInteractionStyle.setValue(theme.getOrDefault(ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue()));
         fontNames.setValue(theme.getOrDefault(ThemeParameter.FontName.toString(), getFontName()));
@@ -1191,7 +1254,9 @@ public class Toolbox implements ThemeConfigurator {
         theme.put(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0));
         theme.put(ThemeParameter.ResidueCharOpacity.toString(), ""+(int)(residueCharOpacity.getValue()*255.0/100.0));
         theme.put(ThemeParameter.HaloWidth.toString(), ""+(int)haloWidth.getValue());
+        theme.put(ThemeParameter.PhosphodiesterWidth.toString(), ""+getPhosphoDiesterWidth());
         theme.put(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth());
+        theme.put(ThemeParameter.SecondaryInteractionShift.toString(), ""+getSecondaryInteractionShift());
         theme.put(ThemeParameter.TertiaryInteractionWidth.toString(), ""+getTertiaryInteractionWidth());
         theme.put(ThemeParameter.ResidueBorder.toString(), ""+getResidueBorder());
         theme.put(ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue());
@@ -1226,43 +1291,67 @@ public class Toolbox implements ThemeConfigurator {
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(0);
                     break;
-                case "1":
+                case "0.25":
+                    shape = new Line(0, 10, 20, 10);
+                    shape.setStrokeWidth(0.25);
+                    break;
+                case "0.5":
+                    shape = new Line(0, 10, 20, 10);
+                    shape.setStrokeWidth(0.5);
+                    break;
+                case "0.75":
+                    shape = new Line(0, 10, 20, 10);
+                    shape.setStrokeWidth(0.75);
+                    break;
+                case "1.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(1);
                     break;
-                case "2":
+                case "1.25":
+                    shape = new Line(0, 10, 20, 10);
+                    shape.setStrokeWidth(1.25);
+                    break;
+                case "1.5":
+                    shape = new Line(0, 10, 20, 10);
+                    shape.setStrokeWidth(1.5);
+                    break;
+                case "1.75":
+                    shape = new Line(0, 10, 20, 10);
+                    shape.setStrokeWidth(1.75);
+                    break;
+                case "2.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(2);
                     break;
-                case "3":
+                case "3.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(3);
                     break;
-                case "4":
+                case "4.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(4);
                     break;
-                case "5":
+                case "5.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(5);
                     break;
-                case "6":
+                case "6.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(6);
                     break;
-                case "7":
+                case "7.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(7);
                     break;
-                case "8":
+                case "8.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(8);
                     break;
-                case "9":
+                case "9.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(9);
                     break;
-                case "10":
+                case "10.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(10);
                     break;
@@ -1281,8 +1370,8 @@ public class Toolbox implements ThemeConfigurator {
     }
 
     @Override
-    public int getHaloWidth() {
-        return (int)haloWidth.getValue();
+    public double getHaloWidth() {
+        return haloWidth.getValue();
     }
 
     @Override
@@ -1537,18 +1626,28 @@ public class Toolbox implements ThemeConfigurator {
     }
 
     @Override
-    public int getResidueBorder() {
-        return Integer.parseInt(residueBorder.getValue());
+    public double getResidueBorder() {
+        return Double.parseDouble(residueBorder.getValue());
     }
 
     @Override
-    public int getSecondaryInteractionWidth() {
-        return Integer.parseInt(secondaryInteractionWidth.getValue());
+    public double getPhosphoDiesterWidth() {
+        return Double.parseDouble(phosphoDiesterWidth.getValue());
     }
 
     @Override
-    public int getTertiaryInteractionWidth() {
-        return Integer.parseInt(tertiaryInteractionWidth.getValue());
+    public double getSecondaryInteractionWidth() {
+        return Double.parseDouble(secondaryInteractionWidth.getValue());
+    }
+
+    @Override
+    public double getSecondaryInteractionShift() {
+        return secondaryInteractionShift.getValue();
+    }
+
+    @Override
+    public double getTertiaryInteractionWidth() {
+        return Double.parseDouble(tertiaryInteractionWidth.getValue());
     }
 
     @Override

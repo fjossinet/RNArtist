@@ -55,9 +55,6 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator:Mediator) : 
             }
             mediator.selectedResidues?.clear()
             mediator.selectedResidues?.addAll(this.mediator.secondaryStructureDrawing!!.getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
-            mediator.selectedResidues?.addAll(this.mediator.secondaryStructureDrawing!!.getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
-            for (h in junctionCircle.helices) mediator.selectedResidues?.addAll(this.mediator.secondaryStructureDrawing!!.getResiduesFromAbsPositions(h.helix.location.positions))
-                mediator.selectedResidues?.addAll(this.mediator.secondaryStructureDrawing!!.getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
             this.mediator.canvas2D.repaint()
         }
         val connector = Connector(ConnectorId.s)

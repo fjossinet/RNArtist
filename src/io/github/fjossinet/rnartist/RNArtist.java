@@ -36,6 +36,7 @@ import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -93,23 +94,13 @@ public class RNArtist extends Application {
                 if (mediator.getSecondaryStructureDrawing() != null) {
                     mediator.getSelectedResidues().clear();
                     mediator.getToolbox().unselectJunctionKnobs();
+                    AffineTransform at = new AffineTransform();
+                    at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
+                    at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
                     for (JunctionCircle jc : mediator.getSecondaryStructureDrawing().getAllJunctions()) {
-                        AffineTransform at = new AffineTransform();
-                        at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
-                        at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
                         if (jc.getCircle() != null && at.createTransformedShape(jc.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                            mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(jc.getInHelix().getLocation().getPositions()));
-                            for (HelixLine h : jc.getHelices())
-                                mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(h.getHelix().getLocation().getPositions()));
                             mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(jc.getJunction().getLocation().getPositions()));
-                            if (mediator.getChimeraDriver() != null && mediator.getTertiaryStructure() != null) {
-                                List<String> positions = new ArrayList<String>(1);
-                                for (ResidueCircle c : mediator.getWorkingSession().getSelectedResidues()) {
-                                    positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
-                                }
-                                mediator.getChimeraDriver().selectResidues(positions, mediator.getSecondaryStructureDrawing().getSecondaryStructure().getRna().getName());
-                                mediator.getChimeraDriver().setFocus(positions, mediator.getSecondaryStructureDrawing().getSecondaryStructure().getRna().getName());
-                            }
+
                             VBox knobFound = null;
                             for (Node child : mediator.getToolbox().getJunctionKnobs().getChildren()) {
                                 JunctionKnob knob = (JunctionKnob) ((VBox) child).getChildren().get(0);
@@ -125,20 +116,46 @@ public class RNArtist extends Application {
                             }
                             break;
                         }
-                        List<ResidueCircle> residues = mediator.getSecondaryStructureDrawing().getResidues();
-                        for (ResidueCircle c : residues) {
-                            if (c.getCircle() != null && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                                mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(c.getAbsPos())));
-                                if (mediator.getChimeraDriver() != null) {
-                                    List<String> positions = new ArrayList<String>(1);
-                                    positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
-                                    mediator.getChimeraDriver().selectResidues(positions);
-                                }
-                                break;
-                            }
+                    }
+                    List<ResidueCircle> residues = mediator.getSecondaryStructureDrawing().getResidues();
+                    for (ResidueCircle c : residues) {
+                        if (c.getCircle() != null && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
+                            mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(c.getAbsPos())));
+                            break;
                         }
                     }
+                    if (RnartistConfig.getDisplayTertiariesInSelection()) {
+                        boolean found = false;
+                        do {
+                            found = false;
+                            for (ResidueCircle _c : mediator.getWorkingSession().getSelectedResidues().toArray(new ResidueCircle[]{})) {
+                                for (TertiaryInteractionLine tertiary : mediator.getSecondaryStructureDrawing().getTertiaryInteractions()) {
+                                    if (tertiary.getInteraction().getLocation().getStart() == _c.getAbsPos()) {
+                                        ResidueCircle __c = mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(tertiary.getInteraction().getLocation().getEnd())).get(0);
+                                        if (!mediator.getWorkingSession().getSelectedResidues().contains(__c)) {
+                                            mediator.getWorkingSession().getSelectedResidues().add(__c);
+                                            found = true;
+                                        }
+                                    } else if (tertiary.getInteraction().getLocation().getEnd() == _c.getAbsPos()) {
+                                        ResidueCircle __c = mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(tertiary.getInteraction().getLocation().getStart())).get(0);
+                                        if (!mediator.getWorkingSession().getSelectedResidues().contains(__c)) {
+                                            mediator.getWorkingSession().getSelectedResidues().add(__c);
+                                            found = true;
+                                        }
+                                    }
+                                }
+                            }
+                        } while (found);
+                    }
                     mediator.getCanvas2D().repaint();
+                    if (mediator.getChimeraDriver() != null && mediator.getTertiaryStructure() != null) {
+                        List<String> positions = new ArrayList<String>(1);
+                        for (ResidueCircle c : mediator.getWorkingSession().getSelectedResidues()) {
+                            positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
+                        }
+                        mediator.getChimeraDriver().selectResidues(positions, mediator.getSecondaryStructureDrawing().getSecondaryStructure().getRna().getName());
+                        mediator.getChimeraDriver().setFocus(positions, mediator.getSecondaryStructureDrawing().getSecondaryStructure().getRna().getName());
+                    }
                 }
             }
         });
