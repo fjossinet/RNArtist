@@ -9,7 +9,6 @@ import javafx.scene.shape.Circle
 import javafx.scene.shape.Polygon
 import java.awt.geom.Point2D
 import java.util.*
-import java.util.function.ToIntFunction
 
 class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) : Pane(){
 
@@ -21,6 +20,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
         this.setMaxWidth(150.0)
         this.setOnMouseClicked {
             this.select()
+            var circleClicked = false
             var selectedCount = connectors.count { it.selected }
             if (selectedCount < this.junctionCircle.junction.type.value - 1) {
                 for (c in connectors) {
@@ -29,6 +29,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
                         c.selected = !c.selected
                         c.fill = if (c.selected) Color.STEELBLUE else Color.LIGHTGRAY
                         c.stroke = if (c.selected) Color.DARKBLUE else Color.DARKGRAY
+                        circleClicked = true
                         break
                     }
                 }
@@ -39,13 +40,14 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
                         c.selected = false
                         c.fill = Color.LIGHTGRAY
                         c.stroke = Color.DARKGRAY
+                        circleClicked = true
                         break
                     }
                 }
             }
             //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
             selectedCount = connectors.count { it.selected }
-            if (selectedCount == this.junctionCircle.junction.type.value - 1) {
+            if (selectedCount == this.junctionCircle.junction.type.value - 1 && circleClicked) {
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
                 this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
@@ -54,9 +56,9 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
                     if (junctionKnob != this)
                         junctionKnob.loadJunctionLayout()
                 }
+                this.mediator.canvas2D.repaint()
             }
-            mediator.addToSelection(true, *junctionCircle.junction.location.positions.toIntArray())
-            this.mediator.canvas2D.repaint()
+
         }
         val connector = Connector(ConnectorId.s)
         connector.fill = Color.LIGHTGRAY
@@ -218,8 +220,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
         centerViewOnJunction.setOnMousePressed {
             mediator.secondaryStructureDrawing?.let { drawing ->
                 centerViewOnJunction.fill = Color.LIGHTGRAY
-                mediator.addToSelection(true, *junctionCircle.junction.location.positions.toIntArray())
-                mediator.workingSession!!.centerFrameOnSelection(mediator.canvas2D.getBounds())
+                mediator.addToSelection(true, *junctionCircle.location.positions.toIntArray())
                 mediator.canvas2D.repaint()
                 if (mediator.chimeraDriver != null && mediator.tertiaryStructure != null) {
                     val positions: MutableList<String?> = ArrayList(1)

@@ -8,6 +8,8 @@ import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.core.model.io.Rnaview;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.embed.swing.SwingNode;
 import javafx.event.ActionEvent;
@@ -24,6 +26,7 @@ import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.apache.commons.lang3.tuple.Pair;
+import org.controlsfx.control.CheckComboBox;
 import org.controlsfx.glyphfont.FontAwesome;
 import org.controlsfx.glyphfont.Glyph;
 import org.dizitart.no2.NitriteId;
@@ -540,7 +543,7 @@ public class RNArtist extends Application {
         //## TOOLBAR 2
         FlowPane toolBar2 = new FlowPane();
         toolBar2.setPadding(new Insets(0,10,0,10));
-        toolBar2.setHgap(10);
+        toolBar2.setHgap(20);
 
         topToolBars.getChildren().add(toolBar2);
 
@@ -560,7 +563,7 @@ public class RNArtist extends Application {
             }
         });
         this.allStructuresChoices.setItems(mediator.getAllStructures());
-        this.allStructuresChoices.setMaxWidth(150);
+        this.allStructuresChoices.setMaxWidth(200);
         GridPane.setConstraints(this.allStructuresChoices,1,0,3,1);
         loadAndExport.getChildren().add(this.allStructuresChoices);
 
@@ -602,30 +605,39 @@ public class RNArtist extends Application {
 
         toolBar2.getChildren().add(loadAndExport);
 
-        VBox vbox = new VBox();
-        vbox.setSpacing(5.0);
-        vbox.setAlignment(Pos.CENTER);
+        GridPane center_fit = new GridPane();
+        center_fit.setVgap(5.0);
+        center_fit.setHgap(5.0);
 
-        Button center2D = new Button("Center", new Glyph("FontAwesome", FontAwesome.Glyph.CROSSHAIRS));
-        vbox.getChildren().add(center2D);
+        Button center2D = new Button("Center 2D on Display", new Glyph("FontAwesome", FontAwesome.Glyph.CROSSHAIRS));
         center2D.setOnAction(actionEvent -> {
             mediator.canvas2D.center2D();
         });
         center2D.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setHalignment(center2D, HPos.CENTER);
+        GridPane.setConstraints(center2D,0,0);
+        center_fit.getChildren().add(center2D);
 
-        Button fit2D = new Button("Fit", new Glyph("FontAwesome", FontAwesome.Glyph.ARROWS_ALT));
-        vbox.getChildren().add(fit2D);
+        Button fit2D = new Button("Fit 2D to Display", new Glyph("FontAwesome", FontAwesome.Glyph.ARROWS_ALT));
         fit2D.setOnAction(actionEvent -> {
             mediator.canvas2D.fit2D(mediator.getSecondaryStructureDrawing());
         });
         fit2D.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setHalignment(fit2D, HPos.CENTER);
+        GridPane.setConstraints(fit2D,0,1);
+        center_fit.getChildren().add(fit2D);
 
-        toolBar2.getChildren().add(vbox);
+        toolBar2.getChildren().add(center_fit);
 
-        vbox = new VBox();
-        vbox.setSpacing(5.0);
-        vbox.setAlignment(Pos.CENTER);
-        vbox.getChildren().add(new Label("Unselected Residues Opacity (%)"));
+        GridPane residueOpacity = new GridPane();
+        residueOpacity.setVgap(5.0);
+        residueOpacity.setHgap(5.0);
+
+        l = new Label("Unselected Residues Opacity (%)");
+        GridPane.setHalignment(l, HPos.CENTER);
+        GridPane.setConstraints(l,0,0);
+        residueOpacity.getChildren().add(l);
+
         final Slider slider = new Slider(0, 100, (int)(RnartistConfig.getSelectionFading()/255.0*100.0));
         slider.setShowTickLabels(true);
         slider.setShowTickMarks(true);
@@ -639,8 +651,59 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        vbox.getChildren().add(slider);
-        toolBar2.getChildren().add(vbox);
+        GridPane.setHalignment(slider, HPos.CENTER);
+        GridPane.setConstraints(slider,0,1);
+        residueOpacity.getChildren().add(slider);
+
+        toolBar2.getChildren().add(residueOpacity);
+
+        GridPane globalOptions = new GridPane();
+        globalOptions.setVgap(5.0);
+        globalOptions.setHgap(5.0);
+
+        l = new Label("2D Options");
+        GridPane.setHalignment(l, HPos.RIGHT);
+        GridPane.setConstraints(l,0,0);
+        globalOptions.getChildren().add(l);
+
+        List<Option> _2DOptions = new ArrayList<Option>();
+        _2DOptions.add(new CenterDisplayOnSelection());
+        _2DOptions.add(new DisplayTertiariesInSelection());
+        CheckComboBox<Option> _2DGlobalOptions = new CheckComboBox<Option>(FXCollections.observableList(_2DOptions));
+        for (Option o:_2DOptions) {
+            if (o.isChecked())
+                _2DGlobalOptions.getCheckModel().check(o);
+        }
+        _2DGlobalOptions.getCheckModel().getCheckedItems().addListener(new ListChangeListener<Option>() {
+            public void onChanged(ListChangeListener.Change<? extends Option> c) {
+                for (Option o:_2DGlobalOptions.getItems()) {
+                    o.check(_2DGlobalOptions.getCheckModel().getCheckedItems().contains(o));
+                }
+            }
+        });
+
+        _2DGlobalOptions.setMaxWidth(200);
+        _2DGlobalOptions.setTitle("Choose an Option");
+        GridPane.setHalignment(_2DGlobalOptions, HPos.CENTER);
+        GridPane.setConstraints(_2DGlobalOptions,1,0);
+        globalOptions.getChildren().add(_2DGlobalOptions);
+
+        l = new Label("3D Options");
+        GridPane.setHalignment(l, HPos.RIGHT);
+        GridPane.setConstraints(l,0,1);
+        globalOptions.getChildren().add(l);
+
+        List<String> _3DOptions = new ArrayList<String>();
+        _3DOptions.add("Center 3D on Selection");
+        _3DOptions.add("Focus 3D on Selection");
+        CheckComboBox _3DGlobalOptions = new CheckComboBox(FXCollections.observableList(_3DOptions));
+        _3DGlobalOptions.setMaxWidth(200);
+        _3DGlobalOptions.setTitle("Choose an Option");
+        GridPane.setHalignment(_3DGlobalOptions, HPos.CENTER);
+        GridPane.setConstraints(_3DGlobalOptions,1,1);
+        globalOptions.getChildren().add(_3DGlobalOptions);
+
+        toolBar2.getChildren().add(globalOptions);
 
         //### Status Bar
         this.statusBar = new FlowPane();
@@ -702,6 +765,60 @@ public class RNArtist extends Application {
                 swingNode.setContent(canvas);
             }
         });
+    }
+
+    private abstract class Option {
+
+        protected String title;
+
+        protected Option(String title) {
+            this.title = title;
+        }
+
+        abstract protected void check(boolean check);
+
+        abstract protected boolean isChecked();
+
+        @Override
+        public String toString() {
+            return this.title;
+        }
+    }
+
+    private class DisplayTertiariesInSelection extends Option {
+
+        public DisplayTertiariesInSelection() {
+            super("Display Tertiary Interactions for Selection");
+        }
+
+        @Override
+        protected boolean isChecked() {
+            return RnartistConfig.getDisplayTertiariesInSelection();
+        }
+
+        @Override
+        protected void check(boolean check) {
+            RnartistConfig.setDisplayTertiariesInSelection(check);
+        }
+    }
+
+
+
+    private class CenterDisplayOnSelection extends Option {
+
+        public CenterDisplayOnSelection() {
+            super("Center Display on Selection");
+        }
+
+        @Override
+        protected boolean isChecked() {
+            return RnartistConfig.getCenterDisplayOnSelection();
+        }
+
+        @Override
+        protected void check(boolean check) {
+            RnartistConfig.setCenterDisplayOnSelection(check);
+        }
     }
 
 }

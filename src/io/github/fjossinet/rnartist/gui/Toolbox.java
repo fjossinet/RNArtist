@@ -1129,18 +1129,6 @@ public class Toolbox implements ThemeConfigurator {
         optionsPane.getChildren().add(separator);
         GridPane.setConstraints(separator, 0, row++, 2, 1);
 
-        CheckBox display3DInSelection = new CheckBox();
-        display3DInSelection.setSelected(RnartistConfig.getDisplayTertiariesInSelection());
-        display3DInSelection.setOnAction(actionEvent -> {
-            RnartistConfig.setDisplayTertiariesInSelection(display3DInSelection.isSelected());
-        });
-        optionsPane.getChildren().add(display3DInSelection);
-        GridPane.setConstraints(display3DInSelection, 0,row);
-
-        Label l = new Label("Display Tertiaries in Selection");
-        optionsPane.getChildren().add(l);
-        GridPane.setConstraints(l, 1,row++);
-
         CheckBox svgBrowserFix = new CheckBox();
         svgBrowserFix.setSelected(RnartistConfig.exportSVGWithBrowserCompatibility());
         svgBrowserFix.setOnAction(actionEvent -> {
@@ -1149,7 +1137,7 @@ public class Toolbox implements ThemeConfigurator {
         optionsPane.getChildren().add(svgBrowserFix);
         GridPane.setConstraints(svgBrowserFix, 0,row);
 
-        l = new Label("Browser Compatibility for SVG");
+        Label l = new Label("Browser Compatibility for SVG");
         optionsPane.getChildren().add(l);
         GridPane.setConstraints(l, 1,row++);
 
@@ -1190,7 +1178,7 @@ public class Toolbox implements ThemeConfigurator {
                 mediator.getWorkingSession().getSelectedResidues().clear();
                 for (Residue r:tableView.getSelectionModel().getSelectedItems())
                     mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(r.getPosition()));
-                mediator.getWorkingSession().centerFrameOnSelection(mediator.getCanvas2D().getBounds());
+                mediator.getWorkingSession().centerDisplayOnSelection(mediator.getCanvas2D().getBounds());
             } else {
                 mediator.getWorkingSession().getSelectedResidues().clear();
             }

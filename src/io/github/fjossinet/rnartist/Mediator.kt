@@ -81,7 +81,7 @@ class Mediator(val rnartist: RNArtist) {
                 if (clearPreviousSelection)
                     selection.clear()
                 selection.addAll(drawing.getResiduesFromAbsPositions(*absolutePositions))
-                if (displayTertiariesInSelection) {
+                if (displayTertiariesInSelection && !drawing.tertiaryInteractions.isEmpty()) {
                     var residues2Add = mutableListOf<ResidueCircle>()
                     do {
                         residues2Add.clear()
@@ -106,6 +106,9 @@ class Mediator(val rnartist: RNArtist) {
                         }
                         selection.addAll(residues2Add)
                     } while (!residues2Add.isEmpty())
+                }
+                if (RnartistConfig.centerDisplayOnSelection) {
+                    this.workingSession!!.centerDisplayOnSelection(this.canvas2D.getBounds())
                 }
             }
         }
