@@ -1,5 +1,6 @@
 package io.github.fjossinet.rnartist.gui;
 
+import io.github.fjossinet.rnartist.Mediator;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

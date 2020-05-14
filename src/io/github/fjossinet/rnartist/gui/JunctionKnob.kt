@@ -1,5 +1,6 @@
 package io.github.fjossinet.rnartist.gui
 
+import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.*
 import javafx.scene.layout.Pane
 import javafx.scene.layout.VBox
@@ -8,8 +9,9 @@ import javafx.scene.shape.Circle
 import javafx.scene.shape.Polygon
 import java.awt.geom.Point2D
 import java.util.*
+import java.util.function.ToIntFunction
 
-class JunctionKnob(val junctionCircle: JunctionCircle, val mediator:Mediator) : Pane(){
+class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) : Pane(){
 
     val connectors = mutableListOf<Connector>()
 
@@ -53,8 +55,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator:Mediator) : 
                         junctionKnob.loadJunctionLayout()
                 }
             }
-            mediator.selectedResidues?.clear()
-            mediator.selectedResidues?.addAll(this.mediator.secondaryStructureDrawing!!.getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+            mediator.addToSelection(true, *junctionCircle.junction.location.positions.toIntArray())
             this.mediator.canvas2D.repaint()
         }
         val connector = Connector(ConnectorId.s)
@@ -217,12 +218,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator:Mediator) : 
         centerViewOnJunction.setOnMousePressed {
             mediator.secondaryStructureDrawing?.let { drawing ->
                 centerViewOnJunction.fill = Color.LIGHTGRAY
-                mediator.selectedResidues!!.clear()
-                mediator.selectedResidues!!.addAll(drawing.getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
-                mediator.selectedResidues!!.addAll(drawing.getResiduesFromAbsPositions(junctionCircle.inHelix.location.positions))
-                for (h in junctionCircle.helices)
-                    mediator.selectedResidues!!.addAll(drawing.getResiduesFromAbsPositions(h.helix.location.positions))
-                mediator.selectedResidues!!.addAll(drawing.getResiduesFromAbsPositions(junctionCircle.junction.location.positions))
+                mediator.addToSelection(true, *junctionCircle.junction.location.positions.toIntArray())
                 mediator.workingSession!!.centerFrameOnSelection(mediator.canvas2D.getBounds())
                 mediator.canvas2D.repaint()
                 if (mediator.chimeraDriver != null && mediator.tertiaryStructure != null) {

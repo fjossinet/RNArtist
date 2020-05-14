@@ -1,6 +1,6 @@
 package io.github.fjossinet.rnartist.io;
 
-import io.github.fjossinet.rnartist.gui.Mediator;
+import io.github.fjossinet.rnartist.Mediator;
 import io.github.fjossinet.rnartist.core.model.Location;
 import io.github.fjossinet.rnartist.core.model.Residue3D;
 

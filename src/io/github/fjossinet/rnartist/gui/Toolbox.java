@@ -1,5 +1,6 @@
 package io.github.fjossinet.rnartist.gui;
 
+import io.github.fjossinet.rnartist.Mediator;
 import io.github.fjossinet.rnartist.io.Backend;
 import io.github.fjossinet.rnartist.core.model.*;
 import javafx.beans.value.ChangeListener;
@@ -40,7 +41,6 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.List;
 
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getAWTColor;
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
@@ -870,7 +870,7 @@ public class Toolbox implements ThemeConfigurator {
             @Override
             public void handle(MouseEvent e) {
                 try {
-                    RnartistConfig.saveConfig(mediator.getToolbox().getTheme());
+                    RnartistConfig.save(mediator.getToolbox().getTheme());
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
                     alert.setTitle("Theme Saved!");
                     alert.setHeaderText("Your current theme is now the default one!");
@@ -947,7 +947,7 @@ public class Toolbox implements ThemeConfigurator {
         name.textProperty().addListener((observable, oldValue, newValue) -> {
             knob.getJunctionCircle().getJunction().setName(newValue);
         });
-        TextField location = new TextField(jc.getJunction().getLocation().getDescription());
+        TextField location = new TextField(jc.getLocation().getDescription());
         location.setEditable(false);
         vbox.getChildren().add(location);
         location.setAlignment(Pos.CENTER);
@@ -1062,7 +1062,7 @@ public class Toolbox implements ThemeConfigurator {
                         chimeraPath.setText(f.getAbsolutePath());
                     RnartistConfig.setChimeraPath(chimeraPath.getText());
                     try {
-                        RnartistConfig.saveConfig(null); //we save the chimera path, not the theme (perhaps the user is not interested to save the current theme)
+                        RnartistConfig.save(null); //we save the chimera path, not the theme (perhaps the user is not interested to save the current theme)
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -1119,13 +1119,27 @@ public class Toolbox implements ThemeConfigurator {
         optionsPane.setHgap(10);
         optionsPane.setVgap(10);
 
+        int row = 0;
+
         Label svgExport = new Label("Misc Options");
         svgExport.setStyle("-fx-font-size: 15");
         optionsPane.getChildren().add(svgExport);
-        GridPane.setConstraints(svgExport, 0,0,2,1);
+        GridPane.setConstraints(svgExport, 0,row++,2,1);
         Separator separator = new Separator(Orientation.HORIZONTAL);
         optionsPane.getChildren().add(separator);
-        GridPane.setConstraints(separator, 0, 1, 2, 1);
+        GridPane.setConstraints(separator, 0, row++, 2, 1);
+
+        CheckBox display3DInSelection = new CheckBox();
+        display3DInSelection.setSelected(RnartistConfig.getDisplayTertiariesInSelection());
+        display3DInSelection.setOnAction(actionEvent -> {
+            RnartistConfig.setDisplayTertiariesInSelection(display3DInSelection.isSelected());
+        });
+        optionsPane.getChildren().add(display3DInSelection);
+        GridPane.setConstraints(display3DInSelection, 0,row);
+
+        Label l = new Label("Display Tertiaries in Selection");
+        optionsPane.getChildren().add(l);
+        GridPane.setConstraints(l, 1,row++);
 
         CheckBox svgBrowserFix = new CheckBox();
         svgBrowserFix.setSelected(RnartistConfig.exportSVGWithBrowserCompatibility());
@@ -1133,11 +1147,11 @@ public class Toolbox implements ThemeConfigurator {
             RnartistConfig.exportSVGWithBrowserCompatibility(svgBrowserFix.isSelected());
         });
         optionsPane.getChildren().add(svgBrowserFix);
-        GridPane.setConstraints(svgBrowserFix, 0,2);
+        GridPane.setConstraints(svgBrowserFix, 0,row);
 
-        Label l = new Label("Browser Compatibility for SVG");
+        l = new Label("Browser Compatibility for SVG");
         optionsPane.getChildren().add(l);
-        GridPane.setConstraints(l, 1,2);
+        GridPane.setConstraints(l, 1,row++);
 
         CheckBox showToolBar = new CheckBox();
         showToolBar.setSelected(true);
@@ -1145,11 +1159,11 @@ public class Toolbox implements ThemeConfigurator {
             mediator.getRnartist().showTopToolBars(showToolBar.isSelected());
         });
         optionsPane.getChildren().add(showToolBar);
-        GridPane.setConstraints(showToolBar, 0,3);
+        GridPane.setConstraints(showToolBar, 0,row);
 
         l = new Label("Show ToolBar");
         optionsPane.getChildren().add(l);
-        GridPane.setConstraints(l, 1,3);
+        GridPane.setConstraints(l, 1,row++);
 
         /*CheckBox showStatusBar = new CheckBox();
         showStatusBar.setSelected(true);
@@ -1175,7 +1189,7 @@ public class Toolbox implements ThemeConfigurator {
             if (newSelection != null) {
                 mediator.getWorkingSession().getSelectedResidues().clear();
                 for (Residue r:tableView.getSelectionModel().getSelectedItems())
-                    mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(List.of(r.getPosition())));
+                    mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(r.getPosition()));
                 mediator.getWorkingSession().centerFrameOnSelection(mediator.getCanvas2D().getBounds());
             } else {
                 mediator.getWorkingSession().getSelectedResidues().clear();

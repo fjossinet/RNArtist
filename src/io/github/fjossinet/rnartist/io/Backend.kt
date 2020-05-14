@@ -1,7 +1,7 @@
 package io.github.fjossinet.rnartist.io
 
 import com.google.gson.Gson
-import io.github.fjossinet.rnartist.gui.Mediator
+import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import io.github.fjossinet.rnartist.core.model.Theme

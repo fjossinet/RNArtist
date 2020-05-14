@@ -1,6 +1,6 @@
 package io.github.fjossinet.rnartist.io;
 
-import io.github.fjossinet.rnartist.gui.Mediator;
+import io.github.fjossinet.rnartist.Mediator;
 
 public abstract class AbstractDriver implements Driver {
 

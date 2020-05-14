@@ -1,5 +1,6 @@
 package io.github.fjossinet.rnartist.gui
 
+import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.RnartistConfig
 import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue

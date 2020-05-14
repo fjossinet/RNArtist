@@ -1,6 +1,6 @@
 package io.github.fjossinet.rnartist.io;
 
-import io.github.fjossinet.rnartist.gui.Mediator;
+import io.github.fjossinet.rnartist.Mediator;
 import io.github.fjossinet.rnartist.core.model.*;
 import javafx.scene.control.Alert;
 

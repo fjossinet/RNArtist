@@ -1,6 +1,6 @@
 package io.github.fjossinet.rnartist.io;
 
-import io.github.fjossinet.rnartist.gui.Mediator;
+import io.github.fjossinet.rnartist.Mediator;
 import org.jdesktop.swingworker.SwingWorker;
 
 import java.io.*;

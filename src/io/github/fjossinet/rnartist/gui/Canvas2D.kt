@@ -1,5 +1,6 @@
 package io.github.fjossinet.rnartist.gui
 
+import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import java.awt.*
 import java.awt.geom.AffineTransform
@@ -22,7 +23,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         mediator.toolbox.residues.clear()
         this.secondaryStructureDrawing = drawing
         this.secondaryStructureDrawing?.let { drawing ->
-            mediator.toolbox.loadTheme(drawing.theme.themeParams)
+            mediator.toolbox.loadTheme(drawing.theme.params)
             /*this.secondaryStructureDrawing.value.secondaryStructure.rna.seq.forEachIndexed { index:Int, res:Char ->
                 mediator.toolbox.residues.add(Residue(index+1, res))
             }*/
