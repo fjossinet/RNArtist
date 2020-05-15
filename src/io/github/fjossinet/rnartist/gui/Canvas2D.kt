@@ -20,13 +20,10 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     fun load2D(drawing: SecondaryStructureDrawing) {
-        mediator.toolbox.residues.clear()
         this.secondaryStructureDrawing = drawing
         this.secondaryStructureDrawing?.let { drawing ->
             mediator.toolbox.loadTheme(drawing.theme.params)
-            /*this.secondaryStructureDrawing.value.secondaryStructure.rna.seq.forEachIndexed { index:Int, res:Char ->
-                mediator.toolbox.residues.add(Residue(index+1, res))
-            }*/
+            mediator.rnartist.loadIntoExplorer(this.secondaryStructureDrawing)
             mediator.toolbox.junctionKnobs.children.clear()
             for (jc in drawing.allJunctions) {
                 mediator.toolbox.addJunctionKnob(jc)
@@ -36,14 +33,14 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         }
     }
 
-    fun center2D() {
+    fun centerDisplayOn(frame:Rectangle2D) {
         this.secondaryStructureDrawing?.let { drawing ->
             drawing.workingSession.viewX = 0.0
             drawing.workingSession.viewY = 0.0
             var at = AffineTransform()
             at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
             at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
-            var transformedBounds = at.createTransformedShape(drawing.getBounds())
+            var transformedBounds = at.createTransformedShape(frame)
             //we center the view on the new structure
             drawing.workingSession.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
             drawing.workingSession.viewY += this.getBounds().bounds2D.centerY - transformedBounds.bounds2D.centerY
@@ -51,15 +48,15 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         }
     }
 
-    fun fit2D(drawing: SecondaryStructureDrawing?) {
-        drawing?.let {
+    fun fitDisplayOn(frame:Rectangle2D) {
+        this.secondaryStructureDrawing?.let { drawing ->
             drawing.workingSession.viewX = 0.0
             drawing.workingSession.viewY = 0.0
             drawing.workingSession.finalZoomLevel = 1.0
             var at = AffineTransform()
             at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
             at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
-            var transformedBounds = at.createTransformedShape(drawing.getBounds())
+            var transformedBounds = at.createTransformedShape(frame)
             //we compute the zoomLevel to fit the structure in the frame of the canvas2D
             val widthRatio = transformedBounds.bounds2D.width / this.getBounds().width
             val heightRatio = transformedBounds.bounds2D.height / this.getBounds().height
@@ -68,7 +65,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             at = AffineTransform()
             at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
             at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
-            transformedBounds = at.createTransformedShape(drawing.getBounds())
+            transformedBounds = at.createTransformedShape(frame)
             //we center the view on the new structure
             drawing.workingSession.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
             drawing.workingSession.viewY += this.getBounds().bounds2D.centerY - transformedBounds.bounds2D.centerY

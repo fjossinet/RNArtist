@@ -6,6 +6,7 @@ import io.github.fjossinet.rnartist.gui.RegisterDialog;
 import io.github.fjossinet.rnartist.io.ChimeraDriver;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.core.model.io.Rnaview;
+import io.github.fjossinet.rnartist.model.*;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -19,6 +20,7 @@ import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.TreeItemPropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
@@ -51,6 +53,7 @@ public class RNArtist extends Application {
     private VBox topToolBars;
     private FlowPane statusBar;
     private ChoiceBox<SecondaryStructureDrawing> allStructuresChoices;
+    private TreeTableView<StructuralItem> structureTableview;
 
     public static void main(String[] args) {
         launch(args);
@@ -192,7 +195,39 @@ public class RNArtist extends Application {
         createSwingContent(swingNode);
         Screen screen = Screen.getPrimary();
         BorderPane root = new BorderPane();
-        root.setCenter(swingNode);
+
+        //##### Explorer
+        this.structureTableview = new TreeTableView<StructuralItem>();
+        this.structureTableview.setColumnResizePolicy(TreeTableView.CONSTRAINED_RESIZE_POLICY);
+        TreeTableColumn<StructuralItem, String> nameCol = new TreeTableColumn<StructuralItem, String>("Name");
+        nameCol.setCellValueFactory(new TreeItemPropertyValueFactory<StructuralItem, String>("name"));
+        TreeTableColumn<StructuralItem, String> typeCol = new TreeTableColumn<StructuralItem, String>("Type");
+        typeCol.setCellValueFactory(new TreeItemPropertyValueFactory<StructuralItem, String>("type"));
+        TreeTableColumn<StructuralItem, Location> locationCol = new TreeTableColumn<StructuralItem, Location>("Location");
+        locationCol.setCellValueFactory(new TreeItemPropertyValueFactory<StructuralItem, Location>("location"));
+        this.structureTableview.getColumns().addAll(nameCol,typeCol, locationCol);
+
+        this.structureTableview.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        this.structureTableview.getSelectionModel().getSelectedItems().addListener(new ListChangeListener<TreeItem<StructuralItem>>() {
+            @Override
+            public void onChanged(Change<? extends TreeItem<StructuralItem>> change) {
+                if (!structureTableview.getSelectionModel().getSelectedItems().isEmpty()) {
+                    List<Integer> positions = new ArrayList<Integer>();
+                    for (TreeItem<StructuralItem> item : structureTableview.getSelectionModel().getSelectedItems()) {
+                        positions.addAll(item.valueProperty().get().getLocation().getPositions());
+                    }
+                    mediator.addToSelection(true, positions.stream().mapToInt(Integer::intValue).toArray());
+                    mediator.canvas2D.repaint();
+                }
+            }
+        });
+
+        SplitPane splitPane = new SplitPane();
+        splitPane.setOrientation(Orientation.VERTICAL);
+        splitPane.setDividerPositions(0.8);
+        splitPane.getItems().addAll(swingNode, this.structureTableview);
+
+        root.setCenter(splitPane);
 
         //## TOOLBARS
         this.topToolBars = new VBox();
@@ -415,9 +450,9 @@ public class RNArtist extends Application {
                             } else {
                                 for (SecondaryStructureDrawing drawing : loadData.get().getLeft()) {
                                     mediator.getAllStructures().add(drawing);
-                                    mediator.getCanvas2D().fit2D(drawing);
                                 }
                                 allStructuresChoices.setValue(mediator.getAllStructures().get(mediator.getAllStructures().size() - 1));
+                                mediator.getCanvas2D().fitDisplayOn(mediator.getSecondaryStructureDrawing().getBounds());
                             }
                         } catch (InterruptedException e) {
                             e.printStackTrace();
@@ -611,7 +646,8 @@ public class RNArtist extends Application {
 
         Button center2D = new Button("Center 2D on Display", new Glyph("FontAwesome", FontAwesome.Glyph.CROSSHAIRS));
         center2D.setOnAction(actionEvent -> {
-            mediator.canvas2D.center2D();
+            if (mediator.getSecondaryStructureDrawing() != null)
+                mediator.canvas2D.centerDisplayOn(mediator.getSecondaryStructureDrawing().getBounds());
         });
         center2D.setMaxWidth(Double.MAX_VALUE);
         GridPane.setHalignment(center2D, HPos.CENTER);
@@ -620,7 +656,7 @@ public class RNArtist extends Application {
 
         Button fit2D = new Button("Fit 2D to Display", new Glyph("FontAwesome", FontAwesome.Glyph.ARROWS_ALT));
         fit2D.setOnAction(actionEvent -> {
-            mediator.canvas2D.fit2D(mediator.getSecondaryStructureDrawing());
+            mediator.canvas2D.fitDisplayOn(mediator.getSecondaryStructureDrawing().getBounds());
         });
         fit2D.setMaxWidth(Double.MAX_VALUE);
         GridPane.setHalignment(fit2D, HPos.CENTER);
@@ -668,7 +704,9 @@ public class RNArtist extends Application {
 
         List<Option> _2DOptions = new ArrayList<Option>();
         _2DOptions.add(new CenterDisplayOnSelection());
+        _2DOptions.add(new FitDisplayOnSelection());
         _2DOptions.add(new DisplayTertiariesInSelection());
+        _2DOptions.add(new DisplayLWSymbols());
         CheckComboBox<Option> _2DGlobalOptions = new CheckComboBox<Option>(FXCollections.observableList(_2DOptions));
         for (Option o:_2DOptions) {
             if (o.isChecked())
@@ -721,9 +759,11 @@ public class RNArtist extends Application {
         statusBar.getChildren().add(twitter);
 
         root.setBottom(statusBar);
-
-        stage.setScene(new Scene(root, screen.getBounds().getWidth(), screen.getBounds().getHeight()));
+        Scene scene = new Scene(root, screen.getBounds().getWidth(), screen.getBounds().getHeight());
+        scene.getStylesheets().add(getClass().getClassLoader().getResource("io/github/fjossinet/rnartist/gui/css/style.css").toExternalForm());
+        stage.setScene(scene);
         stage.setTitle("RNArtist");
+
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
         this.stage.setWidth(screenSize.getWidth()-360);
         this.stage.setHeight(screenSize.getHeight());
@@ -737,6 +777,47 @@ public class RNArtist extends Application {
     public void activateSaveButtons() {
         this.save.setDisable(false);
         this.saveAs.setDisable(false);
+    }
+
+    public void loadIntoExplorer(SecondaryStructureDrawing drawing) {
+        TreeItem<StructuralItem> root = new TreeItem<StructuralItem>(new SecondaryStructureItem(drawing));
+        root.setExpanded(true);
+        for (HelixLine h: drawing.getHelices()) {
+            TreeItem<StructuralItem> helixItem = new TreeItem<StructuralItem>(new HelixItem(h));
+            helixItem.setExpanded(true);
+            root.getChildren().add(helixItem);
+            for (SecondaryInteractionLine interaction: h.getSecondaryInteractions()) {
+                TreeItem<StructuralItem> interactionItem = new TreeItem<StructuralItem>(new SecondaryInteractionItem(interaction));
+                interactionItem.setExpanded(true);
+                helixItem.getChildren().addAll(interactionItem);
+            }
+            for (JunctionCircle jc:drawing.getBranches()) {
+                if (jc.getInHelix().equals(h.getHelix())) {
+                    for (JunctionCircle _jc: jc.junctionsFromBranch()) {
+                        TreeItem<StructuralItem> junctionItem = new TreeItem<StructuralItem>(new JunctionItem(_jc));
+                        junctionItem.setExpanded(true);
+                        helixItem.getChildren().addAll(junctionItem);
+                        for (HelixLine _h: _jc.getHelices()) {
+                            TreeItem<StructuralItem> _helixItem = new TreeItem<StructuralItem>(new HelixItem(_h));
+                            _helixItem.setExpanded(true);
+                            junctionItem.getChildren().add(_helixItem);
+                            for (SecondaryInteractionLine interaction: _h.getSecondaryInteractions()) {
+                                TreeItem<StructuralItem> interactionItem = new TreeItem<StructuralItem>(new SecondaryInteractionItem(interaction));
+                                interactionItem.setExpanded(true);
+                                _helixItem.getChildren().addAll(interactionItem);
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        for (TertiaryInteractionLine interaction:drawing.getTertiaryInteractions()) {
+            TreeItem<StructuralItem> interactionItem = new TreeItem<StructuralItem>(new TertiaryInteractionItem(interaction));
+            interactionItem.setExpanded(true);
+            root.getChildren().addAll(interactionItem);
+        }
+        this.structureTableview.setRoot(root);
     }
 
     public void showTopToolBars(boolean show) {
@@ -802,8 +883,6 @@ public class RNArtist extends Application {
         }
     }
 
-
-
     private class CenterDisplayOnSelection extends Option {
 
         public CenterDisplayOnSelection() {
@@ -818,6 +897,41 @@ public class RNArtist extends Application {
         @Override
         protected void check(boolean check) {
             RnartistConfig.setCenterDisplayOnSelection(check);
+        }
+    }
+
+    private class FitDisplayOnSelection extends Option {
+
+        public FitDisplayOnSelection() {
+            super("Fit Display on Selection");
+        }
+
+        @Override
+        protected boolean isChecked() {
+            return RnartistConfig.getFitDisplayOnSelection();
+        }
+
+        @Override
+        protected void check(boolean check) {
+            RnartistConfig.setFitDisplayOnSelection(check);
+        }
+    }
+
+    private class DisplayLWSymbols extends Option {
+
+        public DisplayLWSymbols() {
+            super("Display LW Symbols");
+        }
+
+        @Override
+        protected boolean isChecked() {
+            return RnartistConfig.getDisplayLWSymbols();
+        }
+
+        @Override
+        protected void check(boolean check) {
+            RnartistConfig.setDisplayLWSymbols(check);
+            mediator.getCanvas2D().repaint();
         }
     }
 

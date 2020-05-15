@@ -20,7 +20,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
@@ -36,11 +35,13 @@ import javafx.util.Callback;
 import org.controlsfx.control.GridCell;
 import org.controlsfx.control.GridView;
 
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.List;
 
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getAWTColor;
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
@@ -60,7 +61,7 @@ public class Toolbox implements ThemeConfigurator {
             tertiaryInteractionWidth, tertiaryInteractionStyle;
     private Spinner<Integer> deltaXRes, deltaYRes, deltaFontSize;
     private ObservableList<Theme> themesList;
-    private ObservableList<Residue> residues;
+    private FlowPane junctionKnobs = new FlowPane();
 
     public Toolbox(Mediator mediator) {
         this.mediator = mediator;
@@ -80,9 +81,8 @@ public class Toolbox implements ThemeConfigurator {
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         //this.createAllThemesPanel(root);
-        this.createLayoutPanel(root);
-        this.createAnnotationsPanel(root);
         this.createThemePanel(root);
+        this.createLayoutPanel(root);
         this.createSettingsPanel(root);
 
         Scene scene = new Scene(root);
@@ -920,8 +920,6 @@ public class Toolbox implements ThemeConfigurator {
         root.getTabs().add(theme);
     }
 
-    private FlowPane junctionKnobs = new FlowPane();
-
     private void createLayoutPanel(TabPane root) {
         junctionKnobs.setPadding(new Insets(5, 5, 5, 5));
         junctionKnobs.setVgap(5);
@@ -965,6 +963,10 @@ public class Toolbox implements ThemeConfigurator {
 
     public FlowPane getJunctionKnobs() {
         return junctionKnobs;
+    }
+
+    public Slider getResidueCharOpacitySlider() {
+        return this.residueCharOpacity;
     }
 
     public void unselectJunctionKnobs() {
@@ -1121,7 +1123,7 @@ public class Toolbox implements ThemeConfigurator {
 
         int row = 0;
 
-        Label svgExport = new Label("Misc Options");
+        Label svgExport = new Label("Misc Settings");
         svgExport.setStyle("-fx-font-size: 15");
         optionsPane.getChildren().add(svgExport);
         GridPane.setConstraints(svgExport, 0,row++,2,1);
@@ -1164,44 +1166,6 @@ public class Toolbox implements ThemeConfigurator {
         l = new Label("Show Status Bar");
         optionsPane.getChildren().add(l);
         GridPane.setConstraints(l, 1,4);*/
-    }
-
-    public ObservableList<Residue> getResidues() {
-        return residues;
-    }
-
-    private void createAnnotationsPanel(TabPane root) {
-        TableView<Residue> tableView = new TableView<Residue>();
-        tableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        tableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if (newSelection != null) {
-                mediator.getWorkingSession().getSelectedResidues().clear();
-                for (Residue r:tableView.getSelectionModel().getSelectedItems())
-                    mediator.getWorkingSession().getSelectedResidues().addAll(mediator.getSecondaryStructureDrawing().getResiduesFromAbsPositions(r.getPosition()));
-                mediator.getWorkingSession().centerDisplayOnSelection(mediator.getCanvas2D().getBounds());
-            } else {
-                mediator.getWorkingSession().getSelectedResidues().clear();
-            }
-            mediator.getCanvas2D().repaint();
-        });
-
-        TableColumn<Residue, Integer> positionCol= new TableColumn<Residue, Integer>("Position");
-        positionCol.setCellValueFactory(new PropertyValueFactory<>("position"));
-
-        TableColumn<Residue, Character> nameCol= new TableColumn<Residue, Character>("Residue");
-        nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
-
-        TableColumn<Residue, String> labelCol= new TableColumn<Residue, String>("Label");
-        labelCol.setCellValueFactory(new PropertyValueFactory<>("label"));
-
-        TableColumn<Residue, String> modifiedCol= new TableColumn<Residue, String>("Modified As");
-        //modifiedCol.setCellValueFactory(new PropertyValueFactory<>("modified"));
-
-        tableView.getColumns().addAll(positionCol,nameCol,labelCol, modifiedCol);
-        residues = FXCollections.observableArrayList();
-        tableView.setItems(residues);
-        Tab annotations = new Tab("Annotations",  tableView);
-        root.getTabs().add(annotations);
     }
 
     public void loadTheme(Map<String,String> theme) {

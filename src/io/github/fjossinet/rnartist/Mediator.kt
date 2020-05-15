@@ -78,37 +78,46 @@ class Mediator(val rnartist: RNArtist) {
     fun addToSelection(clearPreviousSelection:Boolean = false, vararg absolutePositions:Int) {
         this.selectedResidues?.let { selection ->
             this.secondaryStructureDrawing?.let { drawing ->
-                if (clearPreviousSelection)
-                    selection.clear()
-                selection.addAll(drawing.getResiduesFromAbsPositions(*absolutePositions))
-                if (displayTertiariesInSelection && !drawing.tertiaryInteractions.isEmpty()) {
-                    var residues2Add = mutableListOf<ResidueCircle>()
-                    do {
-                        residues2Add.clear()
-                        for (selectedResidue in selection) {
-                            for (tertiary in drawing.tertiaryInteractions) {
-                                if (tertiary.start == selectedResidue.absPos) {
-                                    val c: ResidueCircle =
-                                        drawing.getResiduesFromAbsPositions(
-                                            tertiary.end
-                                        ).first()
-                                    if (c !in selection)
-                                        residues2Add.add(c)
-                                } else if (tertiary.end == selectedResidue.absPos) {
-                                    val c: ResidueCircle =
-                                        drawing.getResiduesFromAbsPositions(
-                                            tertiary.start
-                                        ).first()
-                                    if (c !in selection)
-                                        residues2Add.add(c)
+                if (!absolutePositions.isEmpty()) {
+                    if (clearPreviousSelection)
+                        selection.clear()
+                    selection.addAll(drawing.getResiduesFromAbsPositions(*absolutePositions))
+                    if (displayTertiariesInSelection && !drawing.tertiaryInteractions.isEmpty()) {
+                        var residues2Add = mutableListOf<ResidueCircle>()
+                        do {
+                            residues2Add.clear()
+                            for (selectedResidue in selection) {
+                                for (tertiary in drawing.tertiaryInteractions) {
+                                    if (tertiary.start == selectedResidue.absPos) {
+                                        val c: ResidueCircle =
+                                            drawing.getResiduesFromAbsPositions(
+                                                tertiary.end
+                                            ).first()
+                                        if (c !in selection)
+                                            residues2Add.add(c)
+                                    } else if (tertiary.end == selectedResidue.absPos) {
+                                        val c: ResidueCircle =
+                                            drawing.getResiduesFromAbsPositions(
+                                                tertiary.start
+                                            ).first()
+                                        if (c !in selection)
+                                            residues2Add.add(c)
+                                    }
                                 }
                             }
+                            selection.addAll(residues2Add)
+                        } while (!residues2Add.isEmpty())
+                    }
+                    if (RnartistConfig.fitDisplayOnSelection) { //fit first since fit will center too
+                        this.workingSession?.selectionBounds?.let { selectionBounds ->
+                            this.canvas2D.fitDisplayOn(selectionBounds)
                         }
-                        selection.addAll(residues2Add)
-                    } while (!residues2Add.isEmpty())
-                }
-                if (RnartistConfig.centerDisplayOnSelection) {
-                    this.workingSession!!.centerDisplayOnSelection(this.canvas2D.getBounds())
+                    }
+                    else if (RnartistConfig.centerDisplayOnSelection) {
+                        this.workingSession?.selectionBounds?.let { selectionBounds ->
+                            this.canvas2D.centerDisplayOn(selectionBounds)
+                        }
+                    }
                 }
             }
         }
