@@ -3,18 +3,26 @@ package io.github.fjossinet.rnartist.model
 import io.github.fjossinet.rnartist.core.model.*
 
 interface StructuralItem {
+    val secondaryStructureElement:SecondaryStructureElement?
     fun getName():String?
     fun getType():String
     fun getLocation():Location
 }
 
-class SecondaryStructureItem(val drawing:SecondaryStructureDrawing): StructuralItem {
-    override fun getName(): String? {
-        return this.drawing.toString()
-    }
+abstract class AbstractStructuralItem(secondaryStructureElement:SecondaryStructureElement?):StructuralItem {
+    override val secondaryStructureElement = secondaryStructureElement
 
     override fun getType(): String {
+        this.secondaryStructureElement?.let {
+            return it.getType()
+        }
         return ""
+    }
+}
+
+class SecondaryStructureItem(val drawing:SecondaryStructureDrawing): AbstractStructuralItem(null) {
+    override fun getName(): String? {
+        return this.drawing.toString()
     }
 
     override fun getLocation(): Location {
@@ -23,34 +31,27 @@ class SecondaryStructureItem(val drawing:SecondaryStructureDrawing): StructuralI
 
 }
 
-class JunctionItem(val junction:JunctionCircle): StructuralItem {
+class JunctionItem(val junction:JunctionCircle): AbstractStructuralItem(junction) {
+
+    private val locationWithoutSecondaries:Location
+
+    init {
+        this.locationWithoutSecondaries = junction.locationWithoutSecondaries //to compute it only once, and not with each call to the function getLocation in this class
+    }
     override fun getName(): String? {
         return this.junction.name
     }
 
-    override fun getType(): String {
-        var typeName: String = this.junction.type.name
-        if (typeName.endsWith("Way")) {
-            typeName = typeName.split("Way".toRegex()).toTypedArray()[0] + " Way Junction"
-        } else if (typeName.endsWith("Loop")) {
-            typeName = typeName.split("Loop".toRegex()).toTypedArray()[0] + " Loop"
-        }
-        return typeName
-    }
-
     override fun getLocation(): Location {
+        //return this.locationWithoutSecondaries
         return this.junction.location
     }
 
 }
 
-class HelixItem(val helix:HelixLine): StructuralItem {
+class HelixItem(val helix:HelixLine): AbstractStructuralItem(helix) {
     override fun getName(): String? {
         return this.helix.name
-    }
-
-    override fun getType(): String {
-        return "Helix"
     }
 
     override fun getLocation(): Location {
@@ -59,13 +60,9 @@ class HelixItem(val helix:HelixLine): StructuralItem {
 
 }
 
-class TertiaryInteractionItem(val tertiaryInteraction:TertiaryInteractionLine): StructuralItem {
+class TertiaryInteractionItem(val tertiaryInteraction:TertiaryInteractionLine): AbstractStructuralItem(tertiaryInteraction) {
     override fun getName(): String? {
         return this.tertiaryInteraction.toString()
-    }
-
-    override fun getType(): String {
-        return "Tertiary Interaction"
     }
 
     override fun getLocation(): Location {
@@ -74,13 +71,9 @@ class TertiaryInteractionItem(val tertiaryInteraction:TertiaryInteractionLine): 
 
 }
 
-class SecondaryInteractionItem(val secondaryInteraction:SecondaryInteractionLine): StructuralItem {
+class SecondaryInteractionItem(val secondaryInteraction:SecondaryInteractionLine): AbstractStructuralItem(secondaryInteraction) {
     override fun getName(): String? {
         return this.secondaryInteraction.toString()
-    }
-
-    override fun getType(): String {
-        return "Secondary Interaction"
     }
 
     override fun getLocation(): Location {
@@ -89,13 +82,9 @@ class SecondaryInteractionItem(val secondaryInteraction:SecondaryInteractionLine
 
 }
 
-class ResidueItem(val residue:ResidueCircle): StructuralItem {
+class ResidueItem(val residue:ResidueCircle): AbstractStructuralItem(residue) {
     override fun getName(): String? {
         return this.residue.label.toString()
-    }
-
-    override fun getType(): String {
-        return "Residue"
     }
 
     override fun getLocation(): Location {

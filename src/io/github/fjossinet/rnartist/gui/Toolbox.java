@@ -13,7 +13,6 @@ import javafx.event.EventHandler;
 import javafx.geometry.*;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
@@ -32,8 +31,12 @@ import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import javafx.util.Pair;
+import javafx.util.StringConverter;
 import org.controlsfx.control.GridCell;
 import org.controlsfx.control.GridView;
+import org.dizitart.no2.Document;
+import org.dizitart.no2.NitriteId;
 
 
 import javax.swing.*;
@@ -41,33 +44,45 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.List;
 
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getAWTColor;
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
 import static java.util.stream.Collectors.toList;
 import static javafx.collections.FXCollections.observableList;
 
-public class Toolbox implements ThemeConfigurator {
+public class Toolbox extends AbstractThemeConfigurator {
 
     private Stage stage;
     private Mediator mediator;
     private ColorPicker colorPicker1, colorPicker2, colorPicker3, colorPicker4, colorPicker5, colorPicker6, colorPicker7;
-    private ChoiceBox<String> structuralElement1,structuralElement2,structuralElement3,structuralElement4,structuralElement5,structuralElement6,structuralElement7,
+    private ChoiceBox<String>   structuralElement1 = new ChoiceBox<String>(),
+                                structuralElement2 = new ChoiceBox<String>(),
+                                structuralElement3 = new ChoiceBox<String>(),
+                                structuralElement4 = new ChoiceBox<String>(),
+                                structuralElement5 = new ChoiceBox<String>(),
+                                structuralElement6 = new ChoiceBox<String>(),
+                                structuralElement7 = new ChoiceBox<String>(),
                                 letterColor1,letterColor2,letterColor3,letterColor4,letterColor5,letterColor6,letterColor7;
     private Slider _3dOpacity, haloWidth, residueCharOpacity, secondaryInteractionShift;
     private ComboBox<String> fontNames, residueBorder, phosphoDiesterWidth,
             secondaryInteractionWidth,
             tertiaryInteractionWidth, tertiaryInteractionStyle;
+    private ComboBox<Object> structureElementsSelectedComboBox;
+    private ComboBox<Pair<String, NitriteId>> savedThemesComboBox;
+    private ObservableList<Pair<String, NitriteId>> savedThemes = FXCollections.observableList(new ArrayList());
     private Spinner<Integer> deltaXRes, deltaYRes, deltaFontSize;
-    private ObservableList<Theme> themesList;
     private FlowPane junctionKnobs = new FlowPane();
+
+    private ObservableList<ThemeFromWebsite> themesList;
 
     public Toolbox(Mediator mediator) {
         this.mediator = mediator;
         this.stage = new Stage();
         stage.setTitle("Toolbox");
         this.createScene(stage);
+        for (Document theme: mediator.getEmbeddedDB().getThemes().find()) {
+            this.savedThemes.add(new Pair<String,NitriteId>((String)theme.get("name"), theme.getId())) ;
+        }
         //new Thread(new LoadThemesFromWebsite()).run();
     }
 
@@ -101,6 +116,122 @@ public class Toolbox implements ThemeConfigurator {
         vbox.setFillWidth(true);
         vbox.setPadding(new Insets(20, 20, 20, 20));
         vbox.setSpacing(10);
+        //+++++ list of saved themes
+        this.savedThemesComboBox = new ComboBox<Pair<String,NitriteId>>(this.savedThemes);
+        this.savedThemesComboBox.setConverter(new StringConverter<Pair<String,NitriteId>>() {
+            @Override
+            public String toString(Pair<String,NitriteId> theme) {
+                if (theme != null)
+                    return theme.getKey();
+                return "";
+            }
+
+            @Override
+            public Pair<String,NitriteId> fromString(String s) {
+                return null;
+            }
+        });
+        this.savedThemesComboBox.setMaxWidth(Double.MAX_VALUE);
+        this.savedThemesComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Pair<String,NitriteId>>() {
+
+            public void changed(ObservableValue<? extends Pair<String,NitriteId>> ov,
+                                final Pair<String,NitriteId> oldvalue, final Pair<String,NitriteId> newvalue) {
+                if (newvalue != null) {
+                    loadTheme(mediator.getEmbeddedDB().getTheme(newvalue.getValue()));
+                }
+            }
+        });
+
+        Button applySavedTheme = new Button("Apply");
+        applySavedTheme.setMinWidth(75);
+        applySavedTheme.setDisable(true);
+        this.savedThemesComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Pair<String, NitriteId>>() {
+            @Override
+            public void changed(ObservableValue<? extends Pair<String, NitriteId>> observableValue, Pair<String, NitriteId> stringNitriteIdPair, Pair<String, NitriteId> newValue) {
+                if (newValue != null)
+                    applySavedTheme.setDisable(false);
+            }
+        });
+        applySavedTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                loadTheme(mediator.getEmbeddedDB().getTheme(savedThemesComboBox.getValue().getValue()));
+            }
+        });
+
+        GridPane savedThemesForm = new GridPane();
+        savedThemesForm.setHgap(5);
+        savedThemesForm.setVgap(10);
+        savedThemesForm.setPadding(new Insets(0, 0, 5, 0));
+
+        ColumnConstraints cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        savedThemesForm.getColumnConstraints().addAll(cc, new ColumnConstraints());
+
+        Label l = new Label("Your Saved Themes");
+        GridPane.setConstraints(l, 0,0,2,1);
+        savedThemesForm.getChildren().add(l);
+
+        GridPane.setConstraints(savedThemesComboBox, 0,1,1,1);
+        savedThemesForm.getChildren().add(savedThemesComboBox);
+
+        GridPane.setConstraints(applySavedTheme, 1,1,1,1);
+        savedThemesForm.getChildren().add(applySavedTheme);
+
+        vbox.getChildren().add(savedThemesForm);
+
+        //+++++list of the structural elements selected listening to theme modifications
+
+        this.structureElementsSelectedComboBox = new ComboBox<Object>(mediator.getStructureElementsSelected());
+        this.structureElementsSelectedComboBox.setConverter(new StringConverter<Object>() {
+            @Override
+            public String toString(Object secondaryStructureElement) {
+                if (secondaryStructureElement == null) {
+                    return "";
+                }
+                if (SecondaryStructureElement.class.isInstance(secondaryStructureElement))
+                    return ((SecondaryStructureElement)secondaryStructureElement).getType()+" "+((SecondaryStructureElement)secondaryStructureElement).getName()+ " "+((SecondaryStructureElement)secondaryStructureElement).getLocation().getDescription();
+                else if (String.class.isInstance(secondaryStructureElement)) {
+                    return secondaryStructureElement.toString();
+                }
+                return "";
+            }
+
+            @Override
+            public SecondaryStructureElement fromString(String s) {
+                return null;
+            }
+        });
+        this.structureElementsSelectedComboBox.setMaxWidth(Double.MAX_VALUE);
+        this.structureElementsSelectedComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Object>() {
+
+            public void changed(ObservableValue<? extends Object> ov,
+                                final Object oldvalue, final Object newvalue) {
+                removeThemeConfiguratorListeners();
+                if (newvalue != null) {
+                    if (newvalue.toString().equals("Full 2D")) {
+                        addThemeConfiguratorListener(mediator.getSecondaryStructureDrawing().getTheme());
+                        loadTheme(mediator.getSecondaryStructureDrawing().getTheme());
+                    } else if (newvalue.toString().equals("All Selected Elements")) {
+                        for (Object o : structureElementsSelectedComboBox.getItems().subList(2, structureElementsSelectedComboBox.getItems().size())) {
+                            addThemeConfiguratorListener(((SecondaryStructureElement) o).getTheme());
+                        }
+                        loadTheme((SecondaryStructureElement)structureElementsSelectedComboBox.getItems().get(2));
+                    } else {
+                        addThemeConfiguratorListener(((SecondaryStructureElement) newvalue).getTheme());
+                        loadTheme((SecondaryStructureElement)newvalue);
+                    }
+                    mediator.canvas2D.repaint();
+                }
+            }
+        });
+
+        VBox _vbox = new VBox();
+        _vbox.setSpacing(5);
+        _vbox.getChildren().add(new Label("Choose the Target"));
+        _vbox.getChildren().add(this.structureElementsSelectedComboBox);
+
+        vbox.getChildren().add(_vbox);
 
         //++++++ pane for the fonts
         Label title = new Label("Font");
@@ -112,18 +243,19 @@ public class Toolbox implements ThemeConfigurator {
         fontsPane.setVgap(10);
         fontsPane.setPadding(new Insets(0, 0, 5, 0));
 
-        ColumnConstraints cc = new ColumnConstraints();
+        cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
         fontsPane.getColumnConstraints().addAll(new ColumnConstraints(), new ColumnConstraints(),new ColumnConstraints(),new ColumnConstraints(),new ColumnConstraints(),cc);
 
         fontNames = new ComboBox<>(
                 observableList(Font.getFamilies().stream().distinct().collect(toList())));
 
-        EventHandler<ActionEvent> eventHandler = (event) -> {
+        EventHandler eventHandler = (event) -> {
             new SwingWorker() {
                 @Override
                 protected Object doInBackground() throws Exception {
                     try {
+                        fireThemeChange(ThemeParameter.FontName, fontNames.getValue());
                         mediator.getCanvas2D().repaint();
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -134,45 +266,48 @@ public class Toolbox implements ThemeConfigurator {
         };
 
         fontNames.setOnAction(eventHandler);
-        fontNames.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.FontName.toString()));
+        fontNames.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.FontName.toString()));
         fontNames.setMaxWidth(Double.MAX_VALUE);
         GridPane.setConstraints(fontNames, 0,0,6,1);
         fontsPane.getChildren().add(fontNames);
 
         deltaXRes = new Spinner<Integer>();
-        deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaXRes.toString()))));
+        deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.DeltaXRes.toString()))));
         deltaXRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
                 if (mediator.getSecondaryStructureDrawing() != null) {
+                    fireThemeChange(ThemeParameter.DeltaXRes, deltaXRes.getValue());
                     mediator.getCanvas2D().repaint();
                 }
             }
         });
 
         deltaYRes = new Spinner<Integer>();
-        deltaYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaYRes.toString()))));
+        deltaYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.DeltaYRes.toString()))));
         deltaYRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
                 if (mediator.getSecondaryStructureDrawing() != null) {
+                    fireThemeChange(ThemeParameter.DeltaYRes, deltaYRes.getValue());
                     mediator.getCanvas2D().repaint();
                 }
             }
         });
 
         deltaFontSize = new Spinner<Integer>();
-        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 5, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.DeltaFontSize.toString()))));
+        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 5, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.DeltaFontSize.toString()))));
         deltaFontSize.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
                 if (mediator.getSecondaryStructureDrawing() != null) {
+                    fireThemeChange(ThemeParameter.DeltaFontSize, deltaFontSize.getValue().intValue());
                     mediator.getCanvas2D().repaint();
                 }
             }
         });
 
-        Label l = new Label("x");
+        l = new Label("x");
         GridPane.setConstraints(l, 0,1,1,1);
         fontsPane.getChildren().add(l);
         GridPane.setConstraints(deltaXRes, 1,1,1,1);
@@ -204,7 +339,7 @@ public class Toolbox implements ThemeConfigurator {
         GridPane.setConstraints(l, 0,0,4,1);
         GridPane.setValignment(l,VPos.TOP);
         fontsPane2.getChildren().add(l);
-        this.residueCharOpacity = new Slider(0, 100, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.ResidueCharOpacity.toString()))/255.0*100.0);
+        this.residueCharOpacity = new Slider(0, 100, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.ResidueCharOpacity.toString()))/255.0*100.0);
         this.residueCharOpacity.setShowTickLabels(true);
         this.residueCharOpacity.setShowTickMarks(true);
         this.residueCharOpacity.setMajorTickUnit(50);
@@ -213,6 +348,7 @@ public class Toolbox implements ThemeConfigurator {
         this.residueCharOpacity.setOnMouseReleased(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
+                fireThemeChange(ThemeParameter.ResidueCharOpacity,(int) ((double)(residueCharOpacity.getValue()) / 100.0 * 255.0));
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -264,7 +400,7 @@ public class Toolbox implements ThemeConfigurator {
                 observableList(colorSchemes));
 
         eventHandler = (event) -> {
-                    Map<String, String> colors = RnartistConfig.defaultColorSchemes.get(colorSchemeChoices.getValue());
+                    Theme colors = RnartistConfig.defaultColorSchemes.get(colorSchemeChoices.getValue());
                     try {
                         loadTheme(colors);
                         mediator.getCanvas2D().repaint();
@@ -281,77 +417,248 @@ public class Toolbox implements ThemeConfigurator {
         colorsPane.getChildren().add(colorSchemeChoices);
 
         colorPicker1 = new ColorPicker();
-        colorPicker1.setOnAction(new EventHandler() {
+        colorPicker1.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
             @Override
-            public void handle(javafx.event.Event event) {
-                mediator.getCanvas2D().repaint();
+            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
+                if (structuralElement1.getValue()!=null) {
+                    switch (structuralElement1.getValue()) {
+                        case "A":
+                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker1.getValue()));
+                            break;
+                        case "U":
+                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker1.getValue()));
+                            break;
+                        case "G":
+                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker1.getValue()));
+                            break;
+                        case "C":
+                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker1.getValue()));
+                            break;
+                        case "X":
+                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker1.getValue()));
+                            break;
+                        case "2D":
+                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker1.getValue()));
+                            break;
+                        case "3D":
+                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker1.getValue()));
+                            break;
+                    }
+                    mediator.getCanvas2D().repaint();
+                }
             }
         });
-        colorPicker1.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.AColor.toString()))));
+        colorPicker1.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.AColor.toString()))));
         colorPicker1.setMaxWidth(Double.MAX_VALUE);
 
         colorPicker2 = new ColorPicker();
-        colorPicker2.setOnAction(new EventHandler() {
+        colorPicker2.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
             @Override
-            public void handle(javafx.event.Event event) {
-                mediator.getCanvas2D().repaint();
+            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
+                if (structuralElement1.getValue() != null) {
+                    switch (structuralElement2.getValue()) {
+                        case "A":
+                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker2.getValue()));
+                            break;
+                        case "U":
+                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker2.getValue()));
+                            break;
+                        case "G":
+                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker2.getValue()));
+                            break;
+                        case "C":
+                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker2.getValue()));
+                            break;
+                        case "X":
+                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker2.getValue()));
+                            break;
+                        case "2D":
+                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker2.getValue()));
+                            break;
+                        case "3D":
+                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker2.getValue()));
+                            break;
+                    }
+                    mediator.getCanvas2D().repaint();
+                }
             }
         });
-        colorPicker2.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.UColor.toString()))));
+        colorPicker2.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.UColor.toString()))));
         colorPicker2.setMaxWidth(Double.MAX_VALUE);
 
         colorPicker3 = new ColorPicker();
-        colorPicker3.setOnAction(new EventHandler() {
+        colorPicker3.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
             @Override
-            public void handle(javafx.event.Event event) {
-                mediator.getCanvas2D().repaint();
+            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
+                if (structuralElement1.getValue() != null) {
+                    switch (structuralElement3.getValue()) {
+                        case "A":
+                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker3.getValue()));
+                            break;
+                        case "U":
+                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker3.getValue()));
+                            break;
+                        case "G":
+                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker3.getValue()));
+                            break;
+                        case "C":
+                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker3.getValue()));
+                            break;
+                        case "X":
+                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker3.getValue()));
+                            break;
+                        case "2D":
+                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker3.getValue()));
+                            break;
+                        case "3D":
+                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker3.getValue()));
+                            break;
+                    }
+                    mediator.getCanvas2D().repaint();
+                }
             }
-
         });
-        colorPicker3.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.GColor.toString()))));
+        colorPicker3.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.GColor.toString()))));
         colorPicker3.setMaxWidth(Double.MAX_VALUE);
 
         colorPicker4 = new ColorPicker();
-        colorPicker4.setOnAction(new EventHandler() {
+        colorPicker4.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
             @Override
-            public void handle(javafx.event.Event event) {
-                mediator.getCanvas2D().repaint();
+            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
+                if (structuralElement1.getValue() != null) {
+                    switch (structuralElement4.getValue()) {
+                        case "A":
+                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker4.getValue()));
+                            break;
+                        case "U":
+                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker4.getValue()));
+                            break;
+                        case "G":
+                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker4.getValue()));
+                            break;
+                        case "C":
+                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker4.getValue()));
+                            break;
+                        case "X":
+                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker4.getValue()));
+                            break;
+                        case "2D":
+                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker4.getValue()));
+                            break;
+                        case "3D":
+                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker4.getValue()));
+                            break;
+                    }
+                    mediator.getCanvas2D().repaint();
+                }
             }
-
         });
-        colorPicker4.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.CColor.toString()))));
+        colorPicker4.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.CColor.toString()))));
         colorPicker4.setMaxWidth(Double.MAX_VALUE);
 
         colorPicker5 = new ColorPicker();
-        colorPicker5.setOnAction(new EventHandler() {
+        colorPicker5.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
             @Override
-            public void handle(javafx.event.Event event) {
-                mediator.getCanvas2D().repaint();
+            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
+                if (structuralElement1.getValue() != null) {
+                    switch (structuralElement5.getValue()) {
+                        case "A":
+                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker5.getValue()));
+                            break;
+                        case "U":
+                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker5.getValue()));
+                            break;
+                        case "G":
+                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker5.getValue()));
+                            break;
+                        case "C":
+                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker5.getValue()));
+                            break;
+                        case "X":
+                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker5.getValue()));
+                            break;
+                        case "2D":
+                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker5.getValue()));
+                            break;
+                        case "3D":
+                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker5.getValue()));
+                            break;
+                    }
+                    mediator.getCanvas2D().repaint();
+                }
             }
-
         });
-        colorPicker5.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.XColor.toString()))));
+        colorPicker5.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.XColor.toString()))));
         colorPicker5.setMaxWidth(Double.MAX_VALUE);
 
         colorPicker6 = new ColorPicker();
-        colorPicker6.setOnAction(new EventHandler() {
+        colorPicker6.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
             @Override
-            public void handle(javafx.event.Event event) {
-                mediator.getCanvas2D().repaint();
+            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
+                if (structuralElement1.getValue() != null) {
+                    switch (structuralElement6.getValue()) {
+                        case "A":
+                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker6.getValue()));
+                            break;
+                        case "U":
+                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker6.getValue()));
+                            break;
+                        case "G":
+                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker6.getValue()));
+                            break;
+                        case "C":
+                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker6.getValue()));
+                            break;
+                        case "X":
+                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker6.getValue()));
+                            break;
+                        case "2D":
+                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker6.getValue()));
+                            break;
+                        case "3D":
+                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker6.getValue()));
+                            break;
+                    }
+                    mediator.getCanvas2D().repaint();
+                }
             }
         });
-        colorPicker6.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryColor.toString()))));
+        colorPicker6.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.SecondaryColor.toString()))));
         colorPicker6.setMaxWidth(Double.MAX_VALUE);
 
         colorPicker7 = new ColorPicker();
-        colorPicker7.setOnAction(new EventHandler() {
+        colorPicker7.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
             @Override
-            public void handle(javafx.event.Event event) {
-                mediator.getCanvas2D().repaint();
+            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
+                if (structuralElement1.getValue() != null) {
+                    switch (structuralElement7.getValue()) {
+                        case "A":
+                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker7.getValue()));
+                            break;
+                        case "U":
+                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker7.getValue()));
+                            break;
+                        case "G":
+                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker7.getValue()));
+                            break;
+                        case "C":
+                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker7.getValue()));
+                            break;
+                        case "X":
+                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker7.getValue()));
+                            break;
+                        case "2D":
+                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker7.getValue()));
+                            break;
+                        case "3D":
+                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker7.getValue()));
+                            break;
+                    }
+                    mediator.getCanvas2D().repaint();
+                }
             }
-
         });
-        colorPicker7.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryColor.toString()))));
+        colorPicker7.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.TertiaryColor.toString()))));
         colorPicker7.setMaxWidth(Double.MAX_VALUE);
 
         l = new Label("Background");
@@ -363,7 +670,6 @@ public class Toolbox implements ThemeConfigurator {
         GridPane.setHalignment(l,HPos.CENTER);
         colorsPane.getChildren().add(l);
 
-        this.structuralElement1 = new ChoiceBox();
         structuralElement1.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement1.setValue("A");
         GridPane.setConstraints(structuralElement1, 0,2,1,1);
@@ -375,13 +681,21 @@ public class Toolbox implements ThemeConfigurator {
         this.letterColor1 = new ChoiceBox<String>();
         letterColor1.setMaxWidth(Double.MAX_VALUE);
         letterColor1.getItems().addAll("White", "Black");
-        letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
         letterColor1.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                switch (structuralElement1.getValue()) {
+                    case "A" : fireThemeChange(ThemeParameter.AChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "U" : fireThemeChange(ThemeParameter.UChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "G" : fireThemeChange(ThemeParameter.GChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "C" : fireThemeChange(ThemeParameter.CChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "X" : fireThemeChange(ThemeParameter.XChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
+
         GridPane.setConstraints(letterColor1, 2,2,1,1);
         colorsPane.getChildren().add(letterColor1);
         GridPane.setHalignment(letterColor1,HPos.CENTER);
@@ -389,11 +703,11 @@ public class Toolbox implements ThemeConfigurator {
             @Override
             public void handle(ActionEvent actionEvent) {
                 switch (structuralElement1.getValue()) {
-                    case "A": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
-                    case "U": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "G": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "C": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "X": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "A": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor1.setDisable(false); letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
                     case "2D": letterColor1.setDisable(true); break;
                     case "3D": letterColor1.setDisable(true); break;
                 }
@@ -401,7 +715,6 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        this.structuralElement2 = new ChoiceBox();
         structuralElement2.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement2.setValue("U");
         GridPane.setConstraints(structuralElement2, 0,3,1,1);
@@ -413,10 +726,17 @@ public class Toolbox implements ThemeConfigurator {
         this.letterColor2 = new ChoiceBox<String>();
         letterColor2.setMaxWidth(Double.MAX_VALUE);
         letterColor2.getItems().addAll("White", "Black");
-        letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
         letterColor2.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                switch (structuralElement2.getValue()) {
+                    case "A" : fireThemeChange(ThemeParameter.AChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "U" : fireThemeChange(ThemeParameter.UChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "G" : fireThemeChange(ThemeParameter.GChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "C" : fireThemeChange(ThemeParameter.CChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "X" : fireThemeChange(ThemeParameter.XChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -427,11 +747,11 @@ public class Toolbox implements ThemeConfigurator {
             @Override
             public void handle(ActionEvent actionEvent) {
                 switch (structuralElement2.getValue()) {
-                    case "A": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
-                    case "U": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "G": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "C": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "X": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "A": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor2.setDisable(false); letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
                     case "2D": letterColor2.setDisable(true); break;
                     case "3D": letterColor2.setDisable(true); break;
                 }
@@ -439,7 +759,6 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        this.structuralElement3 = new ChoiceBox();
         structuralElement3.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement3.setValue("G");
         GridPane.setConstraints(structuralElement3, 0,4,1,1);
@@ -451,10 +770,17 @@ public class Toolbox implements ThemeConfigurator {
         this.letterColor3 = new ChoiceBox<String>();
         letterColor3.setMaxWidth(Double.MAX_VALUE);
         letterColor3.getItems().addAll("White", "Black");
-        letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
         letterColor3.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                switch (structuralElement3.getValue()) {
+                    case "A" : fireThemeChange(ThemeParameter.AChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "U" : fireThemeChange(ThemeParameter.UChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "G" : fireThemeChange(ThemeParameter.GChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "C" : fireThemeChange(ThemeParameter.CChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "X" : fireThemeChange(ThemeParameter.XChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -465,11 +791,11 @@ public class Toolbox implements ThemeConfigurator {
             @Override
             public void handle(ActionEvent actionEvent) {
                 switch (structuralElement3.getValue()) {
-                    case "A": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
-                    case "U": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "G": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "C": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "X": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "A": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor3.setDisable(false); letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
                     case "2D": letterColor3.setDisable(true); break;
                     case "3D": letterColor3.setDisable(true); break;
                 }
@@ -477,7 +803,6 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        this.structuralElement4 = new ChoiceBox();
         structuralElement4.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement4.setValue("C");
         GridPane.setConstraints(structuralElement4, 0,5,1,1);
@@ -489,10 +814,17 @@ public class Toolbox implements ThemeConfigurator {
         this.letterColor4 = new ChoiceBox<String>();
         letterColor4.setMaxWidth(Double.MAX_VALUE);
         letterColor4.getItems().addAll("White", "Black");
-        letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
         letterColor4.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                switch (structuralElement4.getValue()) {
+                    case "A" : fireThemeChange(ThemeParameter.AChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "U" : fireThemeChange(ThemeParameter.UChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "G" : fireThemeChange(ThemeParameter.GChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "C" : fireThemeChange(ThemeParameter.CChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "X" : fireThemeChange(ThemeParameter.XChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -503,11 +835,11 @@ public class Toolbox implements ThemeConfigurator {
             @Override
             public void handle(ActionEvent actionEvent) {
                 switch (structuralElement4.getValue()) {
-                    case "A": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
-                    case "U": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "G": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "C": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "X": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "A": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor4.setDisable(false); letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
                     case "2D": letterColor4.setDisable(true); break;
                     case "3D": letterColor4.setDisable(true); break;
                 }
@@ -515,7 +847,6 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        this.structuralElement5 = new ChoiceBox();
         structuralElement5.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement5.setValue("X");
         GridPane.setConstraints(structuralElement5, 0,6,1,1);
@@ -527,10 +858,17 @@ public class Toolbox implements ThemeConfigurator {
         this.letterColor5 = new ChoiceBox<String>();
         letterColor5.setMaxWidth(Double.MAX_VALUE);
         letterColor5.getItems().addAll("White", "Black");
-        letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
         letterColor5.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                switch (structuralElement5.getValue()) {
+                    case "A" : fireThemeChange(ThemeParameter.AChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "U" : fireThemeChange(ThemeParameter.UChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "G" : fireThemeChange(ThemeParameter.GChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "C" : fireThemeChange(ThemeParameter.CChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "X" : fireThemeChange(ThemeParameter.XChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -542,11 +880,11 @@ public class Toolbox implements ThemeConfigurator {
             @Override
             public void handle(ActionEvent actionEvent) {
                 switch (structuralElement5.getValue()) {
-                    case "A": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
-                    case "U": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "G": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "C": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "X": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "A": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor5.setDisable(false); letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
                     case "2D": letterColor5.setDisable(true); break;
                     case "3D": letterColor5.setDisable(true); break;
                 }
@@ -554,7 +892,6 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        this.structuralElement6 = new ChoiceBox();
         structuralElement6.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement6.setValue("2D");
         GridPane.setConstraints(structuralElement6, 0,7,1,1);
@@ -571,6 +908,13 @@ public class Toolbox implements ThemeConfigurator {
         letterColor6.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                switch (structuralElement6.getValue()) {
+                    case "A" : fireThemeChange(ThemeParameter.AChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "U" : fireThemeChange(ThemeParameter.UChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "G" : fireThemeChange(ThemeParameter.GChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "C" : fireThemeChange(ThemeParameter.CChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "X" : fireThemeChange(ThemeParameter.XChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -582,11 +926,11 @@ public class Toolbox implements ThemeConfigurator {
             @Override
             public void handle(ActionEvent actionEvent) {
                 switch (structuralElement6.getValue()) {
-                    case "A": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
-                    case "U": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "G": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "C": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "X": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "A": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor6.setDisable(false); letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
                     case "2D": letterColor6.setDisable(true); break;
                     case "3D": letterColor6.setDisable(true); break;
                 }
@@ -594,7 +938,6 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        this.structuralElement7 = new ChoiceBox<String>();
         structuralElement7.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement7.setValue("3D");
         GridPane.setConstraints(structuralElement7, 0,8,1,1);
@@ -611,6 +954,13 @@ public class Toolbox implements ThemeConfigurator {
         letterColor7.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                switch (structuralElement7.getValue()) {
+                    case "A" : fireThemeChange(ThemeParameter.AChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "U" : fireThemeChange(ThemeParameter.UChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "G" : fireThemeChange(ThemeParameter.GChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "C" : fireThemeChange(ThemeParameter.CChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                    case "X" : fireThemeChange(ThemeParameter.XChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK); break;
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -622,11 +972,11 @@ public class Toolbox implements ThemeConfigurator {
             @Override
             public void handle(ActionEvent actionEvent) {
                 switch (structuralElement7.getValue()) {
-                    case "A": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
-                    case "U": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "G": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "C": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
-                    case "X": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "A": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black"); break;
+                    case "U": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "G": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "C": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
+                    case "X": letterColor7.setDisable(false); letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");break;
                     case "2D": letterColor7.setDisable(true); break;
                     case "3D": letterColor7.setDisable(true); break;
                 }
@@ -659,12 +1009,13 @@ public class Toolbox implements ThemeConfigurator {
 
         residueBorder = new ComboBox<>();
         residueBorder.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0");
-        residueBorder.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.ResidueBorder.toString()));
+        residueBorder.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.ResidueBorder.toString()));
         residueBorder.setCellFactory(new ShapeCellFactory());
         residueBorder.setButtonCell(new ShapeCell());
         residueBorder.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
+                fireThemeChange(ThemeParameter.ResidueBorder,Double.parseDouble(residueBorder.getValue()));
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -683,12 +1034,13 @@ public class Toolbox implements ThemeConfigurator {
 
         phosphoDiesterWidth = new ComboBox<>();
         phosphoDiesterWidth.getItems().addAll("0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
-        phosphoDiesterWidth.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.PhosphodiesterWidth.toString()));
+        phosphoDiesterWidth.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.PhosphodiesterWidth.toString()));
         phosphoDiesterWidth.setCellFactory(new ShapeCellFactory());
         phosphoDiesterWidth.setButtonCell(new ShapeCell());
         phosphoDiesterWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
+                fireThemeChange(ThemeParameter.PhosphodiesterWidth, Double.parseDouble(phosphoDiesterWidth.getValue()));
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -707,12 +1059,13 @@ public class Toolbox implements ThemeConfigurator {
 
         secondaryInteractionWidth = new ComboBox<>();
         secondaryInteractionWidth.getItems().addAll("0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
-        secondaryInteractionWidth.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryInteractionWidth.toString()));
+        secondaryInteractionWidth.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.SecondaryInteractionWidth.toString()));
         secondaryInteractionWidth.setCellFactory(new ShapeCellFactory());
         secondaryInteractionWidth.setButtonCell(new ShapeCell());
         secondaryInteractionWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
+                fireThemeChange(ThemeParameter.SecondaryInteractionWidth, Double.parseDouble(secondaryInteractionWidth.getValue()));
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -729,7 +1082,7 @@ public class Toolbox implements ThemeConfigurator {
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
-        secondaryInteractionShift = new Slider(0, 10, Double.parseDouble(RnartistConfig.defaultTheme.get(ThemeParameter.SecondaryInteractionShift.toString())));
+        secondaryInteractionShift = new Slider(0, 10, Double.parseDouble(RnartistConfig.defaultThemeParams.get(ThemeParameter.SecondaryInteractionShift.toString())));
         secondaryInteractionShift.setShowTickLabels(true);
         secondaryInteractionShift.setShowTickMarks(true);
         secondaryInteractionShift.setMajorTickUnit(50);
@@ -737,6 +1090,7 @@ public class Toolbox implements ThemeConfigurator {
         secondaryInteractionShift.setOnMouseReleased(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
+                fireThemeChange(ThemeParameter.SecondaryInteractionShift, secondaryInteractionShift.getValue());
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -756,12 +1110,13 @@ public class Toolbox implements ThemeConfigurator {
 
         tertiaryInteractionWidth = new ComboBox<>();
         tertiaryInteractionWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
-        tertiaryInteractionWidth.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryInteractionWidth.toString()));
+        tertiaryInteractionWidth.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.TertiaryInteractionWidth.toString()));
         tertiaryInteractionWidth.setCellFactory(new ShapeCellFactory());
         tertiaryInteractionWidth.setButtonCell(new ShapeCell());
         tertiaryInteractionWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
+                fireThemeChange(ThemeParameter.TertiaryInteractionWidth, tertiaryInteractionWidth.getValue());
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -780,10 +1135,11 @@ public class Toolbox implements ThemeConfigurator {
 
         tertiaryInteractionStyle = new ComboBox<>();
         tertiaryInteractionStyle.getItems().addAll("solid", "dashed");
-        tertiaryInteractionStyle.setValue(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryInteractionStyle.toString()));
+        tertiaryInteractionStyle.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.TertiaryInteractionStyle.toString()));
         tertiaryInteractionStyle.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
+                fireThemeChange(ThemeParameter.TertiaryInteractionStyle, tertiaryInteractionStyle.getValue());
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -801,7 +1157,7 @@ public class Toolbox implements ThemeConfigurator {
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
-        _3dOpacity = new Slider(0, 100, Integer.parseInt(RnartistConfig.defaultTheme.get(ThemeParameter.TertiaryOpacity.toString()))/255.0*100.0);
+        _3dOpacity = new Slider(0, 100, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.TertiaryOpacity.toString()))/255.0*100.0);
         _3dOpacity.setShowTickLabels(true);
         _3dOpacity.setShowTickMarks(true);
         _3dOpacity.setMajorTickUnit(50);
@@ -809,6 +1165,7 @@ public class Toolbox implements ThemeConfigurator {
         _3dOpacity.setOnMouseReleased(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
+                fireThemeChange(ThemeParameter.TertiaryOpacity, (int)((double)(_3dOpacity.getValue())/100.0*255));
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -827,7 +1184,7 @@ public class Toolbox implements ThemeConfigurator {
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.RIGHT);
 
-        haloWidth = new Slider(0, 20, Double.parseDouble(RnartistConfig.defaultTheme.get(ThemeParameter.HaloWidth.toString())));;
+        haloWidth = new Slider(0, 20, Double.parseDouble(RnartistConfig.defaultThemeParams.get(ThemeParameter.HaloWidth.toString())));;
         haloWidth.setShowTickLabels(true);
         haloWidth.setShowTickMarks(true);
         haloWidth.setMajorTickUnit(5);
@@ -835,6 +1192,7 @@ public class Toolbox implements ThemeConfigurator {
         haloWidth.setOnMouseReleased(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
+                fireThemeChange(ThemeParameter.HaloWidth, haloWidth.getValue());
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -864,36 +1222,65 @@ public class Toolbox implements ThemeConfigurator {
             }
         });
 
-        Button saveTheme = new Button("Set as Default");
+        Button saveTheme = new Button("Save this Theme");
 
         saveTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent e) {
-                try {
-                    RnartistConfig.save(mediator.getToolbox().getTheme());
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Theme Saved!");
-                    alert.setHeaderText("Your current theme is now the default one!");
-                    alert.setContentText(null);
-                    alert.showAndWait();
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
+                TextInputDialog dialog = new TextInputDialog();
+                dialog.setTitle("Theme Saving");
+                dialog.setHeaderText("Choose a Name for your Theme");
+
+                Optional<String> response = dialog.showAndWait();
+
+                response.ifPresent(name -> {
+                    NitriteId id = null;
+                    if (structureElementsSelectedComboBox.getValue() == "Full 2D")
+                        id = mediator.getEmbeddedDB().addTheme(name, mediator.getSecondaryStructureDrawing().getTheme());
+                    else
+                        id = mediator.getEmbeddedDB().addTheme(name, ((SecondaryStructureElement) structureElementsSelectedComboBox.getItems().get(structureElementsSelectedComboBox.getItems().size()-1)).getTheme());
+                    if (id != null)
+                        savedThemes.add(new Pair<>(name,id));
+                });
+            }
+        });
+
+        Button restoreParentTheme = new Button("Restore Parent Theme");
+
+        restoreParentTheme.setDisable(true);
+
+        this.structureElementsSelectedComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Object>() {
+            @Override
+            public void changed(ObservableValue<?> observableValue, Object o, Object newValue) {
+                if (newValue.toString().equals("Full 2D")) {
+                    restoreParentTheme.setDisable(true);
+                } else {
+                    restoreParentTheme.setDisable(false);
                 }
             }
         });
 
-        Button restoreDefault = new Button("Restore Default");
-
-        restoreDefault.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        restoreParentTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent e) {
-                loadTheme(RnartistConfig.defaultTheme);
+                if (structureElementsSelectedComboBox.getValue().toString().equals("All Selected Elements")) {
+                    for (Object el : structureElementsSelectedComboBox.getItems()) {
+                        if (SecondaryStructureElement.class.isInstance(el)) {
+                            ((SecondaryStructureElement)el).getTheme().clear();
+                            loadTheme((SecondaryStructureElement)el);
+                        }
+                    }
+                } else {
+                    SecondaryStructureElement el = (SecondaryStructureElement)structureElementsSelectedComboBox.getValue();
+                    el.getTheme().clear();
+                    loadTheme(el);
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
-        saveForm.getChildren().add(restoreDefault);
+        saveForm.getChildren().add(restoreParentTheme);
         saveForm.getChildren().add(saveTheme);
-        saveForm.getChildren().add(shareOnline);
+        //saveForm.getChildren().add(shareOnline);
 
         Button themesWebpage = new Button("See User Community Themes");
         themesWebpage.setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -918,6 +1305,14 @@ public class Toolbox implements ThemeConfigurator {
         parent.getChildren().add(saveForm);
         Tab theme = new Tab("Theme", parent);
         root.getTabs().add(theme);
+    }
+
+    public ComboBox<Object> getStructureElementsSelectedComboBox() {
+        return structureElementsSelectedComboBox;
+    }
+
+    public ComboBox<Pair<String, NitriteId>> getSavedThemesComboBox() {
+        return savedThemesComboBox;
     }
 
     private void createLayoutPanel(TabPane root) {
@@ -965,30 +1360,20 @@ public class Toolbox implements ThemeConfigurator {
         return junctionKnobs;
     }
 
-    public Slider getResidueCharOpacitySlider() {
-        return this.residueCharOpacity;
-    }
-
-    public void unselectJunctionKnobs() {
-        for (Node node:junctionKnobs.getChildren()) {
-            ((JunctionKnob)((VBox)node).getChildren().get(0)).unselect();
-        }
-    }
-
     private void createAllThemesPanel(TabPane root) {
         VBox vbox =  new VBox();
         vbox.setFillWidth(true);
 
         themesList = FXCollections.observableArrayList();
 
-        GridView<Theme> gridView = new GridView<Theme>(themesList);
+        GridView<ThemeFromWebsite> gridView = new GridView<ThemeFromWebsite>(themesList);
         gridView.setHorizontalCellSpacing(5);
         gridView.setVerticalCellSpacing(5);
         gridView.setCellWidth(400.0);
         gridView.setCellHeight(300.0);
-        gridView.setCellFactory(new Callback<GridView<Theme>, GridCell<Theme>>() {
+        gridView.setCellFactory(new Callback<GridView<ThemeFromWebsite>, GridCell<ThemeFromWebsite>>() {
             @Override
-            public GridCell<Theme> call(GridView<Theme> lv) {
+            public GridCell<ThemeFromWebsite> call(GridView<ThemeFromWebsite> lv) {
                 return new ThemeCell();
             }
         });
@@ -1168,44 +1553,145 @@ public class Toolbox implements ThemeConfigurator {
         GridPane.setConstraints(l, 1,4);*/
     }
 
-    public void loadTheme(Map<String,String> theme) {
-        structuralElement1.setValue("A");
-        colorPicker1.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.AColor.toString(), colorPicker1.getValue().toString())));
-        letterColor1.setValue(theme.getOrDefault(ThemeParameter.AChar.toString(), letterColor1.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
-        structuralElement2.setValue("U");
-        colorPicker2.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.UColor.toString(), colorPicker2.getValue().toString())));
-        letterColor2.setValue(theme.getOrDefault(ThemeParameter.UChar.toString(), letterColor2.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
-        structuralElement3.setValue("G");
-        colorPicker3.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.GColor.toString(), colorPicker4.getValue().toString())));
-        letterColor3.setValue(theme.getOrDefault(ThemeParameter.GChar.toString(), letterColor3.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
-        structuralElement4.setValue("C");
-        letterColor4.setValue(theme.getOrDefault(ThemeParameter.CChar.toString(), letterColor4.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
-        colorPicker4.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.CColor.toString(), colorPicker3.getValue().toString())));
-        structuralElement5.setValue("X");
-        letterColor5.setValue(theme.getOrDefault(ThemeParameter.XChar.toString(), letterColor5.getValue().toString()).toLowerCase().equals("#000000") ? "Black" : "White");
-        colorPicker5.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.XColor.toString(), colorPicker5.getValue().toString())));
-        structuralElement6.setValue("2D");
-        colorPicker6.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.SecondaryColor.toString(), colorPicker6.getValue().toString())));
-        structuralElement7.setValue("3D");
-        colorPicker7.setValue(javafx.scene.paint.Color.web(theme.getOrDefault(ThemeParameter.TertiaryColor.toString(), colorPicker7.getValue().toString())));
-        _3dOpacity.setValue((int)(100.0/255.0*Integer.parseInt(theme.getOrDefault(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0)))));
-        residueCharOpacity.setValue((int)(100.0/255.0*Integer.parseInt(theme.getOrDefault(ThemeParameter.ResidueCharOpacity.toString(), ""+(int)(residueCharOpacity.getValue()*255.0/100.0)))));
-        phosphoDiesterWidth.setValue(theme.getOrDefault(ThemeParameter.PhosphodiesterWidth.toString(), ""+getPhosphoDiesterWidth()));
-        secondaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth()));
-        secondaryInteractionShift.setValue(Double.parseDouble(theme.getOrDefault(ThemeParameter.SecondaryInteractionShift.toString(), ""+getSecondaryInteractionShift())));
-        tertiaryInteractionWidth.setValue(theme.getOrDefault(ThemeParameter.TertiaryInteractionWidth.toString(),""+getTertiaryInteractionWidth()));
-        haloWidth.setValue(Double.parseDouble(theme.getOrDefault(ThemeParameter.HaloWidth.toString(),""+getHaloWidth())));
-        residueBorder.setValue(theme.getOrDefault(ThemeParameter.ResidueBorder.toString(),""+getResidueBorder()));
-        tertiaryInteractionStyle.setValue(theme.getOrDefault(ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue()));
-        fontNames.setValue(theme.getOrDefault(ThemeParameter.FontName.toString(), getFontName()));
-        deltaXRes.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.DeltaXRes.toString(), ""+getDeltaXRes())));
-        deltaYRes.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.DeltaYRes.toString(), ""+getDeltaYRes())));
-        deltaFontSize.getValueFactory().setValue(Integer.parseInt(theme.getOrDefault(ThemeParameter.DeltaFontSize.toString(), ""+getDeltaFontSize())));
+    public void loadTheme(Theme theme) {
+        if (theme.getAColor() != null) {
+            structuralElement1.setValue("A");
+            colorPicker1.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getAColor())));
+            letterColor1.setValue(getHTMLColorString(theme.getAColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+        }
+
+        if (theme.getUColor() != null) {
+            structuralElement2.setValue("U");
+            colorPicker2.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getUColor())));
+            letterColor2.setValue(getHTMLColorString(theme.getUColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+        }
+
+        if (theme.getGColor() != null) {
+            structuralElement3.setValue("G");
+            colorPicker3.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getGColor())));
+            letterColor3.setValue(getHTMLColorString(theme.getGColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+        }
+
+        if (theme.getCColor() != null) {
+            structuralElement4.setValue("C");
+            colorPicker4.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getCColor())));
+            letterColor4.setValue(getHTMLColorString(theme.getCColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+        }
+
+        if (theme.getXColor() != null) {
+            structuralElement5.setValue("X");
+            colorPicker5.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getXColor())));
+            letterColor5.setValue(getHTMLColorString(theme.getXColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+        }
+
+        if (theme.getSecondaryColor() != null) {
+            structuralElement6.setValue("2D");
+            colorPicker6.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getSecondaryColor())));
+        }
+
+        if (theme.getTertiaryColor() != null) {
+            structuralElement7.setValue("3D");
+            colorPicker7.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getTertiaryColor())));
+        }
+
+        if (theme.getTertiaryOpacity() != null)
+            _3dOpacity.setValue(theme.getTertiaryOpacity());
+
+        if (theme.getResidueCharOpacity() != null)
+            residueCharOpacity.setValue(theme.getResidueCharOpacity());
+
+        if (theme.getPhosphoDiesterWidth() != null)
+            phosphoDiesterWidth.setValue(""+theme.getPhosphoDiesterWidth());
+
+        if (theme.getSecondaryInteractionWidth() != null)
+            secondaryInteractionWidth.setValue(""+theme.getSecondaryInteractionWidth());
+
+        if (theme.getSecondaryInteractionShift() != null)
+            secondaryInteractionShift.setValue(theme.getSecondaryInteractionShift());
+
+        if (theme.getTertiaryInteractionWidth() != null)
+            tertiaryInteractionWidth.setValue(""+theme.getTertiaryInteractionWidth());
+
+        if (theme.getHaloWidth() != null)
+            haloWidth.setValue(theme.getHaloWidth());
+
+        if (theme.getResidueBorder() != null)
+            residueBorder.setValue(""+theme.getResidueBorder());
+
+        if (theme.getTertiaryInteractionStyle() != null)
+            tertiaryInteractionStyle.setValue(theme.getTertiaryInteractionStyle());
+
+        if (theme.getFontName() != null)
+            fontNames.setValue(theme.getFontName());
+
+        if (theme.getDeltaXRes() != null)
+            deltaXRes.getValueFactory().setValue(theme.getDeltaXRes());
+
+        if (theme.getDeltaYRes() != null)
+            deltaYRes.getValueFactory().setValue(theme.getDeltaYRes());
+
+        if (theme.getDeltaFontSize() != null)
+            deltaFontSize.getValueFactory().setValue(theme.getDeltaFontSize());
+    }
+
+
+    public void loadTheme(SecondaryStructureElement element) {
+            structuralElement1.setValue("A");
+            colorPicker1.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getAColor())));
+            letterColor1.setValue(getHTMLColorString(element.getAColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+
+            structuralElement2.setValue("U");
+            colorPicker2.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getUColor())));
+            letterColor2.setValue(getHTMLColorString(element.getUColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+
+            structuralElement3.setValue("G");
+            colorPicker3.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getGColor())));
+            letterColor3.setValue(getHTMLColorString(element.getGColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+
+            structuralElement4.setValue("C");
+            colorPicker4.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getCColor())));
+            letterColor4.setValue(getHTMLColorString(element.getCColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+
+            structuralElement5.setValue("X");
+            colorPicker5.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getXColor())));
+            letterColor5.setValue(getHTMLColorString(element.getXColor()).toLowerCase().equals("#000000") ? "Black" : "White");
+
+            structuralElement6.setValue("2D");
+            colorPicker6.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getSecondaryColor())));
+
+            structuralElement7.setValue("3D");
+            colorPicker7.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getTertiaryColor())));
+
+            _3dOpacity.setValue(element.getTertiaryOpacity());
+
+            residueCharOpacity.setValue(element.getResidueCharOpacity());
+
+            phosphoDiesterWidth.setValue(""+element.getPhosphodiesterWidth());
+
+            secondaryInteractionWidth.setValue(""+element.getSecondaryInteractionWidth());
+
+            secondaryInteractionShift.setValue(element.getSecondaryInteractionShift());
+
+            tertiaryInteractionWidth.setValue(""+element.getTertiaryInteractionWidth());
+
+            haloWidth.setValue(element.getHaloWidth());
+
+            residueBorder.setValue(""+element.getResidueBorder());
+
+            tertiaryInteractionStyle.setValue(element.getTertiaryInteractionStyle());
+
+            fontNames.setValue(element.getFontName());
+
+            deltaXRes.getValueFactory().setValue(element.getDeltaXRes());
+
+            deltaYRes.getValueFactory().setValue(element.getDeltaYRes());
+
+            deltaFontSize.getValueFactory().setValue(element.getDeltaFontSize());
     }
 
     public Map<String,String> getTheme() {
         Map<String, String> theme = new HashMap<String, String>();
-        theme.put(ThemeParameter.AColor.toString(), this.getAColor());
+        /*theme.put(ThemeParameter.AColor.toString(), this.getAColor());
         theme.put(ThemeParameter.AChar.toString(), this.getAChar());
         theme.put(ThemeParameter.UColor.toString(), this.getUColor());
         theme.put(ThemeParameter.UChar.toString(), this.getUChar());
@@ -1220,18 +1706,20 @@ public class Toolbox implements ThemeConfigurator {
         theme.put(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()*255.0/100.0));
         theme.put(ThemeParameter.ResidueCharOpacity.toString(), ""+(int)(residueCharOpacity.getValue()*255.0/100.0));
         theme.put(ThemeParameter.HaloWidth.toString(), ""+(int)haloWidth.getValue());
-        theme.put(ThemeParameter.PhosphodiesterWidth.toString(), ""+getPhosphoDiesterWidth());
-        theme.put(ThemeParameter.SecondaryInteractionWidth.toString(), ""+getSecondaryInteractionWidth());
-        theme.put(ThemeParameter.SecondaryInteractionShift.toString(), ""+getSecondaryInteractionShift());
-        theme.put(ThemeParameter.TertiaryInteractionWidth.toString(), ""+getTertiaryInteractionWidth());
-        theme.put(ThemeParameter.ResidueBorder.toString(), ""+getResidueBorder());
+        theme.put(ThemeParameter.PhosphodiesterWidth.toString(), phosphoDiesterWidth.getValue());
+        theme.put(ThemeParameter.SecondaryInteractionWidth.toString(), secondaryInteractionWidth.getValue());
+        theme.put(ThemeParameter.SecondaryInteractionShift.toString(), secondaryInteractionShift.getValue());
+        theme.put(ThemeParameter.TertiaryInteractionWidth.toString(), tertiaryInteractionWidth.getValue());
+        theme.put(ThemeParameter.ResidueBorder.toString(), residueBorder.getValue());
         theme.put(ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue());
-        theme.put(ThemeParameter.FontName.toString(), getFontName());
-        theme.put(ThemeParameter.DeltaXRes.toString(), ""+getDeltaXRes());
-        theme.put(ThemeParameter.DeltaYRes.toString(), ""+getDeltaYRes());
-        theme.put(ThemeParameter.DeltaFontSize.toString(), ""+getDeltaFontSize());
+        theme.put(ThemeParameter.FontName.toString(), fontNames.getValue());
+        theme.put(ThemeParameter.DeltaXRes.toString(), deltaXRes.getValue());
+        theme.put(ThemeParameter.DeltaYRes.toString(), deltaYRes.getValue());
+        theme.put(ThemeParameter.DeltaFontSize.toString(), deltaFontSize.getValue());*/
         return theme;
     }
+
+
 
     class ShapeCell extends ListCell<String> {
         @Override
@@ -1335,313 +1823,7 @@ public class Toolbox implements ThemeConfigurator {
         }
     }
 
-    @Override
-    public double getHaloWidth() {
-        return haloWidth.getValue();
-    }
-
-    @Override
-    public int getTertiaryOpacity() {
-        return (int)((double)(_3dOpacity.getValue())/100.0*255);
-    }
-
-    @Override
-    public int getResidueCharOpacity() {
-        return (int) ((double)(residueCharOpacity.getValue()) / 100.0 * 255.0);
-    }
-
-    @Override
-    public String getAColor() {
-        if (structuralElement1.getValue() == "A")
-            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
-        if (structuralElement2.getValue() == "A")
-            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
-        if (structuralElement3.getValue() == "A")
-            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
-        if (structuralElement4.getValue() == "A")
-            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
-        if (structuralElement5.getValue() == "A")
-            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
-        if (structuralElement6.getValue() == "A")
-            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
-        if (structuralElement7.getValue() == "A")
-            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
-        else
-            return getHTMLColorString(Color.LIGHT_GRAY);
-    }
-
-    @Override
-    public String getAChar() {
-        if (structuralElement1.getValue() == "A")
-            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement2.getValue() == "A")
-            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement3.getValue() == "A")
-            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement4.getValue() == "A")
-            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement5.getValue() == "A")
-            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement6.getValue() == "A")
-            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement7.getValue() == "A")
-            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        else
-            return getHTMLColorString(Color.WHITE);
-    }
-
-    @Override
-    public String getUColor() {
-        if (structuralElement1.getValue() == "U")
-            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
-        if (structuralElement2.getValue() == "U")
-            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
-        if (structuralElement3.getValue() == "U")
-            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
-        if (structuralElement4.getValue() == "U")
-            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
-        if (structuralElement5.getValue() == "U")
-            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
-        if (structuralElement6.getValue() == "U")
-            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
-        if (structuralElement7.getValue() == "U")
-            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
-        else
-            return getHTMLColorString(Color.LIGHT_GRAY);
-    }
-
-    @Override
-    public String getUChar() {
-        if (structuralElement1.getValue() == "U")
-            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement2.getValue() == "U")
-            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement3.getValue() == "U")
-            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement4.getValue() == "U")
-            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement5.getValue() == "U")
-            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement6.getValue() == "U")
-            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement7.getValue() == "U")
-            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        else
-            return getHTMLColorString(Color.WHITE);
-    }
-
-    @Override
-    public String getCColor() {
-        if (structuralElement1.getValue() == "C")
-            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
-        if (structuralElement2.getValue() == "C")
-            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
-        if (structuralElement3.getValue() == "C")
-            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
-        if (structuralElement4.getValue() == "C")
-            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
-        if (structuralElement5.getValue() == "C")
-            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
-        if (structuralElement6.getValue() == "C")
-            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
-        if (structuralElement7.getValue() == "C")
-            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
-        else {
-            return getHTMLColorString(Color.LIGHT_GRAY);
-        }
-    }
-
-    @Override
-    public String getCChar() {
-        if (structuralElement1.getValue() == "C")
-            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement2.getValue() == "C")
-            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement3.getValue() == "C")
-            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement4.getValue() == "C")
-            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement5.getValue() == "C")
-            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement6.getValue() == "C")
-            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement7.getValue() == "C")
-            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        else
-            return getHTMLColorString(Color.WHITE);
-    }
-
-    @Override
-    public String getGColor() {
-        if (structuralElement1.getValue() == "G")
-            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
-        if (structuralElement2.getValue() == "G")
-            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
-        if (structuralElement3.getValue() == "G")
-            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
-        if (structuralElement4.getValue() == "G")
-            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
-        if (structuralElement5.getValue() == "G")
-            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
-        if (structuralElement6.getValue() == "G")
-            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
-        if (structuralElement7.getValue() == "G")
-            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
-        else
-            return getHTMLColorString(Color.LIGHT_GRAY);
-    }
-
-    @Override
-    public String getGChar() {
-        if (structuralElement1.getValue() == "G")
-            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement2.getValue() == "G")
-            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement3.getValue() == "G")
-            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement4.getValue() == "G")
-            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement5.getValue() == "G")
-            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement6.getValue() == "G")
-            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement7.getValue() == "G")
-            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        else
-            return getHTMLColorString(Color.WHITE);
-    }
-
-    @Override
-    public String getXColor() {
-        if (structuralElement1.getValue() == "X")
-            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
-        if (structuralElement2.getValue() == "X")
-            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
-        if (structuralElement3.getValue() == "X")
-            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
-        if (structuralElement4.getValue() == "X")
-            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
-        if (structuralElement5.getValue() == "X")
-            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
-        if (structuralElement6.getValue() == "X")
-            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
-        if (structuralElement7.getValue() == "X")
-            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
-        else
-            return getHTMLColorString(Color.LIGHT_GRAY);
-    }
-
-    @Override
-    public String getXChar() {
-        if (structuralElement1.getValue() == "X")
-            return getHTMLColorString(letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement2.getValue() == "X")
-            return getHTMLColorString(letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement3.getValue() == "X")
-            return getHTMLColorString(letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement4.getValue() == "X")
-            return getHTMLColorString(letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement5.getValue() == "X")
-            return getHTMLColorString(letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement6.getValue() == "X")
-            return getHTMLColorString(letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        if (structuralElement7.getValue() == "X")
-            return getHTMLColorString(letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-        else
-            return getHTMLColorString(Color.WHITE);
-    }
-
-    @Override
-    public String getSecondaryInteractionColor() {
-        if (structuralElement1.getValue() == "2D")
-            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
-        if (structuralElement2.getValue() == "2D")
-            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
-        if (structuralElement3.getValue() == "2D")
-            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
-        if (structuralElement4.getValue() == "2D")
-            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
-        if (structuralElement5.getValue() == "2D")
-            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
-        if (structuralElement6.getValue() == "2D")
-            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
-        if (structuralElement7.getValue() == "2D")
-            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
-        else
-            return getHTMLColorString(Color.LIGHT_GRAY);
-    }
-
-    @Override
-    public String getTertiaryInteractionColor() {
-        if (structuralElement1.getValue() == "3D")
-            return getHTMLColorString(javaFXToAwt(colorPicker1.getValue()));
-        if (structuralElement2.getValue() == "3D")
-            return getHTMLColorString(javaFXToAwt(colorPicker2.getValue()));
-        if (structuralElement3.getValue() == "3D")
-            return getHTMLColorString(javaFXToAwt(colorPicker3.getValue()));
-        if (structuralElement4.getValue() == "3D")
-            return getHTMLColorString(javaFXToAwt(colorPicker4.getValue()));
-        if (structuralElement5.getValue() == "3D")
-            return getHTMLColorString(javaFXToAwt(colorPicker5.getValue()));
-        if (structuralElement6.getValue() == "3D")
-            return getHTMLColorString(javaFXToAwt(colorPicker6.getValue()));
-        if (structuralElement7.getValue() == "3D")
-            return getHTMLColorString(javaFXToAwt(colorPicker7.getValue()));
-        else
-            return getHTMLColorString(Color.LIGHT_GRAY);
-    }
-
-    @Override
-    public double getResidueBorder() {
-        return Double.parseDouble(residueBorder.getValue());
-    }
-
-    @Override
-    public double getPhosphoDiesterWidth() {
-        return Double.parseDouble(phosphoDiesterWidth.getValue());
-    }
-
-    @Override
-    public double getSecondaryInteractionWidth() {
-        return Double.parseDouble(secondaryInteractionWidth.getValue());
-    }
-
-    @Override
-    public double getSecondaryInteractionShift() {
-        return secondaryInteractionShift.getValue();
-    }
-
-    @Override
-    public double getTertiaryInteractionWidth() {
-        return Double.parseDouble(tertiaryInteractionWidth.getValue());
-    }
-
-    @Override
-    public int getDeltaXRes() {
-        return deltaXRes.getValue();
-    }
-
-    @Override
-    public int getDeltaYRes() {
-        return deltaYRes.getValue();
-    }
-
-    @Override
-    public int getDeltaFontSize() {
-        return deltaFontSize.getValue().intValue();
-    }
-
-    @Override
-    public String getTertiaryInteractionStyle() {
-        return tertiaryInteractionStyle.getValue();
-    }
-
-    @Override
-    public String getFontName() {
-        return fontNames.getValue();
-    }
-
-    public class ThemeCell extends GridCell<Theme> {
+    public class ThemeCell extends GridCell<ThemeFromWebsite> {
 
         private final ImageView themeCapture = new ImageView();
         private final AnchorPane content = new AnchorPane();
@@ -1651,7 +1833,7 @@ public class Toolbox implements ThemeConfigurator {
         }
 
         @Override
-        protected void updateItem(Theme item, boolean empty) {
+        protected void updateItem(ThemeFromWebsite item, boolean empty) {
             super.updateItem(item, empty);
             setGraphic(null);
             setText(null);
@@ -1665,12 +1847,12 @@ public class Toolbox implements ThemeConfigurator {
 
     }
 
-    public class Theme {
+    public class ThemeFromWebsite {
 
         private String picture;
         private String name;
 
-        public Theme(String picture, String name) {
+        public ThemeFromWebsite(String picture, String name) {
             this.picture = picture;
             this.name = name;
         }
@@ -1687,7 +1869,7 @@ public class Toolbox implements ThemeConfigurator {
             themesList.clear();
             try {
                 for (Map.Entry<String,String> t:Backend.getAllThemes().entrySet()) {
-                    themesList.add(new Theme(t.getKey(), t.getValue()));
+                    themesList.add(new ThemeFromWebsite(t.getKey(), t.getValue()));
                 }
             } catch (Exception e) {
                 e.printStackTrace();

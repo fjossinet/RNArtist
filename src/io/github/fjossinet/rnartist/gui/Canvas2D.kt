@@ -22,9 +22,9 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     fun load2D(drawing: SecondaryStructureDrawing) {
         this.secondaryStructureDrawing = drawing
         this.secondaryStructureDrawing?.let { drawing ->
-            mediator.toolbox.loadTheme(drawing.theme.params)
-            mediator.rnartist.loadIntoExplorer(this.secondaryStructureDrawing)
             mediator.toolbox.junctionKnobs.children.clear()
+            mediator.addToSelection(null, true, null)
+            mediator.rnartist.loadIntoExplorer(this.secondaryStructureDrawing)
             for (jc in drawing.allJunctions) {
                 mediator.toolbox.addJunctionKnob(jc)
             }

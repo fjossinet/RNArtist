@@ -196,7 +196,11 @@ public class EmbeddedDBGUI {
                 @Override
                 public void handle(MouseEvent mouseEvent) {
                     SecondaryStructure ss = (SecondaryStructure)mediator.getEmbeddedDB().getPDBSecondaryStructures().getById(StructureCell.this.getItem().id).get("ss");
-                    mediator.getAllStructures().add(new SecondaryStructureDrawing(ss,mediator.canvas2D.getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                    Theme t = new Theme(RnartistConfig.defaultThemeParams);
+                    if (mediator.getToolbox().getSavedThemesComboBox().getValue() != null) {
+                        t = mediator.getEmbeddedDB().getTheme(mediator.getToolbox().getSavedThemesComboBox().getValue().getValue());
+                    }
+                    mediator.getAllStructures().add(new SecondaryStructureDrawing(ss,mediator.canvas2D.getBounds(), t, new WorkingSession()));
                     Document doc = mediator.getEmbeddedDB().getPDBTertiaryStructure(ss.getPdbId(),ss.getRna().getName());
                     try {
                         if (doc != null)

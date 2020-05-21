@@ -71,10 +71,7 @@ object Backend {
                         var ss = SecondaryStructureDrawing(
                             parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!,
                             mediator.canvas2D.bounds,
-                            Theme(
-                                RnartistConfig.defaultTheme,
-                                mediator.toolbox
-                            ),
+                                drawing.theme,
                             WorkingSession()
                         )
                         mediator.workingSession!!.viewX = 0.0

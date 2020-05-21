@@ -150,6 +150,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
                 }
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
                 this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
+                this.mediator.canvas2D.repaint()
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.toolbox.junctionKnobs.children.forEach {
                     var junctionKnob  = ((it as VBox).children.first() as JunctionKnob)
@@ -198,6 +199,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
                 }
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
                 this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
+                this.mediator.canvas2D.repaint()
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.toolbox.junctionKnobs.children.forEach {
                     var junctionKnob  = ((it as VBox).children.first() as JunctionKnob)
@@ -220,7 +222,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
         centerViewOnJunction.setOnMousePressed {
             mediator.secondaryStructureDrawing?.let { drawing ->
                 centerViewOnJunction.fill = Color.LIGHTGRAY
-                mediator.addToSelection(true, *junctionCircle.location.positions.toIntArray())
+                mediator.addToSelection(Mediator.SelectionEmitter.JUNCTIONKNOB, true, junctionCircle)
                 mediator.canvas2D.repaint()
                 if (mediator.chimeraDriver != null && mediator.tertiaryStructure != null) {
                     val positions: MutableList<String?> = ArrayList(1)

@@ -1,7 +1,6 @@
 package io.github.fjossinet.rnartist;
 
 import io.github.fjossinet.rnartist.gui.Canvas2D;
-import io.github.fjossinet.rnartist.gui.JunctionKnob;
 import io.github.fjossinet.rnartist.gui.RegisterDialog;
 import io.github.fjossinet.rnartist.io.ChimeraDriver;
 import io.github.fjossinet.rnartist.core.model.*;
@@ -17,7 +16,6 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.*;
 import javafx.geometry.Orientation;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TreeItemPropertyValueFactory;
@@ -53,7 +51,7 @@ public class RNArtist extends Application {
     private VBox topToolBars;
     private FlowPane statusBar;
     private ChoiceBox<SecondaryStructureDrawing> allStructuresChoices;
-    private TreeTableView<StructuralItem> structureTableview;
+    private TreeTableView<StructuralItem> explorer;
 
     public static void main(String[] args) {
         launch(args);
@@ -96,46 +94,27 @@ public class RNArtist extends Application {
         swingNode.setOnMouseClicked(mouseEvent -> {
             if (mouseEvent.isControlDown()) {
                 if (mediator.getSecondaryStructureDrawing() != null) {
-                    mediator.getSelectedResidues().clear();
-                    mediator.getToolbox().unselectJunctionKnobs();
                     AffineTransform at = new AffineTransform();
                     at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
                     at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
                     for (JunctionCircle jc : mediator.getSecondaryStructureDrawing().getAllJunctions()) {
                         if (jc.getCircle() != null && at.createTransformedShape(jc.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                            mediator.addToSelection(true, jc.getLocation().getPositions().stream().mapToInt(Integer::intValue).toArray());
-                            VBox knobFound = null;
-                            for (Node child : mediator.getToolbox().getJunctionKnobs().getChildren()) {
-                                JunctionKnob knob = (JunctionKnob) ((VBox) child).getChildren().get(0);
-                                if (knob.getJunctionCircle() == jc) {
-                                    knobFound = (VBox) child;
-                                    knob.select();
-                                    break;
-                                }
-                            }
-                            if (knobFound != null) {
-                                mediator.getToolbox().getJunctionKnobs().getChildren().remove(knobFound);
-                                mediator.getToolbox().getJunctionKnobs().getChildren().add(0, knobFound);
-                            }
-                            break;
+                            mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, true, jc);
+                            mediator.getCanvas2D().repaint();
+                            return;
                         }
                     }
                     List<ResidueCircle> residues = mediator.getSecondaryStructureDrawing().getResidues();
                     for (ResidueCircle c : residues) {
                         if (c.getCircle() != null && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                            mediator.addToSelection(true, c.getAbsPos());
-                            break;
+                            mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, true, c);
+                            mediator.getCanvas2D().repaint();
+                            return;
                         }
                     }
+                    //no hit found
+                    mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, true, null);
                     mediator.getCanvas2D().repaint();
-                    if (mediator.getChimeraDriver() != null && mediator.getTertiaryStructure() != null) {
-                        List<String> positions = new ArrayList<String>(1);
-                        for (ResidueCircle c : mediator.getSelectedResidues()) {
-                            positions.add(mediator.getTertiaryStructure() != null && mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(c.getAbsPos()).getLabel() : "" + (c.getAbsPos() + 1));
-                        }
-                        mediator.getChimeraDriver().selectResidues(positions, mediator.getSecondaryStructure().getRna().getName());
-                        mediator.getChimeraDriver().setFocus(positions, mediator.getSecondaryStructure().getRna().getName());
-                    }
                 }
             }
         });
@@ -197,26 +176,31 @@ public class RNArtist extends Application {
         BorderPane root = new BorderPane();
 
         //##### Explorer
-        this.structureTableview = new TreeTableView<StructuralItem>();
-        this.structureTableview.setColumnResizePolicy(TreeTableView.CONSTRAINED_RESIZE_POLICY);
+        this.explorer = new TreeTableView<StructuralItem>();
+        this.explorer.setColumnResizePolicy(TreeTableView.CONSTRAINED_RESIZE_POLICY);
         TreeTableColumn<StructuralItem, String> nameCol = new TreeTableColumn<StructuralItem, String>("Name");
         nameCol.setCellValueFactory(new TreeItemPropertyValueFactory<StructuralItem, String>("name"));
         TreeTableColumn<StructuralItem, String> typeCol = new TreeTableColumn<StructuralItem, String>("Type");
         typeCol.setCellValueFactory(new TreeItemPropertyValueFactory<StructuralItem, String>("type"));
         TreeTableColumn<StructuralItem, Location> locationCol = new TreeTableColumn<StructuralItem, Location>("Location");
         locationCol.setCellValueFactory(new TreeItemPropertyValueFactory<StructuralItem, Location>("location"));
-        this.structureTableview.getColumns().addAll(nameCol,typeCol, locationCol);
-
-        this.structureTableview.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        this.structureTableview.getSelectionModel().getSelectedItems().addListener(new ListChangeListener<TreeItem<StructuralItem>>() {
+        this.explorer.getColumns().addAll(nameCol,typeCol, locationCol);
+        this.explorer.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        this.explorer.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
-            public void onChanged(Change<? extends TreeItem<StructuralItem>> change) {
-                if (!structureTableview.getSelectionModel().getSelectedItems().isEmpty()) {
-                    List<Integer> positions = new ArrayList<Integer>();
-                    for (TreeItem<StructuralItem> item : structureTableview.getSelectionModel().getSelectedItems()) {
-                        positions.addAll(item.valueProperty().get().getLocation().getPositions());
+            public void handle(MouseEvent mouseEvent) {
+                if (!explorer.getSelectionModel().getSelectedItems().isEmpty()) {
+                    int i = 0;
+                    for (TreeItem<StructuralItem> item : explorer.getSelectionModel().getSelectedItems()) {
+                        if (item.getValue().getSecondaryStructureElement() != null) {
+                            mediator.addToSelection(Mediator.SelectionEmitter.EXPLORER, i == 0, item.getValue().getSecondaryStructureElement()); //if the first element added to the selection, we clear the previous selection
+                            i++;
+                        }
                     }
-                    mediator.addToSelection(true, positions.stream().mapToInt(Integer::intValue).toArray());
+                    mediator.canvas2D.repaint();
+                } else {
+                    //no selection
+                    mediator.addToSelection(Mediator.SelectionEmitter.EXPLORER, true,null);
                     mediator.canvas2D.repaint();
                 }
             }
@@ -225,7 +209,7 @@ public class RNArtist extends Application {
         SplitPane splitPane = new SplitPane();
         splitPane.setOrientation(Orientation.VERTICAL);
         splitPane.setDividerPositions(0.8);
-        splitPane.getItems().addAll(swingNode, this.structureTableview);
+        splitPane.getItems().addAll(swingNode, this.explorer);
 
         root.setCenter(splitPane);
 
@@ -367,20 +351,32 @@ public class RNArtist extends Application {
                             if (file.getName().endsWith(".ct")) {
                                 ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseCT(new FileReader(file));
                                 if (ss != null) {
+                                    Theme t = new Theme(RnartistConfig.defaultThemeParams);
+                                    if (mediator.getToolbox().getSavedThemesComboBox().getValue() != null) {
+                                        t = mediator.getEmbeddedDB().getTheme(mediator.getToolbox().getSavedThemesComboBox().getValue().getValue());
+                                    }
                                     ss.getRna().setSource(file.getName());
-                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), t, new WorkingSession()));
                                 }
                             } else if (file.getName().endsWith(".bpseq")) {
                                 ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseBPSeq(new FileReader(file));
                                 if (ss != null) {
+                                    Theme t = new Theme(RnartistConfig.defaultThemeParams);
+                                    if (mediator.getToolbox().getSavedThemesComboBox().getValue() != null) {
+                                        t = mediator.getEmbeddedDB().getTheme(mediator.getToolbox().getSavedThemesComboBox().getValue().getValue());
+                                    }
                                     ss.getRna().setSource(file.getName());
-                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), t, new WorkingSession()));
                                 }
                             } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
                                 ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseVienna(new FileReader(file));
                                 if (ss != null) {
+                                    Theme t = new Theme(RnartistConfig.defaultThemeParams);
+                                    if (mediator.getToolbox().getSavedThemesComboBox().getValue() != null) {
+                                        t = mediator.getEmbeddedDB().getTheme(mediator.getToolbox().getSavedThemesComboBox().getValue().getValue());
+                                    }
                                     ss.getRna().setSource(file.getName());
-                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), t, new WorkingSession()));
                                 }
 
                             } else if (file.getName().endsWith(".pdb")) {
@@ -389,9 +385,13 @@ public class RNArtist extends Application {
                                     try {
                                         ss = new Rnaview().annotate(ts);
                                         if (ss != null) {
+                                            Theme t = new Theme(RnartistConfig.defaultThemeParams);
+                                            if (mediator.getToolbox().getSavedThemesComboBox().getValue() != null) {
+                                                t = mediator.getEmbeddedDB().getTheme(mediator.getToolbox().getSavedThemesComboBox().getValue().getValue());
+                                            }
                                             ss.getRna().setSource(file.getName());
                                             ss.setTertiaryStructure(ts);
-                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), t, new WorkingSession()));
                                         }
                                     } catch (FileNotFoundException exception) {
                                         //do nothing, RNAVIEW can have problem to annotate some RNA (no 2D for example)
@@ -407,7 +407,11 @@ public class RNArtist extends Application {
                             } else if (file.getName().endsWith(".stk") || file.getName().endsWith(".stockholm")) {
                                 for (SecondaryStructure _ss : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
                                     _ss.getRna().setSource(file.getName());
-                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(_ss, mediator.getCanvas2D().getBounds(), new Theme(RnartistConfig.defaultTheme, mediator.getToolbox()), new WorkingSession()));
+                                    Theme t = new Theme(RnartistConfig.defaultThemeParams);
+                                    if (mediator.getToolbox().getSavedThemesComboBox().getValue() != null) {
+                                        t = mediator.getEmbeddedDB().getTheme(mediator.getToolbox().getSavedThemesComboBox().getValue().getValue());
+                                    }
+                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(_ss, mediator.getCanvas2D().getBounds(), t, new WorkingSession()));
                                 }
                             }
                         } catch (Exception e) {
@@ -779,45 +783,87 @@ public class RNArtist extends Application {
         this.saveAs.setDisable(false);
     }
 
+    public void clearSelectionInExplorer() {
+        this.explorer.getSelectionModel().clearSelection();
+    }
+
+    public void selectInExplorer(SecondaryStructureElement sse) {
+        TreeItem item = this.getTreeViewItemFor(this.explorer.getRoot(), sse);
+        if (item != null) {
+            item.setExpanded(true);
+            TreeItem parent = item.getParent();
+            while (parent != null) {
+                parent.setExpanded(true);
+                parent = parent.getParent();
+            }
+            explorer.scrollTo(explorer.getRow(item));
+            this.explorer.getSelectionModel().select(item);
+        }
+    }
+
+    private TreeItem getTreeViewItemFor(TreeItem<StructuralItem> item , SecondaryStructureElement sse) {
+        if (item != null && item.getValue().getSecondaryStructureElement() == sse)
+            return item;
+
+        for (TreeItem<StructuralItem> child : item.getChildren()){
+            TreeItem<String> _item = getTreeViewItemFor(child, sse);
+            if( _item != null)
+                return _item;
+        }
+        return null;
+    }
+
     public void loadIntoExplorer(SecondaryStructureDrawing drawing) {
         TreeItem<StructuralItem> root = new TreeItem<StructuralItem>(new SecondaryStructureItem(drawing));
         root.setExpanded(true);
         for (HelixLine h: drawing.getHelices()) {
             TreeItem<StructuralItem> helixItem = new TreeItem<StructuralItem>(new HelixItem(h));
-            helixItem.setExpanded(true);
             root.getChildren().add(helixItem);
-            for (SecondaryInteractionLine interaction: h.getSecondaryInteractions()) {
-                TreeItem<StructuralItem> interactionItem = new TreeItem<StructuralItem>(new SecondaryInteractionItem(interaction));
-                interactionItem.setExpanded(true);
-                helixItem.getChildren().addAll(interactionItem);
-            }
             for (JunctionCircle jc:drawing.getBranches()) {
                 if (jc.getInHelix().equals(h.getHelix())) {
                     for (JunctionCircle _jc: jc.junctionsFromBranch()) {
                         TreeItem<StructuralItem> junctionItem = new TreeItem<StructuralItem>(new JunctionItem(_jc));
-                        junctionItem.setExpanded(true);
                         helixItem.getChildren().addAll(junctionItem);
                         for (HelixLine _h: _jc.getHelices()) {
                             TreeItem<StructuralItem> _helixItem = new TreeItem<StructuralItem>(new HelixItem(_h));
-                            _helixItem.setExpanded(true);
                             junctionItem.getChildren().add(_helixItem);
                             for (SecondaryInteractionLine interaction: _h.getSecondaryInteractions()) {
                                 TreeItem<StructuralItem> interactionItem = new TreeItem<StructuralItem>(new SecondaryInteractionItem(interaction));
-                                interactionItem.setExpanded(true);
                                 _helixItem.getChildren().addAll(interactionItem);
+                                for (ResidueCircle r: drawing.getResidues()) {
+                                    if (r.getParent() == interaction) {
+                                        TreeItem<StructuralItem> residueItem = new TreeItem<StructuralItem>(new ResidueItem(r));
+                                        interactionItem.getChildren().addAll(residueItem);
+                                    }
+                                }
+                            }
+                        }
+                        for (ResidueCircle r: drawing.getResidues()) {
+                            if (r.getParent() == _jc) {
+                                TreeItem<StructuralItem> residueItem = new TreeItem<StructuralItem>(new ResidueItem(r));
+                                junctionItem.getChildren().addAll(residueItem);
                             }
                         }
                     }
                     break;
                 }
             }
+            for (SecondaryInteractionLine interaction: h.getSecondaryInteractions()) {
+                TreeItem<StructuralItem> interactionItem = new TreeItem<StructuralItem>(new SecondaryInteractionItem(interaction));
+                helixItem.getChildren().addAll(interactionItem);
+                for (ResidueCircle r: drawing.getResidues()) {
+                    if (r.getParent() == interaction) {
+                        TreeItem<StructuralItem> residueItem = new TreeItem<StructuralItem>(new ResidueItem(r));
+                        interactionItem.getChildren().addAll(residueItem);
+                    }
+                }
+            }
         }
         for (TertiaryInteractionLine interaction:drawing.getTertiaryInteractions()) {
             TreeItem<StructuralItem> interactionItem = new TreeItem<StructuralItem>(new TertiaryInteractionItem(interaction));
-            interactionItem.setExpanded(true);
             root.getChildren().addAll(interactionItem);
         }
-        this.structureTableview.setRoot(root);
+        this.explorer.setRoot(root);
     }
 
     public void showTopToolBars(boolean show) {
