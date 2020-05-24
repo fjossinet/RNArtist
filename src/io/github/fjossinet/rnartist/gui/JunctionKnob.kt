@@ -22,7 +22,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
             this.select()
             var circleClicked = false
             var selectedCount = connectors.count { it.selected }
-            if (selectedCount < this.junctionCircle.junction.type.value - 1) {
+            if (selectedCount < this.junctionCircle.junctionCategory.value - 1) {
                 for (c in connectors) {
                     val localMouseClick = c.parentToLocal(it.x,it.y)
                     if (!c.isInId && c.contains(localMouseClick)) {
@@ -33,7 +33,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
                         break
                     }
                 }
-            } else if (selectedCount >= this.junctionCircle.junction.type.value - 1) { //We can only unselect
+            } else if (selectedCount >= this.junctionCircle.junctionCategory.value - 1) { //We can only unselect
                 for (c in connectors) {
                     val localMouseClick = c.parentToLocal(it.x,it.y)
                     if (!c.isInId && c.contains(localMouseClick) && c.selected) {
@@ -47,9 +47,9 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
             }
             //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
             selectedCount = connectors.count { it.selected }
-            if (selectedCount == this.junctionCircle.junction.type.value - 1 && circleClicked) {
+            if (selectedCount == this.junctionCircle.junctionCategory.value - 1 && circleClicked) {
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
+                this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.toolbox.junctionKnobs.children.forEach {
                     var junctionKnob  = ((it as VBox).children.first() as JunctionKnob)
@@ -89,7 +89,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
             up.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 1.1
             junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
-            this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
+            this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
             this.mediator.canvas2D.repaint()
         }
         up.setOnMouseReleased {
@@ -108,7 +108,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
             bottom.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 0.9
             junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
-            this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
+            this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
             this.mediator.canvas2D.repaint()
         }
         bottom.setOnMouseReleased {
@@ -149,7 +149,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
                     currentPos = (currentPos+1)%16
                 }
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
+                this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
                 this.mediator.canvas2D.repaint()
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.toolbox.junctionKnobs.children.forEach {
@@ -198,7 +198,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
                     currentPos = if (currentPos-1 == -1) 15 else currentPos-1
                 }
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.secondaryStructureDrawing!!.computeResidues(junctionCircle)
+                this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
                 this.mediator.canvas2D.repaint()
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.toolbox.junctionKnobs.children.forEach {
@@ -220,18 +220,10 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
         centerViewOnJunction.fill = Color.BLACK
 
         centerViewOnJunction.setOnMousePressed {
-            mediator.secondaryStructureDrawing?.let { drawing ->
+            mediator.current2DDrawing?.let { drawing ->
                 centerViewOnJunction.fill = Color.LIGHTGRAY
                 mediator.addToSelection(Mediator.SelectionEmitter.JUNCTIONKNOB, true, junctionCircle)
                 mediator.canvas2D.repaint()
-                if (mediator.chimeraDriver != null && mediator.tertiaryStructure != null) {
-                    val positions: MutableList<String?> = ArrayList(1)
-                    for (c in mediator.workingSession!!.selectedResidues) {
-                        positions.add(if (mediator.tertiaryStructure != null && mediator.tertiaryStructure!!.getResidue3DAt(c.absPos) != null) mediator.tertiaryStructure!!.getResidue3DAt(c.absPos)!!.label else "" + (c.absPos + 1))
-                    }
-                    mediator.chimeraDriver!!.selectResidues(positions, mediator.rna!!.name)
-                    mediator.chimeraDriver!!.setFocus(positions, mediator.rna!!.name)
-                }
             }
         }
 

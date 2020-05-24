@@ -4,7 +4,6 @@ import com.google.gson.Gson
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
-import io.github.fjossinet.rnartist.core.model.Theme
 import io.github.fjossinet.rnartist.core.model.WorkingSession
 import io.github.fjossinet.rnartist.core.model.io.parseVienna
 import javafx.concurrent.Task
@@ -63,7 +62,7 @@ object Backend {
         val task = object: Task<Exception?>() {
 
             override fun call(): Exception? {
-                mediator.secondaryStructureDrawing?.let { drawing ->
+                mediator.current2DDrawing?.let { drawing ->
                     val previous_viewX = mediator.workingSession!!.viewX
                     val previous_viewY = mediator.workingSession!!.viewY
                     val previous_finalZoomLevel = mediator.workingSession!!.finalZoomLevel

@@ -44,7 +44,7 @@ public class ProjectManager {
         this.stage = new Stage();
         stage.setTitle("RNArtist Projects");
         stage.setOnCloseRequest(windowEvent -> {
-            if (mediator.getSecondaryStructureDrawing() != null) { //the user has decided to cancel its idea to open an other project
+            if (mediator.getCurrent2DDrawing() != null) { //the user has decided to cancel its idea to open an other project
                 mediator.getRnartist().getStage().show();
                 mediator.getRnartist().getStage().toFront();
             }
@@ -141,6 +141,7 @@ public class ProjectManager {
                         mediator.getAllStructures().clear();
                         mediator.getRnartist().getStage().show();
                         mediator.getToolbox().getStage().show();
+                        mediator.getExplorer().getStage().show();
                     } else {
                         stage.hide();
                         io.github.fjossinet.rnartist.core.model.Project project = mediator.getEmbeddedDB().getProject(ProjectCell.this.getItem().id);

@@ -26,6 +26,7 @@ class Mediator(val rnartist: RNArtist) {
 
     val embeddedDB = EmbeddedDB()
     val toolbox = Toolbox(this)
+    val explorer = Explorer(this)
     val embeddedDBGUI = EmbeddedDBGUI(this)
     val projectManager = ProjectManager(this)
     var webBrowser: WebBrowser? =
@@ -34,7 +35,7 @@ class Mediator(val rnartist: RNArtist) {
     var chimeraDriver: ChimeraDriver? = null
 
     //++++++ shortcuts
-    val secondaryStructureDrawing: SecondaryStructureDrawing?
+    val current2DDrawing: SecondaryStructureDrawing?
         get() {
             return this.canvas2D.secondaryStructureDrawing
         }
@@ -44,7 +45,7 @@ class Mediator(val rnartist: RNArtist) {
         }
     val secondaryStructure: SecondaryStructure?
         get() {
-            return this.secondaryStructureDrawing?.secondaryStructure
+            return this.current2DDrawing?.secondaryStructure
         }
     val rna: RNA?
         get() {
@@ -52,11 +53,11 @@ class Mediator(val rnartist: RNArtist) {
         }
     val theme: Theme?
         get() {
-            return this.secondaryStructureDrawing?.theme
+            return this.current2DDrawing?.theme
         }
     val workingSession: WorkingSession?
         get() {
-            return this.secondaryStructureDrawing?.workingSession
+            return this.current2DDrawing?.workingSession
         }
 
     val viewX: Double?
@@ -89,134 +90,147 @@ class Mediator(val rnartist: RNArtist) {
 
     }
 
+    /*
+    This function test if a SecondaryStructureElement, depending of its type, is selected or not. This function is used by the function addToSelection
+     */
+    private fun isSelected(structureElement:SecondaryStructureElement):Boolean {
+        return when (structureElement) {
+            is ResidueCircle -> { //Since a ResidueCircle has been removed from the structureElementsSelected list, it is considered Selected if its parent is selected too, or if its grandparent is selected too (if the ResidueCircle is in an helix)
+                (structureElement as Object) in this.structureElementsSelected
+                        || (structureElement.parent is JunctionCircle) &&  (structureElement.parent as Object)in this.structureElementsSelected
+                        || ((structureElement.parent is SecondaryInteractionLine) && ((structureElement.parent as Object) in this.structureElementsSelected) || (structureElement.parent?.parent is HelixLine) && (structureElement.parent?.parent as Object) in this.structureElementsSelected)
+            }
+            is SecondaryInteractionLine -> { //Since a SecondaryInteractionLine has been removed from the structureElementsSelected list, it is considered Selected if its parent is selected too
+                this.structureElementsSelected.remove(structureElement as Object) || (structureElement.parent as Object) in this.structureElementsSelected
+            } //any other structural element is considered selected if it is itself in the structureElementsSelected list
+            else -> (structureElement as Object) in this.structureElementsSelected
+        }
+    }
+
     fun addToSelection(selectionEmitter:SelectionEmitter?, clearCurrentSelection:Boolean = false, structureElement:SecondaryStructureElement?) {
         if (clearCurrentSelection) {
-            for (s in this.structureElementsSelected.toList()) { //we don't remove the SecondaryStructure Drawing
-                (s as? SecondaryStructureElement)?.let {
-                    this.structureElementsSelected.remove(s)
-                }
-                (s as? String)?.let {
-                    if (s.toString().equals("All Selected Elements"))
-                        this.structureElementsSelected.remove(s)
-                }
-            }
-            if (this.structureElementsSelected.isEmpty()) //before the first 2D load, the Global Theme choice is not present (the observable list is empty when RNArtist starts)
-                this.structureElementsSelected.add("Full 2D" as Object)
-            toolbox.getStructureElementsSelectedComboBox().setVisibleRowCount(1); //just a single row to display. We nned to reduce the visible rows if the previous list was larger (to avoid to display empty rows)
+            this.structureElementsSelected.clear()
+            this.structureElementsSelected.add("Full 2D" as Object)
+            toolbox.getStructureElementsSelectedComboBox().setVisibleRowCount(1); //just a single row to display. We need to reduce the visible rows if the previous list was larger (to avoid to display empty rows)
             if (selectionEmitter != SelectionEmitter.EXPLORER)
-                this.selectInExplorer(clearCurrentSelection)
-            this.selectInCanvas2D(clearCurrentSelection)
+                this.selectInExplorer()
+            this.selectInCanvas2D()
             if (selectionEmitter != SelectionEmitter.JUNCTIONKNOB)
-                this.selectInJunctionKnobs(clearCurrentSelection)
+                this.selectInJunctionKnobs()
+            this.selectInChimera()
         }
         structureElement?.let {
-            if (structureElementsSelected.size == 2 ) //meaning Global Theme + a selected element -> we need to add the option "All Selected Elements"
-                structureElementsSelected.add(1, "All Selected Elements" as Object);
-            structureElementsSelected.add(it as Object);
-            toolbox.getStructureElementsSelectedComboBox().value = structureElement
-            toolbox.getStructureElementsSelectedComboBox().setVisibleRowCount(Math.min(toolbox.getStructureElementsSelectedComboBox().items.size, 20)); //max 20 elements listed
-            if (selectionEmitter != SelectionEmitter.EXPLORER)
-                this.selectInExplorer(false, structureElement)
-            this.selectInCanvas2D(false, structureElement)
-            if (selectionEmitter != SelectionEmitter.JUNCTIONKNOB)
-                this.selectInJunctionKnobs(false, structureElement)
-        }
-    }
-
-    private fun selectInExplorer(clearCurrentSelection:Boolean = false, structureElement:SecondaryStructureElement? = null) {
-        if (clearCurrentSelection) {
-            rnartist.clearSelectionInExplorer()
-        }
-        structureElement?.let {
-            rnartist.selectInExplorer(it)
-        }
-
-    }
-
-    private fun selectInJunctionKnobs(clearCurrentSelection:Boolean = false, structureElement:SecondaryStructureElement? = null) {
-        if (clearCurrentSelection) {
-            for (child in toolbox.getJunctionKnobs().getChildren()) {
-                val knob = (child as VBox).children[0] as JunctionKnob
-                knob.unselect()
-            }
-        }
-        structureElement?.let {
-            var knobFound: VBox? = null
-            for (child in toolbox.getJunctionKnobs().getChildren()) {
-                val knob = (child as VBox).children[0] as JunctionKnob
-                if (knob.junctionCircle == structureElement) {
-                    knobFound = child
-                    knob.select()
-                    break
+            if (isSelected(structureElement)) { //if the element is already selected we will select the next one aaccording to the 2D structure
+                when (structureElement) {
+                    is ResidueCircle -> {
+                        this.structureElementsSelected.remove(structureElement as Object) //if the residue is selected, we remove it to add its parent (SecondaryInteraction Line or JunctionCircle) to the current selection. We remove it in order to avoid to set its theme if the user choose "All selected elements"
+                        this.addToSelection(selectionEmitter, false, structureElement.parent)
+                    }
+                    is SecondaryInteractionLine -> {  //if the SecondaryInteractionLine is selected, we remove it to add its parent (HelixLine) to the current selection. We remove it in order to avoid to set its theme if the user choose "All selected elements"
+                        this.structureElementsSelected.remove(structureElement as Object)
+                        this.addToSelection(selectionEmitter, false, structureElement.parent)
+                    }
+                    is JunctionCircle -> { //if the JunctionCircle is selected, we keep it and add its outer helices to the current selection
+                        for (helix in (structureElement as JunctionCircle).helices) {
+                            this.addToSelection(selectionEmitter, false, helix)
+                        }
+                    }
+                    is HelixLine -> { //if the HelixLine is selected, we keep it and add the junction fof which this helic is the inHelix
+                        for (jc in current2DDrawing!!.allJunctions)
+                            if (jc.inHelix == (structureElement as HelixLine).helix) {
+                                this.addToSelection(selectionEmitter, false, jc)
+                            }
+                    }
                 }
-            }
-            if (knobFound != null) {
-                toolbox.getJunctionKnobs().getChildren().remove(knobFound)
-                toolbox.getJunctionKnobs().getChildren().add(0, knobFound)
+            } else {
+                if (structureElementsSelected.size == 2) //meaning Global Theme + a selected element -> we need to add the option "All Selected Elements"
+                    structureElementsSelected.add(1, "All Selected Elements" as Object);
+                structureElementsSelected.add(it as Object);
+                toolbox.getStructureElementsSelectedComboBox().value = structureElement
+                if (("All Selected Elements" as Object) in structureElementsSelected) //more cool like that, since if we have several elements selected, this is to pimp them all in general
+                    toolbox.getStructureElementsSelectedComboBox().value = "All Selected Elements"
+                toolbox.getStructureElementsSelectedComboBox().setVisibleRowCount(Math.min(toolbox.getStructureElementsSelectedComboBox().items.size, 20)); //max 20 elements listed
+                if (selectionEmitter != SelectionEmitter.EXPLORER)
+                    this.selectInExplorer()
+                this.selectInCanvas2D()
+                if (selectionEmitter != SelectionEmitter.JUNCTIONKNOB)
+                    this.selectInJunctionKnobs()
+                this.selectInChimera()
             }
         }
     }
 
-    private fun selectInCanvas2D(clearCurrentSelection:Boolean = false, structureElement:SecondaryStructureElement? = null) {
-        this.workingSession?.selectedResidues?.let { selection ->
-            this.secondaryStructureDrawing?.let { drawing ->
-                if (clearCurrentSelection)
-                    selection.clear()
-                structureElement?.let {
-                    val absolutePositions = structureElement.getSinglePositions()
-                    selection.addAll(drawing.getResiduesFromAbsPositions(*absolutePositions))
-                    if (displayTertiariesInSelection && !drawing.tertiaryInteractions.isEmpty()) {
-                        var residues2Add = mutableListOf<ResidueCircle>()
-                        do {
-                            residues2Add.clear()
-                            for (selectedResidue in selection) {
-                                for (tertiary in drawing.tertiaryInteractions) {
-                                    if (tertiary.start == selectedResidue.absPos) {
-                                        val c: ResidueCircle =
-                                            drawing.getResiduesFromAbsPositions(
-                                                tertiary.end
-                                            ).first()
-                                        if (c !in selection)
-                                            residues2Add.add(c)
-                                    } else if (tertiary.end == selectedResidue.absPos) {
-                                        val c: ResidueCircle =
-                                            drawing.getResiduesFromAbsPositions(
-                                                tertiary.start
-                                            ).first()
-                                        if (c !in selection)
-                                            residues2Add.add(c)
-                                    }
-                                }
-                            }
-                            selection.addAll(residues2Add)
-                        } while (!residues2Add.isEmpty())
-                    }
-                    if (RnartistConfig.fitDisplayOnSelection) { //fit first since fit will center too
-                        this.workingSession?.selectionBounds?.let { selectionBounds ->
-                            this.canvas2D.fitDisplayOn(selectionBounds)
-                        }
-                    }
-                    else if (RnartistConfig.centerDisplayOnSelection) {
-                        this.workingSession?.selectionBounds?.let { selectionBounds ->
-                            this.canvas2D.centerDisplayOn(selectionBounds)
-                        }
-                    }
-                    this.chimeraDriver?.let { chimeraDriver ->
-                            val positions: MutableList<String> = ArrayList(1)
-                            (this.tertiaryStructure as? TertiaryStructure)?.let { tertiaryStructure ->
-                                for (c in selection) {
-                                    (tertiaryStructure.getResidue3DAt(c.absPos) as Residue3D)?.let {
-                                        positions.add(if (it.label!= null) it.label!!  else "" + (c.absPos + 1))
-                                    }
-                                }
-                                chimeraDriver.selectResidues(positions, drawing.secondaryStructure.rna.name)
-                                chimeraDriver.setFocus(positions, drawing.secondaryStructure.rna.name)
-                            }
+    private fun selectInExplorer() {
+        this.explorer.clearSelection()
+        this.structureElementsSelected.forEach {
+            (it as? SecondaryStructureElement)?.let {
+                this.explorer.select(it as SecondaryStructureElement)
+            }
+        }
+    }
 
-                        }
+    private fun selectInJunctionKnobs() {
+        //clear
+        for (child in toolbox.getJunctionKnobs().getChildren()) {
+            val knob = (child as VBox).children[0] as JunctionKnob
+            knob.unselect()
+        }
+        this.structureElementsSelected.forEach {
+            (it as? JunctionCircle)?.let {
+                var knobFound: VBox? = null
+                for (child in toolbox.getJunctionKnobs().getChildren()) {
+                    val knob = (child as VBox).children[0] as JunctionKnob
+                    if (knob.junctionCircle == it) {
+                        knobFound = child
+                        knob.select()
+                        break
                     }
+                }
+                if (knobFound != null) {
+                    toolbox.getJunctionKnobs().getChildren().remove(knobFound)
+                    toolbox.getJunctionKnobs().getChildren().add(0, knobFound)
                 }
             }
         }
+    }
+
+    //the function synchronize the selection list of the working session. Each SecondaryStructureElement will take care of this new selection (to fade or not for example) during its redraw()
+    private fun selectInCanvas2D() {
+        this.workingSession?.selection?.let { selection ->
+            this.current2DDrawing?.let { drawing ->
+                //clear
+                selection.clear()
+                this.structureElementsSelected.forEach {
+                    (it as? SecondaryStructureElement)?.let {
+                        selection.add(it)
+                    }
+                }
+                if (RnartistConfig.fitDisplayOnSelection) { //fit first since fit will center too
+                    this.workingSession?.selectionBounds?.let { selectionBounds ->
+                        this.canvas2D.fitDisplayOn(selectionBounds)
+                    }
+                } else if (RnartistConfig.centerDisplayOnSelection) {
+                    this.workingSession?.selectionBounds?.let { selectionBounds ->
+                        this.canvas2D.centerDisplayOn(selectionBounds)
+                    }
+                } else Unit
+            }
+        }
+    }
+
+    private fun selectInChimera() {
+        this.chimeraDriver?.let { chimeraDriver ->
+            val positions: MutableList<String> = ArrayList(1)
+            (this.tertiaryStructure as? TertiaryStructure)?.let { tertiaryStructure ->
+                for (absPos in workingSession!!.selectedAbsPositions) {
+                    (tertiaryStructure.getResidue3DAt(absPos) as Residue3D)?.let {
+                        positions.add(if (it.label!= null) it.label!!  else "" + (absPos + 1))
+                    }
+                }
+                chimeraDriver.selectResidues(positions, this.secondaryStructure?.rna?.name)
+                chimeraDriver.setFocus(positions, this.secondaryStructure?.rna?.name)
+            }
+        }
+    }
 
 }
