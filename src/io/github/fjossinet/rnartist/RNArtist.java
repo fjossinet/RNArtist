@@ -103,13 +103,14 @@ public class RNArtist extends Application {
                         return;
                     }
                 }
-                //no hit found
-                mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, true, null);
+                //no hit found. Ctrl or Alt has to be down to confirm unselection
+                if (mouseEvent.isControlDown() || mouseEvent.isAltDown())
+                    mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, true, null);
                 mediator.getCanvas2D().repaint();
             }
         });
         swingNode.setOnMouseDragged(mouseEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null && (mouseEvent.isSecondaryButtonDown() || mouseEvent.isControlDown())) {
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
                 mediator.getTheme().setQuickDraw(true);
                 double transX = mouseEvent.getX() - mediator.getCanvas2D().getTranslateX();
                 double transY = mouseEvent.getY() - mediator.getCanvas2D().getTranslateY();
@@ -128,7 +129,7 @@ public class RNArtist extends Application {
             }
         });
         swingNode.setOnMousePressed(mouseEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null && (mouseEvent.isSecondaryButtonDown() || mouseEvent.isControlDown())) {
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
                 mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
                 mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
             }

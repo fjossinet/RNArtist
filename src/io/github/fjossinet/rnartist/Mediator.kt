@@ -1,7 +1,6 @@
 package io.github.fjossinet.rnartist
 
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.displayTertiariesInSelection
 import io.github.fjossinet.rnartist.core.model.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.io.ChimeraDriver
@@ -92,17 +91,22 @@ class Mediator(val rnartist: RNArtist) {
 
     /*
     This function test if a SecondaryStructureElement, depending of its type, is selected or not. This function is used by the function addToSelection
+    The criteria is a little bit different than the isSelected in RNArtistCore, since we take care of the parents too here.
      */
     private fun isSelected(structureElement:SecondaryStructureElement):Boolean {
         return when (structureElement) {
-            is ResidueCircle -> { //Since a ResidueCircle has been removed from the structureElementsSelected list, it is considered Selected if its parent is selected too, or if its grandparent is selected too (if the ResidueCircle is in an helix)
+            is ResidueCircle -> {
                 (structureElement as Object) in this.structureElementsSelected
-                        || (structureElement.parent is JunctionCircle) &&  (structureElement.parent as Object)in this.structureElementsSelected
+                        || (structureElement.parent is JunctionCircle) && (structureElement.parent as Object)in this.structureElementsSelected
+                        || (structureElement.parent is SingleStrandLine) && (structureElement.parent as Object)in this.structureElementsSelected
                         || ((structureElement.parent is SecondaryInteractionLine) && ((structureElement.parent as Object) in this.structureElementsSelected) || (structureElement.parent?.parent is HelixLine) && (structureElement.parent?.parent as Object) in this.structureElementsSelected)
             }
             is SecondaryInteractionLine -> { //Since a SecondaryInteractionLine has been removed from the structureElementsSelected list, it is considered Selected if its parent is selected too
-                this.structureElementsSelected.remove(structureElement as Object) || (structureElement.parent as Object) in this.structureElementsSelected
+                (structureElement as Object) in this.structureElementsSelected || (structureElement.parent as Object) in this.structureElementsSelected
             } //any other structural element is considered selected if it is itself in the structureElementsSelected list
+            is TertiaryInteractionLine -> {
+                (structureElement as Object) in this.structureElementsSelected
+            }
             else -> (structureElement as Object) in this.structureElementsSelected
         }
     }
@@ -120,7 +124,7 @@ class Mediator(val rnartist: RNArtist) {
             this.selectInChimera()
         }
         structureElement?.let {
-            if (isSelected(structureElement)) { //if the element is already selected we will select the next one aaccording to the 2D structure
+            if (isSelected(structureElement)) { //if the element is already selected we will select the next one according to the 2D structure
                 when (structureElement) {
                     is ResidueCircle -> {
                         this.structureElementsSelected.remove(structureElement as Object) //if the residue is selected, we remove it to add its parent (SecondaryInteraction Line or JunctionCircle) to the current selection. We remove it in order to avoid to set its theme if the user choose "All selected elements"
@@ -141,6 +145,15 @@ class Mediator(val rnartist: RNArtist) {
                                 this.addToSelection(selectionEmitter, false, jc)
                             }
                     }
+                    is SingleStrandLine -> { //if the SingleStrandLine is selected, we keep it and do nothing more
+
+                    }
+                    is TertiaryInteractionLine -> { //if the SingleStrandLine is selected, we keep it and do nothing more
+
+                    }
+                    else -> {
+
+                    }
                 }
             } else {
                 if (structureElementsSelected.size == 2) //meaning Global Theme + a selected element -> we need to add the option "All Selected Elements"
@@ -156,6 +169,14 @@ class Mediator(val rnartist: RNArtist) {
                 if (selectionEmitter != SelectionEmitter.JUNCTIONKNOB)
                     this.selectInJunctionKnobs()
                 this.selectInChimera()
+
+                //we test is some tertiaries are selected now
+                current2DDrawing?.tertiaryInteractions?.forEach {
+                    //if is not selected itsel but its residues, we add it to the selection
+                    if (!this.isSelected(it) && this.isSelected(it.residue) && this.isSelected(it.pairedResidue)) {
+                        this.addToSelection(selectionEmitter, false, it)
+                    }
+                }
             }
         }
     }
@@ -194,7 +215,9 @@ class Mediator(val rnartist: RNArtist) {
         }
     }
 
-    //the function synchronize the selection list of the working session. Each SecondaryStructureElement will take care of this new selection (to fade or not for example) during its redraw()
+    //the function synchronize the selection list of the working session.
+    // Each SecondaryStructureElement will take care of this new selection (to fade or not for example) during its redraw()
+    //
     private fun selectInCanvas2D() {
         this.workingSession?.selection?.let { selection ->
             this.current2DDrawing?.let { drawing ->

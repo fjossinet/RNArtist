@@ -41,7 +41,7 @@ public class Explorer {
         treeTableView.setColumnResizePolicy(TreeTableView.CONSTRAINED_RESIZE_POLICY);
         TreeTableColumn<ExplorerItem, String> nameCol = new TreeTableColumn<ExplorerItem, String>("Name");
         nameCol.setCellValueFactory(new TreeItemPropertyValueFactory<ExplorerItem, String>("name"));
-        TreeTableColumn<ExplorerItem, String> locationCol = new TreeTableColumn<ExplorerItem, String>("Value");
+        TreeTableColumn<ExplorerItem, String> locationCol = new TreeTableColumn<ExplorerItem, String>("Details");
         locationCol.setCellValueFactory(new TreeItemPropertyValueFactory<ExplorerItem, String>("value"));
         treeTableView.getColumns().addAll(nameCol, locationCol);
         treeTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -97,9 +97,9 @@ public class Explorer {
         scene.getStylesheets().add(getClass().getClassLoader().getResource("io/github/fjossinet/rnartist/gui/css/explorer.css").toExternalForm());
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        this.stage.setWidth(350);
+        this.stage.setWidth(450);
         this.stage.setHeight(screenSize.getHeight());
-        this.stage.setX(screenSize.getWidth()-350);
+        this.stage.setX(screenSize.getWidth()-450);
         this.stage.setY(0);
     }
 
@@ -138,6 +138,7 @@ public class Explorer {
         for (String key : keys)
             themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, drawing.getTheme().getParams().get(key))));
         TreeItem<ExplorerItem> allHelices = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Helices"));
+
         for (HelixLine h: drawing.getAllHelices())
             allHelices.getChildren().addAll(this.load(drawing, h));
         root.getChildren().add(allHelices);
@@ -147,14 +148,19 @@ public class Explorer {
             allJunctions.getChildren().addAll(this.load(drawing, jc));
         root.getChildren().add(allJunctions);
 
+        TreeItem<ExplorerItem> allSingleStrands = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("SingleStrands"));
+        for (SingleStrandLine ss:drawing.getSingleStrands())
+            allSingleStrands.getChildren().addAll(this.load(drawing, ss));
+        root.getChildren().add(allSingleStrands);
+
         TreeItem<ExplorerItem> allTertiaries = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Tertiaries"));
-        for (TertiaryInteractionLine interaction:drawing.getTertiaryInteractions()) {
-            TreeItem<ExplorerItem> interactionItem = new TreeItem<ExplorerItem>(new TertiaryInteractionItem(interaction));
-            allTertiaries.getChildren().addAll(interactionItem);
-        }
+        for (TertiaryInteractionLine interaction:drawing.getTertiaryInteractions())
+            allTertiaries.getChildren().addAll(this.load(drawing,interaction, true));
+
         root.getChildren().add(allTertiaries);
         this.treeTableView.setRoot(root);
     }
+
 
     private TreeItem<ExplorerItem> load(SecondaryStructureDrawing drawing, HelixLine h) {
         TreeItem<ExplorerItem> helixItem = new TreeItem<ExplorerItem>(new HelixItem(h));
@@ -163,29 +169,8 @@ public class Explorer {
         SortedSet<String> keys = new TreeSet<>(h.getTheme().getParams().keySet());
         for (String key : keys)
             themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, h.getTheme().getParams().get(key))));
-        for (SecondaryInteractionLine interaction: h.getSecondaryInteractions()) {
-            TreeItem<ExplorerItem> interactionItem = new TreeItem<ExplorerItem>(new SecondaryInteractionItem(interaction));
-            helixItem.getChildren().addAll(interactionItem);
-
-            themeItem = new TreeItem<ExplorerItem>(new ThemeItem());
-            interactionItem.getChildren().add(themeItem);
-            keys = new TreeSet<>(interaction.getTheme().getParams().keySet());
-            for (String key : keys)
-                themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, interaction.getTheme().getParams().get(key))));
-
-            for (ResidueCircle r: drawing.getResidues()) {
-                if (r.getParent() == interaction) {
-                    TreeItem<ExplorerItem> residueItem = new TreeItem<ExplorerItem>(new ResidueItem(r));
-                    interactionItem.getChildren().addAll(residueItem);
-
-                    themeItem = new TreeItem<ExplorerItem>(new ThemeItem());
-                    residueItem.getChildren().add(themeItem);
-                    keys = new TreeSet<>(r.getTheme().getParams().keySet());
-                    for (String key : keys)
-                        themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, r.getTheme().getParams().get(key))));
-                }
-            }
-        }
+        for (SecondaryInteractionLine interaction: h.getSecondaryInteractions())
+            helixItem.getChildren().addAll(this.load(drawing,interaction, false));
         return helixItem;
     }
 
@@ -196,19 +181,70 @@ public class Explorer {
         SortedSet<String> keys = new TreeSet<>(jc.getTheme().getParams().keySet());
         for (String key : keys)
             themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, jc.getTheme().getParams().get(key))));
-        for (ResidueCircle r: drawing.getResidues()) {
-            if (r.getParent() == jc) {
-                TreeItem<ExplorerItem> residueItem = new TreeItem<ExplorerItem>(new ResidueItem(r));
-                junctionItem.getChildren().addAll(residueItem);
-
-                themeItem = new TreeItem<ExplorerItem>(new ThemeItem());
-                residueItem.getChildren().add(themeItem);
-                keys = new TreeSet<>(r.getTheme().getParams().keySet());
-                for (String key : keys)
-                    themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, r.getTheme().getParams().get(key))));
-            }
-        }
+        for (ResidueCircle r: drawing.getResidues())
+            if (r.getParent() == jc)
+                junctionItem.getChildren().addAll(load(drawing,r));
         return junctionItem;
+    }
+
+    private TreeItem<ExplorerItem> load(SecondaryStructureDrawing drawing, SingleStrandLine ss) {
+        TreeItem<ExplorerItem> ssItem = new TreeItem<ExplorerItem>(new SingleStrandItem(ss));
+        TreeItem<ExplorerItem> themeItem = new TreeItem<ExplorerItem>(new ThemeItem());
+        ssItem.getChildren().add(themeItem);
+        SortedSet<String> keys = new TreeSet<>(ss.getTheme().getParams().keySet());
+        for (String key : keys)
+            themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, ss.getTheme().getParams().get(key))));
+        for (ResidueCircle r: drawing.getResidues())
+            if (r.getParent() == ss)
+                ssItem.getChildren().add(load(drawing,r));
+        return ssItem;
+    }
+
+    private TreeItem<ExplorerItem> load(SecondaryStructureDrawing drawing, BaseBaseInteraction interaction, boolean isTertiary) {
+        TreeItem<ExplorerItem> interactionItem =
+                isTertiary ? new TreeItem<ExplorerItem>(new TertiaryInteractionItem((TertiaryInteractionLine)interaction)) : new TreeItem<ExplorerItem>(new SecondaryInteractionItem((SecondaryInteractionLine)interaction));
+        TreeItem<ExplorerItem> themeItem = new TreeItem<ExplorerItem>(new ThemeItem());
+        interactionItem.getChildren().add(themeItem);
+        SortedSet<String> keys = new TreeSet<>(interaction.getTheme().getParams().keySet());
+        for (String key : keys)
+            themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, interaction.getTheme().getParams().get(key))));
+
+        TreeItem<ExplorerItem> regularSymbols = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Regular Symbols"));
+        interactionItem.getChildren().add(regularSymbols);
+
+        for (LWSymbol s: interaction.getRegularSymbols())
+            regularSymbols.getChildren().add(load(drawing,s));
+
+        TreeItem<ExplorerItem> lwSymbols = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("LW Symbols"));
+        interactionItem.getChildren().add(lwSymbols);
+
+        for (LWSymbol s: interaction.getLwSymbols())
+            lwSymbols.getChildren().add(load(drawing,s));
+
+        for (ResidueCircle r: drawing.getResidues())
+            if (r.getParent() == interaction)
+                interactionItem.getChildren().add(load(drawing,r));
+        return interactionItem;
+    }
+
+    private TreeItem<ExplorerItem> load(SecondaryStructureDrawing drawing, ResidueCircle r) {
+        TreeItem<ExplorerItem> residueItem = new TreeItem<ExplorerItem>(new ResidueItem(r));
+        TreeItem<ExplorerItem> themeItem = new TreeItem<ExplorerItem>(new ThemeItem());
+        residueItem.getChildren().add(themeItem);
+        SortedSet<String> keys = new TreeSet<>(r.getTheme().getParams().keySet());
+        for (String key : keys)
+            themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, r.getTheme().getParams().get(key))));
+        return residueItem;
+    }
+
+    private TreeItem<ExplorerItem> load(SecondaryStructureDrawing drawing, LWSymbol s) {
+        TreeItem<ExplorerItem> symbolItem = new TreeItem<ExplorerItem>(new LWSymbolItem(s));
+        TreeItem<ExplorerItem> themeItem = new TreeItem<ExplorerItem>(new ThemeItem());
+        symbolItem.getChildren().add(themeItem);
+        SortedSet<String> keys = new TreeSet<>(s.getTheme().getParams().keySet());
+        for (String key : keys)
+            themeItem.getChildren().add(new TreeItem<ExplorerItem>(new ThemeParameterItem(key, s.getTheme().getParams().get(key))));
+        return symbolItem;
     }
 
     public void clearSelection() {

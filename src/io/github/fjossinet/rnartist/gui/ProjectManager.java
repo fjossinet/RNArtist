@@ -139,9 +139,10 @@ public class ProjectManager {
                     if (ProjectCell.this.getItem().name.equals("New Project")) {
                         stage.hide();
                         mediator.getAllStructures().clear();
-                        mediator.getRnartist().getStage().show();
                         mediator.getToolbox().getStage().show();
                         mediator.getExplorer().getStage().show();
+                        mediator.getRnartist().getStage().show();
+                        mediator.getRnartist().getStage().toFront();
                     } else {
                         stage.hide();
                         io.github.fjossinet.rnartist.core.model.Project project = mediator.getEmbeddedDB().getProject(ProjectCell.this.getItem().id);

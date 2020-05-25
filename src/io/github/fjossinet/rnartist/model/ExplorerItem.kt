@@ -31,9 +31,14 @@ class ThemeParameterItem(key:String, value:String): AbstractExplorerItem("Theme"
 class GroupOfStructuralElements(name:String) : AbstractExplorerItem(name) {
     override var value = ""
 }
+
 class SecondaryStructureItem(val drawing:SecondaryStructureDrawing): AbstractExplorerItem("Full 2D") {
 
     override var value = Location(1, drawing.length).toString()
+
+}
+
+class SingleStrandItem(val ss:SingleStrandLine): StructuralItem(ss.name, ss) {
 
 }
 
@@ -62,5 +67,9 @@ class SecondaryInteractionItem(val secondaryInteraction:SecondaryInteractionLine
 }
 
 class ResidueItem(val residue:ResidueCircle): StructuralItem(residue.label.toString(), residue) {
+
+}
+
+class LWSymbolItem(val symbol:LWSymbol): StructuralItem(symbol.toString(), symbol) {
 
 }

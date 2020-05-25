@@ -108,7 +108,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         scene.getStylesheets().add(getClass().getClassLoader().getResource("io/github/fjossinet/rnartist/gui/css/toolbox.css").toExternalForm());
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        this.stage.setWidth(350);
+        this.stage.setWidth(450);
         this.stage.setHeight(screenSize.getHeight());
         this.stage.setX(0);
         this.stage.setY(0);
@@ -393,14 +393,41 @@ public class Toolbox extends AbstractThemeConfigurator {
         l = new Label("Target");
         l.setStyle("-fx-font-size: 20");
         l.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setConstraints(l, 0,0,1,1);
+        GridPane.setConstraints(l, 0,0,2,1);
         GridPane.setHalignment(l,HPos.LEFT);
         targetForm.getChildren().add(l);
 
-        GridPane.setConstraints(this.structureElementsSelectedComboBox, 0,1,1,1);
+        GridPane.setConstraints(this.structureElementsSelectedComboBox, 0,1,2,1);
         targetForm.getChildren().add(this.structureElementsSelectedComboBox);
 
-        Button applyTheme = new Button("Apply Entire Theme to Target");
+        Button clearTheme = new Button("Clear Theme for Target");
+        clearTheme.setMinWidth(Control.USE_PREF_SIZE);
+        clearTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                Object selectedStructureElement = structureElementsSelectedComboBox.getValue();
+                if (selectedStructureElement.toString().equals("Full 2D")) {
+                    mediator.getCurrent2DDrawing().clearThemes();
+                } else if (selectedStructureElement.toString().equals("All Selected Elements")) {
+                    for (Object _o: mediator.getStructureElementsSelected().subList(2,mediator.getStructureElementsSelected().size())) {
+                        ((SecondaryStructureElement)_o).clearThemes();
+                        //mediator.getExplorer().clearTheme((SecondaryStructureElement)_o);
+                    }
+                }
+                else if (SecondaryStructureElement.class.isInstance(selectedStructureElement)) {
+                    ((SecondaryStructureElement)selectedStructureElement).clearThemes();
+                    //mediator.getExplorer().clearTheme((SecondaryStructureElement)selectedStructureElement);
+                }
+                mediator.canvas2D.repaint();
+            }
+        });
+
+        GridPane.setConstraints(clearTheme, 0,2,1,1);
+        clearTheme.setMaxWidth(Double.MAX_VALUE);
+        targetForm.getChildren().add(clearTheme);
+
+        Button applyTheme = new Button("Apply Theme to Target");
+        applyTheme.setMinWidth(Control.USE_PREF_SIZE);
         applyTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
@@ -425,7 +452,7 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
-        GridPane.setConstraints(applyTheme, 0,2,1,1);
+        GridPane.setConstraints(applyTheme, 1,2,1,1);
         applyTheme.setMaxWidth(Double.MAX_VALUE);
         targetForm.getChildren().add(applyTheme);
 
@@ -487,6 +514,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearFontName = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearFontName, 7,0,1,1);
+        fontsPane.getChildren().add(clearFontName);
+
+        clearFontName.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         deltaXRes = new Spinner<Integer>();
         deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.DeltaXRes.toString()))));
         deltaXRes.valueProperty().addListener(new ChangeListener<Integer>() {
@@ -522,7 +560,6 @@ public class Toolbox extends AbstractThemeConfigurator {
                 }
             }
         });
-
 
         l = new Label("x");
         GridPane.setConstraints(l, 0,1,1,1);
@@ -562,6 +599,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearDeltas = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearDeltas, 7,1,1,1);
+        fontsPane.getChildren().add(clearDeltas);
+
+        clearDeltas.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         currentThemeVBox.getChildren().add(fontsPane);
 
         GridPane fontsPane2 = new GridPane();
@@ -575,7 +623,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         fontsPane2.getColumnConstraints().addAll(cc);
 
         l = new Label("Residue Character Opacity (%)");
-        GridPane.setConstraints(l, 0,0,2,1);
+        GridPane.setConstraints(l, 0,0,3,1);
         l.setMaxWidth(Double.MAX_VALUE);
         GridPane.setHalignment(l,HPos.LEFT);
         fontsPane2.getChildren().add(l);
@@ -610,8 +658,20 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearCharOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearCharOpacity, 2,1,1,1);
+        GridPane.setValignment(clearCharOpacity, VPos.TOP);
+        fontsPane2.getChildren().add(clearCharOpacity);
+
+        clearCharOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         l = new Label("Ticks Character Opacity (%)");
-        GridPane.setConstraints(l, 0,2,2,1);
+        GridPane.setConstraints(l, 0,2,3,1);
         GridPane.setHalignment(l,HPos.LEFT);
         l.setMaxWidth(Double.MAX_VALUE);
         fontsPane2.getChildren().add(l);
@@ -642,6 +702,18 @@ public class Toolbox extends AbstractThemeConfigurator {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 //fireThemeChange(ThemeParameter.ResidueCharOpacity,(int) ((double)(residueCharOpacity.getValue()) / 100.0 * 255.0));
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearTicksOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearTicksOpacity, 2,3,1,1);
+        GridPane.setValignment(clearTicksOpacity, VPos.TOP);
+        fontsPane2.getChildren().add(clearTicksOpacity);
+
+        clearTicksOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -682,7 +754,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         colorSchemeChoices.setValue("Choose a Color Scheme");
         colorSchemeChoices.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(colorSchemeChoices, 0,0,4,1);
+        GridPane.setConstraints(colorSchemeChoices, 0,0,5,1);
         GridPane.setHalignment(colorSchemeChoices, HPos.LEFT);
         colorsPane.getChildren().add(colorSchemeChoices);
 
@@ -721,6 +793,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         });
         colorPicker1.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.AColor.toString()))));
         colorPicker1.setMaxWidth(Double.MAX_VALUE);
+        colorPicker1.setMinWidth(Control.USE_PREF_SIZE);
 
         colorPicker2 = new ColorPicker();
         colorPicker2.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
@@ -932,11 +1005,12 @@ public class Toolbox extends AbstractThemeConfigurator {
         colorPicker7.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.TertiaryColor.toString()))));
         colorPicker7.setMaxWidth(Double.MAX_VALUE);
 
-        l = new Label("Background");
+        l = new Label("Fill");
         GridPane.setConstraints(l, 1,1,1,1);
         GridPane.setHalignment(l,HPos.CENTER);
         colorsPane.getChildren().add(l);
         l = new Label("Character");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         GridPane.setConstraints(l, 2,1,1,1);
         GridPane.setHalignment(l,HPos.CENTER);
         colorsPane.getChildren().add(l);
@@ -952,6 +1026,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane.setHalignment(colorPicker1,HPos.CENTER);
         this.letterColor1 = new ChoiceBox<String>();
         letterColor1.setMaxWidth(Double.MAX_VALUE);
+        letterColor1.setMinWidth(Control.USE_PREF_SIZE);
         letterColor1.getItems().addAll("White", "Black");
         letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
         letterColor1.setOnAction(new EventHandler<ActionEvent>() {
@@ -1003,6 +1078,17 @@ public class Toolbox extends AbstractThemeConfigurator {
                     case "2D": fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker1.getValue())); break;
                     case "3D": fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker1.getValue())); break;
                 }
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearStructuralElement1 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearStructuralElement1, 4,2,1,1);
+        colorsPane.getChildren().add(clearStructuralElement1);
+
+        clearStructuralElement1.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -1071,6 +1157,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearStructuralElement2 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearStructuralElement2, 4,3,1,1);
+        colorsPane.getChildren().add(clearStructuralElement2);
+
+        clearStructuralElement2.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         structuralElement3.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement3.setValue("G");
         GridPane.setConstraints(structuralElement3, 0,4,1,1);
@@ -1131,6 +1228,17 @@ public class Toolbox extends AbstractThemeConfigurator {
                     case "2D": fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker3.getValue())); break;
                     case "3D": fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker3.getValue())); break;
                 }
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearStructuralElement3 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearStructuralElement3, 4,4,1,1);
+        colorsPane.getChildren().add(clearStructuralElement3);
+
+        clearStructuralElement3.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -1199,6 +1307,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearStructuralElement4 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearStructuralElement4, 4,5,1,1);
+        colorsPane.getChildren().add(clearStructuralElement4);
+
+        clearStructuralElement4.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         structuralElement5.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement5.setValue("X");
         GridPane.setConstraints(structuralElement5, 0,6,1,1);
@@ -1260,6 +1379,17 @@ public class Toolbox extends AbstractThemeConfigurator {
                     case "2D": fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker5.getValue())); break;
                     case "3D": fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker5.getValue())); break;
                 }
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearStructuralElement5 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearStructuralElement5, 4,6,1,1);
+        colorsPane.getChildren().add(clearStructuralElement5);
+
+        clearStructuralElement5.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -1330,6 +1460,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearStructuralElement6 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearStructuralElement6, 4,7,1,1);
+        colorsPane.getChildren().add(clearStructuralElement6);
+
+        clearStructuralElement6.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         structuralElement7.getItems().addAll("A","U","G","C","X","2D","3D");
         structuralElement7.setValue("3D");
         GridPane.setConstraints(structuralElement7, 0,8,1,1);
@@ -1396,6 +1537,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearStructuralElement7 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearStructuralElement7, 4,8,1,1);
+        colorsPane.getChildren().add(clearStructuralElement7);
+
+        clearStructuralElement7.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         currentThemeVBox.getChildren().add(colorsPane);
 
         //++++++ pane for the Lines
@@ -1430,6 +1582,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane.setHalignment(displayLWSymbols,HPos.CENTER);
 
         l = new Label("Display Leontis-Westhof Symbols");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         GridPane.setConstraints(l, 1, row,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.LEFT);
@@ -1442,6 +1595,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 fireThemeChange(ThemeParameter.DisplayLWSymbols, displayLWSymbols.getValue());
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearDisplayLWSymbols = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearDisplayLWSymbols, 4,row,1,1);
+        linesPane.getChildren().add(clearDisplayLWSymbols);
+
+        clearDisplayLWSymbols.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -1467,6 +1631,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane.setHalignment(residuesWidth,HPos.CENTER);
 
         l = new Label("Residues Line Width (px)");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         GridPane.setConstraints(l, 1,row,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.LEFT);
@@ -1479,6 +1644,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 fireThemeChange(ThemeParameter.ResidueBorder,Double.parseDouble(residuesWidth.getValue()));
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearResidueLineWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearResidueLineWidth, 4,row,1,1);
+        linesPane.getChildren().add(clearResidueLineWidth);
+
+        clearResidueLineWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -1504,6 +1680,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane.setHalignment(phosphoDiesterWidth,HPos.CENTER);
 
         l = new Label("Phosphodiester Line Width (px)");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         GridPane.setConstraints(l, 1,row,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.LEFT);
@@ -1516,6 +1693,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 fireThemeChange(ThemeParameter.PhosphodiesterWidth, Double.parseDouble(phosphoDiesterWidth.getValue()));
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearPhosphodiesterWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearPhosphodiesterWidth, 4,row,1,1);
+        linesPane.getChildren().add(clearPhosphodiesterWidth);
+
+        clearPhosphodiesterWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -1541,6 +1729,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane.setHalignment(secondaryInteractionWidth,HPos.CENTER);
 
         l = new Label("Secondaries Line Width (px)");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         GridPane.setConstraints(l, 1,row,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.LEFT);
@@ -1553,6 +1742,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 fireThemeChange(ThemeParameter.SecondaryInteractionWidth, Double.parseDouble(secondaryInteractionWidth.getValue()));
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearSecondariesWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearSecondariesWidth, 4,row,1,1);
+        linesPane.getChildren().add(clearSecondariesWidth);
+
+        clearSecondariesWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -1578,6 +1778,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane.setHalignment(tertiaryInteractionWidth,HPos.CENTER);
 
         l = new Label("Tertiaries Line Width (px)");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         GridPane.setConstraints(l, 1,row,2,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.LEFT);
@@ -1590,6 +1791,17 @@ public class Toolbox extends AbstractThemeConfigurator {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 fireThemeChange(ThemeParameter.TertiaryInteractionWidth, tertiaryInteractionWidth.getValue());
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearTertiariesWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearTertiariesWidth, 4,row,1,1);
+        linesPane.getChildren().add(clearTertiariesWidth);
+
+        clearTertiariesWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -1613,6 +1825,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane.setHalignment(tertiaryInteractionStyle,HPos.CENTER);
 
         l = new Label("Tertiaries Line Style");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         GridPane.setConstraints(l, 1, row,1,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.LEFT);
@@ -1629,11 +1842,23 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearTertiariesStyle = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearTertiariesStyle, 4,row,1,1);
+        linesPane.getChildren().add(clearTertiariesStyle);
+
+        clearTertiariesStyle.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         row++;
 
         l = new Label("Secondaries Line Shift (px)");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         l.setPadding(new Insets(10,0,0,0));
-        GridPane.setConstraints(l, 0,row,4,1);
+        GridPane.setConstraints(l, 0,row,5,1);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.LEFT);
 
@@ -1671,11 +1896,24 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearSecondariesShift = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearSecondariesShift, 4,row,1,1);
+        GridPane.setValignment(clearSecondariesShift, VPos.TOP);
+        linesPane.getChildren().add(clearSecondariesShift);
+
+        clearSecondariesShift.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         row++;
 
         l = new Label("Tertiaries Opacity (%)");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         l.setPadding(new Insets(10,0,0,0));
-        GridPane.setConstraints(l, 0, row,4,1);
+        GridPane.setConstraints(l, 0, row,5,1);
         GridPane.setValignment(l,VPos.TOP);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.LEFT);
@@ -1714,11 +1952,24 @@ public class Toolbox extends AbstractThemeConfigurator {
             }
         });
 
+        Button clearTertiariesOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearTertiariesOpacity, 4,row,1,1);
+        GridPane.setValignment(clearTertiariesOpacity, VPos.TOP);
+        linesPane.getChildren().add(clearTertiariesOpacity);
+
+        clearTertiariesOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
         row++;
 
         l = new Label("Tertiaries Halo Size (px)");
+        l.setMinWidth(Control.USE_PREF_SIZE);
         l.setPadding(new Insets(10,0,0,0));
-        GridPane.setConstraints(l, 0,row,4,1);
+        GridPane.setConstraints(l, 0,row,5,1);
         GridPane.setValignment(l,VPos.TOP);
         linesPane.getChildren().add(l);
         GridPane.setHalignment(l,HPos.LEFT);
@@ -1752,6 +2003,18 @@ public class Toolbox extends AbstractThemeConfigurator {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 fireThemeChange(ThemeParameter.HaloWidth, haloWidth.getValue());
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        Button clearHaloWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearHaloWidth, 4,row,1,1);
+        GridPane.setValignment(clearHaloWidth, VPos.TOP);
+        linesPane.getChildren().add(clearHaloWidth);
+
+        clearHaloWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
                 mediator.getCanvas2D().repaint();
             }
         });
