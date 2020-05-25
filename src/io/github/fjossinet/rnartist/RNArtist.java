@@ -95,6 +95,14 @@ public class RNArtist extends Application {
                 AffineTransform at = new AffineTransform();
                 at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
                 at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
+                for (JunctionCircle jc:mediator.getCurrent2DDrawing().getAllJunctions()) {
+                    if (at.createTransformedShape(jc.circle).contains(mouseEvent.getX(), mouseEvent.getY())) {
+                        mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, false, jc);
+                        mediator.getCanvas2D().repaint();
+                        return;
+                    }
+                }
+
                 List<ResidueCircle> residues = mediator.getCurrent2DDrawing().getResidues();
                 for (ResidueCircle c : residues) {
                     if (c.getCircle() != null && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {

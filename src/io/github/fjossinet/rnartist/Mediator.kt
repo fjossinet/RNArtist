@@ -170,7 +170,7 @@ class Mediator(val rnartist: RNArtist) {
                     this.selectInJunctionKnobs()
                 this.selectInChimera()
 
-                //we test is some tertiaries are selected now
+                //TODO highly CPU consuming -> to improve
                 current2DDrawing?.tertiaryInteractions?.forEach {
                     //if is not selected itsel but its residues, we add it to the selection
                     if (!this.isSelected(it) && this.isSelected(it.residue) && this.isSelected(it.pairedResidue)) {
