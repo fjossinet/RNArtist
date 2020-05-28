@@ -138,7 +138,7 @@ public class ProjectManager {
                 public void handle(MouseEvent event) {
                     if (ProjectCell.this.getItem().name.equals("New Project")) {
                         stage.hide();
-                        mediator.getAllStructures().clear();
+                        mediator.get_2DDrawingsLoaded().clear();
                         mediator.getToolbox().getStage().show();
                         mediator.getExplorer().getStage().show();
                         mediator.getRnartist().getStage().show();

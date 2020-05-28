@@ -5,20 +5,15 @@ import io.github.fjossinet.rnartist.gui.RegisterDialog;
 import io.github.fjossinet.rnartist.io.ChimeraDriver;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.core.model.io.Rnaview;
-import io.github.fjossinet.rnartist.model.*;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.embed.swing.SwingNode;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.*;
-import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.TreeItemPropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
@@ -26,9 +21,9 @@ import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.apache.commons.lang3.tuple.Pair;
-import org.controlsfx.control.CheckComboBox;
 import org.controlsfx.glyphfont.FontAwesome;
 import org.controlsfx.glyphfont.Glyph;
+import org.dizitart.no2.Document;
 import org.dizitart.no2.NitriteId;
 
 import javax.imageio.ImageIO;
@@ -47,10 +42,9 @@ public class RNArtist extends Application {
     private Mediator mediator;
     private Stage stage;
     private int scrollCounter = 0;
-    private Button saveAs, save;
-    private VBox topToolBars;
     private FlowPane statusBar;
-    private ChoiceBox<SecondaryStructureDrawing> _2DDrawingsLoaded;
+    private Menu savedThemesMenu, currentThemeMenu, load2DForMenu;
+    private MenuItem updateSavedThemeItem, clearAll2DsItem, clearAll2DsExceptCurrentItem;
 
     public static void main(String[] args) {
         launch(args);
@@ -74,7 +68,10 @@ public class RNArtist extends Application {
             Optional<ButtonType> result = alert.showAndWait();
             if (result.get() == ButtonType.OK) {
                 try {
-                    RnartistConfig.save(null);
+                    if (RnartistConfig.saveCurrentThemeOnExit())
+                        RnartistConfig.save(mediator.getToolbox().getCurrentTheme().getParams(), (org.apache.commons.lang3.tuple.Pair<String, NitriteId>)currentThemeMenu.getUserData());
+                    else
+                        RnartistConfig.save(null, null);
                     Platform.exit();
                     System.exit(0);
                 } catch (Exception e) {
@@ -88,14 +85,562 @@ public class RNArtist extends Application {
         if (RnartistConfig.getUserID() == null)
             new RegisterDialog(this);
         this.mediator = new Mediator(this);
-        RnartistConfig.save(null);
+        RnartistConfig.save(null, null);
+
+        Screen screen = Screen.getPrimary();
+        BorderPane root = new BorderPane();
+
+        //++++++ Menus
+        MenuBar menuBar = new MenuBar();
+
+        Menu fileMenu = new Menu("File");
+        Menu _2DMenu = new Menu("2D");
+        Menu themesMenu = new Menu("Themes");
+        Menu windowsMenu = new Menu("Windows");
+
+        menuBar.getMenus().addAll(fileMenu, _2DMenu, themesMenu, windowsMenu);
+
+        //++++++++ Project Menu
+        MenuItem newItem = new MenuItem("New/Open Project...");
+
+        newItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getProjectManager().getStage().show();
+                mediator.getProjectManager().getStage().toFront();
+            }
+        });
+
+        MenuItem saveasItem = new MenuItem("Save Project As...");
+
+        saveasItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
+                    mediator.getWorkingSession().setScreen_capture(true);
+                    mediator.getWorkingSession().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
+                    mediator.getCanvas2D().repaint();
+                    TextInputDialog dialog = new TextInputDialog("My Project");
+                    dialog.initModality(Modality.NONE);
+                    dialog.setTitle("Project Saving");
+                    dialog.setHeaderText("Fit your 2D preview into the black rectangle before saving.");
+                    dialog.setContentText("Please enter your project name:");
+                    Optional<String> projectName = dialog.showAndWait();
+                    if (projectName.isPresent()) {
+                        BufferedImage image = mediator.getCanvas2D().screenCapture(null);
+                        if (image != null) {
+                            NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getCurrent2DDrawing());
+                            File pngFile = new File(new File(new File(mediator.getEmbeddedDB().getRootDir(), "images"), "user"), id.toString() + ".png");
+                            try {
+                                ImageIO.write(image, "PNG", pngFile);
+                            } catch (IOException ex) {
+                                ex.printStackTrace();
+                            }
+                            mediator.getProjectManager().addProject(id, projectName.get().trim());
+                        }
+                        mediator.getWorkingSession().setScreen_capture(false);
+                        mediator.getWorkingSession().setScreen_capture_area(null);
+                        mediator.getCanvas2D().repaint();
+                    } else {
+                        mediator.getWorkingSession().setScreen_capture(false);
+                        mediator.getWorkingSession().setScreen_capture_area(null);
+                        mediator.getCanvas2D().repaint();
+                    }
+                }
+            }
+        });
+
+        MenuItem saveItem = new MenuItem("Save Project");
+
+        saveItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+
+            }
+        });
+
+        Menu loadDataMenu = new Menu("Load Data from...");
+
+        MenuItem filesMenuItem = new MenuItem("Files...");
+
+        filesMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                FileChooser fileChooser = new FileChooser();
+                File file = fileChooser.showOpenDialog(stage);
+                if (file != null) {
+                    fileChooser.setInitialDirectory(file.getParentFile());
+                    javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>, Exception>> loadData = new javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>, Exception>>() {
+
+                        @Override
+                        protected Pair<List<SecondaryStructureDrawing>, Exception> call() {
+                            SecondaryStructure ss = null;
+                            List<SecondaryStructureDrawing> secondaryStructureDrawings = new ArrayList<SecondaryStructureDrawing>();
+                            try {
+                                if (file.getName().endsWith(".ct")) {
+                                    ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseCT(new FileReader(file));
+                                    if (ss != null) {
+                                        ss.getRna().setSource(file.getName());
+                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                    }
+                                } else if (file.getName().endsWith(".bpseq")) {
+                                    ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseBPSeq(new FileReader(file));
+                                    if (ss != null) {
+                                        ss.getRna().setSource(file.getName());
+                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                    }
+                                } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
+                                    ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseVienna(new FileReader(file));
+                                    if (ss != null) {
+                                        ss.getRna().setSource(file.getName());
+                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                    }
+
+                                } else if (file.getName().endsWith(".pdb")) {
+                                    int countBefore = secondaryStructureDrawings.size();
+                                    for (TertiaryStructure ts : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parsePDB(new FileReader(file))) {
+                                        try {
+                                            ss = new Rnaview().annotate(ts);
+                                            if (ss != null) {
+                                                ss.getRna().setSource(file.getName());
+                                                ss.setTertiaryStructure(ts);
+                                                secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                            }
+                                        } catch (FileNotFoundException exception) {
+                                            //do nothing, RNAVIEW can have problem to annotate some RNA (no 2D for example)
+                                        }
+                                    }
+                                    if (countBefore < secondaryStructureDrawings.size()) {//RNAVIEW was able to annotate at least one RNA molecule
+                                        if (mediator.getChimeraDriver() != null)
+                                            mediator.getChimeraDriver().loadTertiaryStructure(file);
+                                    } else { //we generate an Exception to show the Alert dialog
+                                        throw new Exception("RNAVIEW was not able to annotate the 3D structure stored in " + file.getName());
+                                    }
+
+                                } else if (file.getName().endsWith(".stk") || file.getName().endsWith(".stockholm")) {
+                                    for (SecondaryStructure _ss : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
+                                        _ss.getRna().setSource(file.getName());
+                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(_ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                    }
+                                }
+                            } catch (Exception e) {
+                                return Pair.of(secondaryStructureDrawings, e);
+                            }
+                            return Pair.of(secondaryStructureDrawings, null);
+                        }
+                    };
+                    loadData.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+                        @Override
+                        public void handle(WorkerStateEvent workerStateEvent) {
+                            try {
+                                if (loadData.get().getRight() != null) {
+                                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                                    alert.setTitle("File Parsing error");
+                                    alert.setHeaderText(loadData.get().getRight().getMessage());
+                                    alert.setContentText("If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com");
+                                    StringWriter sw = new StringWriter();
+                                    PrintWriter pw = new PrintWriter(sw);
+                                    loadData.get().getRight().printStackTrace(pw);
+                                    String exceptionText = sw.toString();
+
+                                    Label label = new Label("The exception stacktrace was:");
+
+                                    TextArea textArea = new TextArea(exceptionText);
+                                    textArea.setEditable(false);
+                                    textArea.setWrapText(true);
+
+                                    textArea.setMaxWidth(Double.MAX_VALUE);
+                                    textArea.setMaxHeight(Double.MAX_VALUE);
+                                    GridPane.setVgrow(textArea, Priority.ALWAYS);
+                                    GridPane.setHgrow(textArea, Priority.ALWAYS);
+
+                                    GridPane expContent = new GridPane();
+                                    expContent.setMaxWidth(Double.MAX_VALUE);
+                                    expContent.add(label, 0, 0);
+                                    expContent.add(textArea, 0, 1);
+                                    alert.getDialogPane().setExpandableContent(expContent);
+                                    alert.showAndWait();
+                                } else {
+                                    for (SecondaryStructureDrawing drawing : loadData.get().getLeft())
+                                        mediator.get_2DDrawingsLoaded().add(drawing);
+                                    //we load and fit on the last 2D loaded
+                                    mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1));
+                                    mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
+                                }
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            } catch (ExecutionException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                    new Thread(loadData).start();
+
+                }
+            }
+        });
+
+        MenuItem databasesMenuItem = new MenuItem("Databases...");
+
+        databasesMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+
+            }
+        });
+
+        MenuItem scratchMenuItem = new MenuItem("Scratch");
+
+        scratchMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+
+            }
+        });
+
+        loadDataMenu.getItems().addAll(filesMenuItem, databasesMenuItem, scratchMenuItem);
+
+        Menu exportMenu = new Menu("Export 2D As...");
+
+        MenuItem exportSVGMenuItem = new MenuItem("SVG...");
+
+        exportSVGMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("SVG Files", "*.svg"));
+                File file = fileChooser.showSaveDialog(stage);
+                if (file != null) {
+                    fileChooser.setInitialDirectory(file.getParentFile());
+                    PrintWriter writer;
+                    try {
+                        writer = new PrintWriter(file);
+                        writer.println(mediator.getCurrent2DDrawing().asSVG());
+                        writer.close();
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        MenuItem exportCTMenuItem = new MenuItem("CT...");
+
+        exportCTMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+
+            }
+        });
+
+        MenuItem exportViennaMenuItem = new MenuItem("Vienna...");
+
+        exportViennaMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+
+            }
+        });
+
+        exportMenu.getItems().addAll(exportSVGMenuItem, exportCTMenuItem, exportViennaMenuItem);
+
+        fileMenu.getItems().addAll(newItem, loadDataMenu, saveasItem, saveItem, exportMenu);
+
+        //++++++++ 2D Menu
+
+        this.load2DForMenu = new Menu("Load...");
+
+        this.clearAll2DsItem = new MenuItem("Clear All");
+        this.clearAll2DsItem.setDisable(true);
+        clearAll2DsItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Confirmation Dialog");
+                alert.setHeaderText(null);
+                alert.setContentText("Are you Sure to Remove all the 2Ds from your Project?");
+
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.get() == ButtonType.OK)
+                    mediator.get_2DDrawingsLoaded().clear();
+            }
+        });
+
+        this.clearAll2DsExceptCurrentItem = new MenuItem("Clear All Except Current");
+        this.clearAll2DsExceptCurrentItem.setDisable(true);
+        clearAll2DsExceptCurrentItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Confirmation Dialog");
+                alert.setHeaderText(null);
+                alert.setContentText("Are you Sure to Remove all the Remaining 2Ds from your Project?");
+
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.get() == ButtonType.OK) {
+                    List<SecondaryStructureDrawing> toDelete = new ArrayList<SecondaryStructureDrawing>();
+                    for (SecondaryStructureDrawing drawing : mediator.get_2DDrawingsLoaded())
+                        if (drawing != mediator.getCurrent2DDrawing())
+                            toDelete.add(drawing);
+                    mediator.get_2DDrawingsLoaded().removeAll(toDelete);
+                }
+            }
+        });
+
+        this.load2DForMenu.getItems().addAll(clearAll2DsItem, clearAll2DsExceptCurrentItem, new SeparatorMenuItem());
+
+
+        CheckMenuItem centerOnSelectionItem = new CheckMenuItem("Automatic Center on Selection");
+        centerOnSelectionItem.setSelected(RnartistConfig.getCenterDisplayOnSelection());
+        centerOnSelectionItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                RnartistConfig.setCenterDisplayOnSelection(centerOnSelectionItem.isSelected());
+            }
+        });
+
+        CheckMenuItem fitOnSelectionItem = new CheckMenuItem("Automatic Fit on Selection");
+        fitOnSelectionItem.setSelected(RnartistConfig.getFitDisplayOnSelection());
+        fitOnSelectionItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                RnartistConfig.setFitDisplayOnSelection(fitOnSelectionItem.isSelected());
+            }
+        });
+
+        _2DMenu.getItems().addAll(load2DForMenu, centerOnSelectionItem, fitOnSelectionItem);
+
+        //++++++++ Themes Menu
+
+        Menu defaultThemesMenu = new Menu("Default Themes");
+
+        Menu userThemesMenu = new Menu("Your Themes");
+        this.currentThemeMenu = new Menu("Current Theme");
+
+        if (RnartistConfig.getLastThemeSavedId() != null) {
+            this.currentThemeMenu.setUserData(RnartistConfig.getLastThemeSavedId());
+            this.currentThemeMenu.setText(RnartistConfig.getLastThemeSavedId().getKey());
+        }
+
+        MenuItem saveAsCurrentTheme = new MenuItem("Save Current Theme As...");
+
+        saveAsCurrentTheme.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                TextInputDialog dialog = new TextInputDialog();
+                dialog.setTitle("Theme Saving");
+                dialog.setHeaderText("Choose a Name for your Theme");
+
+                Optional<String> response = dialog.showAndWait();
+
+                response.ifPresent(name -> {
+                    NitriteId id = mediator.getEmbeddedDB().addTheme(name, mediator.getToolbox().getCurrentTheme());
+                    if (id != null) {
+                        org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme = org.apache.commons.lang3.tuple.Pair.of(name, id);
+                        savedThemesMenu.getItems().add(createSavedThemeItem(theme));
+                        updateSavedThemeItem.setUserData(theme); //to have the theme reference to update it for the user
+                        updateSavedThemeItem.setDisable(false);
+                        currentThemeMenu.setText(theme.getKey());
+                        currentThemeMenu.setUserData(theme);
+                        currentThemeMenu.setDisable(false);
+                    }
+                });
+            }
+        });
+
+        this.updateSavedThemeItem = new MenuItem("Save");
+        if (RnartistConfig.getLastThemeSavedId() != null)
+            this.updateSavedThemeItem.setUserData(RnartistConfig.getLastThemeSavedId());
+        else
+            this.updateSavedThemeItem.setDisable(true);
+        updateSavedThemeItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Confirmation Dialog");
+                alert.setHeaderText(null);
+                alert.setContentText("Are you Sure to Update your Theme?");
+
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.get() == ButtonType.OK) {
+                    org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme = (org.apache.commons.lang3.tuple.Pair<String, NitriteId>) updateSavedThemeItem.getUserData();
+                    mediator.getEmbeddedDB().updateTheme(theme.getValue(), mediator.getToolbox().getCurrentTheme().getParams());
+
+                }
+            }
+        });
+
+        currentThemeMenu.getItems().addAll(updateSavedThemeItem, saveAsCurrentTheme);
+
+        this.savedThemesMenu = new Menu("Saved Themes");
+
+        for (Document doc : mediator.getEmbeddedDB().getThemes().find())
+            savedThemesMenu.getItems().add(createSavedThemeItem(org.apache.commons.lang3.tuple.Pair.of((String) doc.get("name"), doc.getId())));
+
+        userThemesMenu.getItems().addAll(currentThemeMenu, this.savedThemesMenu);
+
+        Menu communityThemesMenu = new Menu("Community Themes");
+
+        themesMenu.getItems().addAll(defaultThemesMenu, userThemesMenu, communityThemesMenu);
+
+        //++++++++ Windows Menu
+        MenuItem toolboxItem = new MenuItem("Toolbox");
+
+        toolboxItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getToolbox().getStage().show();
+                mediator.getToolbox().getStage().toFront();
+            }
+        });
+
+        MenuItem explorerItem = new MenuItem("Explorer");
+
+        explorerItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                mediator.getExplorer().getStage().show();
+                mediator.getExplorer().getStage().toFront();
+            }
+        });
+
+        MenuItem chimeraItem = new MenuItem("Chimera");
+
+        chimeraItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                if (mediator.getChimeraDriver() != null) {
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    alert.setTitle("Please Confirm");
+                    alert.setHeaderText("A Chimera windows is already linked to RNArtist");
+                    alert.setContentText("The new one will replace it for the linkage");
+                    Optional<ButtonType> result = alert.showAndWait();
+                    if (result.isPresent() && result.get().equals(ButtonType.OK)) {
+                        new ChimeraDriver(mediator);
+                    }
+                } else
+                    new ChimeraDriver(mediator);
+            }
+        });
+
+        windowsMenu.getItems().addAll(toolboxItem, explorerItem, chimeraItem);
+
+        //++++++ Toolbar
+
+        ToolBar toolbar = new ToolBar();
+
+        toolbar.setPadding(new Insets(5,10,10,10));
+
+        GridPane allButtons = new GridPane();
+        allButtons.setVgap(5.0);
+        allButtons.setHgap(5.0);
+
+        Label l = new Label("2D");
+        GridPane.setConstraints(l, 0, 0);
+        allButtons.getChildren().add(l);
+
+        Button center2D = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CROSSHAIRS));
+        center2D.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                if (mediator.getCurrent2DDrawing() != null) {
+                    mediator.getCanvas2D().centerDisplayOn(mediator.getCurrent2DDrawing().getBounds());
+                }
+            }
+        });
+        center2D.setTooltip(new Tooltip("Center 2D"));
+        GridPane.setConstraints(center2D, 1, 0);
+        allButtons.getChildren().add(center2D);
+
+        Button fit2D = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.ARROWS_ALT));
+        fit2D.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                if (mediator.getCurrent2DDrawing() != null) {
+                    mediator.getCanvas2D().fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
+                }
+            }
+        });
+        fit2D.setTooltip(new Tooltip("Fit 2D"));
+        GridPane.setConstraints(fit2D, 2, 0);
+        allButtons.getChildren().add(fit2D);
+
+        l = new Label("3D");
+        GridPane.setConstraints(l, 0, 1);
+        allButtons.getChildren().add(l);
+
+        Button set3DPivot = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.UNDO));
+        set3DPivot.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                if (mediator.getCurrent2DDrawing() != null && mediator.getChimeraDriver() != null)
+                    mediator.pivotInChimera();
+            }
+        });
+        set3DPivot.setTooltip(new Tooltip("Define Selection as Pivot"));
+        GridPane.setConstraints(set3DPivot, 1, 1);
+        allButtons.getChildren().add(set3DPivot);
+
+        Button focus3D = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYE));
+        focus3D.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                if (mediator.getCurrent2DDrawing() != null && mediator.getChimeraDriver() != null)
+                    mediator.focusInChimera();
+            }
+        });
+        focus3D.setTooltip(new Tooltip("Focus 3D on Selection"));
+        GridPane.setConstraints(focus3D, 2, 1);
+        allButtons.getChildren().add(focus3D);
+
+        GridPane residueOpacity = new GridPane();
+        residueOpacity.setVgap(5.0);
+        residueOpacity.setHgap(5.0);
+
+        l = new Label("Unselected Residues Opacity (%)");
+        GridPane.setHalignment(l, HPos.CENTER);
+        GridPane.setConstraints(l, 0, 0);
+        residueOpacity.getChildren().add(l);
+
+        final Slider slider = new Slider(0, 100, (int) (RnartistConfig.getSelectionFading() / 255.0 * 100.0));
+        slider.setShowTickLabels(true);
+        slider.setShowTickMarks(true);
+        slider.setMajorTickUnit(50);
+        slider.setMinorTickCount(5);
+        slider.setShowTickMarks(true);
+        slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                RnartistConfig.setSelectionFading((int) (slider.getValue() / 100.0 * 255.0));
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        GridPane.setHalignment(slider, HPos.CENTER);
+        GridPane.setConstraints(slider, 0, 1);
+        residueOpacity.getChildren().add(slider);
+
+        Separator s = new Separator();
+        s.setPadding(new Insets(0,5,0,5));
+
+        toolbar.getItems().addAll(allButtons, s , residueOpacity);
+
+        VBox vbox = new VBox();
+        vbox.setPadding(new Insets(0, 0, 0, 0));
+        vbox.setSpacing(5);
+        vbox.getChildren().add(menuBar);
+        vbox.getChildren().add(toolbar);
+
+        root.setTop(vbox);
+
+        //++++++ Canvas2D
+
         final SwingNode swingNode = new SwingNode();
         swingNode.setOnMouseClicked(mouseEvent -> {
             if (mediator.getCurrent2DDrawing() != null) {
                 AffineTransform at = new AffineTransform();
                 at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
                 at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
-                for (JunctionCircle jc:mediator.getCurrent2DDrawing().getAllJunctions()) {
+                for (JunctionCircle jc : mediator.getCurrent2DDrawing().getAllJunctions()) {
                     if (at.createTransformedShape(jc.circle).contains(mouseEvent.getX(), mouseEvent.getY())) {
                         mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, false, jc);
                         mediator.getCanvas2D().repaint();
@@ -161,555 +706,24 @@ public class RNArtist extends Application {
                 });
                 th.setDaemon(true);
                 th.start();
-                Point2D.Double realMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getWorkingSession().getViewX())/mediator.getWorkingSession().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getWorkingSession().getViewY())/mediator.getWorkingSession().getFinalZoomLevel());
+                Point2D.Double realMouse = new Point2D.Double(((double) scrollEvent.getX() - mediator.getWorkingSession().getViewX()) / mediator.getWorkingSession().getFinalZoomLevel(), ((double) scrollEvent.getY() - mediator.getWorkingSession().getViewY()) / mediator.getWorkingSession().getFinalZoomLevel());
                 double notches = scrollEvent.getDeltaY();
                 if (notches < 0)
                     mediator.getWorkingSession().setZoom(1.25);
                 if (notches > 0)
-                    mediator.getWorkingSession().setZoom(1.0/1.25);
-                Point2D.Double newRealMouse = new Point2D.Double(((double)scrollEvent.getX()-mediator.getWorkingSession().getViewX())/mediator.getWorkingSession().getFinalZoomLevel(),((double)scrollEvent.getY()-mediator.getWorkingSession().getViewY())/mediator.getWorkingSession().getFinalZoomLevel());
-                mediator.getWorkingSession().moveView((newRealMouse.getX()-realMouse.getX())*mediator.getWorkingSession().getFinalZoomLevel(),(newRealMouse.getY()-realMouse.getY())*mediator.getWorkingSession().getFinalZoomLevel());
+                    mediator.getWorkingSession().setZoom(1.0 / 1.25);
+                Point2D.Double newRealMouse = new Point2D.Double(((double) scrollEvent.getX() - mediator.getWorkingSession().getViewX()) / mediator.getWorkingSession().getFinalZoomLevel(), ((double) scrollEvent.getY() - mediator.getWorkingSession().getViewY()) / mediator.getWorkingSession().getFinalZoomLevel());
+                mediator.getWorkingSession().moveView((newRealMouse.getX() - realMouse.getX()) * mediator.getWorkingSession().getFinalZoomLevel(), (newRealMouse.getY() - realMouse.getY()) * mediator.getWorkingSession().getFinalZoomLevel());
                 mediator.getCanvas2D().repaint();
             }
         });
         createSwingContent(swingNode);
-        Screen screen = Screen.getPrimary();
-        BorderPane root = new BorderPane();
-
         root.setCenter(swingNode);
-
-        //## TOOLBARS
-        this.topToolBars = new VBox();
-        topToolBars.setPadding(new Insets(5.0,10.0,5.0,10.0));
-        topToolBars.setSpacing(5.0);
-        root.setTop(topToolBars);
-
-        //## TOOLBAR 1
-        FlowPane toolBar1 = new FlowPane();
-        topToolBars.getChildren().add(toolBar1);
-
-        //### Project Icons
-
-        GridPane project = new GridPane();
-        project.setPadding(new Insets(0, 10, 0, 10));
-        project.setVgap(5);
-        project.setHgap(5);
-
-        Label projectTitle = new Label("Project");
-        projectTitle.setStyle("-fx-font-size: 20");
-        GridPane.setConstraints(projectTitle, 0, 0);
-        GridPane.setColumnSpan(projectTitle, 5);
-        GridPane.setHalignment(projectTitle, HPos.CENTER);
-        project.getChildren().add(projectTitle);
-
-        Separator sepHor = new Separator();
-        sepHor.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepHor, 0, 1);
-        GridPane.setColumnSpan(sepHor, 5);
-        project.getChildren().add(sepHor);
-
-        Button open = new Button("New/Open", new Glyph("FontAwesome", FontAwesome.Glyph.FOLDER_OPEN));
-        open.setOnAction(actionEvent -> {
-            mediator.getProjectManager().getStage().show();
-            mediator.getProjectManager().getStage().toFront();
-        });
-        GridPane.setConstraints(open, 0, 2);
-        project.getChildren().add(open);
-
-        Separator sepVert1 = new Separator();
-        sepVert1.setOrientation(Orientation.VERTICAL);
-        sepVert1.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepVert1, 1, 2);
-        GridPane.setRowSpan(sepVert1, 1);
-        project.getChildren().add(sepVert1);
-
-        saveAs = new Button("Save As", new Glyph("FontAwesome", FontAwesome.Glyph.SAVE));
-        saveAs.setDisable(true);
-        saveAs.setOnAction(actionEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                mediator.getWorkingSession().setScreen_capture(true);
-                mediator.getWorkingSession().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
-                mediator.getCanvas2D().repaint();
-                TextInputDialog dialog = new TextInputDialog("My Project");
-                dialog.initModality(Modality.NONE);
-                dialog.setTitle("Project Saving");
-                dialog.setHeaderText("Fit your 2D preview into the black rectangle before saving.");
-                dialog.setContentText("Please enter your project name:");
-                Optional<String> projectName = dialog.showAndWait();
-                if (projectName.isPresent()) {
-                    BufferedImage image = mediator.getCanvas2D().screenCapture(null);
-                    if (image != null) {
-                        NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getCurrent2DDrawing());
-                        File pngFile = new File(new File(new File(mediator.getEmbeddedDB().getRootDir(), "images"), "user"), id.toString() + ".png");
-                        try {
-                            ImageIO.write(image, "PNG", pngFile);
-                        } catch (IOException ex) {
-                            ex.printStackTrace();
-                        }
-                        mediator.getProjectManager().addProject(id, projectName.get().trim());
-                    }
-                    mediator.getWorkingSession().setScreen_capture(false);
-                    mediator.getWorkingSession().setScreen_capture_area(null);
-                    mediator.getCanvas2D().repaint();
-                } else {
-                    mediator.getWorkingSession().setScreen_capture(false);
-                    mediator.getWorkingSession().setScreen_capture_area(null);
-                    mediator.getCanvas2D().repaint();
-                }
-            }
-        });
-        GridPane.setConstraints(saveAs, 2, 2);
-        project.getChildren().add(saveAs);
-
-        sepVert1 = new Separator();
-        sepVert1.setOrientation(Orientation.VERTICAL);
-        sepVert1.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepVert1, 3, 2);
-        GridPane.setRowSpan(sepVert1, 1);
-        project.getChildren().add(sepVert1);
-
-        save = new Button("Save", new Glyph("FontAwesome", FontAwesome.Glyph.SAVE));
-        save.setDisable(true);
-        save.setOnAction(actionEvent -> {
-
-        });
-        GridPane.setConstraints(save, 4, 2);
-        project.getChildren().add(save);
-
-        toolBar1.getChildren().add(project);
-
-        toolBar1.getChildren().add(new Separator(Orientation.VERTICAL));
-
-        //### Load 2D Icons
-
-        GridPane load2D = new GridPane();
-        load2D.setPadding(new Insets(0, 10, 0, 10));
-        load2D.setVgap(5);
-        load2D.setHgap(5);
-
-        Label load2DTitle = new Label("Load Data from...");
-        load2DTitle.setStyle("-fx-font-size: 20");
-        load2D.setConstraints(load2DTitle, 0, 0);
-        load2D.setColumnSpan(load2DTitle, 5);
-        load2D.setHalignment(load2DTitle, HPos.CENTER);
-        load2D.getChildren().add(load2DTitle);
-
-        sepHor = new Separator();
-        sepHor.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepHor, 0, 1);
-        GridPane.setColumnSpan(sepHor, 5);
-        load2D.getChildren().add(sepHor);
-
-        Button openFile = new Button("File", new Glyph("FontAwesome", FontAwesome.Glyph.FILE));
-        openFile.setOnAction(actionEvent -> {
-            FileChooser fileChooser = new FileChooser();
-            File file = fileChooser.showOpenDialog(stage );
-            if (file != null) {
-                fileChooser.setInitialDirectory(file.getParentFile());
-                javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>,Exception>> loadData = new javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>,Exception>>() {
-
-                    @Override
-                    protected Pair<List<SecondaryStructureDrawing>,Exception> call() {
-                        SecondaryStructure ss = null;
-                        List<SecondaryStructureDrawing> secondaryStructureDrawings = new ArrayList<SecondaryStructureDrawing>();
-                        try {
-                            if (file.getName().endsWith(".ct")) {
-                                ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseCT(new FileReader(file));
-                                if (ss != null) {
-                                    ss.getRna().setSource(file.getName());
-                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
-                                }
-                            } else if (file.getName().endsWith(".bpseq")) {
-                                ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseBPSeq(new FileReader(file));
-                                if (ss != null) {
-                                    ss.getRna().setSource(file.getName());
-                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
-                                }
-                            } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
-                                ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseVienna(new FileReader(file));
-                                if (ss != null) {
-                                    ss.getRna().setSource(file.getName());
-                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
-                                }
-
-                            } else if (file.getName().endsWith(".pdb")) {
-                                int countBefore = secondaryStructureDrawings.size();
-                                for (TertiaryStructure ts : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parsePDB(new FileReader(file))) {
-                                    try {
-                                        ss = new Rnaview().annotate(ts);
-                                        if (ss != null) {
-                                            ss.getRna().setSource(file.getName());
-                                            ss.setTertiaryStructure(ts);
-                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
-                                        }
-                                    } catch (FileNotFoundException exception) {
-                                        //do nothing, RNAVIEW can have problem to annotate some RNA (no 2D for example)
-                                    }
-                                }
-                                if (countBefore < secondaryStructureDrawings.size()) {//RNAVIEW was able to annotate at least one RNA molecule
-                                    if (mediator.getChimeraDriver() != null)
-                                        mediator.getChimeraDriver().loadTertiaryStructure(file);
-                                } else { //we generate an Exception to show the Alert dialog
-                                    throw new Exception("RNAVIEW was not able to annotate the 3D structure stored in "+file.getName());
-                                }
-
-                            } else if (file.getName().endsWith(".stk") || file.getName().endsWith(".stockholm")) {
-                                for (SecondaryStructure _ss : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
-                                    _ss.getRna().setSource(file.getName());
-                                    secondaryStructureDrawings.add(new SecondaryStructureDrawing(_ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
-                                }
-                            }
-                        } catch (Exception e) {
-                            return Pair.of(secondaryStructureDrawings,e);
-                        }
-                        return Pair.of(secondaryStructureDrawings,null);
-                    }
-                };
-                loadData.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
-                    @Override
-                    public void handle(WorkerStateEvent workerStateEvent) {
-                        try {
-                            if (loadData.get().getRight() != null) {
-                                Alert alert = new Alert(Alert.AlertType.ERROR);
-                                alert.setTitle("File Parsing error");
-                                alert.setHeaderText(loadData.get().getRight().getMessage());
-                                alert.setContentText("If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com");
-                                StringWriter sw = new StringWriter();
-                                PrintWriter pw = new PrintWriter(sw);
-                                loadData.get().getRight().printStackTrace(pw);
-                                String exceptionText = sw.toString();
-
-                                Label label = new Label("The exception stacktrace was:");
-
-                                TextArea textArea = new TextArea(exceptionText);
-                                textArea.setEditable(false);
-                                textArea.setWrapText(true);
-
-                                textArea.setMaxWidth(Double.MAX_VALUE);
-                                textArea.setMaxHeight(Double.MAX_VALUE);
-                                GridPane.setVgrow(textArea, Priority.ALWAYS);
-                                GridPane.setHgrow(textArea, Priority.ALWAYS);
-
-                                GridPane expContent = new GridPane();
-                                expContent.setMaxWidth(Double.MAX_VALUE);
-                                expContent.add(label, 0, 0);
-                                expContent.add(textArea, 0, 1);
-                                alert.getDialogPane().setExpandableContent(expContent);
-                                alert.showAndWait();
-                            } else {
-                                for (SecondaryStructureDrawing drawing : loadData.get().getLeft()) {
-                                    mediator.getAllStructures().add(drawing);
-                                }
-                                _2DDrawingsLoaded.setValue(mediator.getAllStructures().get(mediator.getAllStructures().size() - 1));
-                                mediator.getCanvas2D().fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
-                            }
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        } catch (ExecutionException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-                new Thread(loadData).start();
-
-            }
-        });
-        GridPane.setConstraints(openFile, 0, 2);
-        load2D.getChildren().add(openFile);
-
-        sepVert1 = new Separator();
-        sepVert1.setOrientation(Orientation.VERTICAL);
-        sepVert1.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepVert1, 1, 2);
-        GridPane.setRowSpan(sepVert1, 1);
-        load2D.getChildren().add(sepVert1);
-
-        Button databases = new Button("Databases", new Glyph("FontAwesome", FontAwesome.Glyph.GLOBE));
-        databases.setOnAction(actionEvent -> {
-            mediator.getWebBrowser().getStage().show();
-            mediator.getWebBrowser().getStage().toFront();
-            mediator.getWebBrowser().showTab(1);
-        });
-        GridPane.setConstraints(databases, 2, 2);
-        load2D.getChildren().add(databases);
-
-        sepVert1 = new Separator();
-        sepVert1.setOrientation(Orientation.VERTICAL);
-        sepVert1.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepVert1, 3, 2);
-        GridPane.setRowSpan(sepVert1, 1);
-        load2D.getChildren().add(sepVert1);
-
-        Button fromScratch = new Button("Scratch", new Glyph("FontAwesome", FontAwesome.Glyph.MAGIC));
-        fromScratch.setOnAction(actionEvent -> {
-
-        });
-        GridPane.setConstraints(fromScratch, 4, 2);
-        load2D.getChildren().add(fromScratch);
-
-        toolBar1.getChildren().add(load2D);
-
-        toolBar1.getChildren().add(new Separator(Orientation.VERTICAL));
-
-        //### Windows Icons
-        GridPane windows = new GridPane();
-        windows.setPadding(new Insets(0, 10, 0, 10));
-        windows.setVgap(5);
-        windows.setHgap(5);
-
-        Label viewTitle = new Label("Windows");
-        viewTitle.setStyle("-fx-font-size: 20");
-        windows.setConstraints(viewTitle, 0, 0);
-        windows.setColumnSpan(viewTitle, 5);
-        windows.setHalignment(viewTitle, HPos.CENTER);
-        windows.getChildren().add(viewTitle);
-
-        sepHor = new Separator();
-        sepHor.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepHor, 0, 1);
-        GridPane.setColumnSpan(sepHor, 5);
-        windows.getChildren().add(sepHor);
-
-        Button toolbox = new Button("Toolbox", new Glyph("FontAwesome", FontAwesome.Glyph.WRENCH));
-        toolbox.setOnAction(actionEvent -> {
-            mediator.getToolbox().getStage().show();
-            mediator.getToolbox().getStage().toFront();
-        });
-        GridPane.setConstraints(toolbox, 0, 2);
-        windows.getChildren().add(toolbox);
-
-        sepVert1 = new Separator();
-        sepVert1.setOrientation(Orientation.VERTICAL);
-        sepVert1.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepVert1, 1, 2);
-        GridPane.setRowSpan(sepVert1, 1);
-        windows.getChildren().add(sepVert1);
-
-        Button explorer = new Button("Explorer", new Glyph("FontAwesome", FontAwesome.Glyph.TREE));
-        explorer.setOnAction(actionEvent -> {
-            mediator.getExplorer().getStage().show();
-            mediator.getExplorer().getStage().toFront();
-        });
-        GridPane.setConstraints(explorer, 2, 2);
-        windows.getChildren().add(explorer);
-
-        sepVert1 = new Separator();
-        sepVert1.setOrientation(Orientation.VERTICAL);
-        sepVert1.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepVert1, 3, 2);
-        GridPane.setRowSpan(sepVert1, 1);
-        windows.getChildren().add(sepVert1);
-
-        /*Button webBrowser = new Button("WebBrowser", new Glyph("FontAwesome", FontAwesome.Glyph.GLOBE));
-        webBrowser.setOnAction(actionEvent -> {
-            mediator.getWebBrowser().getStage().show();
-            mediator.getWebBrowser().getStage().toFront();
-        });
-        GridPane.setConstraints(webBrowser, 4, 2);
-        windows.getChildren().add(webBrowser);
-
-        sepVert1 = new Separator();
-        sepVert1.setOrientation(Orientation.VERTICAL);
-        sepVert1.setValignment(VPos.CENTER);
-        GridPane.setConstraints(sepVert1, 5, 2);
-        GridPane.setRowSpan(sepVert1, 1);
-        windows.getChildren().add(sepVert1);*/
-
-        Button chimera = new Button("Chimera", new Glyph("FontAwesome", FontAwesome.Glyph.GLOBE));
-        chimera.setOnAction(actionEvent -> {
-            if (mediator.getChimeraDriver() != null) {
-                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                alert.setTitle("Please Confirm");
-                alert.setHeaderText("A Chimera windows is already linked to RNArtist");
-                alert.setContentText("The new one will replace it for the linkage");
-                Optional<ButtonType> result = alert.showAndWait();
-                if (result.isPresent() && result.get().equals(ButtonType.OK)) {
-                    new ChimeraDriver(mediator);
-                }
-            } else {
-                new ChimeraDriver(mediator);
-            }
-        });
-        GridPane.setConstraints(chimera, 4, 2);
-        windows.getChildren().add(chimera);
-
-        toolBar1.getChildren().add(windows);
-
-        toolBar1.getChildren().add(new Separator(Orientation.VERTICAL));
-
-        topToolBars.getChildren().add(new Separator(Orientation.HORIZONTAL));
-
-        //## TOOLBAR 2
-        FlowPane toolBar2 = new FlowPane();
-        toolBar2.setPadding(new Insets(0,10,0,10));
-        toolBar2.setHgap(20);
-
-        topToolBars.getChildren().add(toolBar2);
-
-        GridPane loadAndExport = new GridPane();
-        loadAndExport.setVgap(5.0);
-        loadAndExport.setHgap(5.0);
-        Label l = new Label("View 2D for");
-        GridPane.setHalignment(l, HPos.RIGHT);
-        GridPane.setConstraints(l,0,0);
-        loadAndExport.getChildren().add(l);
-
-        this._2DDrawingsLoaded = new ChoiceBox<SecondaryStructureDrawing>();
-        this._2DDrawingsLoaded.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                mediator.getCanvas2D().load2D(_2DDrawingsLoaded.getValue());
-            }
-        });
-        this._2DDrawingsLoaded.setItems(mediator.getAllStructures());
-        this._2DDrawingsLoaded.setMaxWidth(200);
-        GridPane.setConstraints(this._2DDrawingsLoaded,1,0,3,1);
-        loadAndExport.getChildren().add(this._2DDrawingsLoaded);
-
-        l = new Label("Export 2D as");
-        GridPane.setHalignment(l, HPos.RIGHT);
-        GridPane.setConstraints(l,0,1);
-        loadAndExport.getChildren().add(l);
-
-        Button svg = new Button("SVG");
-        svg.setOnAction(actionEvent -> {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("SVG Files", "*.svg"));
-            File file = fileChooser.showSaveDialog(stage);
-            if (file != null) {
-                fileChooser.setInitialDirectory(file.getParentFile());
-                PrintWriter writer;
-                try {
-                    writer = new PrintWriter(file);
-                    writer.println(mediator.getCurrent2DDrawing().asSVG());
-                    writer.close();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        svg.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setConstraints(svg,1,1);
-        loadAndExport.getChildren().add(svg);
-
-        Button ct = new Button("CT");
-        ct.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setConstraints(ct,2,1);
-        loadAndExport.getChildren().add(ct);
-
-        Button vienna = new Button("VIENNA");
-        vienna.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setConstraints(vienna,3,1);
-        loadAndExport.getChildren().add(vienna);
-
-        toolBar2.getChildren().add(loadAndExport);
-
-        GridPane center_fit = new GridPane();
-        center_fit.setVgap(5.0);
-        center_fit.setHgap(5.0);
-
-        Button center2D = new Button("Center 2D on Display", new Glyph("FontAwesome", FontAwesome.Glyph.CROSSHAIRS));
-        center2D.setOnAction(actionEvent -> {
-            if (mediator.getCurrent2DDrawing() != null)
-                mediator.canvas2D.centerDisplayOn(mediator.getCurrent2DDrawing().getBounds());
-        });
-        center2D.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setHalignment(center2D, HPos.CENTER);
-        GridPane.setConstraints(center2D,0,0);
-        center_fit.getChildren().add(center2D);
-
-        Button fit2D = new Button("Fit 2D to Display", new Glyph("FontAwesome", FontAwesome.Glyph.ARROWS_ALT));
-        fit2D.setOnAction(actionEvent -> {
-            mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
-        });
-        fit2D.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setHalignment(fit2D, HPos.CENTER);
-        GridPane.setConstraints(fit2D,0,1);
-        center_fit.getChildren().add(fit2D);
-
-        toolBar2.getChildren().add(center_fit);
-
-        GridPane residueOpacity = new GridPane();
-        residueOpacity.setVgap(5.0);
-        residueOpacity.setHgap(5.0);
-
-        l = new Label("Unselected Residues Opacity (%)");
-        GridPane.setHalignment(l, HPos.CENTER);
-        GridPane.setConstraints(l,0,0);
-        residueOpacity.getChildren().add(l);
-
-        final Slider slider = new Slider(0, 100, (int)(RnartistConfig.getSelectionFading()/255.0*100.0));
-        slider.setShowTickLabels(true);
-        slider.setShowTickMarks(true);
-        slider.setMajorTickUnit(50);
-        slider.setMinorTickCount(5);
-        slider.setShowTickMarks(true);
-        slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                RnartistConfig.setSelectionFading((int)(slider.getValue()/100.0*255.0));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setHalignment(slider, HPos.CENTER);
-        GridPane.setConstraints(slider,0,1);
-        residueOpacity.getChildren().add(slider);
-
-        toolBar2.getChildren().add(residueOpacity);
-
-        GridPane globalOptions = new GridPane();
-        globalOptions.setVgap(5.0);
-        globalOptions.setHgap(5.0);
-
-        l = new Label("2D Options");
-        GridPane.setHalignment(l, HPos.RIGHT);
-        GridPane.setConstraints(l,0,0);
-        globalOptions.getChildren().add(l);
-
-        List<Option> _2DOptions = new ArrayList<Option>();
-        _2DOptions.add(new CenterDisplayOnSelection());
-        _2DOptions.add(new FitDisplayOnSelection());
-        _2DOptions.add(new DisplayTertiariesInSelection());
-        CheckComboBox<Option> _2DGlobalOptions = new CheckComboBox<Option>(FXCollections.observableList(_2DOptions));
-        for (Option o:_2DOptions) {
-            if (o.isChecked())
-                _2DGlobalOptions.getCheckModel().check(o);
-        }
-        _2DGlobalOptions.getCheckModel().getCheckedItems().addListener(new ListChangeListener<Option>() {
-            public void onChanged(ListChangeListener.Change<? extends Option> c) {
-                for (Option o:_2DGlobalOptions.getItems()) {
-                    o.check(_2DGlobalOptions.getCheckModel().getCheckedItems().contains(o));
-                }
-            }
-        });
-
-        _2DGlobalOptions.setMaxWidth(200);
-        _2DGlobalOptions.setTitle("Choose an Option");
-        GridPane.setHalignment(_2DGlobalOptions, HPos.CENTER);
-        GridPane.setConstraints(_2DGlobalOptions,1,0);
-        globalOptions.getChildren().add(_2DGlobalOptions);
-
-        l = new Label("3D Options");
-        GridPane.setHalignment(l, HPos.RIGHT);
-        GridPane.setConstraints(l,0,1);
-        globalOptions.getChildren().add(l);
-
-        List<String> _3DOptions = new ArrayList<String>();
-        _3DOptions.add("Center 3D on Selection");
-        _3DOptions.add("Focus 3D on Selection");
-        CheckComboBox _3DGlobalOptions = new CheckComboBox(FXCollections.observableList(_3DOptions));
-        _3DGlobalOptions.setMaxWidth(200);
-        _3DGlobalOptions.setTitle("Choose an Option");
-        GridPane.setHalignment(_3DGlobalOptions, HPos.CENTER);
-        GridPane.setConstraints(_3DGlobalOptions,1,1);
-        globalOptions.getChildren().add(_3DGlobalOptions);
-
-        toolBar2.getChildren().add(globalOptions);
 
         //### Status Bar
         this.statusBar = new FlowPane();
         statusBar.setAlignment(Pos.CENTER_RIGHT);
-        statusBar.setPadding(new Insets(5,10,5,10));
+        statusBar.setPadding(new Insets(5, 10, 5, 10));
         statusBar.setHgap(10);
 
         Label release = new Label(RnartistConfig.getRnartistRelease());
@@ -727,7 +741,7 @@ public class RNArtist extends Application {
         stage.setTitle("RNArtist");
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        this.stage.setWidth(screenSize.getWidth()-700);
+        this.stage.setWidth(screenSize.getWidth() - 700);
         this.stage.setHeight(screenSize.getHeight());
         this.stage.setX(350);
         this.stage.setY(0);
@@ -736,23 +750,79 @@ public class RNArtist extends Application {
         mediator.getProjectManager().getStage().toFront();
     }
 
-    public void activateSaveButtons() {
-        this.save.setDisable(false);
-        this.saveAs.setDisable(false);
+    private Menu createSavedThemeItem(org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme) {
+        Menu savedThemeMenu = new Menu(theme.getKey());
+
+        MenuItem loadSavedTheme = new MenuItem("Load");
+        loadSavedTheme.setUserData(theme);
+        loadSavedTheme.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme = (org.apache.commons.lang3.tuple.Pair<String, NitriteId>) loadSavedTheme.getUserData();
+                //we mute the listeners to avoid to apply the saved theme automatically
+                try {
+                    mediator.getToolbox().setMuted(true);
+                    mediator.getToolbox().loadTheme(mediator.getEmbeddedDB().getTheme(theme.getValue()));
+                    mediator.getToolbox().setMuted(false);
+                    updateSavedThemeItem.setUserData(theme); //to have the theme reference to update it for the user
+                    updateSavedThemeItem.setDisable(false);
+                    currentThemeMenu.setUserData(theme);
+                    currentThemeMenu.setText(theme.getKey());
+                    currentThemeMenu.setDisable(false);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        MenuItem deleteSavedTheme = new MenuItem("Delete");
+        deleteSavedTheme.setUserData(theme);
+        deleteSavedTheme.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme = (org.apache.commons.lang3.tuple.Pair<String, NitriteId>) deleteSavedTheme.getUserData();
+                mediator.getEmbeddedDB().deleteTheme(theme.getValue());
+                savedThemesMenu.getItems().remove(savedThemeMenu);
+                if (currentThemeMenu.getUserData().equals(deleteSavedTheme.getUserData())) {
+                    updateSavedThemeItem.setDisable(true);
+                    currentThemeMenu.setText("Current Theme");
+                    currentThemeMenu.setUserData(null);
+                }
+            }
+        });
+
+        MenuItem shareCurrentTheme = new MenuItem("Share...");
+        shareCurrentTheme.setDisable(true);
+
+        savedThemeMenu.getItems().addAll(loadSavedTheme, deleteSavedTheme, shareCurrentTheme);
+        return savedThemeMenu;
     }
 
-    public void showTopToolBars(boolean show) {
-        if (show)
-            ((BorderPane)stage.getScene().getRoot()).setTop(this.topToolBars);
-        else
-            ((BorderPane)stage.getScene().getRoot()).setTop(null);
+    public Menu getCurrentThemeMenu() {
+        return currentThemeMenu;
+    }
+
+    public MenuItem getUpdateSavedThemeItem() {
+        return updateSavedThemeItem;
+    }
+
+    public MenuItem getClearAll2DsItem() {
+        return clearAll2DsItem;
+    }
+
+    public MenuItem getClearAll2DsExceptCurrentItem() {
+        return clearAll2DsExceptCurrentItem;
+    }
+
+    public Menu getLoad2DForMenu() {
+        return load2DForMenu;
     }
 
     public void showStatusBar(boolean show) {
         if (show)
-            ((BorderPane)stage.getScene().getRoot()).setBottom(this.statusBar);
+            ((BorderPane) stage.getScene().getRoot()).setBottom(this.statusBar);
         else
-            ((BorderPane)stage.getScene().getRoot()).setBottom(null);
+            ((BorderPane) stage.getScene().getRoot()).setBottom(null);
     }
 
     public Stage getStage() {

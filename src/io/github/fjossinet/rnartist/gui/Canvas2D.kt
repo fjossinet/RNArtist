@@ -14,6 +14,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     lateinit private var offScreenBuffer: Image
     var translateX = 0.0
     var translateY = 0.0
+    var fps:Long = 0
 
     init {
         this.mediator.canvas2D = this
@@ -21,14 +22,13 @@ class Canvas2D(val mediator: Mediator): JPanel() {
 
     fun load2D(drawing: SecondaryStructureDrawing) {
         this.secondaryStructureDrawing = drawing
+        this.fps = 0
         this.secondaryStructureDrawing?.let { drawing ->
             mediator.toolbox.junctionKnobs.children.clear()
             mediator.addToSelection(null, true, null)
             mediator.explorer.load(this.secondaryStructureDrawing)
-            for (jc in drawing.allJunctions) {
+            for (jc in drawing.allJunctions)
                 mediator.toolbox.addJunctionKnob(jc)
-            }
-            mediator.rnartist.activateSaveButtons()
             this.repaint()
         }
     }
@@ -84,7 +84,11 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             g2.color = Color.BLACK
             if (drawing.workingSession.screen_capture)
                 g2.draw(drawing.workingSession.screen_capture_area)
+            val start = System.currentTimeMillis()
             drawing.draw(g2)
+            val t = 1000/(System.currentTimeMillis()-start)
+            this.fps = if (t> this.fps) t else this.fps
+            //println("FPS: ${this.fps}")
         }
     }
 
