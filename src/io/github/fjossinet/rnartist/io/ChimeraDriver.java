@@ -340,7 +340,7 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
             this.lastSelectedResidues.clear();
     }
 
-    public void color3D(List<ResidueCircle> residues) {
+    public void color3D(List<ResidueDrawing> residues) {
         /*final StringBuffer command = new StringBuffer();
         for (ResidueCircle r: residues)
             command.append("color "+((float)r.getColor().getRed()/(float)255)+","+(float)r.getColor().getGreen()/(float)255+","+(float)r.getColor().getBlue()/(float)255+","+(float)r.getColor().getAlpha()/(float)255+" #0,2:"+(mediator.getTertiaryStructure().getResidue3DAt(r.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(r.getAbsPos()).getLabel() : "") +"; ");

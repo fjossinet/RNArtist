@@ -24,9 +24,9 @@ import javax.swing.SwingWorker
 
 class WebBrowser(val mediator: Mediator?) {
 
-    var stage: Stage
-    val root = TabPane()
-    lateinit var rnartistEngine: WebEngine
+    private var stage: Stage
+    private val root = TabPane()
+    private lateinit var rnartistEngine: WebEngine
 
     init{
         this.stage = Stage()
@@ -64,26 +64,21 @@ class WebBrowser(val mediator: Mediator?) {
         val browser = WebView()
         val webEngine = browser.engine
         webEngine.load("http://ndbserver.rutgers.edu/service/ndb/atlas/gallery/rna?polType=all&rnaFunc=all&protFunc=all&strGalType=rna&expMeth=all&seqType=all&galType=table&start=0&limit=50")
-        webEngine.loadWorker.stateProperty().addListener(
-                object: ChangeListener<Worker.State> {
-                    override fun changed(p0: ObservableValue<out Worker.State>?, oldState: Worker.State?, newState: Worker.State?) {
-                        if (newState == Worker.State.SUCCEEDED) {
-                            val doc = webEngine.document
-                            val h2s = doc.getElementsByTagName("h2")
-                            for (i in 0 until h2s.length) {
-                                val h2 = h2s.item(i) as Node
-                                val content = h2.textContent
-                                if (content.matches(Regex("NDB ID:.+PDB ID:.+"))) {
-                                    //currentPDBID = content.split("PDB ID:").toTypedArray()[1].trim { it <= ' ' }.substring(0, 4)
-                                    //loadInAssemble.setText("Load $currentPDBID")
-                                    //loadInAssemble.setDisable(false)
-                                }
-                            }
-                        }
+        webEngine.loadWorker.stateProperty().addListener { _, _, newState ->
+            if (newState == Worker.State.SUCCEEDED) {
+                val doc = webEngine.document
+                val h2s = doc.getElementsByTagName("h2")
+                for (i in 0 until h2s.length) {
+                    val h2 = h2s.item(i) as Node
+                    val content = h2.textContent
+                    if (content.matches(Regex("NDB ID:.+PDB ID:.+"))) {
+                        //currentPDBID = content.split("PDB ID:").toTypedArray()[1].trim { it <= ' ' }.substring(0, 4)
+                        //loadInAssemble.setText("Load $currentPDBID")
+                        //loadInAssemble.setDisable(false)
                     }
-
                 }
-        )
+            }
+        }
 
         val buttons = HBox()
         val home = Button("Home", Glyph("FontAwesome", FontAwesome.Glyph.HOME))

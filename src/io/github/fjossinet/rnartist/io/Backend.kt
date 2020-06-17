@@ -81,7 +81,7 @@ object Backend {
                         val image = mediator.canvas2D.screenCapture(ss)
                         val pngFile = File.createTempFile("capture", ".png")
                         ImageIO.write(image, "PNG", pngFile)
-                        multipart.addFilePart("capture", pngFile!!, pngFile!!.name, "image")
+                        multipart.addFilePart("capture", pngFile, pngFile.name, "image")
                         multipart.upload(null)
                     } catch (ex: Exception) {
                         mediator.workingSession!!.screen_capture = false

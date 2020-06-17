@@ -8,11 +8,10 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Circle
 import javafx.scene.shape.Polygon
 import java.awt.geom.Point2D
-import java.util.*
 
-class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) : Pane(){
+class JunctionKnob(val junctionCircle: JunctionDrawing, val mediator: Mediator) : Pane(){
 
-    val connectors = mutableListOf<Connector>()
+    private val connectors = mutableListOf<Connector>()
 
     init {
         this.setStyle("-fx-background-color: #ffffff; -fx-border-color: darkgray; -fx-border-width: 2px;");
@@ -67,15 +66,15 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
         connectors.add(connector)
         this.getChildren().addAll(connector);
         for (i in 1 until 16) {
-            val connector = Connector(getConnectorId(i))
-            this.connectors.add(connector)
+            val _connector = Connector(getConnectorId(i))
+            this.connectors.add(_connector)
             val p = rotatePoint(
                 Point2D.Double(75.0, 130.0),
                 Point2D.Double(75.0, 75.0),
                 i * 360.0 / 16.0
             )
-            connector.relocate(p.x-10, p.y-10)
-            this.getChildren().addAll(connector);
+            _connector.relocate(p.x-10, p.y-10)
+            this.getChildren().addAll(_connector);
         }
 
         var up = Polygon()
@@ -127,9 +126,9 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
             left.fill = Color.BLACK
             //first we search the connector inID (the red circle
             var inIDIndex:Int = 0
-            for (connector in this.connectors) {
-                if (connector.isInId) {
-                    inIDIndex = this.connectors.indexOf(connector)
+            for (_connector in this.connectors) {
+                if (_connector.isInId) {
+                    inIDIndex = this.connectors.indexOf(_connector)
                     break
                 }
             }
@@ -176,9 +175,9 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
             right.fill = Color.BLACK
             //first we search the connector inID (the red circle)
             var inIDIndex:Int = 0
-            for (connector in this.connectors) {
-                if (connector.isInId) {
-                    inIDIndex = this.connectors.indexOf(connector)
+            for (_connector in this.connectors) {
+                if (_connector.isInId) {
+                    inIDIndex = this.connectors.indexOf(_connector)
                     break
                 }
             }
@@ -220,7 +219,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
         centerViewOnJunction.fill = Color.BLACK
 
         centerViewOnJunction.setOnMousePressed {
-            mediator.current2DDrawing?.let { drawing ->
+            mediator.current2DDrawing?.let {
                 centerViewOnJunction.fill = Color.LIGHTGRAY
                 mediator.addToSelection(Mediator.SelectionEmitter.JUNCTIONKNOB, true, junctionCircle)
                 mediator.canvas2D.repaint()
@@ -244,7 +243,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
 
     fun unselect() = this.setStyle("-fx-background-color: #ffffff; -fx-border-color: darkgray; -fx-border-width: 2px;")
 
-    fun getJunctionLayout(): Layout {
+    private fun getJunctionLayout(): Layout {
         val layout = mutableListOf<ConnectorId>()
         //first we search the circle for the InId
         var startIndex:Int = 0
@@ -256,14 +255,14 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
         var currentPos = 0
         while (currentPos <= 15) {
             currentPos++
-            if (this.connectors.get((startIndex+currentPos)%16).selected) {
+            if (this.connectors[(startIndex+currentPos)%16].selected) {
                 layout.add(getConnectorId(currentPos))
             }
         }
         return layout
     }
 
-    fun loadJunctionLayout() {
+    private fun loadJunctionLayout() {
         this.clear()
         this.connectors.forEach { connector ->
             if (connector.connectorId == junctionCircle.inId) {
@@ -283,7 +282,7 @@ class JunctionKnob(val junctionCircle: JunctionCircle, val mediator: Mediator) :
         }
     }
 
-    fun clear() {
+    private fun clear() {
         this.connectors.forEach { connector ->
             connector.isInId = false
             connector.selected = false

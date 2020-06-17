@@ -54,9 +54,11 @@ class Mediator(val rnartist: RNArtist) {
         get() {
             return this.secondaryStructure?.rna
         }
-    val theme: Theme?
+    val theme: Theme
         get() {
-            return this.current2DDrawing?.theme
+            return this.current2DDrawing?.let {
+                it.theme
+            } ?: Theme()
         }
     val workingSession: WorkingSession?
         get() {
@@ -135,16 +137,16 @@ class Mediator(val rnartist: RNArtist) {
      */
     private fun isSelected(structureElement: SecondaryStructureElement): Boolean {
         return when (structureElement) {
-            is ResidueCircle -> {
+            is ResidueDrawing -> {
                 (structureElement as Object) in this.structureElementsSelected
-                        || (structureElement.parent is JunctionCircle) && (structureElement.parent as Object) in this.structureElementsSelected
-                        || (structureElement.parent is SingleStrandLine) && (structureElement.parent as Object) in this.structureElementsSelected
-                        || ((structureElement.parent is SecondaryInteractionLine) && ((structureElement.parent as Object) in this.structureElementsSelected) || (structureElement.parent?.parent is HelixLine) && (structureElement.parent?.parent as Object) in this.structureElementsSelected)
+                        || (structureElement.parent is JunctionDrawing) && (structureElement.parent as Object) in this.structureElementsSelected
+                        || (structureElement.parent is SingleStrandDrawing) && (structureElement.parent as Object) in this.structureElementsSelected
+                        || ((structureElement.parent is SecondaryInteractionDrawing) && ((structureElement.parent as Object) in this.structureElementsSelected) || (structureElement.parent?.parent is HelixDrawing) && (structureElement.parent?.parent as Object) in this.structureElementsSelected)
             }
-            is SecondaryInteractionLine -> { //Since a SecondaryInteractionLine has been removed from the structureElementsSelected list, it is considered Selected if its parent is selected too
+            is SecondaryInteractionDrawing -> { //Since a SecondaryInteractionLine has been removed from the structureElementsSelected list, it is considered Selected if its parent is selected too
                 (structureElement as Object) in this.structureElementsSelected || (structureElement.parent as Object) in this.structureElementsSelected
             } //any other structural element is considered selected if it is itself in the structureElementsSelected list
-            is TertiaryInteractionLine -> {
+            is TertiaryInteractionDrawing -> {
                 (structureElement as Object) in this.structureElementsSelected
             }
             else -> (structureElement as Object) in this.structureElementsSelected
@@ -154,17 +156,8 @@ class Mediator(val rnartist: RNArtist) {
     fun addToSelection(selectionEmitter: SelectionEmitter?, clearCurrentSelection: Boolean = false, structureElement: SecondaryStructureElement?) {
         if (clearCurrentSelection) {
             this.structureElementsSelected.clear()
-            this.structureElementsSelected.add("Full 2D" as Object)
-            this.structureElementsSelected.add("All Helices" as Object)
-            this.structureElementsSelected.add("All Single Strands" as Object)
-            this.structureElementsSelected.add("All Junctions" as Object)
-            this.structureElementsSelected.add("All Apical Loops" as Object)
-            this.structureElementsSelected.add("All Inner Loops" as Object)
-            this.structureElementsSelected.add("All 3-Way Junctions" as Object)
-            this.structureElementsSelected.add("All 4-Way Junctions" as Object)
-            this.structureElementsSelected.add("All Tertiary Interactions" as Object)
-            this.structureElementsSelected.add("All Residues" as Object)
-            toolbox.getStructureElementsSelectedComboBox().setVisibleRowCount(9); //just a single row to display. We need to reduce the visible rows if the previous list was larger (to avoid to display empty rows)
+            toolbox.defaultTargetsComboBox.value = null //to trigger a changed event if the previous value was still "Full 2D"
+            toolbox.defaultTargetsComboBox.value = "Full 2D"
             if (selectionEmitter != SelectionEmitter.EXPLORER)
                 this.selectInExplorer()
             this.selectInCanvas2D()
@@ -174,29 +167,29 @@ class Mediator(val rnartist: RNArtist) {
         structureElement?.let {
             if (isSelected(structureElement)) { //if the element is already selected we will select the next one according to the 2D structure
                 when (structureElement) {
-                    is ResidueCircle -> {
+                    is ResidueDrawing -> {
                         this.structureElementsSelected.remove(structureElement as Object) //if the residue is selected, we remove it to add its parent (SecondaryInteraction Line or JunctionCircle) to the current selection. We remove it in order to avoid to set its theme if the user choose "All selected elements"
                         this.addToSelection(selectionEmitter, false, structureElement.parent)
                     }
-                    is SecondaryInteractionLine -> {  //if the SecondaryInteractionLine is selected, we remove it to add its parent (HelixLine) to the current selection. We remove it in order to avoid to set its theme if the user choose "All selected elements"
+                    is SecondaryInteractionDrawing -> {  //if the SecondaryInteractionLine is selected, we remove it to add its parent (HelixLine) to the current selection. We remove it in order to avoid to set its theme if the user choose "All selected elements"
                         this.structureElementsSelected.remove(structureElement as Object)
                         this.addToSelection(selectionEmitter, false, structureElement.parent)
                     }
-                    is JunctionCircle -> { //if the JunctionCircle is selected, we keep it and add its outer helices to the current selection
-                        for (helix in (structureElement as JunctionCircle).helices) {
+                    is JunctionDrawing -> { //if the JunctionCircle is selected, we keep it and add its outer helices to the current selection
+                        for (helix in (structureElement as JunctionDrawing).helices) {
                             this.addToSelection(selectionEmitter, false, helix)
                         }
                     }
-                    is HelixLine -> { //if the HelixLine is selected, we keep it and add the junction fof which this helic is the inHelix
+                    is HelixDrawing -> { //if the HelixLine is selected, we keep it and add the junction fof which this helic is the inHelix
                         for (jc in current2DDrawing!!.allJunctions)
-                            if (jc.inHelix == (structureElement as HelixLine).helix) {
+                            if (jc.inHelix == (structureElement as HelixDrawing).helix) {
                                 this.addToSelection(selectionEmitter, false, jc)
                             }
                     }
-                    is SingleStrandLine -> { //if the SingleStrandLine is selected, we keep it and do nothing more
+                    is SingleStrandDrawing -> { //if the SingleStrandLine is selected, we keep it and do nothing more
 
                     }
-                    is TertiaryInteractionLine -> { //if the SingleStrandLine is selected, we keep it and do nothing more
+                    is TertiaryInteractionDrawing -> { //if the SingleStrandLine is selected, we keep it and do nothing more
 
                     }
                     else -> {
@@ -204,9 +197,8 @@ class Mediator(val rnartist: RNArtist) {
                     }
                 }
             } else {
-                val s = structureElementsSelected.filtered { o -> o.toString().startsWith("All") && !o.toString().equals("All Selected Elements") }.size
-                if (structureElementsSelected.size == s + 2) //meaning Full 2D + the "All..." choices + 1 selected element -> we need to add the option "All Selected Elements"
-                    structureElementsSelected.add(s + 1, "All Selected Elements" as Object);
+                if (structureElementsSelected.size == 1)
+                    structureElementsSelected.add(0, "All Selected Elements" as Object);
                 structureElementsSelected.add(it as Object);
                 toolbox.getStructureElementsSelectedComboBox().value = structureElement
                 if (("All Selected Elements" as Object) in structureElementsSelected) //more cool like that, since if we have several elements selected, this is to pimp them all in general
@@ -237,7 +229,7 @@ class Mediator(val rnartist: RNArtist) {
             knob.unselect()
         }
         this.structureElementsSelected.forEach {
-            (it as? JunctionCircle)?.let {
+            (it as? JunctionDrawing)?.let {
                 var knobFound: VBox? = null
                 for (child in toolbox.getJunctionKnobs().getChildren()) {
                     val knob = (child as VBox).children[0] as JunctionKnob
@@ -259,7 +251,7 @@ class Mediator(val rnartist: RNArtist) {
     // Each SecondaryStructureElement will take care of this new selection (to fade or not for example) during its redraw()
     //
     private fun selectInCanvas2D() {
-        this.workingSession?.selection?.let { selection ->
+        this.workingSession?.selectedResidues?.let { selection ->
             this.current2DDrawing?.let { drawing ->
                 //clear
                 selection.clear()

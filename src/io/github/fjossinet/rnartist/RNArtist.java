@@ -7,6 +7,8 @@ import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.core.model.io.Rnaview;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.embed.swing.SwingNode;
 import javafx.event.ActionEvent;
@@ -16,6 +18,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
@@ -37,13 +40,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
+import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getAWTColor;
+import static io.github.fjossinet.rnartist.io.UtilsKt.awtColorToJavaFX;
+import static io.github.fjossinet.rnartist.io.UtilsKt.javaFXToAwt;
+
 public class RNArtist extends Application {
 
     private Mediator mediator;
     private Stage stage;
     private int scrollCounter = 0;
     private FlowPane statusBar;
-    private Menu savedThemesMenu, currentThemeMenu, load2DForMenu;
+    private Menu userThemesMenu, currentThemeMenu, load2DForMenu;
     private MenuItem updateSavedThemeItem, clearAll2DsItem, clearAll2DsExceptCurrentItem;
 
     public static void main(String[] args) {
@@ -69,7 +76,7 @@ public class RNArtist extends Application {
             if (result.get() == ButtonType.OK) {
                 try {
                     if (RnartistConfig.saveCurrentThemeOnExit())
-                        RnartistConfig.save(mediator.getToolbox().getCurrentTheme().getParams(), (org.apache.commons.lang3.tuple.Pair<String, NitriteId>)currentThemeMenu.getUserData());
+                        RnartistConfig.save(mediator.getTheme().getConfigurations(), (org.apache.commons.lang3.tuple.Pair<String, NitriteId>) currentThemeMenu.getUserData());
                     else
                         RnartistConfig.save(null, null);
                     Platform.exit();
@@ -181,19 +188,19 @@ public class RNArtist extends Application {
                                     ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseCT(new FileReader(file));
                                     if (ss != null) {
                                         ss.getRna().setSource(file.getName());
-                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
                                     }
                                 } else if (file.getName().endsWith(".bpseq")) {
                                     ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseBPSeq(new FileReader(file));
                                     if (ss != null) {
                                         ss.getRna().setSource(file.getName());
-                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
                                     }
                                 } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
                                     ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseVienna(new FileReader(file));
                                     if (ss != null) {
                                         ss.getRna().setSource(file.getName());
-                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
                                     }
 
                                 } else if (file.getName().endsWith(".pdb")) {
@@ -204,7 +211,7 @@ public class RNArtist extends Application {
                                             if (ss != null) {
                                                 ss.getRna().setSource(file.getName());
                                                 ss.setTertiaryStructure(ts);
-                                                secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                                secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
                                             }
                                         } catch (FileNotFoundException exception) {
                                             //do nothing, RNAVIEW can have problem to annotate some RNA (no 2D for example)
@@ -220,7 +227,7 @@ public class RNArtist extends Application {
                                 } else if (file.getName().endsWith(".stk") || file.getName().endsWith(".stockholm")) {
                                     for (SecondaryStructure _ss : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
                                         _ss.getRna().setSource(file.getName());
-                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(_ss, mediator.getCanvas2D().getBounds(), mediator.getToolbox().getCurrentTheme(), new WorkingSession()));
+                                        secondaryStructureDrawings.add(new SecondaryStructureDrawing(_ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
                                     }
                                 }
                             } catch (Exception e) {
@@ -389,7 +396,6 @@ public class RNArtist extends Application {
 
         this.load2DForMenu.getItems().addAll(clearAll2DsItem, clearAll2DsExceptCurrentItem, new SeparatorMenuItem());
 
-
         CheckMenuItem centerOnSelectionItem = new CheckMenuItem("Automatic Center on Selection");
         centerOnSelectionItem.setSelected(RnartistConfig.getCenterDisplayOnSelection());
         centerOnSelectionItem.setOnAction(new EventHandler<ActionEvent>() {
@@ -412,9 +418,6 @@ public class RNArtist extends Application {
 
         //++++++++ Themes Menu
 
-        Menu defaultThemesMenu = new Menu("Default Themes");
-
-        Menu userThemesMenu = new Menu("Your Themes");
         this.currentThemeMenu = new Menu("Current Theme");
 
         if (RnartistConfig.getLastThemeSavedId() != null) {
@@ -434,15 +437,11 @@ public class RNArtist extends Application {
                 Optional<String> response = dialog.showAndWait();
 
                 response.ifPresent(name -> {
-                    NitriteId id = mediator.getEmbeddedDB().addTheme(name, mediator.getToolbox().getCurrentTheme());
+                    NitriteId id = mediator.getEmbeddedDB().addTheme(name, mediator.getTheme());
                     if (id != null) {
                         org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme = org.apache.commons.lang3.tuple.Pair.of(name, id);
-                        savedThemesMenu.getItems().add(createSavedThemeItem(theme));
-                        updateSavedThemeItem.setUserData(theme); //to have the theme reference to update it for the user
-                        updateSavedThemeItem.setDisable(false);
-                        currentThemeMenu.setText(theme.getKey());
-                        currentThemeMenu.setUserData(theme);
-                        currentThemeMenu.setDisable(false);
+                        userThemesMenu.getItems().add(createSavedThemeItem(theme));
+                        setCurrentTheme(theme); //this will reload the theme, but without any impact
                     }
                 });
             }
@@ -464,24 +463,59 @@ public class RNArtist extends Application {
                 Optional<ButtonType> result = alert.showAndWait();
                 if (result.get() == ButtonType.OK) {
                     org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme = (org.apache.commons.lang3.tuple.Pair<String, NitriteId>) updateSavedThemeItem.getUserData();
-                    mediator.getEmbeddedDB().updateTheme(theme.getValue(), mediator.getToolbox().getCurrentTheme().getParams());
-
+                    mediator.getEmbeddedDB().updateTheme(theme.getValue(), mediator.getTheme().getConfigurations());
                 }
             }
         });
 
         currentThemeMenu.getItems().addAll(updateSavedThemeItem, saveAsCurrentTheme);
 
-        this.savedThemesMenu = new Menu("Saved Themes");
+        Menu defaultThemesMenu = new Menu("Default Themes");
+
+        Menu residuesThemes = new Menu("Residues");
+        defaultThemesMenu.getItems().add(residuesThemes);
+
+        for (String themeName:RnartistConfig.residuesThemes.keySet()) {
+            MenuItem residueThemeItem = new MenuItem(themeName);
+            residueThemeItem.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    mediator.getToolbox().setMuted(false);
+                    mediator.getToolbox().applyTheme(RnartistConfig.residuesThemes.get(themeName));
+                    mediator.getToolbox().setMuted(true);
+                    mediator.getCanvas2D().repaint();
+                    mediator.getExplorer().refresh();
+                }
+            });
+            residuesThemes.getItems().add(residueThemeItem);
+        }
+
+        Menu structuralDomainsThemes = new Menu("Structural Domains");
+        defaultThemesMenu.getItems().add(structuralDomainsThemes);
+
+        for (String themeName:RnartistConfig.structuralDomainsThemes.keySet()) {
+            MenuItem structuralDomainThemeItem = new MenuItem(themeName);
+            structuralDomainThemeItem.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    mediator.getToolbox().setMuted(false);
+                    mediator.getToolbox().applyTheme(RnartistConfig.structuralDomainsThemes.get(themeName));
+                    mediator.getToolbox().setMuted(true);
+                    mediator.getCanvas2D().repaint();
+                    mediator.getExplorer().refresh();
+                }
+            });
+            structuralDomainsThemes.getItems().add(structuralDomainThemeItem);
+        }
+
+        this.userThemesMenu = new Menu("Your Themes");
 
         for (Document doc : mediator.getEmbeddedDB().getThemes().find())
-            savedThemesMenu.getItems().add(createSavedThemeItem(org.apache.commons.lang3.tuple.Pair.of((String) doc.get("name"), doc.getId())));
-
-        userThemesMenu.getItems().addAll(currentThemeMenu, this.savedThemesMenu);
+            userThemesMenu.getItems().add(createSavedThemeItem(org.apache.commons.lang3.tuple.Pair.of((String) doc.get("name"), doc.getId())));
 
         Menu communityThemesMenu = new Menu("Community Themes");
 
-        themesMenu.getItems().addAll(defaultThemesMenu, userThemesMenu, communityThemesMenu);
+        themesMenu.getItems().addAll(this.currentThemeMenu, defaultThemesMenu, userThemesMenu, communityThemesMenu);
 
         //++++++++ Windows Menu
         MenuItem toolboxItem = new MenuItem("Toolbox");
@@ -529,7 +563,7 @@ public class RNArtist extends Application {
 
         ToolBar toolbar = new ToolBar();
 
-        toolbar.setPadding(new Insets(5,10,10,10));
+        toolbar.setPadding(new Insets(5, 10, 10, 10));
 
         GridPane allButtons = new GridPane();
         allButtons.setVgap(5.0);
@@ -593,36 +627,60 @@ public class RNArtist extends Application {
         GridPane.setConstraints(focus3D, 2, 1);
         allButtons.getChildren().add(focus3D);
 
-        GridPane residueOpacity = new GridPane();
-        residueOpacity.setVgap(5.0);
-        residueOpacity.setHgap(5.0);
+        GridPane selectionSize = new GridPane();
+        selectionSize.setVgap(5.0);
+        selectionSize.setHgap(5.0);
 
-        l = new Label("Unselected Residues Opacity (%)");
+        l = new Label("Selection Size (px)");
         GridPane.setHalignment(l, HPos.CENTER);
         GridPane.setConstraints(l, 0, 0);
-        residueOpacity.getChildren().add(l);
+        selectionSize.getChildren().add(l);
 
-        final Slider slider = new Slider(0, 100, (int) (RnartistConfig.getSelectionFading() / 255.0 * 100.0));
-        slider.setShowTickLabels(true);
-        slider.setShowTickMarks(true);
-        slider.setMajorTickUnit(50);
-        slider.setMinorTickCount(5);
-        slider.setShowTickMarks(true);
-        slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
+        final Slider sliderSize = new Slider(0, 20, RnartistConfig.getSelectionSize());
+        sliderSize.setShowTickLabels(true);
+        sliderSize.setShowTickMarks(true);
+        sliderSize.setMajorTickUnit(50);
+        sliderSize.setMinorTickCount(5);
+        sliderSize.setShowTickMarks(true);
+        sliderSize.setOnMouseReleased(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                RnartistConfig.setSelectionFading((int) (slider.getValue() / 100.0 * 255.0));
+                RnartistConfig.setSelectionSize((int)sliderSize.getValue());
                 mediator.getCanvas2D().repaint();
             }
         });
-        GridPane.setHalignment(slider, HPos.CENTER);
-        GridPane.setConstraints(slider, 0, 1);
-        residueOpacity.getChildren().add(slider);
+        GridPane.setHalignment(sliderSize, HPos.CENTER);
+        GridPane.setConstraints(sliderSize, 0, 1);
+        selectionSize.getChildren().add(sliderSize);
+
+        GridPane selectionColor = new GridPane();
+        selectionColor.setVgap(5.0);
+        selectionColor.setHgap(5.0);
+
+        l = new Label("Selection Color");
+        GridPane.setHalignment(l, HPos.CENTER);
+        GridPane.setConstraints(l, 0, 0);
+        selectionColor.getChildren().add(l);
+
+        ColorPicker colorPicker = new ColorPicker();
+        colorPicker.setValue(awtColorToJavaFX(RnartistConfig.getSelectionColor()));
+        colorPicker.valueProperty().addListener(new ChangeListener<Color>() {
+            @Override
+            public void changed(ObservableValue<? extends Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color newValue) {
+               java.awt.Color c = javaFXToAwt(colorPicker.getValue());
+               RnartistConfig.setSelectionColor(c);
+               mediator.canvas2D.repaint();
+            }
+        });
+        colorPicker.setMaxWidth(Double.MAX_VALUE);
+        colorPicker.setMinWidth(Control.USE_PREF_SIZE);
+        GridPane.setConstraints(colorPicker, 0, 1);
+        selectionColor.getChildren().add(colorPicker);
 
         Separator s = new Separator();
-        s.setPadding(new Insets(0,5,0,5));
+        s.setPadding(new Insets(0, 5, 0, 5));
 
-        toolbar.getItems().addAll(allButtons, s , residueOpacity);
+        toolbar.getItems().addAll(allButtons, s , selectionSize, selectionColor);
 
         VBox vbox = new VBox();
         vbox.setPadding(new Insets(0, 0, 0, 0));
@@ -633,14 +691,13 @@ public class RNArtist extends Application {
         root.setTop(vbox);
 
         //++++++ Canvas2D
-
         final SwingNode swingNode = new SwingNode();
         swingNode.setOnMouseClicked(mouseEvent -> {
             if (mediator.getCurrent2DDrawing() != null) {
                 AffineTransform at = new AffineTransform();
                 at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
                 at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
-                for (JunctionCircle jc : mediator.getCurrent2DDrawing().getAllJunctions()) {
+                for (JunctionDrawing jc : mediator.getCurrent2DDrawing().getAllJunctions()) {
                     if (at.createTransformedShape(jc.circle).contains(mouseEvent.getX(), mouseEvent.getY())) {
                         mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, false, jc);
                         mediator.getCanvas2D().repaint();
@@ -648,8 +705,8 @@ public class RNArtist extends Application {
                     }
                 }
 
-                List<ResidueCircle> residues = mediator.getCurrent2DDrawing().getResidues();
-                for (ResidueCircle c : residues) {
+                List<ResidueDrawing> residues = mediator.getCurrent2DDrawing().getResidues();
+                for (ResidueDrawing c : residues) {
                     if (c.getCircle() != null && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
                         mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, false, c);
                         mediator.getCanvas2D().repaint();
@@ -664,7 +721,7 @@ public class RNArtist extends Application {
         });
         swingNode.setOnMouseDragged(mouseEvent -> {
             if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                mediator.getTheme().setQuickDraw(true);
+                mediator.getCurrent2DDrawing().setQuickDraw(true);
                 double transX = mouseEvent.getX() - mediator.getCanvas2D().getTranslateX();
                 double transY = mouseEvent.getY() - mediator.getCanvas2D().getTranslateY();
                 mediator.getWorkingSession().moveView(transX, transY);
@@ -675,7 +732,7 @@ public class RNArtist extends Application {
         });
         swingNode.setOnMouseReleased(mouseEvent -> {
             if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                mediator.getTheme().setQuickDraw(false);
+                mediator.getCurrent2DDrawing().setQuickDraw(false);
                 mediator.getCanvas2D().setTranslateX(0.0);
                 mediator.getCanvas2D().setTranslateY(0.0);
                 mediator.getCanvas2D().repaint();
@@ -689,14 +746,14 @@ public class RNArtist extends Application {
         });
         swingNode.setOnScroll(scrollEvent -> {
             if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                mediator.getTheme().setQuickDraw(true);
+                mediator.getCurrent2DDrawing().setQuickDraw(true);
                 scrollCounter++;
 
                 Thread th = new Thread(() -> {
                     try {
                         Thread.sleep(100);
                         if (scrollCounter == 1) {
-                            mediator.getTheme().setQuickDraw(false);
+                            mediator.getCurrent2DDrawing().setQuickDraw(false);
                             mediator.getCanvas2D().repaint();
                         }
                         scrollCounter--;
@@ -741,10 +798,10 @@ public class RNArtist extends Application {
         stage.setTitle("RNArtist");
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        this.stage.setWidth(screenSize.getWidth() - 700);
-        this.stage.setHeight(screenSize.getHeight());
-        this.stage.setX(350);
-        this.stage.setY(0);
+        scene.getWindow().setWidth(screenSize.getWidth() - 400);
+        scene.getWindow().setHeight(screenSize.getHeight() - 200);
+        scene.getWindow().setX(400);
+        scene.getWindow().setY(0);
 
         mediator.getProjectManager().getStage().show();
         mediator.getProjectManager().getStage().toFront();
@@ -758,20 +815,7 @@ public class RNArtist extends Application {
         loadSavedTheme.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
-                org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme = (org.apache.commons.lang3.tuple.Pair<String, NitriteId>) loadSavedTheme.getUserData();
-                //we mute the listeners to avoid to apply the saved theme automatically
-                try {
-                    mediator.getToolbox().setMuted(true);
-                    mediator.getToolbox().loadTheme(mediator.getEmbeddedDB().getTheme(theme.getValue()));
-                    mediator.getToolbox().setMuted(false);
-                    updateSavedThemeItem.setUserData(theme); //to have the theme reference to update it for the user
-                    updateSavedThemeItem.setDisable(false);
-                    currentThemeMenu.setUserData(theme);
-                    currentThemeMenu.setText(theme.getKey());
-                    currentThemeMenu.setDisable(false);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                setCurrentTheme((org.apache.commons.lang3.tuple.Pair<String, NitriteId>) loadSavedTheme.getUserData());
             }
         });
 
@@ -782,8 +826,8 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme = (org.apache.commons.lang3.tuple.Pair<String, NitriteId>) deleteSavedTheme.getUserData();
                 mediator.getEmbeddedDB().deleteTheme(theme.getValue());
-                savedThemesMenu.getItems().remove(savedThemeMenu);
-                if (currentThemeMenu.getUserData().equals(deleteSavedTheme.getUserData())) {
+                userThemesMenu.getItems().remove(savedThemeMenu);
+                if (currentThemeMenu.getUserData().equals(deleteSavedTheme.getUserData())) { //the theme removed was the current theme
                     updateSavedThemeItem.setDisable(true);
                     currentThemeMenu.setText("Current Theme");
                     currentThemeMenu.setUserData(null);
@@ -796,6 +840,15 @@ public class RNArtist extends Application {
 
         savedThemeMenu.getItems().addAll(loadSavedTheme, deleteSavedTheme, shareCurrentTheme);
         return savedThemeMenu;
+    }
+
+    public void setCurrentTheme(org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme) {
+        mediator.getCurrent2DDrawing().setTheme(mediator.getEmbeddedDB().getTheme(theme.getValue()));
+        updateSavedThemeItem.setUserData(theme); //to have the theme reference to update it for the user
+        updateSavedThemeItem.setDisable(false);
+        currentThemeMenu.setUserData(theme);
+        currentThemeMenu.setText(theme.getKey());
+        currentThemeMenu.setDisable(false);
     }
 
     public Menu getCurrentThemeMenu() {

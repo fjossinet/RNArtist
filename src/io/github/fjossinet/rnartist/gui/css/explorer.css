@@ -3,13 +3,7 @@
     -fx-background-insets: 0, 0 0 1 0;
 }
 
-.tree-table-row-cell:odd {
-    -fx-background-color: -fx-table-cell-border-color, #c2c5c6;
-    -fx-background-insets: 0, 0 0 1 0;
-}
-
-.tree-table-row-cell:selected,
-.tree-table-row-cell:selected:odd {
+.tree-table-row-cell:selected {
     -fx-background-color: -fx-focus-color, -fx-cell-focus-inner-border, -fx-focus-color;
     -fx-background-insets: 0, 1, 2;
 }

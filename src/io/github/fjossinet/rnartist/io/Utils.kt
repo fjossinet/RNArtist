@@ -1,5 +1,6 @@
 package io.github.fjossinet.rnartist.io
 
+import javafx.scene.paint.Color
 import java.awt.Image
 import javax.imageio.ImageIO
 
@@ -14,4 +15,15 @@ fun getImage(imageName: String?): Image? {
         e.printStackTrace()
     }
     return image
+}
+
+fun javaFXToAwt(c: Color): java.awt.Color {
+    return java.awt.Color(c.red.toFloat(),
+            c.green.toFloat(),
+            c.blue.toFloat(),
+            c.opacity.toFloat())
+}
+
+fun awtColorToJavaFX(c: java.awt.Color): Color {
+    return Color.rgb(c.red, c.green, c.blue, c.alpha / 255.0)
 }

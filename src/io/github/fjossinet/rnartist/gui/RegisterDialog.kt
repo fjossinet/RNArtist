@@ -49,7 +49,7 @@ class RegisterDialog(application: Application): Dialog<ButtonType>() {
         subheader.font = Font.font ("Verdana", 15.0);
         val link = Hyperlink("RNArtist Website")
         link.font = Font.font ("Verdana", 15.0)
-        link.setOnAction { actionEvent ->
+        link.setOnAction {
             application.hostServices.showDocument(RnartistConfig.website)
         }
         val im = ImageView()
@@ -145,7 +145,7 @@ class RegisterDialog(application: Application): Dialog<ButtonType>() {
                             return Pair(true,null)
                         }
                     }
-                    task.setOnSucceeded { workerStateEvent ->
+                    task.setOnSucceeded {
                         if (task.get().first) {
                             val registerButton = this.getDialogPane().lookupButton(registerButtonType) as Button
                             registerButton.fire()

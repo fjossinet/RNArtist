@@ -31,7 +31,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-import javafx.util.Pair;
 import javafx.util.StringConverter;
 import org.controlsfx.control.GridCell;
 import org.controlsfx.control.GridView;
@@ -50,28 +49,21 @@ import java.util.List;
 
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getAWTColor;
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
+import static io.github.fjossinet.rnartist.io.UtilsKt.awtColorToJavaFX;
+import static io.github.fjossinet.rnartist.io.UtilsKt.javaFXToAwt;
 import static java.util.stream.Collectors.toList;
 import static javafx.collections.FXCollections.observableList;
 
-public class Toolbox extends AbstractThemeConfigurator {
+public class Toolbox extends AbstractDrawingConfigurator {
 
     private Stage stage;
     private Mediator mediator;
-    private ColorPicker colorPicker1, colorPicker2, colorPicker3, colorPicker4, colorPicker5, colorPicker6, colorPicker7;
-    private ChoiceBox<String>   structuralElement1 = new ChoiceBox<String>(),
-                                structuralElement2 = new ChoiceBox<String>(),
-                                structuralElement3 = new ChoiceBox<String>(),
-                                structuralElement4 = new ChoiceBox<String>(),
-                                structuralElement5 = new ChoiceBox<String>(),
-                                structuralElement6 = new ChoiceBox<String>(),
-                                structuralElement7 = new ChoiceBox<String>(),
-                                letterColor1,letterColor2,letterColor3,letterColor4,letterColor5,letterColor6,letterColor7;
-    private Slider _3dOpacity, haloWidth, residueCharOpacity, secondaryInteractionShift;
-    private ComboBox<String> fontNames, residuesWidth, phosphoDiesterWidth,
-            secondaryInteractionWidth,
-            tertiaryInteractionWidth, tertiaryInteractionStyle, displayLWSymbols;
-    private ComboBox<Object> structureElementsSelectedComboBox;
-    private ComboBox<org.apache.commons.lang3.tuple.Pair<String, NitriteId>> savedThemesComboBox;
+    private ColorPicker colorPicker;
+    private ChoiceBox<String> letterColor;
+    private Slider opacity, secondaryInteractionShift;
+    private ComboBox<String> fontNames, lineWidth, tertiaryInteractionStyle;
+    private List<Button> recoverButtons;
+    private ComboBox<Object> defaultTargetsComboBox, structureElementsSelectedComboBox;
     private ObservableList<org.apache.commons.lang3.tuple.Pair<String, NitriteId>> savedThemes = FXCollections.observableList(new ArrayList());
     private Spinner<Integer> deltaXRes, deltaYRes, deltaFontSize;
     private FlowPane junctionKnobs = new FlowPane();
@@ -80,11 +72,13 @@ public class Toolbox extends AbstractThemeConfigurator {
 
     public Toolbox(Mediator mediator) {
         this.mediator = mediator;
+        this.recoverButtons = new ArrayList<Button>();
         this.stage = new Stage();
+        this.setMuted(true); //the modifications od the Controls will not be applied withiout chicking on the apply/clear buttons
         stage.setTitle("Toolbox");
         this.createScene(stage);
-        for (Document theme: mediator.getEmbeddedDB().getThemes().find()) {
-            this.savedThemes.add(org.apache.commons.lang3.tuple.Pair.of((String)theme.get("name"), theme.getId())) ;
+        for (Document theme : mediator.getEmbeddedDB().getThemes().find()) {
+            this.savedThemes.add(org.apache.commons.lang3.tuple.Pair.of((String) theme.get("name"), theme.getId()));
         }
         //new Thread(new LoadThemesFromWebsite()).run();
     }
@@ -108,15 +102,139 @@ public class Toolbox extends AbstractThemeConfigurator {
         scene.getStylesheets().add(getClass().getClassLoader().getResource("io/github/fjossinet/rnartist/gui/css/toolbox.css").toExternalForm());
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        this.stage.setWidth(450);
-        this.stage.setHeight(screenSize.getHeight());
-        this.stage.setX(0);
-        this.stage.setY(0);
+        scene.getWindow().setWidth(400);
+        scene.getWindow().setHeight(screenSize.getHeight());
+        scene.getWindow().setX(0);
+        scene.getWindow().setY(0);
     }
 
     private void createThemePanel(TabPane root) {
 
         VBox parent = new VBox();
+
+        //++++list of default targets listening to theme modifications
+        this.defaultTargetsComboBox = new ComboBox<Object>(FXCollections.observableList(Arrays.asList(
+                "Full 2D",
+                "All Helices",
+                "All Single Strands",
+                "All Junctions",
+                "All PseudoKnots",
+                "All Apical Loops",
+                "All Inner Loops",
+                "All 3-Way Junctions",
+                "All 4-Way Junctions",
+                "All Secondary Interactions",
+                "All Tertiary Interactions",
+                "All Residues",
+                "All Adenines",
+                "All Uridines",
+                "All Guanines",
+                "All Cytidines",
+                "All Unknown Residues",
+                "All LW Symbols",
+                "All Regular Symbols",
+                "All Phosphodiester Bonds")));
+
+        this.defaultTargetsComboBox.setMaxWidth(Double.MAX_VALUE);
+        this.defaultTargetsComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Object>() {
+
+            public void changed(ObservableValue<? extends Object> ov,
+                                final Object oldvalue, final Object newvalue) {
+                removeDrawingConfigurationListeners();
+                structureElementsSelectedComboBox.setValue(null);
+                for (Button b : recoverButtons)
+                    b.setDisable(true);
+                if (newvalue != null) {
+                    if (newvalue.toString().equals("Full 2D")) {
+                        addDrawingConfigurationListener(mediator.getCurrent2DDrawing());
+                    } else if (newvalue.toString().equals("All Helices"))
+                        for (HelixDrawing h : mediator.getCurrent2DDrawing().getAllHelices()) {
+                            addDrawingConfigurationListener(h);
+                        }
+                    else if (newvalue.toString().equals("All Single Strands"))
+                        for (SingleStrandDrawing ss : mediator.getCurrent2DDrawing().getSingleStrands()) {
+                            addDrawingConfigurationListener(ss);
+                        }
+                    else if (newvalue.toString().equals("All Junctions"))
+                        for (JunctionDrawing jc : mediator.getCurrent2DDrawing().getAllJunctions()) {
+                            addDrawingConfigurationListener(jc);
+                        }
+                    else if (newvalue.toString().equals("All PseudoKnots"))
+                        for (PKnotDrawing pknot : mediator.getCurrent2DDrawing().getPknots()) {
+                            addDrawingConfigurationListener(pknot);
+                        }
+                    else if (newvalue.toString().equals("All Apical Loops"))
+                        for (JunctionDrawing jc : mediator.getCurrent2DDrawing().getAllJunctions()) {
+                            if (jc.getJunctionCategory() == JunctionType.ApicalLoop)
+                                addDrawingConfigurationListener(jc);
+                        }
+                    else if (newvalue.toString().equals("All Inner Loops"))
+                        for (JunctionDrawing jc : mediator.getCurrent2DDrawing().getAllJunctions()) {
+                            if (jc.getJunctionCategory() == JunctionType.InnerLoop)
+                                addDrawingConfigurationListener(jc);
+                        }
+                    else if (newvalue.toString().equals("All 3-Way Junctions"))
+                        for (JunctionDrawing jc : mediator.getCurrent2DDrawing().getAllJunctions()) {
+                            if (jc.getJunctionCategory() == JunctionType.ThreeWay)
+                                addDrawingConfigurationListener(jc);
+                        }
+                    else if (newvalue.toString().equals("All 4-Way Junctions"))
+                        for (JunctionDrawing jc : mediator.getCurrent2DDrawing().getAllJunctions()) {
+                            if (jc.getJunctionCategory() == JunctionType.FourWay)
+                                addDrawingConfigurationListener(jc);
+                        }
+                    else if (newvalue.toString().equals("All Secondary Interactions"))
+                        for (BaseBaseInteractionDrawing secondary : mediator.getCurrent2DDrawing().getAllSecondaryInteractions()) {
+                            addDrawingConfigurationListener(secondary);
+                        }
+                    else if (newvalue.toString().equals("All Tertiary Interactions"))
+                        for (TertiaryInteractionDrawing tertiary : mediator.getCurrent2DDrawing().getAllTertiaryInteractions()) {
+                            addDrawingConfigurationListener(tertiary);
+                        }
+                    else if (newvalue.toString().equals("All Residues"))
+                        for (ResidueDrawing r : mediator.getCurrent2DDrawing().getResidues()) {
+                            addDrawingConfigurationListener(r);
+                        }
+                    else if (newvalue.toString().equals("All Adenines"))
+                        for (ResidueDrawing r : mediator.getCurrent2DDrawing().getResidues()) {
+                            if (r.getType() == SecondaryStructureType.A)
+                                addDrawingConfigurationListener(r);
+                        }
+                    else if (newvalue.toString().equals("All Uridines"))
+                        for (ResidueDrawing r : mediator.getCurrent2DDrawing().getResidues()) {
+                            if (r.getType() == SecondaryStructureType.U)
+                                addDrawingConfigurationListener(r);
+                        }
+                    else if (newvalue.toString().equals("All Guanines"))
+                        for (ResidueDrawing r : mediator.getCurrent2DDrawing().getResidues()) {
+                            if (r.getType() == SecondaryStructureType.G)
+                                addDrawingConfigurationListener(r);
+                        }
+                    else if (newvalue.toString().equals("All Cytidines"))
+                        for (ResidueDrawing r : mediator.getCurrent2DDrawing().getResidues()) {
+                            if (r.getType() == SecondaryStructureType.C)
+                                addDrawingConfigurationListener(r);
+                        }
+                    else if (newvalue.toString().equals("All Unknown Residues"))
+                        for (ResidueDrawing r : mediator.getCurrent2DDrawing().getResidues()) {
+                            if (r.getType() == SecondaryStructureType.X)
+                                addDrawingConfigurationListener(r);
+                        }
+                    else if (newvalue.toString().equals("All Regular Symbols"))
+                        for (LWSymbolDrawing s : mediator.getCurrent2DDrawing().getAllRegularSymbols()) {
+                            addDrawingConfigurationListener(s);
+                        }
+                    else if (newvalue.toString().equals("All LW Symbols"))
+                        for (LWSymbolDrawing s : mediator.getCurrent2DDrawing().getAllLWSymbols()) {
+                            addDrawingConfigurationListener(s);
+                        }
+                    else if (newvalue.toString().equals("All Phosphodiester Bonds"))
+                        for (PhosphodiesterBondDrawing p : mediator.getCurrent2DDrawing().getAllPhosphoBonds()) {
+                            addDrawingConfigurationListener(p);
+                        }
+                }
+            }
+        });
 
         //+++++list of the structural elements selected listening to theme modifications
         this.structureElementsSelectedComboBox = new ComboBox<Object>(mediator.getStructureElementsSelected());
@@ -127,7 +245,7 @@ public class Toolbox extends AbstractThemeConfigurator {
                     return "";
                 }
                 if (SecondaryStructureElement.class.isInstance(secondaryStructureElement))
-                    return ((SecondaryStructureElement)secondaryStructureElement).getType()+" "+((SecondaryStructureElement)secondaryStructureElement).getName()+ " "+((SecondaryStructureElement)secondaryStructureElement).getLocation().getDescription();
+                    return ((SecondaryStructureElement) secondaryStructureElement).getType() + " " + ((SecondaryStructureElement) secondaryStructureElement).getName() + " " + ((SecondaryStructureElement) secondaryStructureElement).getLocation().getDescription();
                 else if (String.class.isInstance(secondaryStructureElement)) {
                     return secondaryStructureElement.toString();
                 }
@@ -144,56 +262,20 @@ public class Toolbox extends AbstractThemeConfigurator {
 
             public void changed(ObservableValue<? extends Object> ov,
                                 final Object oldvalue, final Object newvalue) {
-                removeThemeConfiguratorListeners();
+                removeDrawingConfigurationListeners();
+                defaultTargetsComboBox.setValue(null);
+                for (Button b : recoverButtons)
+                    b.setDisable(true);
                 if (newvalue != null) {
-                    if (newvalue.toString().equals("Full 2D")) {
-                        addThemeConfiguratorListener(mediator.getCurrent2DDrawing());
-                    } else if (newvalue.toString().equals("All Selected Elements"))
-                        for (Object o : structureElementsSelectedComboBox.getItems().subList(structureElementsSelectedComboBox.getItems().indexOf("All Selected Elements")+1, structureElementsSelectedComboBox.getItems().size())) {
-                            addThemeConfiguratorListener((SecondaryStructureElement) o);
-                        }
-                     else if (newvalue.toString().equals("All Helices"))
-                        for (HelixLine h:mediator.getCurrent2DDrawing().getAllHelices()) {
-                            addThemeConfiguratorListener(h);
-                        }
-                    else if (newvalue.toString().equals("All Single Strands"))
-                        for (SingleStrandLine ss:mediator.getCurrent2DDrawing().getSingleStrands()) {
-                            addThemeConfiguratorListener(ss);
-                        }
-                    else if (newvalue.toString().equals("All Junctions"))
-                        for (JunctionCircle jc:mediator.getCurrent2DDrawing().getAllJunctions()) {
-                            addThemeConfiguratorListener(jc);
-                        }
-                    else if (newvalue.toString().equals("All Apical Loops"))
-                        for (JunctionCircle jc:mediator.getCurrent2DDrawing().getAllJunctions()) {
-                            if (jc.getJunctionCategory() == JunctionType.ApicalLoop)
-                                addThemeConfiguratorListener(jc);
-                        }
-                    else if (newvalue.toString().equals("All Inner Loops"))
-                        for (JunctionCircle jc:mediator.getCurrent2DDrawing().getAllJunctions()) {
-                            if (jc.getJunctionCategory() == JunctionType.InnerLoop)
-                                addThemeConfiguratorListener(jc);
-                        }
-                    else if (newvalue.toString().equals("All 3-Way Junctions"))
-                        for (JunctionCircle jc:mediator.getCurrent2DDrawing().getAllJunctions()) {
-                            if (jc.getJunctionCategory() == JunctionType.ThreeWay)
-                                addThemeConfiguratorListener(jc);
-                        }
-                    else if (newvalue.toString().equals("All 4-Way Junctions"))
-                        for (JunctionCircle jc:mediator.getCurrent2DDrawing().getAllJunctions()) {
-                            if (jc.getJunctionCategory() == JunctionType.FourWay)
-                                addThemeConfiguratorListener(jc);
-                        }
-                    else if (newvalue.toString().equals("All Tertiary Interactions"))
-                        for (TertiaryInteractionLine tertiary:mediator.getCurrent2DDrawing().getTertiaryInteractions()) {
-                            addThemeConfiguratorListener(tertiary);
-                        }
-                    else if (newvalue.toString().equals("All Residues"))
-                        for (ResidueCircle r:mediator.getCurrent2DDrawing().getResidues()) {
-                            addThemeConfiguratorListener(r);
+                    if (newvalue.toString().equals("All Selected Elements"))
+                        for (Object o : structureElementsSelectedComboBox.getItems().subList(structureElementsSelectedComboBox.getItems().indexOf("All Selected Elements") + 1, structureElementsSelectedComboBox.getItems().size())) {
+                            addDrawingConfigurationListener((SecondaryStructureElement) o);
                         }
                     else {
-                        addThemeConfiguratorListener((SecondaryStructureElement) newvalue);
+                        addDrawingConfigurationListener((SecondaryStructureElement) newvalue);
+                        //if a single element is selected, we activate the buttons to recover theme parameters
+                        for (Button b : recoverButtons)
+                            b.setDisable(false);
                         if (RnartistConfig.getFitDisplayOnSelection()) { //fit first since fit will center too
                             mediator.canvas2D.fitDisplayOn(((SecondaryStructureElement) newvalue).getBounds2D());
                         } else if (RnartistConfig.getCenterDisplayOnSelection()) {
@@ -207,7 +289,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane targetForm = new GridPane();
         targetForm.setHgap(5);
         targetForm.setVgap(5);
-        targetForm.setPadding(new Insets(0, 10, 5, 10));
+        targetForm.setPadding(new Insets(10, 10, 10, 10));
         targetForm.setMaxWidth(Double.MAX_VALUE);
         ColumnConstraints cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
@@ -216,44 +298,129 @@ public class Toolbox extends AbstractThemeConfigurator {
         Label l = new Label("Target");
         l.setStyle("-fx-font-size: 20");
         l.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setConstraints(l, 0,0,2,1);
-        GridPane.setHalignment(l,HPos.LEFT);
+        GridPane.setConstraints(l, 0, 0, 5, 1);
+        GridPane.setHalignment(l, HPos.LEFT);
         targetForm.getChildren().add(l);
 
-        GridPane.setConstraints(this.structureElementsSelectedComboBox, 0,1,2,1);
-        targetForm.getChildren().add(this.structureElementsSelectedComboBox);
+        l = new Label("Default Targets");
+        l.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setConstraints(l, 0, 1, 5, 1);
+        GridPane.setHalignment(l, HPos.LEFT);
+        targetForm.getChildren().add(l);
 
-        Button clearTheme = new Button("Clear Theme for Target");
-        clearTheme.setMinWidth(Control.USE_PREF_SIZE);
-        clearTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                clearTheme();
-                mediator.canvas2D.repaint();
-            }
-        });
+        GridPane.setConstraints(this.defaultTargetsComboBox, 0, 2, 2, 1);
+        targetForm.getChildren().add(this.defaultTargetsComboBox);
 
-        GridPane.setConstraints(clearTheme, 0,2,1,1);
-        clearTheme.setMaxWidth(Double.MAX_VALUE);
-        targetForm.getChildren().add(clearTheme);
-
-        Button applyTheme = new Button("Apply Theme to Target");
+        Button applyTheme = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
         applyTheme.setMinWidth(Control.USE_PREF_SIZE);
         applyTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                applyTheme(getCurrentTheme());
-                mediator.canvas2D.repaint();
+                setMuted(false);
+                Map<String, String> params = new HashMap<String, String>();
+                params.put(DrawingConfigurationParameter.FontName.toString(), fontNames.getValue());
+                params.put(DrawingConfigurationParameter.DeltaXRes.toString(), "" + deltaXRes.getValue());
+                params.put(DrawingConfigurationParameter.DeltaYRes.toString(), "" + deltaYRes.getValue());
+                params.put(DrawingConfigurationParameter.DeltaFontSize.toString(), "" + deltaFontSize.getValue().intValue());
+                params.put(DrawingConfigurationParameter.Opacity.toString(), "" + (int) ((double) (opacity.getValue()) / 100.0 * 255.0));
+                params.put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(javaFXToAwt(colorPicker.getValue())));
+                params.put(DrawingConfigurationParameter.CharColor.toString(), getHTMLColorString(letterColor.getValue() == "White" ? Color.WHITE : Color.BLACK));
+                params.put(DrawingConfigurationParameter.LineWidth.toString(), lineWidth.getValue());
+                params.put(DrawingConfigurationParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue());
+                params.put(DrawingConfigurationParameter.LineShift.toString(), "" + secondaryInteractionShift.getValue());
+                applyDrawingConfiguration(new DrawingConfiguration(params));
+                setMuted(true);
             }
         });
 
-        GridPane.setConstraints(applyTheme, 1,2,1,1);
+        GridPane.setConstraints(applyTheme, 2, 2, 1, 1);
         applyTheme.setMaxWidth(Double.MAX_VALUE);
         targetForm.getChildren().add(applyTheme);
 
+        Button clearTheme = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        clearTheme.setMinWidth(Control.USE_PREF_SIZE);
+        clearTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                setMuted(false);
+                clearDrawingConfiguration(mouseEvent.isShiftDown());
+                setMuted(true);
+            }
+        });
+
+        GridPane.setConstraints(clearTheme, 3, 2, 1, 1);
+        clearTheme.setMaxWidth(Double.MAX_VALUE);
+        targetForm.getChildren().add(clearTheme);
+
+        l = new Label("Your Selections");
+        l.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setConstraints(l, 0, 3, 5, 1);
+        GridPane.setHalignment(l, HPos.LEFT);
+        targetForm.getChildren().add(l);
+
+        GridPane.setConstraints(this.structureElementsSelectedComboBox, 0, 4, 2, 1);
+        targetForm.getChildren().add(this.structureElementsSelectedComboBox);
+
+        applyTheme = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
+        applyTheme.setMinWidth(Control.USE_PREF_SIZE);
+        applyTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                setMuted(false);
+                Map<String, String> params = new HashMap<String, String>();
+                params.put(DrawingConfigurationParameter.FontName.toString(), fontNames.getValue());
+                params.put(DrawingConfigurationParameter.DeltaXRes.toString(), "" + deltaXRes.getValue());
+                params.put(DrawingConfigurationParameter.DeltaYRes.toString(), "" + deltaYRes.getValue());
+                params.put(DrawingConfigurationParameter.DeltaFontSize.toString(), "" + deltaFontSize.getValue().intValue());
+                params.put(DrawingConfigurationParameter.Opacity.toString(), "" + (int) ((double) (opacity.getValue()) / 100.0 * 255.0));
+                params.put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(javaFXToAwt(colorPicker.getValue())));
+                params.put(DrawingConfigurationParameter.CharColor.toString(), getHTMLColorString(letterColor.getValue() == "White" ? Color.WHITE : Color.BLACK));
+                params.put(DrawingConfigurationParameter.LineWidth.toString(), lineWidth.getValue());
+                params.put(DrawingConfigurationParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue());
+                params.put(DrawingConfigurationParameter.LineShift.toString(), "" + secondaryInteractionShift.getValue());
+                applyDrawingConfiguration(new DrawingConfiguration(params));
+                setMuted(true);
+            }
+        });
+
+        GridPane.setConstraints(applyTheme, 2, 4, 1, 1);
+        applyTheme.setMaxWidth(Double.MAX_VALUE);
+        targetForm.getChildren().add(applyTheme);
+
+        clearTheme = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        clearTheme.setMinWidth(Control.USE_PREF_SIZE);
+        clearTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                setMuted(false);
+                clearDrawingConfiguration(mouseEvent.isShiftDown());
+                setMuted(true);
+            }
+        });
+
+        GridPane.setConstraints(clearTheme, 3, 4, 1, 1);
+        clearTheme.setMaxWidth(Double.MAX_VALUE);
+        targetForm.getChildren().add(clearTheme);
+
+        Button recoverTheme = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYEDROPPER));
+        recoverTheme.setMinWidth(Control.USE_PREF_SIZE);
+        recoverTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                Map<String, String> params = ((SecondaryStructureElement) structureElementsSelectedComboBox.getValue()).getDrawingConfiguration().getParams();
+
+            }
+        });
+        recoverTheme.setDisable(true);
+        this.recoverButtons.add(recoverTheme);
+
+        GridPane.setConstraints(recoverTheme, 4, 4, 1, 1);
+        recoverTheme.setMaxWidth(Double.MAX_VALUE);
+        targetForm.getChildren().add(recoverTheme);
+
         parent.getChildren().add(targetForm);
 
-        VBox currentThemeVBox =  new VBox();
+        VBox currentThemeVBox = new VBox();
         currentThemeVBox.setFillWidth(true);
         currentThemeVBox.setPadding(new Insets(10, 10, 10, 10));
         currentThemeVBox.setSpacing(10);
@@ -271,7 +438,7 @@ public class Toolbox extends AbstractThemeConfigurator {
 
         cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
-        fontsPane.getColumnConstraints().addAll(new ColumnConstraints(), new ColumnConstraints(),new ColumnConstraints(),new ColumnConstraints(),new ColumnConstraints(), cc, new ColumnConstraints());
+        fontsPane.getColumnConstraints().addAll(new ColumnConstraints(), new ColumnConstraints(), new ColumnConstraints(), new ColumnConstraints(), new ColumnConstraints(), cc, new ColumnConstraints());
 
         fontNames = new ComboBox<>(
                 observableList(Font.getFamilies().stream().distinct().collect(toList())));
@@ -281,8 +448,9 @@ public class Toolbox extends AbstractThemeConfigurator {
                 @Override
                 protected Object doInBackground() throws Exception {
                     try {
-                        fireThemeChange(ThemeParameter.FontName, fontNames.getValue());
-                        mediator.getCanvas2D().repaint();
+                        setMuted(false);
+                        fireDrawingConfigurationChange(DrawingConfigurationParameter.FontName, fontNames.getValue());
+                        setMuted(true);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -292,228 +460,162 @@ public class Toolbox extends AbstractThemeConfigurator {
         };
 
         fontNames.setOnAction(eventHandler);
-        fontNames.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.FontName.toString()));
+        fontNames.setValue(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.FontName.toString()));
         fontNames.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setConstraints(fontNames, 0,0,6,1);
+        GridPane.setConstraints(fontNames, 0, 0, 6, 1);
         fontsPane.getChildren().add(fontNames);
 
         Button applyFontName = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyFontName, 6,0,1,1);
+        GridPane.setConstraints(applyFontName, 6, 0, 1, 1);
         fontsPane.getChildren().add(applyFontName);
 
         applyFontName.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.FontName, fontNames.getValue());
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.FontName, fontNames.getValue());
+                setMuted(true);
             }
         });
 
         Button clearFontName = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearFontName, 7,0,1,1);
+        GridPane.setConstraints(clearFontName, 7, 0, 1, 1);
         fontsPane.getChildren().add(clearFontName);
 
         clearFontName.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.FontName, mouseEvent.isShiftDown());
+                setMuted(true);
             }
         });
 
+        Button recoverFontName = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYEDROPPER));
+        GridPane.setConstraints(recoverFontName, 8, 0, 1, 1);
+        fontsPane.getChildren().add(recoverFontName);
+
+        recoverFontName.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.FontName.toString()))
+                    fontNames.setValue(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.FontName.toString()));
+            }
+        });
+        recoverFontName.setDisable(true);
+        this.recoverButtons.add(recoverFontName);
+
         deltaXRes = new Spinner<Integer>();
-        deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.DeltaXRes.toString()))));
+        deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.DeltaXRes.toString()))));
         deltaXRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
-                if (mediator.getCurrent2DDrawing() != null) {
-                    fireThemeChange(ThemeParameter.DeltaXRes, deltaXRes.getValue());
-                    mediator.getCanvas2D().repaint();
-                }
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.DeltaXRes, deltaXRes.getValue());
+                setMuted(true);
             }
         });
 
         deltaYRes = new Spinner<Integer>();
-        deltaYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.DeltaYRes.toString()))));
+        deltaYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.DeltaYRes.toString()))));
         deltaYRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
-                if (mediator.getCurrent2DDrawing() != null) {
-                    fireThemeChange(ThemeParameter.DeltaYRes, deltaYRes.getValue());
-                    mediator.getCanvas2D().repaint();
-                }
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.DeltaYRes, deltaYRes.getValue());
+                setMuted(true);
             }
         });
 
         deltaFontSize = new Spinner<Integer>();
-        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 5, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.DeltaFontSize.toString()))));
+        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 5, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.DeltaFontSize.toString()))));
         deltaFontSize.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
-                if (mediator.getCurrent2DDrawing() != null) {
-                    fireThemeChange(ThemeParameter.DeltaFontSize, deltaFontSize.getValue().intValue());
-                    mediator.getCanvas2D().repaint();
-                }
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.DeltaFontSize, deltaFontSize.getValue().intValue());
+                setMuted(true);
             }
         });
 
         l = new Label("x");
-        GridPane.setConstraints(l, 0,1,1,1);
+        GridPane.setConstraints(l, 0, 1, 1, 1);
         GridPane.setHalignment(l, HPos.LEFT);
         fontsPane.getChildren().add(l);
-        GridPane.setConstraints(deltaXRes, 1,1,1,1);
+        GridPane.setConstraints(deltaXRes, 1, 1, 1, 1);
         GridPane.setHalignment(deltaXRes, HPos.LEFT);
         fontsPane.getChildren().add(deltaXRes);
 
         l = new Label("y");
-        GridPane.setConstraints(l, 2,1,1,1);
+        GridPane.setConstraints(l, 2, 1, 1, 1);
         GridPane.setHalignment(l, HPos.LEFT);
         fontsPane.getChildren().add(l);
-        GridPane.setConstraints(deltaYRes, 3,1,1,1);
+        GridPane.setConstraints(deltaYRes, 3, 1, 1, 1);
         GridPane.setHalignment(deltaYRes, HPos.LEFT);
         fontsPane.getChildren().add(deltaYRes);
 
         l = new Label("s");
-        GridPane.setConstraints(l, 4,1,1,1);
+        GridPane.setConstraints(l, 4, 1, 1, 1);
         fontsPane.getChildren().add(l);
         GridPane.setHalignment(l, HPos.LEFT);
-        GridPane.setConstraints(deltaFontSize, 5,1,1,1);
+        GridPane.setConstraints(deltaFontSize, 5, 1, 1, 1);
         fontsPane.getChildren().add(deltaFontSize);
         GridPane.setHalignment(deltaFontSize, HPos.LEFT);
 
         Button applyDeltas = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyDeltas, 6,1,1,1);
+        applyDeltas.setMinWidth(Control.USE_PREF_SIZE);
+        GridPane.setConstraints(applyDeltas, 6, 1, 1, 1);
         fontsPane.getChildren().add(applyDeltas);
 
         applyDeltas.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.DeltaXRes, deltaXRes.getValue());
-                fireThemeChange(ThemeParameter.DeltaYRes, deltaYRes.getValue());
-                fireThemeChange(ThemeParameter.DeltaFontSize, deltaFontSize.getValue().intValue());
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.DeltaXRes, deltaXRes.getValue());
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.DeltaYRes, deltaYRes.getValue());
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.DeltaFontSize, deltaFontSize.getValue().intValue());
+                setMuted(true);
             }
         });
 
         Button clearDeltas = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearDeltas, 7,1,1,1);
+        clearDeltas.setMinWidth(Control.USE_PREF_SIZE);
+        GridPane.setConstraints(clearDeltas, 7, 1, 1, 1);
         fontsPane.getChildren().add(clearDeltas);
 
         clearDeltas.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.DeltaXRes, mouseEvent.isShiftDown());
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.DeltaYRes, mouseEvent.isShiftDown());
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.DeltaFontSize, mouseEvent.isShiftDown());
+                setMuted(true);
             }
         });
+
+        Button recoverDeltas = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYEDROPPER));
+        recoverDeltas.setMinWidth(Control.USE_PREF_SIZE);
+        GridPane.setConstraints(recoverDeltas, 8, 1, 1, 1);
+        fontsPane.getChildren().add(recoverDeltas);
+
+        recoverDeltas.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.DeltaXRes.toString()))
+                    deltaXRes.getValueFactory().setValue(Integer.parseInt(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.DeltaXRes.toString())));
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.DeltaYRes.toString()))
+                    deltaYRes.getValueFactory().setValue(Integer.parseInt(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.DeltaYRes.toString())));
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.DeltaFontSize.toString()))
+                    deltaFontSize.getValueFactory().setValue(Integer.parseInt(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.DeltaFontSize.toString())));
+            }
+        });
+        recoverDeltas.setDisable(true);
+        this.recoverButtons.add(recoverDeltas);
 
         currentThemeVBox.getChildren().add(fontsPane);
-
-        GridPane fontsPane2 = new GridPane();
-        fontsPane2.setHgap(10);
-        fontsPane2.setVgap(10);
-        fontsPane2.setPadding(new Insets(0, 0, 10, 0));
-        fontsPane2.setMaxWidth(Double.MAX_VALUE);
-
-        cc = new ColumnConstraints();
-        cc.setHgrow(Priority.ALWAYS);
-        fontsPane2.getColumnConstraints().addAll(cc);
-
-        l = new Label("Residue Character Opacity (%)");
-        GridPane.setConstraints(l, 0,0,3,1);
-        l.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setHalignment(l,HPos.LEFT);
-        fontsPane2.getChildren().add(l);
-
-        this.residueCharOpacity = new Slider(0, 100, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.ResidueCharOpacity.toString()))/255.0*100.0);
-        this.residueCharOpacity.setShowTickLabels(true);
-        this.residueCharOpacity.setShowTickMarks(true);
-        this.residueCharOpacity.setMajorTickUnit(50);
-        this.residueCharOpacity.setMinorTickCount(5);
-        this.residueCharOpacity.setShowTickMarks(true);
-        this.residueCharOpacity.setOnMouseReleased(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.ResidueCharOpacity,(int) ((double)(residueCharOpacity.getValue()) / 100.0 * 255.0));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setConstraints(this.residueCharOpacity, 0,1,1,1);
-        this.residueCharOpacity.setMaxWidth(Double.MAX_VALUE);
-        fontsPane2.getChildren().add(this.residueCharOpacity);
-
-        Button applyCharOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyCharOpacity, 1,1,1,1);
-        GridPane.setValignment(applyCharOpacity, VPos.TOP);
-        fontsPane2.getChildren().add(applyCharOpacity);
-
-        applyCharOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.ResidueCharOpacity,(int) ((double)(residueCharOpacity.getValue()) / 100.0 * 255.0));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearCharOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearCharOpacity, 2,1,1,1);
-        GridPane.setValignment(clearCharOpacity, VPos.TOP);
-        fontsPane2.getChildren().add(clearCharOpacity);
-
-        clearCharOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        l = new Label("Ticks Character Opacity (%)");
-        GridPane.setConstraints(l, 0,2,3,1);
-        GridPane.setHalignment(l,HPos.LEFT);
-        l.setMaxWidth(Double.MAX_VALUE);
-        fontsPane2.getChildren().add(l);
-
-        final Slider slider2 = new Slider(0, 100, 100);
-        slider2.setShowTickLabels(true);
-        slider2.setShowTickMarks(true);
-        slider2.setMajorTickUnit(50);
-        slider2.setMinorTickCount(5);
-        slider2.setShowTickMarks(true);
-        slider2.setOnMouseReleased(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                //RnartistConfig.setResidueFading((int)(slider2.getValue()/100.0*255.0));
-                //mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setConstraints(slider2, 0,3,1,1);
-        slider2.setMaxWidth(Double.MAX_VALUE);
-        fontsPane2.getChildren().add(slider2);
-
-        Button applyTicksOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyTicksOpacity, 1,3,1,1);
-        GridPane.setValignment(applyTicksOpacity, VPos.TOP);
-        fontsPane2.getChildren().add(applyTicksOpacity);
-
-        applyTicksOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                //fireThemeChange(ThemeParameter.ResidueCharOpacity,(int) ((double)(residueCharOpacity.getValue()) / 100.0 * 255.0));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearTicksOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearTicksOpacity, 2,3,1,1);
-        GridPane.setValignment(clearTicksOpacity, VPos.TOP);
-        fontsPane2.getChildren().add(clearTicksOpacity);
-
-        clearTicksOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        currentThemeVBox.getChildren().add(fontsPane2);
 
         //++++++ pane for the Colors
         title = new Label("Colors");
@@ -526,1319 +628,94 @@ public class Toolbox extends AbstractThemeConfigurator {
         colorsPane.setPadding(new Insets(0, 0, 10, 0));
         cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
-        colorsPane.getColumnConstraints().addAll(new ColumnConstraints(),new ColumnConstraints(),cc);
+        colorsPane.getColumnConstraints().addAll(cc, new ColumnConstraints(), new ColumnConstraints(), new ColumnConstraints(), new ColumnConstraints());
 
-        java.util.List<String> colorSchemes = new ArrayList<String>();
-        for (String colorSchemeName:RnartistConfig.defaultColorSchemes.keySet())
-            colorSchemes.add(colorSchemeName);
-
-        ComboBox<String> colorSchemeChoices = new ComboBox<String>(
-                observableList(colorSchemes));
-
-        eventHandler = (event) -> {
-                    Theme colors = RnartistConfig.defaultColorSchemes.get(colorSchemeChoices.getValue());
-                    try {
-                        loadTheme(colors);
-                        mediator.getCanvas2D().repaint();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-        };
-
-        colorSchemeChoices.setOnAction(eventHandler);
-        colorSchemeChoices.setValue("Choose a Color Scheme");
-        colorSchemeChoices.setMaxWidth(Double.MAX_VALUE);
-
-        GridPane.setConstraints(colorSchemeChoices, 0,0,5,1);
-        GridPane.setHalignment(colorSchemeChoices, HPos.LEFT);
-        colorsPane.getChildren().add(colorSchemeChoices);
-
-        colorPicker1 = new ColorPicker();
-        colorPicker1.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
+        colorPicker = new ColorPicker();
+        colorPicker.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
 
             @Override
-            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
-                if (structuralElement1.getValue()!=null) {
-                    switch (structuralElement1.getValue()) {
-                        case "A":
-                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker1.getValue()));
-                            break;
-                        case "U":
-                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker1.getValue()));
-                            break;
-                        case "G":
-                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker1.getValue()));
-                            break;
-                        case "C":
-                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker1.getValue()));
-                            break;
-                        case "X":
-                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker1.getValue()));
-                            break;
-                        case "2D":
-                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker1.getValue()));
-                            break;
-                        case "3D":
-                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker1.getValue()));
-                            break;
-                    }
-                    mediator.getCanvas2D().repaint();
-                }
+            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color newValue) {
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.Color, javaFXToAwt(colorPicker.getValue()));
             }
         });
-        colorPicker1.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.AColor.toString()))));
-        colorPicker1.setMaxWidth(Double.MAX_VALUE);
-        colorPicker1.setMinWidth(Control.USE_PREF_SIZE);
+        colorPicker.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.Color.toString()), 255)));
+        colorPicker.setMaxWidth(Double.MAX_VALUE);
+        colorPicker.setMinWidth(Control.USE_PREF_SIZE);
 
-        colorPicker2 = new ColorPicker();
-        colorPicker2.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
-            @Override
-            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
-                if (structuralElement1.getValue() != null) {
-                    switch (structuralElement2.getValue()) {
-                        case "A":
-                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker2.getValue()));
-                            break;
-                        case "U":
-                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker2.getValue()));
-                            break;
-                        case "G":
-                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker2.getValue()));
-                            break;
-                        case "C":
-                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker2.getValue()));
-                            break;
-                        case "X":
-                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker2.getValue()));
-                            break;
-                        case "2D":
-                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker2.getValue()));
-                            break;
-                        case "3D":
-                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker2.getValue()));
-                            break;
-                    }
-                    mediator.getCanvas2D().repaint();
-                }
-            }
-        });
-        colorPicker2.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.UColor.toString()))));
-        colorPicker2.setMaxWidth(Double.MAX_VALUE);
-
-        colorPicker3 = new ColorPicker();
-        colorPicker3.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
-            @Override
-            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
-                if (structuralElement1.getValue() != null) {
-                    switch (structuralElement3.getValue()) {
-                        case "A":
-                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker3.getValue()));
-                            break;
-                        case "U":
-                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker3.getValue()));
-                            break;
-                        case "G":
-                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker3.getValue()));
-                            break;
-                        case "C":
-                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker3.getValue()));
-                            break;
-                        case "X":
-                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker3.getValue()));
-                            break;
-                        case "2D":
-                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker3.getValue()));
-                            break;
-                        case "3D":
-                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker3.getValue()));
-                            break;
-                    }
-                    mediator.getCanvas2D().repaint();
-                }
-            }
-        });
-        colorPicker3.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.GColor.toString()))));
-        colorPicker3.setMaxWidth(Double.MAX_VALUE);
-
-        colorPicker4 = new ColorPicker();
-        colorPicker4.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
-            @Override
-            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
-                if (structuralElement1.getValue() != null) {
-                    switch (structuralElement4.getValue()) {
-                        case "A":
-                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker4.getValue()));
-                            break;
-                        case "U":
-                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker4.getValue()));
-                            break;
-                        case "G":
-                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker4.getValue()));
-                            break;
-                        case "C":
-                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker4.getValue()));
-                            break;
-                        case "X":
-                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker4.getValue()));
-                            break;
-                        case "2D":
-                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker4.getValue()));
-                            break;
-                        case "3D":
-                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker4.getValue()));
-                            break;
-                    }
-                    mediator.getCanvas2D().repaint();
-                }
-            }
-        });
-        colorPicker4.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.CColor.toString()))));
-        colorPicker4.setMaxWidth(Double.MAX_VALUE);
-
-        colorPicker5 = new ColorPicker();
-        colorPicker5.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
-            @Override
-            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
-                if (structuralElement1.getValue() != null) {
-                    switch (structuralElement5.getValue()) {
-                        case "A":
-                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker5.getValue()));
-                            break;
-                        case "U":
-                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker5.getValue()));
-                            break;
-                        case "G":
-                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker5.getValue()));
-                            break;
-                        case "C":
-                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker5.getValue()));
-                            break;
-                        case "X":
-                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker5.getValue()));
-                            break;
-                        case "2D":
-                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker5.getValue()));
-                            break;
-                        case "3D":
-                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker5.getValue()));
-                            break;
-                    }
-                    mediator.getCanvas2D().repaint();
-                }
-            }
-        });
-        colorPicker5.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.XColor.toString()))));
-        colorPicker5.setMaxWidth(Double.MAX_VALUE);
-
-        colorPicker6 = new ColorPicker();
-        colorPicker6.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
-            @Override
-            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
-                if (structuralElement1.getValue() != null) {
-                    switch (structuralElement6.getValue()) {
-                        case "A":
-                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker6.getValue()));
-                            break;
-                        case "U":
-                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker6.getValue()));
-                            break;
-                        case "G":
-                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker6.getValue()));
-                            break;
-                        case "C":
-                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker6.getValue()));
-                            break;
-                        case "X":
-                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker6.getValue()));
-                            break;
-                        case "2D":
-                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker6.getValue()));
-                            break;
-                        case "3D":
-                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker6.getValue()));
-                            break;
-                    }
-                    mediator.getCanvas2D().repaint();
-                }
-            }
-        });
-        colorPicker6.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.SecondaryColor.toString()))));
-        colorPicker6.setMaxWidth(Double.MAX_VALUE);
-
-        colorPicker7 = new ColorPicker();
-        colorPicker7.valueProperty().addListener(new ChangeListener<javafx.scene.paint.Color>() {
-            @Override
-            public void changed(ObservableValue<? extends javafx.scene.paint.Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color t1) {
-                if (structuralElement1.getValue() != null) {
-                    switch (structuralElement7.getValue()) {
-                        case "A":
-                            fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker7.getValue()));
-                            break;
-                        case "U":
-                            fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker7.getValue()));
-                            break;
-                        case "G":
-                            fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker7.getValue()));
-                            break;
-                        case "C":
-                            fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker7.getValue()));
-                            break;
-                        case "X":
-                            fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker7.getValue()));
-                            break;
-                        case "2D":
-                            fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker7.getValue()));
-                            break;
-                        case "3D":
-                            fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker7.getValue()));
-                            break;
-                    }
-                    mediator.getCanvas2D().repaint();
-                }
-            }
-        });
-        colorPicker7.setValue(awtColorToJavaFX(getAWTColor(RnartistConfig.defaultThemeParams.get(ThemeParameter.TertiaryColor.toString()))));
-        colorPicker7.setMaxWidth(Double.MAX_VALUE);
-
-        l = new Label("Fill");
-        GridPane.setConstraints(l, 1,1,1,1);
-        GridPane.setHalignment(l,HPos.CENTER);
+        l = new Label("Shape");
+        GridPane.setConstraints(l, 0, 0, 1, 1);
+        GridPane.setHalignment(l, HPos.CENTER);
         colorsPane.getChildren().add(l);
         l = new Label("Character");
         l.setMinWidth(Control.USE_PREF_SIZE);
-        GridPane.setConstraints(l, 2,1,1,1);
-        GridPane.setHalignment(l,HPos.CENTER);
+        GridPane.setConstraints(l, 1, 0, 1, 1);
+        GridPane.setHalignment(l, HPos.CENTER);
         colorsPane.getChildren().add(l);
 
-        structuralElement1.getItems().addAll("A","U","G","C","X","2D","3D");
-        structuralElement1.setValue("A");
-
-        GridPane.setConstraints(structuralElement1, 0,2,1,1);
-        colorsPane.getChildren().add(structuralElement1);
-        GridPane.setHalignment(structuralElement1,HPos.CENTER);
-        GridPane.setConstraints(colorPicker1, 1,2,1,1);
-        colorsPane.getChildren().add(colorPicker1);
-        GridPane.setHalignment(colorPicker1,HPos.CENTER);
-        this.letterColor1 = new ChoiceBox<String>();
-        letterColor1.setMaxWidth(Double.MAX_VALUE);
-        letterColor1.setMinWidth(Control.USE_PREF_SIZE);
-        letterColor1.getItems().addAll("White", "Black");
-        letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-        letterColor1.setOnAction(new EventHandler<ActionEvent>() {
+        GridPane.setConstraints(colorPicker, 0, 1, 1, 1);
+        colorsPane.getChildren().add(colorPicker);
+        GridPane.setHalignment(colorPicker, HPos.CENTER);
+        this.letterColor = new ChoiceBox<String>();
+        letterColor.setMaxWidth(Double.MAX_VALUE);
+        letterColor.setMinWidth(Control.USE_PREF_SIZE);
+        letterColor.getItems().addAll("White", "Black");
+        letterColor.setValue(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.CharColor.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
+        letterColor.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
-                switch (structuralElement1.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.CharColor, letterColor.getValue() == "White" ? Color.WHITE : Color.BLACK);
             }
         });
 
-        GridPane.setConstraints(letterColor1, 2,2,1,1);
-        colorsPane.getChildren().add(letterColor1);
-        GridPane.setHalignment(letterColor1,HPos.CENTER);
-        this.structuralElement1.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement1.getValue()) {
-                    case "A":
-                        letterColor1.setDisable(false);
-                        letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "U":
-                        letterColor1.setDisable(false);
-                        letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "G":
-                        letterColor1.setDisable(false);
-                        letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "C":
-                        letterColor1.setDisable(false);
-                        letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "X":
-                        letterColor1.setDisable(false);
-                        letterColor1.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "2D":
-                        letterColor1.setDisable(true);
-                        break;
-                    case "3D":
-                        letterColor1.setDisable(true);
-                        break;
-                }
-                mediator.canvas2D.repaint();
-            }
-        });
+        GridPane.setConstraints(letterColor, 1, 1, 1, 1);
+        colorsPane.getChildren().add(letterColor);
+        GridPane.setHalignment(letterColor, HPos.CENTER);
 
-        Button applyStructuralElement1 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyStructuralElement1, 3,2,1,1);
-        colorsPane.getChildren().add(applyStructuralElement1);
+        Button applyColor = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
+        GridPane.setConstraints(applyColor, 2, 1, 1, 1);
+        colorsPane.getChildren().add(applyColor);
 
-        applyStructuralElement1.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        applyColor.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement1.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker1.getValue()));
-                        fireThemeChange(ThemeParameter.AChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker1.getValue()));
-                        fireThemeChange(ThemeParameter.UChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker1.getValue()));
-                        fireThemeChange(ThemeParameter.GChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker1.getValue()));
-                        fireThemeChange(ThemeParameter.CChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker1.getValue()));
-                        fireThemeChange(ThemeParameter.XChar, letterColor1.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker1.getValue()));
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker1.getValue()));
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.Color, javaFXToAwt(colorPicker.getValue()));
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.CharColor, letterColor.getValue() == "White" ? Color.WHITE : Color.BLACK);
+                setMuted(true);
             }
         });
 
-        Button clearStructuralElement1 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearStructuralElement1, 4,2,1,1);
-        colorsPane.getChildren().add(clearStructuralElement1);
+        Button clearColor = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearColor, 3, 1, 1, 1);
+        colorsPane.getChildren().add(clearColor);
 
-        clearStructuralElement1.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        clearColor.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement1.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor);
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.Color, mouseEvent.isShiftDown());
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.CharColor, mouseEvent.isShiftDown());
+                setMuted(true);
             }
         });
 
-        structuralElement2.getItems().addAll("A","U","G","C","X","2D","3D");
-        structuralElement2.setValue("U");
-        GridPane.setConstraints(structuralElement2, 0,3,1,1);
-        colorsPane.getChildren().add(structuralElement2);
-        GridPane.setHalignment(structuralElement2,HPos.CENTER);
-        GridPane.setConstraints(colorPicker2, 1,3,1,1);
-        colorsPane.getChildren().add(colorPicker2);
-        GridPane.setHalignment(colorPicker2,HPos.CENTER);
-        this.letterColor2 = new ChoiceBox<String>();
-        letterColor2.setMaxWidth(Double.MAX_VALUE);
-        letterColor2.getItems().addAll("White", "Black");
-        letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-        letterColor2.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement2.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setConstraints(letterColor2, 2,3,1,1);
-        colorsPane.getChildren().add(letterColor2);
-        GridPane.setHalignment(letterColor2,HPos.CENTER);
-        this.structuralElement2.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement2.getValue()) {
-                    case "A":
-                        letterColor2.setDisable(false);
-                        letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "U":
-                        letterColor2.setDisable(false);
-                        letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "G":
-                        letterColor2.setDisable(false);
-                        letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "C":
-                        letterColor2.setDisable(false);
-                        letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "X":
-                        letterColor2.setDisable(false);
-                        letterColor2.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "2D":
-                        letterColor2.setDisable(true);
-                        break;
-                    case "3D":
-                        letterColor2.setDisable(true);
-                        break;
-                }
-                mediator.canvas2D.repaint();
-            }
-        });
+        Button recoverColor = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYEDROPPER));
+        recoverColor.setMinWidth(Control.USE_PREF_SIZE);
+        GridPane.setConstraints(recoverColor, 4, 1, 1, 1);
+        colorsPane.getChildren().add(recoverColor);
 
-        Button applyStructuralElement2 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyStructuralElement2, 3,3,1,1);
-        colorsPane.getChildren().add(applyStructuralElement2);
-
-        applyStructuralElement2.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        recoverColor.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement2.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker2.getValue()));
-                        fireThemeChange(ThemeParameter.AChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker2.getValue()));
-                        fireThemeChange(ThemeParameter.UChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker2.getValue()));
-                        fireThemeChange(ThemeParameter.GChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker2.getValue()));
-                        fireThemeChange(ThemeParameter.CChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker2.getValue()));
-                        fireThemeChange(ThemeParameter.XChar, letterColor2.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker2.getValue()));
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker2.getValue()));
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
+                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.Color.toString()))
+                    colorPicker.setValue(awtColorToJavaFX(getAWTColor(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.Color.toString()), 255)));
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.CharColor.toString()))
+                    letterColor.setValue(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.CharColor.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
             }
         });
-
-        Button clearStructuralElement2 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearStructuralElement2, 4,3,1,1);
-        colorsPane.getChildren().add(clearStructuralElement2);
-
-        clearStructuralElement2.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement2.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor);
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        structuralElement3.getItems().addAll("A","U","G","C","X","2D","3D");
-        structuralElement3.setValue("G");
-        GridPane.setConstraints(structuralElement3, 0,4,1,1);
-        colorsPane.getChildren().add(structuralElement3);
-        GridPane.setHalignment(structuralElement3,HPos.CENTER);
-        GridPane.setConstraints(colorPicker3, 1,4,1,1);
-        colorsPane.getChildren().add(colorPicker3);
-        GridPane.setHalignment(colorPicker3,HPos.CENTER);
-        this.letterColor3 = new ChoiceBox<String>();
-        letterColor3.setMaxWidth(Double.MAX_VALUE);
-        letterColor3.getItems().addAll("White", "Black");
-        letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-        letterColor3.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement3.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setConstraints(letterColor3, 2,4,1,1);
-        colorsPane.getChildren().add(letterColor3);
-        GridPane.setHalignment(letterColor3,HPos.CENTER);
-        this.structuralElement3.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement3.getValue()) {
-                    case "A":
-                        letterColor3.setDisable(false);
-                        letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "U":
-                        letterColor3.setDisable(false);
-                        letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "G":
-                        letterColor3.setDisable(false);
-                        letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "C":
-                        letterColor3.setDisable(false);
-                        letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "X":
-                        letterColor3.setDisable(false);
-                        letterColor3.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "2D":
-                        letterColor3.setDisable(true);
-                        break;
-                    case "3D":
-                        letterColor3.setDisable(true);
-                        break;
-                }
-                mediator.canvas2D.repaint();
-            }
-        });
-
-        Button applyStructuralElement3 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyStructuralElement3, 3,4,1,1);
-        colorsPane.getChildren().add(applyStructuralElement3);
-
-        applyStructuralElement3.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement3.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker3.getValue()));
-                        fireThemeChange(ThemeParameter.AChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker3.getValue()));
-                        fireThemeChange(ThemeParameter.UChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker3.getValue()));
-                        fireThemeChange(ThemeParameter.GChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker3.getValue()));
-                        fireThemeChange(ThemeParameter.CChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker3.getValue()));
-                        fireThemeChange(ThemeParameter.XChar, letterColor3.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker3.getValue()));
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker3.getValue()));
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearStructuralElement3 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearStructuralElement3, 4,4,1,1);
-        colorsPane.getChildren().add(clearStructuralElement3);
-
-        clearStructuralElement3.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement3.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor);
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        structuralElement4.getItems().addAll("A","U","G","C","X","2D","3D");
-        structuralElement4.setValue("C");
-        GridPane.setConstraints(structuralElement4, 0,5,1,1);
-        colorsPane.getChildren().add(structuralElement4);
-        GridPane.setHalignment(structuralElement4,HPos.CENTER);
-        GridPane.setConstraints(colorPicker4, 1,5,1,1);
-        colorsPane.getChildren().add(colorPicker4);
-        GridPane.setHalignment(colorPicker4,HPos.CENTER);
-        this.letterColor4 = new ChoiceBox<String>();
-        letterColor4.setMaxWidth(Double.MAX_VALUE);
-        letterColor4.getItems().addAll("White", "Black");
-        letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-        letterColor4.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement4.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setConstraints(letterColor4, 2,5,1,1);
-        colorsPane.getChildren().add(letterColor4);
-        GridPane.setHalignment(letterColor4,HPos.CENTER);
-        this.structuralElement4.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement4.getValue()) {
-                    case "A":
-                        letterColor4.setDisable(false);
-                        letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "U":
-                        letterColor4.setDisable(false);
-                        letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "G":
-                        letterColor4.setDisable(false);
-                        letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "C":
-                        letterColor4.setDisable(false);
-                        letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "X":
-                        letterColor4.setDisable(false);
-                        letterColor4.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "2D":
-                        letterColor4.setDisable(true);
-                        break;
-                    case "3D":
-                        letterColor4.setDisable(true);
-                        break;
-                }
-                mediator.canvas2D.repaint();
-            }
-        });
-
-        Button applyStructuralElement4 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyStructuralElement4, 3,5,1,1);
-        colorsPane.getChildren().add(applyStructuralElement4);
-
-        applyStructuralElement4.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement4.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker4.getValue()));
-                        fireThemeChange(ThemeParameter.AChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker4.getValue()));
-                        fireThemeChange(ThemeParameter.UChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker4.getValue()));
-                        fireThemeChange(ThemeParameter.GChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker4.getValue()));
-                        fireThemeChange(ThemeParameter.CChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker4.getValue()));
-                        fireThemeChange(ThemeParameter.XChar, letterColor4.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker4.getValue()));
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker4.getValue()));
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearStructuralElement4 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearStructuralElement4, 4,5,1,1);
-        colorsPane.getChildren().add(clearStructuralElement4);
-
-        clearStructuralElement4.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement4.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor);
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        structuralElement5.getItems().addAll("A","U","G","C","X","2D","3D");
-        structuralElement5.setValue("X");
-        GridPane.setConstraints(structuralElement5, 0,6,1,1);
-        colorsPane.getChildren().add(structuralElement5);
-        GridPane.setHalignment(structuralElement5,HPos.CENTER);
-        GridPane.setConstraints(colorPicker5, 1,6,1,1);
-        colorsPane.getChildren().add(colorPicker5);
-        GridPane.setHalignment(colorPicker5,HPos.CENTER);
-        this.letterColor5 = new ChoiceBox<String>();
-        letterColor5.setMaxWidth(Double.MAX_VALUE);
-        letterColor5.getItems().addAll("White", "Black");
-        letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-        letterColor5.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement5.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setConstraints(letterColor5, 2,6,1,1);
-        colorsPane.getChildren().add(letterColor5);
-        GridPane.setHalignment(letterColor5,HPos.CENTER);
-
-        this.structuralElement5.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement5.getValue()) {
-                    case "A":
-                        letterColor5.setDisable(false);
-                        letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "U":
-                        letterColor5.setDisable(false);
-                        letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "G":
-                        letterColor5.setDisable(false);
-                        letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "C":
-                        letterColor5.setDisable(false);
-                        letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "X":
-                        letterColor5.setDisable(false);
-                        letterColor5.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "2D":
-                        letterColor5.setDisable(true);
-                        break;
-                    case "3D":
-                        letterColor5.setDisable(true);
-                        break;
-                }
-                mediator.canvas2D.repaint();
-            }
-        });
-
-        Button applyStructuralElement5 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyStructuralElement5, 3,6,1,1);
-        colorsPane.getChildren().add(applyStructuralElement5);
-
-        applyStructuralElement5.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement5.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker5.getValue()));
-                        fireThemeChange(ThemeParameter.AChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker5.getValue()));
-                        fireThemeChange(ThemeParameter.UChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker5.getValue()));
-                        fireThemeChange(ThemeParameter.GChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker5.getValue()));
-                        fireThemeChange(ThemeParameter.CChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker5.getValue()));
-                        fireThemeChange(ThemeParameter.XChar, letterColor5.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker5.getValue()));
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker5.getValue()));
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearStructuralElement5 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearStructuralElement5, 4,6,1,1);
-        colorsPane.getChildren().add(clearStructuralElement5);
-
-        clearStructuralElement5.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement5.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor);
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        structuralElement6.getItems().addAll("A","U","G","C","X","2D","3D");
-        structuralElement6.setValue("2D");
-        GridPane.setConstraints(structuralElement6, 0,7,1,1);
-        colorsPane.getChildren().add(structuralElement6);
-        GridPane.setHalignment(structuralElement6,HPos.CENTER);
-        GridPane.setConstraints(colorPicker6, 1,7,1,1);
-        colorsPane.getChildren().add(colorPicker6);
-        GridPane.setHalignment(colorPicker6,HPos.CENTER);
-        this.letterColor6  = new <String>ChoiceBox();
-        letterColor6.setMaxWidth(Double.MAX_VALUE);
-        letterColor6.getItems().addAll("White", "Black");
-        letterColor6.setValue("White");
-        letterColor6.setDisable(true);
-        letterColor6.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement6.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setConstraints(letterColor6, 2,7,1,1);
-        colorsPane.getChildren().add(letterColor6);
-        GridPane.setHalignment(letterColor6,HPos.CENTER);
-
-        this.structuralElement6.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement6.getValue()) {
-                    case "A":
-                        letterColor6.setDisable(false);
-                        letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "U":
-                        letterColor6.setDisable(false);
-                        letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "G":
-                        letterColor6.setDisable(false);
-                        letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "C":
-                        letterColor6.setDisable(false);
-                        letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "X":
-                        letterColor6.setDisable(false);
-                        letterColor6.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "2D":
-                        letterColor6.setDisable(true);
-                        break;
-                    case "3D":
-                        letterColor6.setDisable(true);
-                        break;
-                }
-                mediator.canvas2D.repaint();
-            }
-        });
-
-        Button applyStructuralElement6 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyStructuralElement6, 3,7,1,1);
-        colorsPane.getChildren().add(applyStructuralElement6);
-
-        applyStructuralElement6.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement6.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker6.getValue()));
-                        fireThemeChange(ThemeParameter.AChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker6.getValue()));
-                        fireThemeChange(ThemeParameter.UChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker6.getValue()));
-                        fireThemeChange(ThemeParameter.GChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker6.getValue()));
-                        fireThemeChange(ThemeParameter.CChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker6.getValue()));
-                        fireThemeChange(ThemeParameter.XChar, letterColor6.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker6.getValue()));
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker6.getValue()));
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearStructuralElement6 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearStructuralElement6, 4,7,1,1);
-        colorsPane.getChildren().add(clearStructuralElement6);
-
-        clearStructuralElement6.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement6.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor);
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        structuralElement7.getItems().addAll("A","U","G","C","X","2D","3D");
-        structuralElement7.setValue("3D");
-        GridPane.setConstraints(structuralElement7, 0,8,1,1);
-        colorsPane.getChildren().add(structuralElement7);
-        GridPane.setHalignment(structuralElement7,HPos.CENTER);
-        GridPane.setConstraints(colorPicker7, 1,8,1,1);
-        colorsPane.getChildren().add(colorPicker7);
-        GridPane.setHalignment(colorPicker7,HPos.CENTER);
-        this.letterColor7 = new ChoiceBox<String>();
-        letterColor7.setMaxWidth(Double.MAX_VALUE);
-        letterColor7.getItems().addAll("White", "Black");
-        letterColor7.setValue("White");
-        letterColor7.setDisable(true);
-        letterColor7.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement7.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setConstraints(letterColor7, 2,8,1,1);
-        colorsPane.getChildren().add(letterColor7);
-        GridPane.setHalignment(letterColor7,HPos.CENTER);
-
-        this.structuralElement7.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                switch (structuralElement7.getValue()) {
-                    case "A":
-                        letterColor7.setDisable(false);
-                        letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.AChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "U":
-                        letterColor7.setDisable(false);
-                        letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.UChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "G":
-                        letterColor7.setDisable(false);
-                        letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.GChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "C":
-                        letterColor7.setDisable(false);
-                        letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.CChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "X":
-                        letterColor7.setDisable(false);
-                        letterColor7.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.XChar.toString()).toLowerCase().equals("#ffffff") ? "White" : "Black");
-                        break;
-                    case "2D":
-                        letterColor7.setDisable(true);
-                        break;
-                    case "3D":
-                        letterColor7.setDisable(true);
-                        break;
-                }
-                mediator.canvas2D.repaint();
-            }
-        });
-
-        Button applyStructuralElement7 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyStructuralElement7, 3,8,1,1);
-        colorsPane.getChildren().add(applyStructuralElement7);
-
-        applyStructuralElement7.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement7.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor, javaFXToAwt(colorPicker7.getValue()));
-                        fireThemeChange(ThemeParameter.AChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor, javaFXToAwt(colorPicker7.getValue()));
-                        fireThemeChange(ThemeParameter.UChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor, javaFXToAwt(colorPicker7.getValue()));
-                        fireThemeChange(ThemeParameter.GChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor, javaFXToAwt(colorPicker7.getValue()));
-                        fireThemeChange(ThemeParameter.CChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor, javaFXToAwt(colorPicker7.getValue()));
-                        fireThemeChange(ThemeParameter.XChar, letterColor7.getValue() == "White" ? Color.WHITE : Color.BLACK);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor, javaFXToAwt(colorPicker7.getValue()));
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor, javaFXToAwt(colorPicker7.getValue()));
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearStructuralElement7 = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearStructuralElement7, 4,8,1,1);
-        colorsPane.getChildren().add(clearStructuralElement7);
-
-        clearStructuralElement7.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch (structuralElement7.getValue()) {
-                    case "A":
-                        fireThemeChange(ThemeParameter.AColor);
-                        break;
-                    case "U":
-                        fireThemeChange(ThemeParameter.UColor);
-                        break;
-                    case "G":
-                        fireThemeChange(ThemeParameter.GColor);
-                        break;
-                    case "C":
-                        fireThemeChange(ThemeParameter.CColor);
-                        break;
-                    case "X":
-                        fireThemeChange(ThemeParameter.XColor);
-                        break;
-                    case "2D":
-                        fireThemeChange(ThemeParameter.SecondaryColor);
-                        break;
-                    case "3D":
-                        fireThemeChange(ThemeParameter.TertiaryColor);
-                        break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
+        recoverColor.setDisable(true);
+        this.recoverButtons.add(recoverColor);
 
         currentThemeVBox.getChildren().add(colorsPane);
 
@@ -1854,315 +731,152 @@ public class Toolbox extends AbstractThemeConfigurator {
 
         cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
-        linesPane.getColumnConstraints().addAll(new ColumnConstraints(),cc);
+        linesPane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
 
         int row = 0;
 
-        displayLWSymbols = new ComboBox<String>();
-        displayLWSymbols.getItems().addAll("yes","no");
-        displayLWSymbols.setMaxWidth(Double.MAX_VALUE);
-        displayLWSymbols.setValue("yes");
-        displayLWSymbols.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                fireThemeChange(ThemeParameter.DisplayLWSymbols, displayLWSymbols.getValue());
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setConstraints(displayLWSymbols, 0,row,1,1);
-        linesPane.getChildren().add(displayLWSymbols);
-        GridPane.setHalignment(displayLWSymbols,HPos.CENTER);
-
-        l = new Label("Display Leontis-Westhof Symbols");
-        l.setMinWidth(Control.USE_PREF_SIZE);
-        GridPane.setConstraints(l, 1, row,2,1);
-        linesPane.getChildren().add(l);
-        GridPane.setHalignment(l,HPos.LEFT);
-
-        Button applyDisplayLWSymbols = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyDisplayLWSymbols, 3, row,1,1);
-        linesPane.getChildren().add(applyDisplayLWSymbols);
-
-        applyDisplayLWSymbols.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.DisplayLWSymbols, displayLWSymbols.getValue());
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearDisplayLWSymbols = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearDisplayLWSymbols, 4,row,1,1);
-        linesPane.getChildren().add(clearDisplayLWSymbols);
-
-        clearDisplayLWSymbols.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.DisplayLWSymbols);
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        row++;
-
-        residuesWidth = new ComboBox<>();
-        residuesWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0");
-        residuesWidth.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.ResidueBorder.toString()));
-        residuesWidth.setCellFactory(new ShapeCellFactory());
-        residuesWidth.setButtonCell(new ShapeCell());
-        residuesWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+        lineWidth = new ComboBox<>();
+        lineWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "2.5", "3.0", "3.5", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
+        lineWidth.setValue(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.LineWidth.toString()));
+        lineWidth.setCellFactory(new ShapeCellFactory());
+        lineWidth.setButtonCell(new ShapeCell());
+        lineWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
-                fireThemeChange(ThemeParameter.ResidueBorder,Double.parseDouble(residuesWidth.getValue()));
-                mediator.getCanvas2D().repaint();
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.LineWidth, Double.parseDouble(lineWidth.getValue()));
             }
         });
-        residuesWidth.setMaxWidth(Double.MAX_VALUE);
+        lineWidth.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(residuesWidth, 0,row,1,1);
-        linesPane.getChildren().add(residuesWidth);
-        GridPane.setHalignment(residuesWidth,HPos.CENTER);
+        GridPane.setConstraints(lineWidth, 0, row, 1, 1);
+        linesPane.getChildren().add(lineWidth);
+        GridPane.setHalignment(lineWidth, HPos.CENTER);
 
-        l = new Label("Residues Line Width (px)");
+        l = new Label("Line Width (px)");
         l.setMinWidth(Control.USE_PREF_SIZE);
-        GridPane.setConstraints(l, 1,row,2,1);
+        GridPane.setConstraints(l, 1, row, 2, 1);
         linesPane.getChildren().add(l);
-        GridPane.setHalignment(l,HPos.LEFT);
+        GridPane.setHalignment(l, HPos.LEFT);
 
-        Button applyResidueLineWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyResidueLineWidth, 3, row,1,1);
-        linesPane.getChildren().add(applyResidueLineWidth);
+        Button applyLineWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
+        GridPane.setConstraints(applyLineWidth, 3, row, 1, 1);
+        linesPane.getChildren().add(applyLineWidth);
 
-        applyResidueLineWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        applyLineWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.ResidueBorder,Double.parseDouble(residuesWidth.getValue()));
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.LineWidth, Double.parseDouble(lineWidth.getValue()));
+                setMuted(true);
             }
         });
 
-        Button clearResidueLineWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearResidueLineWidth, 4,row,1,1);
-        linesPane.getChildren().add(clearResidueLineWidth);
+        Button clearLineWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearLineWidth, 4, row, 1, 1);
+        linesPane.getChildren().add(clearLineWidth);
 
-        clearResidueLineWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        clearLineWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.ResidueBorder);
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.LineWidth, mouseEvent.isShiftDown());
+                setMuted(true);
             }
         });
 
-        row++;
+        Button recoverLineWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYEDROPPER));
+        recoverLineWidth.setMinWidth(Control.USE_PREF_SIZE);
+        GridPane.setConstraints(recoverLineWidth, 5, row, 1, 1);
+        linesPane.getChildren().add(recoverLineWidth);
 
-        phosphoDiesterWidth = new ComboBox<>();
-        phosphoDiesterWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
-        phosphoDiesterWidth.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.PhosphodiesterWidth.toString()));
-        phosphoDiesterWidth.setCellFactory(new ShapeCellFactory());
-        phosphoDiesterWidth.setButtonCell(new ShapeCell());
-        phosphoDiesterWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
-                fireThemeChange(ThemeParameter.PhosphodiesterWidth, Double.parseDouble(phosphoDiesterWidth.getValue()));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        phosphoDiesterWidth.setMaxWidth(Double.MAX_VALUE);
-
-        GridPane.setConstraints(phosphoDiesterWidth, 0,row,1,1);
-        linesPane.getChildren().add(phosphoDiesterWidth);
-        GridPane.setHalignment(phosphoDiesterWidth,HPos.CENTER);
-
-        l = new Label("Phosphodiester Line Width (px)");
-        l.setMinWidth(Control.USE_PREF_SIZE);
-        GridPane.setConstraints(l, 1,row,2,1);
-        linesPane.getChildren().add(l);
-        GridPane.setHalignment(l,HPos.LEFT);
-
-        Button applyPhosphodiesterWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyPhosphodiesterWidth, 3, row,1,1);
-        linesPane.getChildren().add(applyPhosphodiesterWidth);
-
-        applyPhosphodiesterWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        recoverLineWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.PhosphodiesterWidth, Double.parseDouble(phosphoDiesterWidth.getValue()));
-                mediator.getCanvas2D().repaint();
+                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.LineWidth.toString()))
+                    lineWidth.setValue(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.LineWidth.toString()));
             }
         });
-
-        Button clearPhosphodiesterWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearPhosphodiesterWidth, 4,row,1,1);
-        linesPane.getChildren().add(clearPhosphodiesterWidth);
-
-        clearPhosphodiesterWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.PhosphodiesterWidth);
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        row++;
-
-        secondaryInteractionWidth = new ComboBox<>();
-        secondaryInteractionWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
-        secondaryInteractionWidth.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.SecondaryInteractionWidth.toString()));
-        secondaryInteractionWidth.setCellFactory(new ShapeCellFactory());
-        secondaryInteractionWidth.setButtonCell(new ShapeCell());
-        secondaryInteractionWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
-                fireThemeChange(ThemeParameter.SecondaryInteractionWidth, Double.parseDouble(secondaryInteractionWidth.getValue()));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        secondaryInteractionWidth.setMaxWidth(Double.MAX_VALUE);
-
-        GridPane.setConstraints(secondaryInteractionWidth, 0, row,1,1);
-        linesPane.getChildren().add(secondaryInteractionWidth);
-        GridPane.setHalignment(secondaryInteractionWidth,HPos.CENTER);
-
-        l = new Label("Secondaries Line Width (px)");
-        l.setMinWidth(Control.USE_PREF_SIZE);
-        GridPane.setConstraints(l, 1,row,2,1);
-        linesPane.getChildren().add(l);
-        GridPane.setHalignment(l,HPos.LEFT);
-
-        Button applySecondariesWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applySecondariesWidth, 3, row,1,1);
-        linesPane.getChildren().add(applySecondariesWidth);
-
-        applySecondariesWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.SecondaryInteractionWidth, Double.parseDouble(secondaryInteractionWidth.getValue()));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearSecondariesWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearSecondariesWidth, 4,row,1,1);
-        linesPane.getChildren().add(clearSecondariesWidth);
-
-        clearSecondariesWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.SecondaryInteractionWidth);
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        row++;
-
-        tertiaryInteractionWidth = new ComboBox<>();
-        tertiaryInteractionWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
-        tertiaryInteractionWidth.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.TertiaryInteractionWidth.toString()));
-        tertiaryInteractionWidth.setCellFactory(new ShapeCellFactory());
-        tertiaryInteractionWidth.setButtonCell(new ShapeCell());
-        tertiaryInteractionWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
-                fireThemeChange(ThemeParameter.TertiaryInteractionWidth, tertiaryInteractionWidth.getValue());
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        tertiaryInteractionWidth.setMaxWidth(Double.MAX_VALUE);
-
-        GridPane.setConstraints(tertiaryInteractionWidth, 0,row,1,1);
-        linesPane.getChildren().add(tertiaryInteractionWidth);
-        GridPane.setHalignment(tertiaryInteractionWidth,HPos.CENTER);
-
-        l = new Label("Tertiaries Line Width (px)");
-        l.setMinWidth(Control.USE_PREF_SIZE);
-        GridPane.setConstraints(l, 1,row,2,1);
-        linesPane.getChildren().add(l);
-        GridPane.setHalignment(l,HPos.LEFT);
-
-        Button applyTertiariesWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyTertiariesWidth, 3, row,1,1);
-        linesPane.getChildren().add(applyTertiariesWidth);
-
-        applyTertiariesWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.TertiaryInteractionWidth, tertiaryInteractionWidth.getValue());
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearTertiariesWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearTertiariesWidth, 4,row,1,1);
-        linesPane.getChildren().add(clearTertiariesWidth);
-
-        clearTertiariesWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.TertiaryInteractionWidth);
-                mediator.getCanvas2D().repaint();
-            }
-        });
+        recoverLineWidth.setDisable(true);
+        this.recoverButtons.add(recoverLineWidth);
 
         row++;
 
         tertiaryInteractionStyle = new ComboBox<>();
         tertiaryInteractionStyle.getItems().addAll("solid", "dashed");
-        tertiaryInteractionStyle.setValue(RnartistConfig.defaultThemeParams.get(ThemeParameter.TertiaryInteractionStyle.toString()));
+        tertiaryInteractionStyle.setValue(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.TertiaryInteractionStyle.toString()));
         tertiaryInteractionStyle.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
-                fireThemeChange(ThemeParameter.TertiaryInteractionStyle, tertiaryInteractionStyle.getValue());
-                mediator.getCanvas2D().repaint();
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.TertiaryInteractionStyle, tertiaryInteractionStyle.getValue());
             }
         });
         tertiaryInteractionStyle.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(tertiaryInteractionStyle, 0,row,1,1);
+        GridPane.setConstraints(tertiaryInteractionStyle, 0, row, 1, 1);
         linesPane.getChildren().add(tertiaryInteractionStyle);
-        GridPane.setHalignment(tertiaryInteractionStyle,HPos.CENTER);
+        GridPane.setHalignment(tertiaryInteractionStyle, HPos.CENTER);
 
         l = new Label("Tertiaries Line Style");
         l.setMinWidth(Control.USE_PREF_SIZE);
-        GridPane.setConstraints(l, 1, row,1,1);
+        GridPane.setConstraints(l, 1, row, 1, 1);
         linesPane.getChildren().add(l);
-        GridPane.setHalignment(l,HPos.LEFT);
+        GridPane.setHalignment(l, HPos.LEFT);
 
         Button applyTertiariesStyle = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyTertiariesStyle, 3, row,1,1);
+        GridPane.setConstraints(applyTertiariesStyle, 3, row, 1, 1);
         linesPane.getChildren().add(applyTertiariesStyle);
 
         applyTertiariesStyle.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.TertiaryInteractionStyle, tertiaryInteractionStyle.getValue());
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.TertiaryInteractionStyle, tertiaryInteractionStyle.getValue());
+                setMuted(true);
             }
         });
 
         Button clearTertiariesStyle = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearTertiariesStyle, 4,row,1,1);
+        GridPane.setConstraints(clearTertiariesStyle, 4, row, 1, 1);
         linesPane.getChildren().add(clearTertiariesStyle);
 
         clearTertiariesStyle.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.TertiaryInteractionStyle);
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.TertiaryInteractionStyle, mouseEvent.isShiftDown());
+                setMuted(true);
             }
         });
+
+        Button recoverTertiariesStyle = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYEDROPPER));
+        recoverTertiariesStyle.setMinWidth(Control.USE_PREF_SIZE);
+        GridPane.setConstraints(recoverTertiariesStyle, 5, row, 1, 1);
+        linesPane.getChildren().add(recoverTertiariesStyle);
+
+        recoverTertiariesStyle.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.TertiaryInteractionStyle.toString()))
+                    tertiaryInteractionStyle.setValue(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.TertiaryInteractionStyle.toString()));
+            }
+        });
+        recoverTertiariesStyle.setDisable(true);
+        this.recoverButtons.add(recoverTertiariesStyle);
 
         row++;
 
         l = new Label("Secondaries Line Shift (px)");
         l.setMinWidth(Control.USE_PREF_SIZE);
-        l.setPadding(new Insets(10,0,0,0));
-        GridPane.setConstraints(l, 0,row,5,1);
+        l.setPadding(new Insets(10, 0, 0, 0));
+        GridPane.setConstraints(l, 0, row, 6, 1);
         linesPane.getChildren().add(l);
-        GridPane.setHalignment(l,HPos.LEFT);
+        GridPane.setHalignment(l, HPos.LEFT);
 
         row++;
 
-        secondaryInteractionShift = new Slider(0, 10, Double.parseDouble(RnartistConfig.defaultThemeParams.get(ThemeParameter.SecondaryInteractionShift.toString())));
+        secondaryInteractionShift = new Slider(0, 10, Double.parseDouble(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.LineShift.toString())));
         secondaryInteractionShift.setShowTickLabels(true);
         secondaryInteractionShift.setShowTickMarks(true);
         secondaryInteractionShift.setMajorTickUnit(5);
@@ -2170,164 +884,154 @@ public class Toolbox extends AbstractThemeConfigurator {
         secondaryInteractionShift.setOnMouseReleased(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.SecondaryInteractionShift, secondaryInteractionShift.getValue());
-                mediator.getCanvas2D().repaint();
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.LineShift, secondaryInteractionShift.getValue());
             }
         });
         secondaryInteractionShift.setShowTickMarks(true);
         secondaryInteractionShift.setMaxWidth(Double.MAX_VALUE);
 
-        GridPane.setConstraints(secondaryInteractionShift, 0,row,3,1);
+        GridPane.setConstraints(secondaryInteractionShift, 0, row, 3, 1);
         linesPane.getChildren().add(secondaryInteractionShift);
-        GridPane.setHalignment(secondaryInteractionShift,HPos.CENTER);
+        GridPane.setHalignment(secondaryInteractionShift, HPos.CENTER);
 
         Button applySecondariesShift = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applySecondariesShift, 3, row,1,1);
+        GridPane.setConstraints(applySecondariesShift, 3, row, 1, 1);
         GridPane.setValignment(applySecondariesShift, VPos.TOP);
         linesPane.getChildren().add(applySecondariesShift);
 
         applySecondariesShift.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.SecondaryInteractionShift, secondaryInteractionShift.getValue());
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.LineShift, secondaryInteractionShift.getValue());
+                setMuted(true);
             }
         });
 
         Button clearSecondariesShift = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearSecondariesShift, 4,row,1,1);
+        GridPane.setConstraints(clearSecondariesShift, 4, row, 1, 1);
         GridPane.setValignment(clearSecondariesShift, VPos.TOP);
         linesPane.getChildren().add(clearSecondariesShift);
 
         clearSecondariesShift.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.SecondaryInteractionShift);
-                mediator.getCanvas2D().repaint();
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.LineShift, mouseEvent.isShiftDown());
+                setMuted(true);
             }
         });
+
+        Button recoverSecondariesShift = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYEDROPPER));
+        recoverSecondariesShift.setMinWidth(Control.USE_PREF_SIZE);
+        GridPane.setValignment(recoverSecondariesShift, VPos.TOP);
+        GridPane.setConstraints(recoverSecondariesShift, 5, row, 1, 1);
+        linesPane.getChildren().add(recoverSecondariesShift);
+
+        recoverSecondariesShift.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.LineShift.toString()))
+                    secondaryInteractionShift.setValue(Double.parseDouble(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.LineShift.toString())));
+            }
+        });
+        recoverSecondariesShift.setDisable(true);
+        this.recoverButtons.add(recoverSecondariesShift);
 
         row++;
-
-        l = new Label("Tertiaries Opacity (%)");
-        l.setMinWidth(Control.USE_PREF_SIZE);
-        l.setPadding(new Insets(10,0,0,0));
-        GridPane.setConstraints(l, 0, row,5,1);
-        GridPane.setValignment(l,VPos.TOP);
-        linesPane.getChildren().add(l);
-        GridPane.setHalignment(l,HPos.LEFT);
-
-        row++;
-
-        _3dOpacity = new Slider(0, 100, Integer.parseInt(RnartistConfig.defaultThemeParams.get(ThemeParameter.TertiaryOpacity.toString()))/255.0*100.0);
-        _3dOpacity.setShowTickLabels(true);
-        _3dOpacity.setShowTickMarks(true);
-        _3dOpacity.setMajorTickUnit(50);
-        _3dOpacity.setMinorTickCount(5);
-        _3dOpacity.setOnMouseReleased(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.TertiaryOpacity, (int)((double)(_3dOpacity.getValue())/100.0*255));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        _3dOpacity.setShowTickMarks(true);
-        _3dOpacity.setMaxWidth(Double.MAX_VALUE);
-
-        GridPane.setConstraints(_3dOpacity, 0,row,3,1);
-        linesPane.getChildren().add(_3dOpacity);
-        GridPane.setHalignment(_3dOpacity,HPos.CENTER);
-
-        Button applyTertiariesOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyTertiariesOpacity, 3, row,1,1);
-        GridPane.setValignment(applyTertiariesOpacity, VPos.TOP);
-        linesPane.getChildren().add(applyTertiariesOpacity);
-
-        applyTertiariesOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.TertiaryOpacity, (int)((double)(_3dOpacity.getValue())/100.0*255));
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearTertiariesOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearTertiariesOpacity, 4,row,1,1);
-        GridPane.setValignment(clearTertiariesOpacity, VPos.TOP);
-        linesPane.getChildren().add(clearTertiariesOpacity);
-
-        clearTertiariesOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.TertiaryOpacity);
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        row++;
-
-        l = new Label("Tertiaries Halo Size (px)");
-        l.setMinWidth(Control.USE_PREF_SIZE);
-        l.setPadding(new Insets(10,0,0,0));
-        GridPane.setConstraints(l, 0,row,5,1);
-        GridPane.setValignment(l,VPos.TOP);
-        linesPane.getChildren().add(l);
-        GridPane.setHalignment(l,HPos.LEFT);
-
-        row++;
-
-        haloWidth = new Slider(0, 10, Double.parseDouble(RnartistConfig.defaultThemeParams.get(ThemeParameter.HaloWidth.toString())));;
-        haloWidth.setShowTickLabels(true);
-        haloWidth.setShowTickMarks(true);
-        haloWidth.setMajorTickUnit(5);
-        haloWidth.setMinorTickCount(1);
-        haloWidth.setOnMouseReleased(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.HaloWidth, haloWidth.getValue());
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        haloWidth.setMaxWidth(Double.MAX_VALUE);
-
-        GridPane.setConstraints(haloWidth, 0,row,3,1);
-        linesPane.getChildren().add(haloWidth);
-        GridPane.setHalignment(haloWidth,HPos.CENTER);
-
-        Button applyHaloWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
-        GridPane.setConstraints(applyHaloWidth, 3, row,1,1);
-        GridPane.setValignment(applyHaloWidth, VPos.TOP);
-        linesPane.getChildren().add(applyHaloWidth);
-
-        applyHaloWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.HaloWidth, haloWidth.getValue());
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        Button clearHaloWidth = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-        GridPane.setConstraints(clearHaloWidth, 4,row,1,1);
-        GridPane.setValignment(clearHaloWidth, VPos.TOP);
-        linesPane.getChildren().add(clearHaloWidth);
-
-        clearHaloWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                fireThemeChange(ThemeParameter.HaloWidth);
-                mediator.getCanvas2D().repaint();
-            }
-        });
 
         currentThemeVBox.getChildren().add(linesPane);
+
+        //++++++ pane for the misc options
+        title = new Label("Misc");
+        title.setStyle("-fx-font-size: 20");
+        currentThemeVBox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
+
+        GridPane miscPane = new GridPane();
+        miscPane.setHgap(10);
+        miscPane.setVgap(10);
+        miscPane.setPadding(new Insets(0, 0, 10, 0));
+        miscPane.setMaxWidth(Double.MAX_VALUE);
+
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        miscPane.getColumnConstraints().addAll(cc);
+
+        l = new Label("Opacity (%)");
+        GridPane.setConstraints(l, 0, 0, 4, 1);
+        l.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setHalignment(l, HPos.LEFT);
+        miscPane.getChildren().add(l);
+
+        this.opacity = new Slider(0, 100, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.Opacity.toString())) / 255.0 * 100.0);
+        this.opacity.setShowTickLabels(true);
+        this.opacity.setShowTickMarks(true);
+        this.opacity.setMajorTickUnit(50);
+        this.opacity.setMinorTickCount(5);
+        this.opacity.setShowTickMarks(true);
+        this.opacity.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.Opacity, (int) ((double) (opacity.getValue()) / 100.0 * 255.0));
+            }
+        });
+        GridPane.setConstraints(this.opacity, 0, 1, 1, 1);
+        this.opacity.setMaxWidth(Double.MAX_VALUE);
+        miscPane.getChildren().add(this.opacity);
+
+        Button applyOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
+        GridPane.setConstraints(applyOpacity, 1, 1, 1, 1);
+        GridPane.setValignment(applyOpacity, VPos.TOP);
+        miscPane.getChildren().add(applyOpacity);
+
+        applyOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.Opacity, (int) ((double) (opacity.getValue()) / 100.0 * 255.0));
+                setMuted(true);
+            }
+        });
+
+        Button clearOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
+        GridPane.setConstraints(clearOpacity, 2, 1, 1, 1);
+        GridPane.setValignment(clearOpacity, VPos.TOP);
+        miscPane.getChildren().add(clearOpacity);
+
+        clearOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                setMuted(false);
+                fireDrawingConfigurationChange(DrawingConfigurationParameter.Opacity, mouseEvent.isShiftDown());
+                setMuted(true);
+            }
+        });
+
+        Button recoverOpacity = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYEDROPPER));
+        GridPane.setConstraints(recoverOpacity, 3, 1, 1, 1);
+        GridPane.setValignment(recoverOpacity, VPos.TOP);
+        miscPane.getChildren().add(recoverOpacity);
+
+        recoverOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.Opacity.toString()))
+                    opacity.setValue(Integer.parseInt(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.Opacity.toString())) / 255.0 * 100.0);
+            }
+        });
+        recoverOpacity.setDisable(true);
+        this.recoverButtons.add(recoverOpacity);
+
+        currentThemeVBox.getChildren().add(miscPane);
 
         ScrollPane sp = new ScrollPane(currentThemeVBox);
         sp.setFitToWidth(true);
         sp.setFitToHeight(true);
 
         parent.getChildren().add(sp);
-        VBox.setVgrow(sp,Priority.ALWAYS);
+        VBox.setVgrow(sp, Priority.ALWAYS);
 
         Tab theme = new Tab("2D Theme", parent);
         root.getTabs().add(theme);
@@ -2337,8 +1041,8 @@ public class Toolbox extends AbstractThemeConfigurator {
         return structureElementsSelectedComboBox;
     }
 
-    public ComboBox<org.apache.commons.lang3.tuple.Pair<String, NitriteId>> getSavedThemesComboBox() {
-        return savedThemesComboBox;
+    public ComboBox<Object> getDefaultTargetsComboBox() {
+        return defaultTargetsComboBox;
     }
 
     private void createLayoutPanel(TabPane root) {
@@ -2352,7 +1056,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         root.getTabs().add(themes);
     }
 
-    public void addJunctionKnob(JunctionCircle jc) {
+    public void addJunctionKnob(JunctionDrawing jc) {
         VBox vbox = new VBox();
         vbox.setMaxWidth(160.0);
         vbox.setAlignment(Pos.CENTER);
@@ -2372,9 +1076,9 @@ public class Toolbox extends AbstractThemeConfigurator {
         location.setAlignment(Pos.CENTER);
         var typeName = jc.getJunction().getType().name();
         if (typeName.endsWith("Way")) {
-            typeName = typeName.split("Way")[0]+" Way Junction";
+            typeName = typeName.split("Way")[0] + " Way Junction";
         } else if (typeName.endsWith("Loop")) {
-            typeName = typeName.split("Loop")[0]+" Loop";
+            typeName = typeName.split("Loop")[0] + " Loop";
         }
         Text type = new Text(typeName);
         type.setFont(Font.font(null, FontWeight.BOLD, 15));
@@ -2387,7 +1091,7 @@ public class Toolbox extends AbstractThemeConfigurator {
     }
 
     private void createAllThemesPanel(TabPane root) {
-        VBox vbox =  new VBox();
+        VBox vbox = new VBox();
         vbox.setFillWidth(true);
 
         themesList = FXCollections.observableArrayList();
@@ -2407,19 +1111,19 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane reloadForm = new GridPane();
         ColumnConstraints cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
-        reloadForm.getColumnConstraints().addAll(new ColumnConstraints(),cc);
+        reloadForm.getColumnConstraints().addAll(new ColumnConstraints(), cc);
         reloadForm.setHgap(5);
         reloadForm.setVgap(5);
         reloadForm.setPadding(new Insets(10, 10, 10, 10));
 
         Button reload = new Button("Reload");
-        reloadForm.add(reload, 0, 0,2,1);
+        reloadForm.add(reload, 0, 0, 2, 1);
         GridPane.setHalignment(reload, HPos.CENTER);
 
         reload.setOnMouseClicked(new EventHandler<MouseEvent>() {
 
             @Override
-            public void handle(MouseEvent e)  {
+            public void handle(MouseEvent e) {
                 new Thread(new LoadThemesFromWebsite()).run();
             }
         });
@@ -2452,25 +1156,25 @@ public class Toolbox extends AbstractThemeConfigurator {
         Label chimeraLabel = new Label("UCSF Chimera Path");
         chimeraLabel.setStyle("-fx-font-size: 15");
         chimeraPane.getChildren().add(chimeraLabel);
-        GridPane.setConstraints(chimeraLabel, 0,0,2,1);
+        GridPane.setConstraints(chimeraLabel, 0, 0, 2, 1);
 
         TextField chimeraPath = new TextField();
         chimeraPath.setEditable(false);
         chimeraPath.setText(RnartistConfig.getChimeraPath());
         chimeraPane.getChildren().add(chimeraPath);
-        GridPane.setConstraints(chimeraPath, 0,1);
+        GridPane.setConstraints(chimeraPath, 0, 1);
 
         Button chimeraSearch = new Button("Browse");
         chimeraPane.getChildren().add(chimeraSearch);
-        GridPane.setConstraints(chimeraSearch, 1,1);
+        GridPane.setConstraints(chimeraSearch, 1, 1);
         chimeraSearch.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 FileChooser fileChooser = new FileChooser();
-                File f = fileChooser.showOpenDialog(null );
-                if (f!= null) {
+                File f = fileChooser.showOpenDialog(null);
+                if (f != null) {
                     if (f.getName().endsWith(".app")) //MacOSX
-                        chimeraPath.setText(f.getAbsolutePath()+"/Contents/MacOS/chimera");
+                        chimeraPath.setText(f.getAbsolutePath() + "/Contents/MacOS/chimera");
                     else
                         chimeraPath.setText(f.getAbsolutePath());
                     RnartistConfig.setChimeraPath(chimeraPath.getText());
@@ -2496,7 +1200,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         Label userIDLabel = new Label("Your User ID");
         userIDLabel.setStyle("-fx-font-size: 15");
         userIDPane.getChildren().add(userIDLabel);
-        GridPane.setConstraints(userIDLabel, 0,0,2,1);
+        GridPane.setConstraints(userIDLabel, 0, 0, 2, 1);
 
         TextField userID = new TextField();
         userID.setEditable(false);
@@ -2504,7 +1208,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         if (RnartistConfig.getUserID() != null)
             userID.setText(RnartistConfig.getUserID());
         userIDPane.getChildren().add(userID);
-        GridPane.setConstraints(userID, 0,1);
+        GridPane.setConstraints(userID, 0, 1);
 
         Button register = new Button("Register");
         if (RnartistConfig.getUserID() != null)
@@ -2515,7 +1219,7 @@ public class Toolbox extends AbstractThemeConfigurator {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 new RegisterDialog(mediator.getRnartist());
-                if (RnartistConfig.getUserID()!= null) {
+                if (RnartistConfig.getUserID() != null) {
                     userID.setText(RnartistConfig.getUserID());
                     register.setDisable(true);
                 }
@@ -2526,7 +1230,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane optionsPane = new GridPane();
         cc = new ColumnConstraints();
         cc.setHgrow(Priority.ALWAYS);
-        optionsPane.getColumnConstraints().addAll(new ColumnConstraints(),cc);
+        optionsPane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
         vbox.getChildren().add(optionsPane);
         optionsPane.setPadding(new Insets(10, 10, 10, 10));
         optionsPane.setHgap(10);
@@ -2537,7 +1241,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         Label svgExport = new Label("Misc Settings");
         svgExport.setStyle("-fx-font-size: 15");
         optionsPane.getChildren().add(svgExport);
-        GridPane.setConstraints(svgExport, 0,row++,2,1);
+        GridPane.setConstraints(svgExport, 0, row++, 2, 1);
         Separator separator = new Separator(Orientation.HORIZONTAL);
         optionsPane.getChildren().add(separator);
         GridPane.setConstraints(separator, 0, row++, 2, 1);
@@ -2548,11 +1252,11 @@ public class Toolbox extends AbstractThemeConfigurator {
             RnartistConfig.exportSVGWithBrowserCompatibility(svgBrowserFix.isSelected());
         });
         optionsPane.getChildren().add(svgBrowserFix);
-        GridPane.setConstraints(svgBrowserFix, 0,row);
+        GridPane.setConstraints(svgBrowserFix, 0, row);
 
         Label l = new Label("Set Browser Compatibility for SVG Export");
         optionsPane.getChildren().add(l);
-        GridPane.setConstraints(l, 1,row++);
+        GridPane.setConstraints(l, 1, row++);
 
         CheckBox defaultThemeOnExit = new CheckBox();
         defaultThemeOnExit.setSelected(RnartistConfig.saveCurrentThemeOnExit());
@@ -2560,11 +1264,11 @@ public class Toolbox extends AbstractThemeConfigurator {
             RnartistConfig.saveCurrentThemeOnExit(defaultThemeOnExit.isSelected());
         });
         optionsPane.getChildren().add(defaultThemeOnExit);
-        GridPane.setConstraints(defaultThemeOnExit, 0,row);
+        GridPane.setConstraints(defaultThemeOnExit, 0, row);
 
         l = new Label("Set Current Theme as Default on Exit");
         optionsPane.getChildren().add(l);
-        GridPane.setConstraints(l, 1,row++);
+        GridPane.setConstraints(l, 1, row++);
 
         /*CheckBox showStatusBar = new CheckBox();
         showStatusBar.setSelected(true);
@@ -2579,195 +1283,6 @@ public class Toolbox extends AbstractThemeConfigurator {
         GridPane.setConstraints(l, 1,4);*/
     }
 
-    /**
-     * Creates a new Theme according to the current state
-     * @return
-     */
-    public Theme getCurrentTheme() {
-        Map<String,String> params = new HashMap<>();
-        List<ColorPicker> colorPickers = Arrays.asList(colorPicker1,colorPicker2,colorPicker3,colorPicker4,colorPicker5,colorPicker6,colorPicker7);
-        List<ChoiceBox<String>> letterColors = Arrays.asList(letterColor1,letterColor2,letterColor3,letterColor4,letterColor5,letterColor6,letterColor7);
-        int i = 0;
-        for (ChoiceBox<String> box: Arrays.asList(structuralElement1,structuralElement2,structuralElement3,structuralElement4,structuralElement5,structuralElement6,structuralElement7)) {
-            switch (box.getValue()) {
-                case "A": params.put(ThemeParameter.AColor.toString(), getHTMLColorString(javaFXToAwt(colorPickers.get(i).getValue()))); params.put(ThemeParameter.AChar.toString(), (letterColors.get(i).getValue().equals("Black")) ? getHTMLColorString(Color.BLACK) : getHTMLColorString(Color.WHITE)) ; break;
-                case "U": params.put(ThemeParameter.UColor.toString(), getHTMLColorString(javaFXToAwt(colorPickers.get(i).getValue()))); params.put(ThemeParameter.UChar.toString(), (letterColors.get(i).getValue().equals("Black")) ? getHTMLColorString(Color.BLACK) : getHTMLColorString(Color.WHITE)) ; break;
-                case "G": params.put(ThemeParameter.GColor.toString(), getHTMLColorString(javaFXToAwt(colorPickers.get(i).getValue()))); params.put(ThemeParameter.GChar.toString(), (letterColors.get(i).getValue().equals("Black")) ? getHTMLColorString(Color.BLACK) : getHTMLColorString(Color.WHITE)) ; break;
-                case "C": params.put(ThemeParameter.CColor.toString(), getHTMLColorString(javaFXToAwt(colorPickers.get(i).getValue()))); params.put(ThemeParameter.CChar.toString(), (letterColors.get(i).getValue().equals("Black")) ? getHTMLColorString(Color.BLACK) : getHTMLColorString(Color.WHITE)) ; break;
-                case "X": params.put(ThemeParameter.XColor.toString(), getHTMLColorString(javaFXToAwt(colorPickers.get(i).getValue()))); params.put(ThemeParameter.XChar.toString(), (letterColors.get(i).getValue().equals("Black")) ? getHTMLColorString(Color.BLACK) : getHTMLColorString(Color.WHITE)) ; break;
-                case "2D": params.put(ThemeParameter.SecondaryColor.toString(), getHTMLColorString(javaFXToAwt(colorPickers.get(i).getValue()))); break;
-                case "3D": params.put(ThemeParameter.TertiaryColor.toString(), getHTMLColorString(javaFXToAwt(colorPickers.get(i).getValue()))); break;
-            }
-            i++;
-        }
-        params.put(ThemeParameter.TertiaryOpacity.toString(), ""+(int)(_3dOpacity.getValue()/100.0*255.0));
-        params.put(ThemeParameter.ResidueCharOpacity.toString(), ""+(int)(residueCharOpacity.getValue()/100.0*255.0));
-        params.put(ThemeParameter.PhosphodiesterWidth.toString(), phosphoDiesterWidth.getValue());
-        params.put(ThemeParameter.SecondaryInteractionWidth.toString(), secondaryInteractionWidth.getValue());
-        params.put(ThemeParameter.SecondaryInteractionShift.toString(), ""+secondaryInteractionShift.getValue());
-        params.put(ThemeParameter.TertiaryInteractionWidth.toString(), tertiaryInteractionWidth.getValue());
-        params.put(ThemeParameter.HaloWidth.toString(), ""+haloWidth.getValue());
-        params.put(ThemeParameter.ResidueBorder.toString(), residuesWidth.getValue());
-        params.put(ThemeParameter.TertiaryInteractionStyle.toString(), tertiaryInteractionStyle.getValue());
-        params.put(ThemeParameter.DeltaXRes.toString(), ""+deltaXRes.getValue());
-        params.put(ThemeParameter.DeltaYRes.toString(), ""+deltaYRes.getValue());
-        params.put(ThemeParameter.DeltaFontSize.toString(), ""+deltaFontSize.getValue());
-        params.put(ThemeParameter.FontName.toString(), fontNames.getValue());
-        params.put(ThemeParameter.DisplayLWSymbols.toString(), displayLWSymbols.getValue());
-        return new Theme(params);
-    }
-
-    public void loadTheme(Theme theme) {
-        if (theme.getAColor() != null) {
-            structuralElement1.setValue("A");
-            colorPicker1.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getAColor())));
-        }
-
-        if (theme.getAChar() != null)
-            letterColor1.setValue(getHTMLColorString(theme.getAChar()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-        if (theme.getUColor() != null) {
-            structuralElement2.setValue("U");
-            colorPicker2.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getUColor())));
-        }
-
-        if (theme.getUChar() != null)
-            letterColor2.setValue(getHTMLColorString(theme.getUChar()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-        if (theme.getGColor() != null) {
-            structuralElement3.setValue("G");
-            colorPicker3.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getGColor())));
-        }
-
-        if (theme.getGChar() != null)
-            letterColor3.setValue(getHTMLColorString(theme.getGChar()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-        if (theme.getCColor() != null) {
-            structuralElement4.setValue("C");
-            colorPicker4.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getCColor())));
-        }
-
-        if (theme.getCChar() != null)
-            letterColor4.setValue(getHTMLColorString(theme.getCChar()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-        if (theme.getXColor() != null) {
-            structuralElement5.setValue("X");
-            colorPicker5.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getXColor())));
-        }
-
-        if (theme.getXChar() != null)
-            letterColor5.setValue(getHTMLColorString(theme.getXChar()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-        if (theme.getSecondaryColor() != null) {
-            structuralElement6.setValue("2D");
-            colorPicker6.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getSecondaryColor())));
-        }
-
-        if (theme.getTertiaryColor() != null) {
-            structuralElement7.setValue("3D");
-            colorPicker7.setValue(javafx.scene.paint.Color.web(getHTMLColorString(theme.getTertiaryColor())));
-        }
-
-        if (theme.getTertiaryOpacity() != null)
-            _3dOpacity.setValue(theme.getTertiaryOpacity()/255.0*100.0);
-
-        if (theme.getResidueCharOpacity() != null)
-            residueCharOpacity.setValue(theme.getResidueCharOpacity()/255.0*100.0);
-
-        if (theme.getPhosphoDiesterWidth() != null)
-            phosphoDiesterWidth.setValue(""+theme.getPhosphoDiesterWidth());
-
-        if (theme.getSecondaryInteractionWidth() != null)
-            secondaryInteractionWidth.setValue(""+theme.getSecondaryInteractionWidth());
-
-        if (theme.getSecondaryInteractionShift() != null)
-            secondaryInteractionShift.setValue(theme.getSecondaryInteractionShift());
-
-        if (theme.getTertiaryInteractionWidth() != null)
-            tertiaryInteractionWidth.setValue(""+theme.getTertiaryInteractionWidth());
-
-        if (theme.getHaloWidth() != null)
-            haloWidth.setValue(theme.getHaloWidth());
-
-        if (theme.getResidueBorder() != null)
-            residuesWidth.setValue(""+theme.getResidueBorder());
-
-        if (theme.getTertiaryInteractionStyle() != null)
-            tertiaryInteractionStyle.setValue(theme.getTertiaryInteractionStyle());
-
-        if (theme.getFontName() != null)
-            fontNames.setValue(theme.getFontName());
-
-        if (theme.getDeltaXRes() != null)
-            deltaXRes.getValueFactory().setValue(theme.getDeltaXRes());
-
-        if (theme.getDeltaYRes() != null)
-            deltaYRes.getValueFactory().setValue(theme.getDeltaYRes());
-
-        if (theme.getDeltaFontSize() != null)
-            deltaFontSize.getValueFactory().setValue(theme.getDeltaFontSize());
-
-        if (theme.getDisplayLWSymbols() != null)
-            displayLWSymbols.setValue(theme.getDisplayLWSymbols() ? "yes" : "no" );
-    }
-
-
-    public void loadTheme(SecondaryStructureElement element) {
-            structuralElement1.setValue("A");
-            colorPicker1.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getAColor())));
-            letterColor1.setValue(getHTMLColorString(element.getAColor()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-            structuralElement2.setValue("U");
-            colorPicker2.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getUColor())));
-            letterColor2.setValue(getHTMLColorString(element.getUColor()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-            structuralElement3.setValue("G");
-            colorPicker3.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getGColor())));
-            letterColor3.setValue(getHTMLColorString(element.getGColor()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-            structuralElement4.setValue("C");
-            colorPicker4.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getCColor())));
-            letterColor4.setValue(getHTMLColorString(element.getCColor()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-            structuralElement5.setValue("X");
-            colorPicker5.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getXColor())));
-            letterColor5.setValue(getHTMLColorString(element.getXColor()).toLowerCase().equals("#000000") ? "Black" : "White");
-
-            structuralElement6.setValue("2D");
-            colorPicker6.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getSecondaryColor())));
-
-            structuralElement7.setValue("3D");
-            colorPicker7.setValue(javafx.scene.paint.Color.web(getHTMLColorString(element.getTertiaryColor())));
-
-            _3dOpacity.setValue(element.getTertiaryOpacity());
-
-            residueCharOpacity.setValue(element.getResidueCharOpacity());
-
-            phosphoDiesterWidth.setValue(""+element.getPhosphodiesterWidth());
-
-            secondaryInteractionWidth.setValue(""+element.getSecondaryInteractionWidth());
-
-            secondaryInteractionShift.setValue(element.getSecondaryInteractionShift());
-
-            tertiaryInteractionWidth.setValue(""+element.getTertiaryInteractionWidth());
-
-            haloWidth.setValue(element.getHaloWidth());
-
-            residuesWidth.setValue(""+element.getResidueBorder());
-
-            tertiaryInteractionStyle.setValue(element.getTertiaryInteractionStyle());
-
-            fontNames.setValue(element.getFontName());
-
-            deltaXRes.getValueFactory().setValue(element.getDeltaXRes());
-
-            deltaYRes.getValueFactory().setValue(element.getDeltaYRes());
-
-            deltaFontSize.getValueFactory().setValue(element.getDeltaFontSize());
-
-            displayLWSymbols.setValue(element.displayLWSymbols() ? "yes" : "no");
-    }
-
     class ShapeCell extends ListCell<String> {
         @Override
         public void updateItem(String item, boolean empty) {
@@ -2776,8 +1291,7 @@ public class Toolbox extends AbstractThemeConfigurator {
             if (empty) {
                 setText(null);
                 setGraphic(null);
-            }
-            else {
+            } else {
                 setText(item);
                 javafx.scene.shape.Shape shape = this.getShape(item);
                 setGraphic(shape);
@@ -2824,9 +1338,17 @@ public class Toolbox extends AbstractThemeConfigurator {
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(2);
                     break;
+                case "2.5":
+                    shape = new Line(0, 10, 20, 10);
+                    shape.setStrokeWidth(2.5);
+                    break;
                 case "3.0":
                     shape = new Line(0, 10, 20, 10);
                     shape.setStrokeWidth(3);
+                    break;
+                case "3.5":
+                    shape = new Line(0, 10, 20, 10);
+                    shape.setStrokeWidth(3.5);
                     break;
                 case "4.0":
                     shape = new Line(0, 10, 20, 10);
@@ -2905,7 +1427,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         }
 
         public Image getImage() {
-            return new Image(RnartistConfig.getWebsite()+"/captures/" +this.picture);
+            return new Image(RnartistConfig.getWebsite() + "/captures/" + this.picture);
         }
     }
 
@@ -2915,7 +1437,7 @@ public class Toolbox extends AbstractThemeConfigurator {
         protected Exception call() throws Exception {
             themesList.clear();
             try {
-                for (Map.Entry<String,String> t:Backend.getAllThemes().entrySet()) {
+                for (Map.Entry<String, String> t : Backend.getAllThemes().entrySet()) {
                     themesList.add(new ThemeFromWebsite(t.getKey(), t.getValue()));
                 }
             } catch (Exception e) {
@@ -2925,77 +1447,75 @@ public class Toolbox extends AbstractThemeConfigurator {
         }
     }
 
-    private java.awt.Color javaFXToAwt(javafx.scene.paint.Color c) {
-        return new java.awt.Color((float)c.getRed(),
-                (float)c.getGreen(),
-                (float)c.getBlue(),
-                (float)c.getOpacity());
-    }
-
-    private javafx.scene.paint.Color awtColorToJavaFX(java.awt.Color c) {
-        return javafx.scene.paint.Color.rgb(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha() / 255.0);
-    }
-
     @Override
-    public void fireThemeChange(@NotNull ThemeParameter param, @NotNull String newValue) {
+    public void fireDrawingConfigurationChange(@NotNull DrawingConfigurationParameter param, @NotNull String newValue) {
         if (!this.getMuted()) {
-            super.fireThemeChange(param, newValue);
-            for (ThemeConfiguratorListener listener: this.getThemeConfiguratorListeners())
-                mediator.getExplorer().setThemeParameter(listener, param, newValue);
+            super.fireDrawingConfigurationChange(param, newValue);
+            mediator.getCanvas2D().repaint();
+            mediator.getExplorer().refresh();
         }
     }
 
     @Override
-    public void fireThemeChange(@NotNull ThemeParameter param, int newValue) {
+    public void fireDrawingConfigurationChange(@NotNull DrawingConfigurationParameter param, int newValue) {
         if (!this.getMuted()) {
-            super.fireThemeChange(param, newValue);
-            for (ThemeConfiguratorListener listener : this.getThemeConfiguratorListeners())
-                mediator.getExplorer().setThemeParameter(listener, param, newValue);
+            super.fireDrawingConfigurationChange(param, newValue);
+            mediator.getCanvas2D().repaint();
+            mediator.getExplorer().refresh();
         }
     }
 
     @Override
-    public void fireThemeChange(@NotNull ThemeParameter param, double newValue) {
+    public void fireDrawingConfigurationChange(@NotNull DrawingConfigurationParameter param, double newValue) {
         if (!this.getMuted()) {
-            super.fireThemeChange(param, newValue);
-            for (ThemeConfiguratorListener listener : this.getThemeConfiguratorListeners())
-                mediator.getExplorer().setThemeParameter(listener, param, newValue);
+            super.fireDrawingConfigurationChange(param, newValue);
+            mediator.getCanvas2D().repaint();
+            mediator.getExplorer().refresh();
         }
     }
 
     @Override
-    public void fireThemeChange(@NotNull ThemeParameter param, @NotNull Color newValue) {
+    public void fireDrawingConfigurationChange(@NotNull DrawingConfigurationParameter param, @NotNull Color newValue) {
         if (!this.getMuted()) {
-            super.fireThemeChange(param, newValue);
-            for (ThemeConfiguratorListener listener: this.getThemeConfiguratorListeners())
-                mediator.getExplorer().setThemeParameter(listener, param, newValue);
+            super.fireDrawingConfigurationChange(param, newValue);
+            mediator.getCanvas2D().repaint();
+            mediator.getExplorer().refresh();
         }
     }
 
     @Override
-    public void fireThemeChange(@NotNull ThemeParameter param) {
+    public void fireDrawingConfigurationChange(@NotNull DrawingConfigurationParameter param, boolean fireChildren) {
         if (!this.getMuted()) {
-            super.fireThemeChange(param);
-            for (ThemeConfiguratorListener listener: this.getThemeConfiguratorListeners())
-                mediator.getExplorer().clearThemeParameter(listener, param);
+            super.fireDrawingConfigurationChange(param, fireChildren);
+            mediator.getCanvas2D().repaint();
+            mediator.getExplorer().refresh();
         }
     }
 
     @Override
-    public void applyTheme(@NotNull Theme theme) {
+    public void applyTheme(Map<String, ? extends Map<String, String>> theme) {
         if (!this.getMuted()) {
             super.applyTheme(theme);
-            for (ThemeConfiguratorListener listener: this.getThemeConfiguratorListeners())
-                mediator.getExplorer().applyTheme(listener, theme);
+            mediator.getCanvas2D().repaint();
+            mediator.getExplorer().refresh();
         }
     }
 
     @Override
-    public void clearTheme() {
+    public void applyDrawingConfiguration(@NotNull DrawingConfiguration drawingConfiguration) {
         if (!this.getMuted()) {
-            super.clearTheme();
-            for (ThemeConfiguratorListener listener: this.getThemeConfiguratorListeners())
-                mediator.getExplorer().clearTheme(listener);
+            super.applyDrawingConfiguration(drawingConfiguration);
+            mediator.getCanvas2D().repaint();
+            mediator.getExplorer().refresh();
+        }
+    }
+
+    @Override
+    public void clearDrawingConfiguration(boolean clearChildrenDrawingConfiguration) {
+        if (!this.getMuted()) {
+            super.clearDrawingConfiguration(clearChildrenDrawingConfiguration);
+            mediator.getCanvas2D().repaint();
+            mediator.getExplorer().refresh();
         }
     }
 }
