@@ -244,8 +244,8 @@ public class Toolbox extends AbstractDrawingConfigurator {
                 if (secondaryStructureElement == null) {
                     return "";
                 }
-                if (SecondaryStructureElement.class.isInstance(secondaryStructureElement))
-                    return ((SecondaryStructureElement) secondaryStructureElement).getType() + " " + ((SecondaryStructureElement) secondaryStructureElement).getName() + " " + ((SecondaryStructureElement) secondaryStructureElement).getLocation().getDescription();
+                if (DrawingElement.class.isInstance(secondaryStructureElement))
+                    return ((DrawingElement) secondaryStructureElement).getType() + " " + ((DrawingElement) secondaryStructureElement).getName() + " " + ((DrawingElement) secondaryStructureElement).getLocation().getDescription();
                 else if (String.class.isInstance(secondaryStructureElement)) {
                     return secondaryStructureElement.toString();
                 }
@@ -253,7 +253,7 @@ public class Toolbox extends AbstractDrawingConfigurator {
             }
 
             @Override
-            public SecondaryStructureElement fromString(String s) {
+            public DrawingElement fromString(String s) {
                 return null;
             }
         });
@@ -269,17 +269,17 @@ public class Toolbox extends AbstractDrawingConfigurator {
                 if (newvalue != null) {
                     if (newvalue.toString().equals("All Selected Elements"))
                         for (Object o : structureElementsSelectedComboBox.getItems().subList(structureElementsSelectedComboBox.getItems().indexOf("All Selected Elements") + 1, structureElementsSelectedComboBox.getItems().size())) {
-                            addDrawingConfigurationListener((SecondaryStructureElement) o);
+                            addDrawingConfigurationListener((DrawingElement) o);
                         }
                     else {
-                        addDrawingConfigurationListener((SecondaryStructureElement) newvalue);
+                        addDrawingConfigurationListener((DrawingElement) newvalue);
                         //if a single element is selected, we activate the buttons to recover theme parameters
                         for (Button b : recoverButtons)
                             b.setDisable(false);
                         if (RnartistConfig.getFitDisplayOnSelection()) { //fit first since fit will center too
-                            mediator.canvas2D.fitDisplayOn(((SecondaryStructureElement) newvalue).getBounds2D());
+                            mediator.canvas2D.fitDisplayOn(((DrawingElement) newvalue).getBounds2D());
                         } else if (RnartistConfig.getCenterDisplayOnSelection()) {
-                            mediator.canvas2D.centerDisplayOn(((SecondaryStructureElement) newvalue).getBounds2D());
+                            mediator.canvas2D.centerDisplayOn(((DrawingElement) newvalue).getBounds2D());
                         }
                     }
                 }
@@ -407,7 +407,7 @@ public class Toolbox extends AbstractDrawingConfigurator {
         recoverTheme.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                Map<String, String> params = ((SecondaryStructureElement) structureElementsSelectedComboBox.getValue()).getDrawingConfiguration().getParams();
+                Map<String, String> params = ((DrawingElement) structureElementsSelectedComboBox.getValue()).getDrawingConfiguration().getParams();
 
             }
         });
@@ -498,7 +498,7 @@ public class Toolbox extends AbstractDrawingConfigurator {
         recoverFontName.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                DrawingElement el = (DrawingElement) structureElementsSelectedComboBox.getValue();
                 if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.FontName.toString()))
                     fontNames.setValue(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.FontName.toString()));
             }
@@ -603,7 +603,7 @@ public class Toolbox extends AbstractDrawingConfigurator {
         recoverDeltas.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                DrawingElement el = (DrawingElement) structureElementsSelectedComboBox.getValue();
                 if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.DeltaXRes.toString()))
                     deltaXRes.getValueFactory().setValue(Integer.parseInt(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.DeltaXRes.toString())));
                 if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.DeltaYRes.toString()))
@@ -707,7 +707,7 @@ public class Toolbox extends AbstractDrawingConfigurator {
         recoverColor.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                DrawingElement el = (DrawingElement) structureElementsSelectedComboBox.getValue();
                 if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.Color.toString()))
                     colorPicker.setValue(awtColorToJavaFX(getAWTColor(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.Color.toString()), 255)));
                 if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.CharColor.toString()))
@@ -792,7 +792,7 @@ public class Toolbox extends AbstractDrawingConfigurator {
         recoverLineWidth.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                DrawingElement el = (DrawingElement) structureElementsSelectedComboBox.getValue();
                 if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.LineWidth.toString()))
                     lineWidth.setValue(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.LineWidth.toString()));
             }
@@ -857,7 +857,7 @@ public class Toolbox extends AbstractDrawingConfigurator {
         recoverTertiariesStyle.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                DrawingElement el = (DrawingElement) structureElementsSelectedComboBox.getValue();
                 if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.TertiaryInteractionStyle.toString()))
                     tertiaryInteractionStyle.setValue(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.TertiaryInteractionStyle.toString()));
             }
@@ -931,7 +931,7 @@ public class Toolbox extends AbstractDrawingConfigurator {
         recoverSecondariesShift.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                DrawingElement el = (DrawingElement) structureElementsSelectedComboBox.getValue();
                 if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.LineShift.toString()))
                     secondaryInteractionShift.setValue(Double.parseDouble(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.LineShift.toString())));
             }
@@ -1016,7 +1016,7 @@ public class Toolbox extends AbstractDrawingConfigurator {
         recoverOpacity.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                SecondaryStructureElement el = (SecondaryStructureElement) structureElementsSelectedComboBox.getValue();
+                DrawingElement el = (DrawingElement) structureElementsSelectedComboBox.getValue();
                 if (el.getDrawingConfiguration().getParams().containsKey(DrawingConfigurationParameter.Opacity.toString()))
                     opacity.setValue(Integer.parseInt(el.getDrawingConfiguration().getParams().get(DrawingConfigurationParameter.Opacity.toString())) / 255.0 * 100.0);
             }

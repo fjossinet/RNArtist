@@ -10,13 +10,13 @@ interface ExplorerItem {
     var lineWidth:String?
     var lineShift:String?
     var opacity:String?
-    val secondaryStructureElement:SecondaryStructureElement?
+    val drawingElement:DrawingElement?
 
     fun setDrawingConfigurationParameter(param:String, value:String?)
 
 }
 
-abstract class AbstractExplorerItem(name:String, secondaryStructureElement:SecondaryStructureElement? = null):ExplorerItem {
+abstract class AbstractExplorerItem(name:String, drawingElement:DrawingElement? = null):ExplorerItem {
     override val name = name
     override var location = ""
     override var color:String? = ""
@@ -24,7 +24,7 @@ abstract class AbstractExplorerItem(name:String, secondaryStructureElement:Secon
     override var lineWidth:String? = ""
     override var lineShift:String? = ""
     override var opacity:String? = ""
-    override val secondaryStructureElement = secondaryStructureElement
+    override val drawingElement = drawingElement
 }
 
 class SecondaryStructureItem(val drawing:SecondaryStructureDrawing): AbstractExplorerItem("Full 2D") {
@@ -65,29 +65,29 @@ class SecondaryStructureItem(val drawing:SecondaryStructureDrawing): AbstractExp
 
 }
 
-abstract class StructuralItem(name:String, secondaryStructureElement:SecondaryStructureElement):AbstractExplorerItem(name, secondaryStructureElement) {
+abstract class StructuralItem(name:String, drawingElement:DrawingElement):AbstractExplorerItem(name, drawingElement) {
 
     override val name = name
 
-    override var location = this.secondaryStructureElement!!.location.description
+    override var location = this.drawingElement!!.location.description
 
     override var color:String? = ""
-        get():String? = this.secondaryStructureElement!!.drawingConfiguration.params.getOrDefault(DrawingConfigurationParameter.Color.toString(),"")
+        get():String? = this.drawingElement!!.drawingConfiguration.params.getOrDefault(DrawingConfigurationParameter.Color.toString(),"")
 
     override var charColor:String? = ""
-        get():String? = this.secondaryStructureElement!!.drawingConfiguration.params.getOrDefault(DrawingConfigurationParameter.CharColor.toString(),"")
+        get():String? = this.drawingElement!!.drawingConfiguration.params.getOrDefault(DrawingConfigurationParameter.CharColor.toString(),"")
 
     override var lineWidth:String? = ""
-        get():String? = this.secondaryStructureElement!!.drawingConfiguration.params.getOrDefault(DrawingConfigurationParameter.LineWidth.toString(),"")
+        get():String? = this.drawingElement!!.drawingConfiguration.params.getOrDefault(DrawingConfigurationParameter.LineWidth.toString(),"")
 
     override var opacity: String? = ""
-        get():String? = this.secondaryStructureElement!!.drawingConfiguration.params.getOrDefault(DrawingConfigurationParameter.Opacity.toString(),"")
+        get():String? = this.drawingElement!!.drawingConfiguration.params.getOrDefault(DrawingConfigurationParameter.Opacity.toString(),"")
 
     override fun setDrawingConfigurationParameter(param:String, value:String?) {
         if (value == null)
-            this.secondaryStructureElement!!.drawingConfiguration.params.remove(param)
+            this.drawingElement!!.drawingConfiguration.params.remove(param)
         else
-            this.secondaryStructureElement!!.drawingConfiguration.params[param.toString()] = value
+            this.drawingElement!!.drawingConfiguration.params[param.toString()] = value
     }
 }
 class GroupOfStructuralElements(name:String) : AbstractExplorerItem(name) {

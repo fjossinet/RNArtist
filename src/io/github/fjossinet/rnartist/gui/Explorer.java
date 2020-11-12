@@ -86,8 +86,8 @@ public class Explorer {
                 if (!treeTableView.getSelectionModel().getSelectedItems().isEmpty()) {
                     int i = 0;
                     for (TreeItem<ExplorerItem> item : treeTableView.getSelectionModel().getSelectedItems()) {
-                        if (item.getValue().getSecondaryStructureElement() != null) {
-                            mediator.addToSelection(Mediator.SelectionEmitter.EXPLORER, i == 0, item.getValue().getSecondaryStructureElement()); //if the first element added to the selection, we clear the previous selection
+                        if (item.getValue().getDrawingElement() != null) {
+                            mediator.addToSelection(Mediator.SelectionEmitter.EXPLORER, i == 0, item.getValue().getDrawingElement()); //if the first element added to the selection, we clear the previous selection
                             i++;
                         } else if (item.getValue().getName().equals("Full 2D")) {
                             mediator.addToSelection(Mediator.SelectionEmitter.EXPLORER, true, null); //if the full 2D (the root of the explorer) is in the selection, we do nothing else
@@ -112,7 +112,7 @@ public class Explorer {
             public void handle(KeyEvent keyEvent) {
                 if (keyEvent.getCode().equals(KeyCode.BACK_SPACE)) {
                     for (TreeTablePosition<ExplorerItem, ?> cell : treeTableView.getSelectionModel().getSelectedCells()) {
-                        SecondaryStructureElement element = cell.getTreeItem().getValue().getSecondaryStructureElement();
+                        DrawingElement element = cell.getTreeItem().getValue().getDrawingElement();
                         if (element != null) {
                             cell.getTreeItem().getValue().setDrawingConfigurationParameter(((DrawingConfigurationParameter) cell.getTableColumn().getUserData()).toString(), null);
                             treeTableView.refresh();
@@ -136,7 +136,7 @@ public class Explorer {
         scene.getWindow().setY(screenSize.getHeight() - 200);
     }
 
-    public void select(SecondaryStructureElement sse) {
+    public void select(DrawingElement sse) {
         TreeItem item = this.getTreeViewItemFor(this.treeTableView.getRoot(), sse);
         if (item != null) {
             item.setExpanded(true);
@@ -154,7 +154,7 @@ public class Explorer {
         if (SecondaryStructureDrawing.class.isInstance(sse)) //its the root element
             return this.treeTableView.getRoot();
 
-        if (item != null && item.getValue().getSecondaryStructureElement() == sse)
+        if (item != null && item.getValue().getDrawingElement() == sse)
             return item;
 
         for (TreeItem<ExplorerItem> child : item.getChildren()) {

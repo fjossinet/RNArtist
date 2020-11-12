@@ -135,7 +135,7 @@ class Mediator(val rnartist: RNArtist) {
     This function test if a SecondaryStructureElement, depending of its type, is selected or not. This function is used by the function addToSelection
     The criteria is a little bit different than the isSelected in RNArtistCore, since we take care of the parents too here.
      */
-    private fun isSelected(structureElement: SecondaryStructureElement): Boolean {
+    private fun isSelected(structureElement: DrawingElement): Boolean {
         return when (structureElement) {
             is ResidueDrawing -> {
                 (structureElement as Object) in this.structureElementsSelected
@@ -153,7 +153,7 @@ class Mediator(val rnartist: RNArtist) {
         }
     }
 
-    fun addToSelection(selectionEmitter: SelectionEmitter?, clearCurrentSelection: Boolean = false, structureElement: SecondaryStructureElement?) {
+    fun addToSelection(selectionEmitter: SelectionEmitter?, clearCurrentSelection: Boolean = false, structureElement: DrawingElement?) {
         if (clearCurrentSelection) {
             this.structureElementsSelected.clear()
             toolbox.defaultTargetsComboBox.value = null //to trigger a changed event if the previous value was still "Full 2D"
@@ -216,8 +216,8 @@ class Mediator(val rnartist: RNArtist) {
     private fun selectInExplorer() {
         this.explorer.clearSelection()
         this.structureElementsSelected.forEach {
-            (it as? SecondaryStructureElement)?.let {
-                this.explorer.select(it as SecondaryStructureElement)
+            (it as? DrawingElement)?.let {
+                this.explorer.select(it as DrawingElement)
             }
         }
     }
@@ -256,7 +256,7 @@ class Mediator(val rnartist: RNArtist) {
                 //clear
                 selection.clear()
                 this.structureElementsSelected.forEach {
-                    (it as? SecondaryStructureElement)?.let {
+                    (it as? DrawingElement)?.let {
                         selection.addAll(it.residues)
                     }
                 }
