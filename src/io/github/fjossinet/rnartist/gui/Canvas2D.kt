@@ -1,16 +1,23 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
+import io.github.fjossinet.rnartist.core.model.*
+import io.github.fjossinet.rnartist.gui.Explorer.DrawingElementFilter
+import io.github.fjossinet.rnartist.io.awtColorToJavaFX
+import io.github.fjossinet.rnartist.model.ExplorerItem
+import javafx.scene.control.TreeItem
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
+import java.util.Timer
+import kotlin.concurrent.schedule
 
 class Canvas2D(val mediator: Mediator): JPanel() {
 
     var secondaryStructureDrawing: SecondaryStructureDrawing? = null
+    var knobs:MutableList<Knob> = arrayListOf()
     lateinit private var offScreenBuffer: Image
     var translateX = 0.0
     var translateY = 0.0
@@ -23,14 +30,228 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     fun load2D(drawing: SecondaryStructureDrawing) {
         this.secondaryStructureDrawing = drawing
         this.fps = 0
+        this.knobs.clear()
         this.secondaryStructureDrawing?.let { it ->
-            mediator.toolbox.junctionKnobs.children.clear()
-            mediator.addToSelection(null, true, null)
             mediator.explorer.load(this.secondaryStructureDrawing)
-            for (jc in it.allJunctions)
-                mediator.toolbox.addJunctionKnob(jc)
-            this.repaint()
         }
+        /*
+        Timer("", false).schedule(1000) {
+            mediator.explorer.getTreeViewItemFor(mediator.explorer.treeTableView.root, secondaryStructureDrawing).value.lineWidth = "2.0"
+            mediator.explorer.getTreeViewItemFor(mediator.explorer.treeTableView.root, secondaryStructureDrawing).value.color = getHTMLColorString(Color(18,114,27))
+            val hits = arrayListOf<TreeItem<ExplorerItem>>()
+            mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                HelixDrawing::class.java.isInstance(
+                    drawingElement
+                )
+            })
+            hits.forEach {
+                it.value.fullDetails = "true"
+                it.value.color = getHTMLColorString(Color(18,114,27))
+            }
+            hits.clear()
+            mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                JunctionDrawing::class.java.isInstance(
+                    drawingElement
+                )
+            })
+            hits.forEach {
+                it.value.fullDetails = "true"
+                it.value.color = getHTMLColorString(Color(18,114,27))
+                if ((it.value.drawingElement as JunctionDrawing).junctionCategory == JunctionType.FourWay) {
+                    for (c in it.parent.children.first().children) {
+                        c.value.fullDetails = "true"
+                        for (_c in c.children)
+                            _c.value.fullDetails = "false"
+                    }
+                }
+            }
+            hits.clear()
+            mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                ResidueDrawing::class.java.isInstance(
+                    drawingElement
+                )
+            })
+            hits.forEach {
+                it.value.lineWidth = "0.5"
+            }
+            hits.clear()
+            mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                InteractionSymbolDrawing::class.java.isInstance(
+                    drawingElement
+                )
+            })
+            hits.forEach {
+                it.value.fullDetails = "false"
+            }
+            hits.clear()
+            mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                ResidueLetterDrawing::class.java.isInstance(
+                    drawingElement
+                )
+            })
+            hits.forEach {
+                it.value.fullDetails = "false"
+            }
+            hits.clear()
+            mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                AShapeDrawing::class.java.isInstance(
+                    drawingElement
+                )
+            })
+            hits.forEach {
+                it.value.color = getHTMLColorString(Color(194,19,19))
+            }
+            hits.clear()
+            mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                GShapeDrawing::class.java.isInstance(
+                    drawingElement
+                )
+            })
+            hits.forEach {
+                it.value.color = getHTMLColorString(Color(208, 150,58))
+            }
+            hits.clear()
+            mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                UShapeDrawing::class.java.isInstance(
+                    drawingElement
+                )
+            })
+            hits.forEach {
+                it.value.color = getHTMLColorString(Color(54,98,125))
+            }
+            hits.clear()
+            mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                CShapeDrawing::class.java.isInstance(
+                    drawingElement
+                )
+            })
+            hits.forEach {
+                it.value.color = getHTMLColorString(Color(104,53,134))
+            }
+            hits.clear()
+            mediator.explorer.refresh()
+            mediator.canvas2D.repaint()
+        }
+        var i = 0
+        Timer("", false).schedule(2000, period = 1000) {
+            i++
+            val hits = arrayListOf<TreeItem<ExplorerItem>>()
+            if (i%3 == 0) {
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    AShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(208, 150,58))
+                }
+                hits.clear()
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    GShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(104,53,134))
+                }
+                hits.clear()
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    UShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(194,19,19))
+                }
+                hits.clear()
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    CShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(54,98,125))
+                }
+                hits.clear()
+            }
+            else if (i%2 == 0) {
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    AShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(54,98,125))
+                }
+                hits.clear()
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    GShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(194,19,19))
+                }
+                hits.clear()
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    UShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(104,53,134))
+                }
+                hits.clear()
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    CShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(208, 150,58))
+                }
+                hits.clear()
+            } else {
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    AShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(104,53,134))
+                }
+                hits.clear()
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    GShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(194,19,19))
+                }
+                hits.clear()
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    UShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(54,98,125))
+                }
+                hits.clear()
+                mediator.explorer.getAllTreeViewItems(hits, mediator.explorer.treeTableView.root, { drawingElement: DrawingElement? ->
+                    CShapeDrawing::class.java.isInstance(
+                        drawingElement
+                    )
+                })
+                hits.forEach {
+                    it.value.color = getHTMLColorString(Color(194,19,19))
+                }
+                hits.clear()
+            }
+            mediator.explorer.refresh()
+            mediator.canvas2D.repaint()
+        }*/
     }
 
     fun centerDisplayOn(frame:Rectangle2D) {
@@ -84,10 +305,16 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             g2.color = Color.BLACK
             if (drawing.workingSession.screen_capture)
                 g2.draw(drawing.workingSession.screen_capture_area)
-            val start = System.currentTimeMillis()
-            drawing.draw(g2)
-            val t = 1000/(System.currentTimeMillis()-start)
-            this.fps = if (t> this.fps) t else this.fps
+            //val start = System.currentTimeMillis()
+            val at = AffineTransform()
+            at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
+            at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
+            drawing.draw(g2, at)
+            this.knobs.forEach {
+                it.draw(g, at)
+            }
+            //val t = 1000/(System.currentTimeMillis()-start)
+            //this.fps = if (t> this.fps) t else this.fps
             //println("FPS: ${this.fps}")
         }
     }
@@ -120,15 +347,37 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
             g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
             g2.background = Color.white
+            val at = AffineTransform()
+            at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
+            at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
             if (secondaryStructureDrawing != null)
-                secondaryStructureDrawing.draw(g2);
+                secondaryStructureDrawing.draw(g2, at);
             else
-                drawing.draw(g2);
+                drawing.draw(g2, at);
             g2.dispose()
             drawing.workingSession.viewX += drawing.workingSession.screen_capture_area!!.minX
             drawing.workingSession.viewY += drawing.workingSession.screen_capture_area!!.minY
             return bufferedImage
         }
         return null
+    }
+
+    fun clearSelection() {
+        this.secondaryStructureDrawing?.let {
+            it.selection.clear()
+            repaint()
+        }
+        this.knobs.clear()
+    }
+
+    fun addToSelection(el: DrawingElement) {
+        this.secondaryStructureDrawing?.let {
+            it.selection.addAll(el.residues)
+            if (el is JunctionDrawing)
+                this.knobs.add(JunctionKnob(el, mediator))
+            else if (el is HelixDrawing)
+                this.knobs.add(HelixKnob(el, mediator))
+            repaint()
+        }
     }
 }

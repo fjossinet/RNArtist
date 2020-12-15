@@ -2,255 +2,100 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.*
-import javafx.scene.layout.Pane
-import javafx.scene.layout.VBox
-import javafx.scene.paint.Color
-import javafx.scene.shape.Circle
-import javafx.scene.shape.Polygon
+import java.awt.Color
+import java.awt.Graphics2D
+import java.awt.geom.AffineTransform
+import java.awt.geom.Ellipse2D
+import java.awt.geom.Path2D
 import java.awt.geom.Point2D
 
-class JunctionKnob(val junctionCircle: JunctionDrawing, val mediator: Mediator) : Pane(){
 
-    private val connectors = mutableListOf<Connector>()
+class JunctionKnob(val junction: JunctionDrawing, val mediator: Mediator): Knob {
+
+    val connectors = mutableListOf<JunctionConnector>()
+    val arrows = mutableListOf<JunctionArrow>()
+    var connectorRadius:Double = 0.0
+    lateinit var detailsButton:DetailsButton
 
     init {
-        this.setStyle("-fx-background-color: #ffffff; -fx-border-color: darkgray; -fx-border-width: 2px;");
-        this.setPrefSize(150.0,150.0)
-        this.setMaxWidth(150.0)
-        this.setOnMouseClicked {
-            this.select()
-            var circleClicked = false
-            var selectedCount = connectors.count { it.selected }
-            if (selectedCount < this.junctionCircle.junctionCategory.value - 1) {
-                for (c in connectors) {
-                    val localMouseClick = c.parentToLocal(it.x,it.y)
-                    if (!c.isInId && c.contains(localMouseClick)) {
-                        c.selected = !c.selected
-                        c.fill = if (c.selected) Color.STEELBLUE else Color.LIGHTGRAY
-                        c.stroke = if (c.selected) Color.DARKBLUE else Color.DARKGRAY
-                        circleClicked = true
-                        break
-                    }
-                }
-            } else if (selectedCount >= this.junctionCircle.junctionCategory.value - 1) { //We can only unselect
-                for (c in connectors) {
-                    val localMouseClick = c.parentToLocal(it.x,it.y)
-                    if (!c.isInId && c.contains(localMouseClick) && c.selected) {
-                        c.selected = false
-                        c.fill = Color.LIGHTGRAY
-                        c.stroke = Color.DARKGRAY
-                        circleClicked = true
-                        break
-                    }
-                }
-            }
-            //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
-            selectedCount = connectors.count { it.selected }
-            if (selectedCount == this.junctionCircle.junctionCategory.value - 1 && circleClicked) {
-                junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
-                //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
-                mediator.toolbox.junctionKnobs.children.forEach {
-                    var junctionKnob  = ((it as VBox).children.first() as JunctionKnob)
-                    if (junctionKnob != this)
-                        junctionKnob.loadJunctionLayout()
-                }
-                this.mediator.canvas2D.repaint()
-            }
+        this.update()
+    }
 
-        }
-        val connector = Connector(ConnectorId.s)
-        connector.fill = Color.LIGHTGRAY
-        connector.stroke = Color.DARKGRAY
-        connector.relocate(75.0-10, 130.0-10)
-        connectors.add(connector)
-        this.getChildren().addAll(connector);
-        for (i in 1 until 16) {
-            val _connector = Connector(getConnectorId(i))
-            this.connectors.add(_connector)
-            val p = rotatePoint(
-                Point2D.Double(75.0, 130.0),
-                Point2D.Double(75.0, 75.0),
-                i * 360.0 / 16.0
+    override fun update() {
+        this.connectorRadius = (if (junction.circle.width < 100.0)  junction.circle.width else 100.0)*Math.PI/(16.0*3.5)
+        this.connectors.clear()
+        this.arrows.clear()
+        if (this.junction.junctionCategory != JunctionType.ApicalLoop) {
+            val connector = JunctionConnector(
+                ConnectorId.s,
+                false,
+                junction.center.x,
+                junction.center.y + (if (junction.circle.width < 100.0)  junction.circle.width else 100.0)  / 2.0 * 2.0 / 3.0,
+                this
             )
-            _connector.relocate(p.x-10, p.y-10)
-            this.getChildren().addAll(_connector);
-        }
+            this.connectors.add(connector)
+            for (i in 1 until 16) {
+                val p = rotatePoint(
+                    connector.center,
+                    junction.center,
+                    i * 360.0 / 16.0
+                )
+                val _connector = JunctionConnector(getConnectorId(i), false, p.x, p.y, this)
 
-        var up = Polygon()
-        up.fill = Color.LIGHTGRAY
-        up.stroke = Color.BLACK
-        up.getPoints().addAll(arrayOf(
-                75.0-15, 75.0-21,
-                75.0+15, 75.0-21,
-                75.0, 75.0-42))
-        up.setOnMousePressed {
-            up.fill = Color.BLACK
-            junctionCircle.radius = junctionCircle.radius * 1.1
-            junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
-            this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
-            this.mediator.canvas2D.repaint()
-        }
-        up.setOnMouseReleased {
-            up.fill = Color.LIGHTGRAY
-        }
-        this.getChildren().addAll(up);
-
-        var bottom = Polygon()
-        bottom.fill = Color.LIGHTGRAY
-        bottom.stroke = Color.BLACK
-        bottom.getPoints().addAll(arrayOf(
-                75.0-15, 75.0+21,
-                75.0+15, 75.0+21,
-                75.0, 75.0+42))
-        bottom.setOnMousePressed {
-            bottom.fill = Color.BLACK
-            junctionCircle.radius = junctionCircle.radius * 0.9
-            junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
-            this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
-            this.mediator.canvas2D.repaint()
-        }
-        bottom.setOnMouseReleased {
-            bottom.fill = Color.LIGHTGRAY
-        }
-        this.getChildren().addAll(bottom);
-
-        var left = Polygon()
-        left.fill = Color.LIGHTGRAY
-        left.stroke = Color.BLACK
-        left.getPoints().addAll(arrayOf(
-                75.0-21, 75.0-15,
-                75.0-21, 75.0+15,
-                75.0-42, 75.0))
-        left.setOnMousePressed {
-            left.fill = Color.BLACK
-            //first we search the connector inID (the red circle
-            var inIDIndex:Int = 0
-            for (_connector in this.connectors) {
-                if (_connector.isInId) {
-                    inIDIndex = this.connectors.indexOf(_connector)
-                    break
-                }
+                this.connectors.add(_connector);
             }
-            if (this.connectors[(inIDIndex+1)%16].selected) //we do nothing, a selected circle is just on the left
-                it.consume()
-            else {
-                var currentPos = (inIDIndex+1)%16
-                while (currentPos != inIDIndex) {
-                    if (!connectors[currentPos].isInId && connectors[currentPos].selected) {
-                        connectors[currentPos].selected = false
-                        connectors[currentPos].fill = Color.LIGHTGRAY
-                        connectors[currentPos].stroke = Color.DARKGRAY
-                        connectors[if (currentPos-1 == -1) 15 else currentPos-1].selected = true
-                        connectors[if (currentPos-1 == -1) 15 else currentPos-1].fill = Color.STEELBLUE
-                        connectors[if (currentPos-1 == -1) 15 else currentPos-1].stroke = Color.DARKBLUE
-                    }
-                    currentPos = (currentPos+1)%16
-                }
-                junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
-                this.mediator.canvas2D.repaint()
-                //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
-                mediator.toolbox.junctionKnobs.children.forEach {
-                    var junctionKnob  = ((it as VBox).children.first() as JunctionKnob)
-                    if (junctionKnob != this)
-                        junctionKnob.loadJunctionLayout()
-                }
-            }
+            this.arrows.addAll(arrayListOf(Up(this), Down(this), Left(this), Right(this)));
+            this.loadJunctionLayout()
+            this.detailsButton =  DetailsButton(this)
         }
-        left.setOnMouseReleased {
-            left.fill = Color.LIGHTGRAY
+        else {
+            this.arrows.addAll(arrayListOf(Up(this), Down(this)));
+            this.detailsButton =  DetailsButton(this)
         }
-        if (this.junctionCircle.junction.type != JunctionType.ApicalLoop)
-            this.getChildren().addAll(left);
-
-        var right = Polygon()
-        right.fill = Color.LIGHTGRAY
-        right.stroke = Color.BLACK
-        right.getPoints().addAll(arrayOf(
-                75.0+21, 75.0-15,
-                75.0+21, 75.0+15,
-                75.0+42, 75.0))
-        right.setOnMousePressed {
-            right.fill = Color.BLACK
-            //first we search the connector inID (the red circle)
-            var inIDIndex:Int = 0
-            for (_connector in this.connectors) {
-                if (_connector.isInId) {
-                    inIDIndex = this.connectors.indexOf(_connector)
-                    break
-                }
-            }
-            if (this.connectors[if (inIDIndex-1 == -1) 15 else inIDIndex-1].selected) //we do nothing, a selected circle is just on the right
-                it.consume()
-            else {
-                var currentPos = if (inIDIndex-1 == -1) 15 else inIDIndex-1
-                while (currentPos != inIDIndex) {
-                    if (!connectors[currentPos].isInId && connectors[currentPos].selected) {
-                        connectors[currentPos].selected = false
-                        connectors[currentPos].fill = Color.LIGHTGRAY
-                        connectors[currentPos].stroke = Color.DARKGRAY
-                        connectors[(currentPos+1)%16].selected = true
-                        connectors[(currentPos+1)%16].fill = Color.STEELBLUE
-                        connectors[(currentPos+1)%16].stroke = Color.DARKBLUE
-                    }
-                    currentPos = if (currentPos-1 == -1) 15 else currentPos-1
-                }
-                junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.current2DDrawing!!.computeResidues(junctionCircle)
-                this.mediator.canvas2D.repaint()
-                //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
-                mediator.toolbox.junctionKnobs.children.forEach {
-                    var junctionKnob  = ((it as VBox).children.first() as JunctionKnob)
-                    if (junctionKnob != this)
-                        junctionKnob.loadJunctionLayout()
-                }
-            }
-        }
-        right.setOnMouseReleased {
-            right.fill = Color.LIGHTGRAY
-        }
-        if (this.junctionCircle.junction.type != JunctionType.ApicalLoop)
-            this.getChildren().addAll(right);
-
-        var centerViewOnJunction = Circle(10.0)
-        centerViewOnJunction.relocate(65.0,65.0)
-        centerViewOnJunction.stroke = Color.BLACK
-        centerViewOnJunction.fill = Color.BLACK
-
-        centerViewOnJunction.setOnMousePressed {
-            mediator.current2DDrawing?.let {
-                centerViewOnJunction.fill = Color.LIGHTGRAY
-                mediator.addToSelection(Mediator.SelectionEmitter.JUNCTIONKNOB, true, junctionCircle)
-                mediator.canvas2D.repaint()
-            }
-        }
-
-        centerViewOnJunction.setOnMouseReleased {
-            centerViewOnJunction.fill = Color.BLACK
-        }
-        this.getChildren().addAll(centerViewOnJunction);
-
-        this.loadJunctionLayout()
     }
 
-    fun select() {
-        this.mediator.toolbox.junctionKnobs.children.forEach{
-            ((it as VBox).children.first() as JunctionKnob).unselect()
-        }
-        this.setStyle("-fx-background-color: #ffffff; -fx-border-color: darkgray; -fx-border-width: 7px;")
+    override fun draw(g: Graphics2D, at:AffineTransform) {
+        val previousColor = g.color
+
+        for (c in this.connectors)
+            c.draw(g, at)
+
+        for (arrow in this.arrows)
+            arrow.draw(g, at)
+
+        this.detailsButton.draw(g, at)
+
+        g.color = previousColor
     }
 
-    fun unselect() = this.setStyle("-fx-background-color: #ffffff; -fx-border-color: darkgray; -fx-border-width: 2px;")
+    override fun contains(x: Double, y: Double, at: AffineTransform): Boolean {
+        if (at.createTransformedShape(this.detailsButton.innerCircle).contains(x, y)) {
+            this.detailsButton.mouseCliked()
+            return true;
+        }
+        for (connector in this.connectors) {
+            if (!connector.isInId && at.createTransformedShape(connector.circle).contains(x, y)) {
+                connector.mouseCliked()
+                return true;
+            }
+        }
+        for (arrow in this.arrows) {
+            if (arrow.contains(x, y, at)) {
+                arrow.mouseClicked()
+                return true;
+            }
+        }
+        return false
+    }
 
-    private fun getJunctionLayout(): Layout {
+    fun getJunctionLayout(): Layout {
         val layout = mutableListOf<ConnectorId>()
         //first we search the circle for the InId
         var startIndex:Int = 0
         this.connectors.forEach { connector ->
-           if (connector.isInId) {
-               startIndex = this.connectors.indexOf(connector)
-           }
+            if (connector.isInId) {
+                startIndex = this.connectors.indexOf(connector)
+            }
         }
         var currentPos = 0
         while (currentPos <= 15) {
@@ -265,18 +110,13 @@ class JunctionKnob(val junctionCircle: JunctionDrawing, val mediator: Mediator) 
     private fun loadJunctionLayout() {
         this.clear()
         this.connectors.forEach { connector ->
-            if (connector.connectorId == junctionCircle.inId) {
+            if (connector.connectorId == junction.inId) {
                 connector.isInId = true
-                connector.fill = Color.RED
-                connector.stroke = Color.DARKRED
                 connector.selected = false
             } else {
-                junctionCircle.connectedJunctions.keys.toMutableList().forEach { connectorId ->
-                    if (connector.connectorId == connectorId) {
-                        connector.fill = Color.STEELBLUE
-                        connector.stroke = Color.DARKBLUE
+                junction.connectedJunctions.keys.toMutableList().forEach { connectorId ->
+                    if (connector.connectorId == connectorId)
                         connector.selected = true
-                    }
                 }
             }
         }
@@ -286,18 +126,328 @@ class JunctionKnob(val junctionCircle: JunctionDrawing, val mediator: Mediator) 
         this.connectors.forEach { connector ->
             connector.isInId = false
             connector.selected = false
-            connector.fill = Color.LIGHTGRAY
-            connector.stroke = Color.DARKGRAY
         }
     }
 
 }
 
-class Connector(val connectorId: ConnectorId, var selected:Boolean = false):Circle(10.0, if (selected) Color.STEELBLUE else Color.LIGHTGRAY) {
+class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = false, centerX:Double, centerY:Double, val knob:JunctionKnob) {
 
     var isInId = false
+    var circle:Ellipse2D
+    var strokeWidth = 0.5
+    val center
+        get() = Point2D.Double(this.circle.x+knob.connectorRadius, this.circle.y+knob.connectorRadius)
 
     init {
-        this.stroke = if (selected) Color.DARKBLUE else Color.DARKGRAY
+        this.circle = Ellipse2D.Double(centerX- knob.connectorRadius, centerY-knob.connectorRadius,knob.connectorRadius*2,knob.connectorRadius*2)
     }
+
+    fun draw(g: Graphics2D, at: AffineTransform) {
+        if (isInId) {
+            g.color = Color.RED
+            return;
+        }
+        else if (selected && this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("true"))
+            g.color = Color.GREEN
+        else if (selected && this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("false"))
+            g.color = Color.RED
+        else if (selected)
+            g.color = Color.DARK_GRAY
+        else
+            g.color = Color.LIGHT_GRAY
+
+        g.fill(at.createTransformedShape(this.circle))
+        g.color = g.color.darker()
+        g.draw(at.createTransformedShape(this.circle))
+    }
+
+    fun mouseCliked() {
+        var selectedCount = knob.connectors.count { it.selected }
+        if (selectedCount < knob.junction.junctionCategory.value - 1 && !this.isInId ) {
+            this.selected = !this.selected
+        } else if (selectedCount >= knob.junction.junctionCategory.value - 1 && !this.isInId ) { //we can only unselect
+            this.selected = false
+        }
+        //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
+        selectedCount = knob.connectors.count { it.selected }
+        if (selectedCount == knob.junction.junctionCategory.value - 1) {
+            knob.junction.layout = knob.getJunctionLayout().toMutableList()
+            knob.mediator.current2DDrawing!!.computeResidues(knob.junction)
+            this.knob.mediator.canvas2D.knobs.forEach {
+                it.update()
+            }
+        }
+        knob.mediator.canvas2D.repaint()
+    }
+}
+
+interface JunctionArrow {
+
+    fun mouseClicked()
+
+    fun mouseReleased()
+
+    fun contains(x:Double,y:Double,at: AffineTransform):Boolean
+
+    fun draw(g: Graphics2D, at: AffineTransform)
+
+}
+
+abstract class AbstractJunctionArrow:JunctionArrow {
+    lateinit var shape: Path2D
+    var color = Color.LIGHT_GRAY
+
+    override fun contains(x:Double,y:Double,at: AffineTransform):Boolean {
+        return at.createTransformedShape(this.shape).contains(x,y)
+    }
+
+    override fun draw(g: Graphics2D, at: AffineTransform) {
+        g.color = this.color
+        g.fill(at.createTransformedShape(this.shape))
+        g.color = g.color.darker()
+        g.draw(at.createTransformedShape(this.shape))
+    }
+}
+
+class Up(val knob:JunctionKnob):AbstractJunctionArrow() {
+
+    init {
+        this.shape = Path2D.Double()
+        if (knob.junction.junctionCategory == JunctionType.ApicalLoop) {
+            this.shape.moveTo(knob.junction.center.x, knob.junction.center.y - 8 * knob.connectorRadius)
+            this.shape.lineTo(
+                knob.junction.center.x - knob.connectorRadius * 3,
+                knob.junction.center.y - 3*knob.connectorRadius
+            )
+            this.shape.lineTo(
+                knob.junction.center.x + knob.connectorRadius * 3,
+                knob.junction.center.y - 3*knob.connectorRadius
+            )
+        } else {
+            this.shape.moveTo(knob.junction.center.x, knob.junction.center.y - 4 * knob.connectorRadius)
+            this.shape.lineTo(
+                knob.junction.center.x - knob.connectorRadius * 1.5,
+                knob.junction.center.y - 2 * knob.connectorRadius
+            )
+            this.shape.lineTo(
+                knob.junction.center.x + knob.connectorRadius * 1.5,
+                knob.junction.center.y - 2 * knob.connectorRadius
+            )
+        }
+        this.shape.closePath()
+    }
+
+    override fun draw(g: Graphics2D, at: AffineTransform) {
+        g.color = this.color
+        g.fill(at.createTransformedShape(this.shape))
+        g.color = g.color.darker()
+        g.draw(at.createTransformedShape(this.shape))
+    }
+
+    override fun mouseClicked() {
+        this.knob.junction.radius = this.knob.junction.radius * 1.1
+        this.knob.junction.layout = this.knob.junction.layout //a trick to recompute the stuff
+        this.knob.mediator.current2DDrawing!!.computeResidues(this.knob.junction)
+        this.knob.mediator.canvas2D.knobs.forEach {
+            it.update()
+        }
+        this.knob.mediator.canvas2D.repaint()
+    }
+
+    override fun mouseReleased() {
+
+    }
+
+}
+
+class Down(val knob:JunctionKnob):AbstractJunctionArrow() {
+
+    init {
+        this.shape = Path2D.Double()
+        if (knob.junction.junctionCategory == JunctionType.ApicalLoop) {
+            this.shape.moveTo(knob.junction.center.x, knob.junction.center.y + 8 * knob.connectorRadius)
+            this.shape.lineTo(
+                knob.junction.center.x - knob.connectorRadius * 3,
+                knob.junction.center.y + 3*knob.connectorRadius
+            )
+            this.shape.lineTo(
+                knob.junction.center.x + knob.connectorRadius * 3,
+                knob.junction.center.y + 3*knob.connectorRadius
+            )
+        } else {
+            this.shape.moveTo(knob.junction.center.x, knob.junction.center.y + 4 * knob.connectorRadius)
+            this.shape.lineTo(
+                knob.junction.center.x - knob.connectorRadius * 1.5,
+                knob.junction.center.y + 2 * knob.connectorRadius
+            )
+            this.shape.lineTo(
+                knob.junction.center.x + knob.connectorRadius * 1.5,
+                knob.junction.center.y + 2 * knob.connectorRadius
+            )
+        }
+        this.shape.closePath()
+    }
+
+    override fun mouseClicked() {
+        this.knob.junction.radius = this.knob.junction.radius * 0.9
+        this.knob.junction.layout = this.knob.junction.layout //a trick to recompute the stuff
+        this.knob.mediator.current2DDrawing!!.computeResidues(this.knob.junction)
+        this.knob.mediator.canvas2D.knobs.forEach {
+            it.update()
+        }
+        this.knob.mediator.canvas2D.repaint()
+    }
+
+    override fun mouseReleased() {
+    }
+
+}
+
+class Left(val knob:JunctionKnob):AbstractJunctionArrow() {
+
+    init {
+        this.shape = Path2D.Double()
+        this.shape.moveTo(knob.junction.center.x-4*knob.connectorRadius, knob.junction.center.y)
+        this.shape.lineTo(knob.junction.center.x-2*knob.connectorRadius, knob.junction.center.y-1.5*knob.connectorRadius)
+        this.shape.lineTo(knob.junction.center.x-2*knob.connectorRadius, knob.junction.center.y+1.5*knob.connectorRadius)
+        this.shape.closePath()
+    }
+
+    override fun mouseClicked() {
+        //first we search the connector inID (the red circle
+        var inIDIndex:Int = 0
+        for (_connector in this.knob.connectors) {
+            if (_connector.isInId) {
+                inIDIndex = this.knob.connectors.indexOf(_connector)
+                break
+            }
+        }
+        if (!this.knob.connectors[(inIDIndex+1)%16].selected) { //if not we do nothing, a selected circle is just on the left
+            var currentPos = (inIDIndex+1)%16
+            while (currentPos != inIDIndex) {
+                if (!this.knob.connectors[currentPos].isInId && this.knob.connectors[currentPos].selected) {
+                    this.knob.connectors[currentPos].selected = false
+                    this.knob.connectors[if (currentPos-1 == -1) 15 else currentPos-1].selected = true
+                }
+                currentPos = (currentPos+1)%16
+            }
+            this.knob.junction.layout = this.knob.getJunctionLayout().toMutableList()
+            this.knob.mediator.current2DDrawing!!.computeResidues(this.knob.junction)
+            this.knob.mediator.canvas2D.knobs.forEach {
+                it.update()
+            }
+            this.knob.mediator.canvas2D.repaint()
+        }
+    }
+
+    override fun mouseReleased() {
+    }
+
+}
+
+class Right(val knob:JunctionKnob):AbstractJunctionArrow() {
+
+    init {
+        this.shape = Path2D.Double()
+        this.shape.moveTo(knob.junction.center.x+4*knob.connectorRadius, knob.junction.center.y)
+        this.shape.lineTo(knob.junction.center.x+2*knob.connectorRadius, knob.junction.center.y-1.5*knob.connectorRadius)
+        this.shape.lineTo(knob.junction.center.x+2*knob.connectorRadius, knob.junction.center.y+1.5*knob.connectorRadius)
+        this.shape.closePath()
+    }
+
+    override fun mouseClicked() {
+        //first we search the connector inID (the red circle)
+        var inIDIndex:Int = 0
+        for (_connector in this.knob.connectors) {
+            if (_connector.isInId) {
+                inIDIndex = this.knob.connectors.indexOf(_connector)
+                break
+            }
+        }
+        if (!this.knob.connectors[if (inIDIndex-1 == -1) 15 else inIDIndex-1].selected) { //if not we do nothing, a selected circle is just on the right
+            var currentPos = if (inIDIndex-1 == -1) 15 else inIDIndex-1
+            while (currentPos != inIDIndex) {
+                if (!this.knob.connectors[currentPos].isInId && this.knob.connectors[currentPos].selected) {
+                    this.knob.connectors[currentPos].selected = false
+                    this.knob.connectors[(currentPos+1)%16].selected = true
+                }
+                currentPos = if (currentPos-1 == -1) 15 else currentPos-1
+            }
+            this.knob.junction.layout = this.knob.getJunctionLayout().toMutableList()
+            this.knob.mediator.current2DDrawing!!.computeResidues(this.knob.junction)
+            this.knob.mediator.canvas2D.knobs.forEach {
+                it.update()
+            }
+            this.knob.mediator.canvas2D.repaint()
+        }
+    }
+
+    override fun mouseReleased() {
+
+    }
+
+}
+
+class DetailsButton(val knob:JunctionKnob) {
+
+    val innerCircle:Ellipse2D
+    val outerCircle:Ellipse2D
+
+    init {
+        if (knob.junction.junctionCategory == JunctionType.ApicalLoop) {
+            this.innerCircle = Ellipse2D.Double(
+                knob.junction.center.x - knob.connectorRadius*1.5,
+                knob.junction.center.y - knob.connectorRadius*1.5,
+                knob.connectorRadius * 3,
+                knob.connectorRadius * 3)
+            this.outerCircle = Ellipse2D.Double(
+                knob.junction.center.x - knob.connectorRadius*3,
+                knob.junction.center.y - knob.connectorRadius*3,
+                knob.connectorRadius * 6,
+                knob.connectorRadius * 6)
+        } else {
+            this.innerCircle = Ellipse2D.Double(
+                knob.junction.center.x - knob.connectorRadius,
+                knob.junction.center.y - knob.connectorRadius,
+                knob.connectorRadius * 2,
+                knob.connectorRadius * 2)
+            this.outerCircle = Ellipse2D.Double(
+                knob.junction.center.x - knob.connectorRadius*2,
+                knob.junction.center.y - knob.connectorRadius*2,
+                knob.connectorRadius * 4,
+                knob.connectorRadius * 4)
+        }
+    }
+
+    fun draw(g: Graphics2D, at: AffineTransform) {
+        g.color = Color.WHITE
+        g.fill(at.createTransformedShape(this.outerCircle))
+        g.color = Color.LIGHT_GRAY
+        g.draw(at.createTransformedShape(this.outerCircle))
+        if (this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("true"))
+            g.color = Color.GREEN
+        else if (this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("false"))
+            g.color = Color.RED
+        else
+            g.color = Color.DARK_GRAY
+        g.fill(at.createTransformedShape(this.innerCircle))
+        g.color = g.color.darker()
+        g.draw(at.createTransformedShape(this.innerCircle))
+    }
+
+    fun mouseCliked() {
+        var result:String? = "true"
+        if (knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString())) {
+            if ("true".equals(knob.junction.drawingConfiguration.fullDetails.toString()))
+                result = "false"
+            else if ("false".equals(knob.junction.drawingConfiguration.fullDetails.toString()))
+                result = null
+        }
+        knob.mediator.explorer.getTreeViewItemFor(knob.mediator.explorer.treeTableView.root, knob.junction).value.fullDetails = result
+        knob.mediator.canvas2D.repaint()
+        knob.mediator.explorer.refresh()
+    }
+
+
 }

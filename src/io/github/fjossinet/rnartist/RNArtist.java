@@ -1,7 +1,6 @@
 package io.github.fjossinet.rnartist;
 
-import io.github.fjossinet.rnartist.gui.Canvas2D;
-import io.github.fjossinet.rnartist.gui.RegisterDialog;
+import io.github.fjossinet.rnartist.gui.*;
 import io.github.fjossinet.rnartist.io.ChimeraDriver;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.core.model.io.Rnaview;
@@ -16,6 +15,7 @@ import javafx.event.EventHandler;
 import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -36,11 +36,11 @@ import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
-import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getAWTColor;
 import static io.github.fjossinet.rnartist.io.UtilsKt.awtColorToJavaFX;
 import static io.github.fjossinet.rnartist.io.UtilsKt.javaFXToAwt;
 
@@ -394,7 +394,7 @@ public class RNArtist extends Application {
             }
         });
 
-        this.load2DForMenu.getItems().addAll(clearAll2DsItem, clearAll2DsExceptCurrentItem, new SeparatorMenuItem());
+        this.load2DForMenu.getItems().addAll(new SeparatorMenuItem(), clearAll2DsItem, clearAll2DsExceptCurrentItem);
 
         CheckMenuItem centerOnSelectionItem = new CheckMenuItem("Automatic Center on Selection");
         centerOnSelectionItem.setSelected(RnartistConfig.getCenterDisplayOnSelection());
@@ -475,14 +475,12 @@ public class RNArtist extends Application {
         Menu residuesThemes = new Menu("Residues");
         defaultThemesMenu.getItems().add(residuesThemes);
 
-        for (String themeName:RnartistConfig.residuesThemes.keySet()) {
+        for (String themeName : RnartistConfig.residuesThemes.keySet()) {
             MenuItem residueThemeItem = new MenuItem(themeName);
             residueThemeItem.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent actionEvent) {
-                    mediator.getToolbox().setMuted(false);
-                    mediator.getToolbox().applyTheme(RnartistConfig.residuesThemes.get(themeName));
-                    mediator.getToolbox().setMuted(true);
+                    mediator.getExplorer().applyTheme(RnartistConfig.residuesThemes.get(themeName));
                     mediator.getCanvas2D().repaint();
                     mediator.getExplorer().refresh();
                 }
@@ -493,14 +491,12 @@ public class RNArtist extends Application {
         Menu structuralDomainsThemes = new Menu("Structural Domains");
         defaultThemesMenu.getItems().add(structuralDomainsThemes);
 
-        for (String themeName:RnartistConfig.structuralDomainsThemes.keySet()) {
+        for (String themeName : RnartistConfig.structuralDomainsThemes.keySet()) {
             MenuItem structuralDomainThemeItem = new MenuItem(themeName);
             structuralDomainThemeItem.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent actionEvent) {
-                    mediator.getToolbox().setMuted(false);
-                    mediator.getToolbox().applyTheme(RnartistConfig.structuralDomainsThemes.get(themeName));
-                    mediator.getToolbox().setMuted(true);
+                    mediator.getExplorer().applyTheme(RnartistConfig.structuralDomainsThemes.get(themeName));
                     mediator.getCanvas2D().repaint();
                     mediator.getExplorer().refresh();
                 }
@@ -518,13 +514,13 @@ public class RNArtist extends Application {
         themesMenu.getItems().addAll(this.currentThemeMenu, defaultThemesMenu, userThemesMenu, communityThemesMenu);
 
         //++++++++ Windows Menu
-        MenuItem toolboxItem = new MenuItem("Toolbox");
+        MenuItem toolboxItem = new MenuItem("Settings");
 
         toolboxItem.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
-                mediator.getToolbox().getStage().show();
-                mediator.getToolbox().getStage().toFront();
+                mediator.getSettings().getStage().show();
+                mediator.getSettings().getStage().toFront();
             }
         });
 
@@ -578,7 +574,10 @@ public class RNArtist extends Application {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 if (mediator.getCurrent2DDrawing() != null) {
-                    mediator.getCanvas2D().centerDisplayOn(mediator.getCurrent2DDrawing().getBounds());
+                    if (mediator.getCurrent2DDrawing().getSelection().isEmpty())
+                        mediator.getCanvas2D().centerDisplayOn(mediator.getCurrent2DDrawing().getBounds());
+                    else
+                        mediator.getCanvas2D().centerDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
                 }
             }
         });
@@ -591,7 +590,10 @@ public class RNArtist extends Application {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 if (mediator.getCurrent2DDrawing() != null) {
-                    mediator.getCanvas2D().fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
+                    if (mediator.getCurrent2DDrawing().getSelection().isEmpty())
+                        mediator.getCanvas2D().fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
+                    else
+                        mediator.getCanvas2D().fitDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
                 }
             }
         });
@@ -645,7 +647,7 @@ public class RNArtist extends Application {
         sliderSize.setOnMouseReleased(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                RnartistConfig.setSelectionSize((int)sliderSize.getValue());
+                RnartistConfig.setSelectionSize((int) sliderSize.getValue());
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -667,9 +669,9 @@ public class RNArtist extends Application {
         colorPicker.valueProperty().addListener(new ChangeListener<Color>() {
             @Override
             public void changed(ObservableValue<? extends Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color newValue) {
-               java.awt.Color c = javaFXToAwt(colorPicker.getValue());
-               RnartistConfig.setSelectionColor(c);
-               mediator.canvas2D.repaint();
+                java.awt.Color c = javaFXToAwt(colorPicker.getValue());
+                RnartistConfig.setSelectionColor(c);
+                mediator.canvas2D.repaint();
             }
         });
         colorPicker.setMaxWidth(Double.MAX_VALUE);
@@ -680,7 +682,7 @@ public class RNArtist extends Application {
         Separator s = new Separator();
         s.setPadding(new Insets(0, 5, 0, 5));
 
-        toolbar.getItems().addAll(allButtons, s , selectionSize, selectionColor);
+        toolbar.getItems().addAll(allButtons, s, selectionSize, selectionColor);
 
         VBox vbox = new VBox();
         vbox.setPadding(new Insets(0, 0, 0, 0));
@@ -693,34 +695,97 @@ public class RNArtist extends Application {
         //++++++ Canvas2D
         final SwingNode swingNode = new SwingNode();
         swingNode.setOnMouseClicked(mouseEvent -> {
-            if (mediator.getCurrent2DDrawing() != null) {
+            if (mouseEvent.isControlDown() || mouseEvent.isAltDown()) {
+                mediator.getCanvas2D().clearSelection();
+                mediator.getExplorer().clearSelection();
+                return;
+            } else if (mouseEvent.getButton() == MouseButton.PRIMARY) {
                 AffineTransform at = new AffineTransform();
                 at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
                 at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
-                for (JunctionDrawing jc : mediator.getCurrent2DDrawing().getAllJunctions()) {
-                    if (at.createTransformedShape(jc.circle).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                        mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, false, jc);
-                        mediator.getCanvas2D().repaint();
+                for (Knob knob : mediator.getCanvas2D().getKnobs()) {
+                    if (knob.contains(mouseEvent.getX(), mouseEvent.getY(), at))
                         return;
-                    }
                 }
+                if (mediator.getCurrent2DDrawing() != null) {
+                    for (JunctionDrawing j : mediator.getCurrent2DDrawing().getAllJunctions()) {
+                        if (at.createTransformedShape(j.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
+                            if (!j.getSelected()) {
+                                mediator.getCanvas2D().addToSelection(j);
+                                mediator.getExplorer().selectAllTreeViewItems(drawingElement -> j.equals(drawingElement), Arrays.asList(mediator.getExplorer().getTreeTableView().getRoot()), false);
+                            } else {
+                                DrawingElement p = j.getParent();
+                                while (p != null && p.getSelected()) {
+                                    p = p.getParent();
+                                }
+                                if (p == null) {
+                                    mediator.getCanvas2D().clearSelection();
+                                    mediator.getCanvas2D().addToSelection(j);
+                                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> j.equals(drawingElement), Arrays.asList(mediator.getExplorer().getTreeTableView().getRoot()), false);
+                                } else {
+                                    DrawingElement _p = p;
+                                    mediator.getCanvas2D().addToSelection(p);
+                                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> _p.equals(drawingElement), Arrays.asList(mediator.getExplorer().getTreeTableView().getRoot()), false);
+                                }
+                            }
+                            return;
 
-                List<ResidueDrawing> residues = mediator.getCurrent2DDrawing().getResidues();
-                for (ResidueDrawing c : residues) {
-                    if (c.getCircle() != null && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
-                        mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, false, c);
-                        mediator.getCanvas2D().repaint();
-                        return;
+                        }
+                    }
+
+                    for (HelixDrawing h : mediator.getCurrent2DDrawing().getAllHelices()) {
+                        if (at.createTransformedShape(h.getBounds2D()).contains(mouseEvent.getX(), mouseEvent.getY())) {
+                            if (!h.getSelected()) {
+                                mediator.getCanvas2D().addToSelection(h);
+                                mediator.getExplorer().selectAllTreeViewItems(drawingElement -> h.equals(drawingElement), Arrays.asList(mediator.getExplorer().getTreeTableView().getRoot()), false);
+                            } else {
+                                DrawingElement p = h.getParent();
+                                while (p != null && p.getSelected()) {
+                                    p = p.getParent();
+                                }
+                                if (p == null) {
+                                    mediator.getCanvas2D().clearSelection();
+                                    mediator.getCanvas2D().addToSelection(h);
+                                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> h.equals(drawingElement), Arrays.asList(mediator.getExplorer().getTreeTableView().getRoot()), false);
+                                } else {
+                                    DrawingElement _p = p;
+                                    mediator.getCanvas2D().addToSelection(p);
+                                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> _p.equals(drawingElement), Arrays.asList(mediator.getExplorer().getTreeTableView().getRoot()), false);
+                                }
+                            }
+                            return;
+                        }
+                    }
+
+                    List<ResidueDrawing> residues = mediator.getCurrent2DDrawing().getResidues();
+                    for (ResidueDrawing c : residues) {
+                        if (c.isFullDetails() && at.createTransformedShape(c.getCircle()).contains(mouseEvent.getX(), mouseEvent.getY())) {
+                            if (!c.getSelected()) {
+                                mediator.getCanvas2D().addToSelection(c);
+                                mediator.getExplorer().selectAllTreeViewItems(drawingElement -> c.equals(drawingElement), Arrays.asList(mediator.getExplorer().getTreeTableView().getRoot()), false);
+                            } else {
+                                DrawingElement p = c.getParent();
+                                while (p != null && p.getSelected()) {
+                                    p = p.getParent();
+                                }
+                                if (p == null) {
+                                    mediator.getCanvas2D().clearSelection();
+                                    mediator.getCanvas2D().addToSelection(c);
+                                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> c.equals(drawingElement), Arrays.asList(mediator.getExplorer().getTreeTableView().getRoot()), false);
+                                } else {
+                                    DrawingElement _p = p;
+                                    mediator.getCanvas2D().addToSelection(p);
+                                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> _p.equals(drawingElement), Arrays.asList(mediator.getExplorer().getTreeTableView().getRoot()), false);
+                                }
+                            }
+                            return;
+                        }
                     }
                 }
-                //no hit found. Ctrl or Alt has to be down to confirm unselection
-                if (mouseEvent.isControlDown() || mouseEvent.isAltDown())
-                    mediator.addToSelection(Mediator.SelectionEmitter.CANVAS2D, true, null);
-                mediator.getCanvas2D().repaint();
             }
         });
         swingNode.setOnMouseDragged(mouseEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
+            if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
                 mediator.getCurrent2DDrawing().setQuickDraw(true);
                 double transX = mouseEvent.getX() - mediator.getCanvas2D().getTranslateX();
                 double transY = mouseEvent.getY() - mediator.getCanvas2D().getTranslateY();
@@ -731,7 +796,7 @@ public class RNArtist extends Application {
             }
         });
         swingNode.setOnMouseReleased(mouseEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
+            if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
                 mediator.getCurrent2DDrawing().setQuickDraw(false);
                 mediator.getCanvas2D().setTranslateX(0.0);
                 mediator.getCanvas2D().setTranslateY(0.0);
@@ -739,7 +804,7 @@ public class RNArtist extends Application {
             }
         });
         swingNode.setOnMousePressed(mouseEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
+            if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
                 mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
                 mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
             }
@@ -794,13 +859,15 @@ public class RNArtist extends Application {
 
         root.setBottom(statusBar);
         Scene scene = new Scene(root, screen.getBounds().getWidth(), screen.getBounds().getHeight());
+        scene.getStylesheets().add(getClass().getClassLoader().getResource("io/github/fjossinet/rnartist/gui/css/main.css").toExternalForm());
         stage.setScene(scene);
         stage.setTitle("RNArtist");
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        scene.getWindow().setWidth(screenSize.getWidth() - 400);
-        scene.getWindow().setHeight(screenSize.getHeight() - 200);
-        scene.getWindow().setX(400);
+        int width = (int) (screenSize.getWidth() * 4.0 / 10.0);
+        scene.getWindow().setWidth(screenSize.getWidth() - width);
+        scene.getWindow().setHeight(screenSize.getHeight());
+        scene.getWindow().setX(0);
         scene.getWindow().setY(0);
 
         mediator.getProjectManager().getStage().show();
@@ -843,7 +910,7 @@ public class RNArtist extends Application {
     }
 
     public void setCurrentTheme(org.apache.commons.lang3.tuple.Pair<String, NitriteId> theme) {
-        mediator.getCurrent2DDrawing().setTheme(mediator.getEmbeddedDB().getTheme(theme.getValue()));
+        //mediator.getCurrent2DDrawing().setTheme(mediator.getEmbeddedDB().getTheme(theme.getValue()));
         updateSavedThemeItem.setUserData(theme); //to have the theme reference to update it for the user
         updateSavedThemeItem.setDisable(false);
         currentThemeMenu.setUserData(theme);

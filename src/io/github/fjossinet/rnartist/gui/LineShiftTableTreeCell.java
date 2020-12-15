@@ -7,22 +7,21 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.layout.Region;
+import javafx.scene.input.MouseEvent;
 import javafx.util.Callback;
+import org.controlsfx.glyphfont.FontAwesome;
+import org.controlsfx.glyphfont.Glyph;
 
-import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
-import static io.github.fjossinet.rnartist.io.UtilsKt.javaFXToAwt;
+public class LineShiftTableTreeCell<T> extends TreeTableCell<T, String> {
 
-public final class ColorTreeTableCell<T> extends TreeTableCell<T, String> {
-
+    private Slider slider = new Slider();
     private Mediator mediator;
-    private final Region graphic;
 
-    public ColorTreeTableCell(Mediator mediator) {
+    public LineShiftTableTreeCell(Mediator mediator) {
+        slider.setMin(0);
+        slider.setMax(255);
+        this.setContextMenu(new CMenu());
         this.mediator = mediator;
-        setContextMenu(new CMenu());
-        this.graphic = new Region();
-        this.graphic.setMaxHeight(15);
     }
 
     @Override
@@ -31,79 +30,77 @@ public final class ColorTreeTableCell<T> extends TreeTableCell<T, String> {
         setText(null);
         setGraphic(null);
         if (!empty && value != null && !value.isEmpty()) {
-            setText(null);
-            String style = null;
-            if (value != null && !empty) {
-                style = String.format("-fx-background-color: %s ; -fx-border-width: 1; -fx-border-color: dimgrey;", value);
-                graphic.setStyle(style);
-                setGraphic(graphic);
-                setAlignment(Pos.CENTER);
-            }
+            setText(value);
+            setAlignment(Pos.CENTER);
         }
-
     }
 
     public static <T> Callback<TreeTableColumn<T, String>, TreeTableCell<T, String>> forTreeTableColumn(Mediator mediator) {
-        return (TreeTableColumn<T, String> tableColumn) -> new ColorTreeTableCell<>(mediator);
+        return (TreeTableColumn<T, String> tableColumn) -> new LineShiftTableTreeCell<>(mediator);
     }
 
     private class CMenu extends ContextMenu {
         CMenu() {
-            final Menu colors = new Menu("Set Colors...");
-            colors.getStyleClass().add("no-highlight");
-            this.getItems().add(colors);
-            final ColorPicker colorsPicker = new ColorPicker();
-            final MenuItem setColor = new MenuItem(null,colorsPicker);
-            colors.getItems().add(setColor);
-            setColor.setOnAction(new EventHandler<ActionEvent>(){
+            final Menu shift = new Menu("Set Shift");
+            shift.getStyleClass().add("no-highlight");
+            this.getItems().add(shift);
+            Slider slider = new Slider(0, 10,0);
+            slider.setShowTickLabels(true);
+            slider.setShowTickMarks(true);
+            slider.setMajorTickUnit(5);
+            slider.setMinorTickCount(1);
+            slider.setShowTickMarks(true);
+            slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
                 @Override
-                public void handle(ActionEvent event) {
-                    for (TreeItem item: ColorTreeTableCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
+                public void handle(MouseEvent mouseEvent) {
+                    for (TreeItem item: LineShiftTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
                         if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
                             for (Object child:item.getChildren())
-                                ((ExplorerItem)((TreeItem)child).getValue()).setColor(getHTMLColorString(javaFXToAwt(colorsPicker.getValue())));
+                                ((ExplorerItem)((TreeItem)child).getValue()).setLineShift(Integer.toString((int)slider.getValue()));
                         }
                         else
-                            ((ExplorerItem)item.getValue()).setColor(getHTMLColorString(javaFXToAwt(colorsPicker.getValue())));
+                            ((ExplorerItem)item.getValue()).setLineShift(Integer.toString((int)slider.getValue()));
                     }
                     mediator.getExplorer().refresh();
                     mediator.getCanvas2D().repaint();
+
                 }
             });
-            final Menu clearColors = new Menu("Clear Colors...");
-            this.getItems().add(clearColors);
+            shift.getItems().add(new MenuItem(null,slider));
+            final Menu clear = new Menu("Clear Shift...");
+            this.getItems().add(clear);
             final MenuItem here = new MenuItem("Here");
-            clearColors.getItems().add(here);
+            clear.getItems().add(here);
             here.setOnAction(new EventHandler<ActionEvent>(){
                 @Override
                 public void handle(ActionEvent event) {
-                    for (TreeItem item: ColorTreeTableCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
+                    for (TreeItem item: LineShiftTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
                         if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
                             for (Object child:item.getChildren())
-                                ((ExplorerItem)((TreeItem)child).getValue()).setColor(null);
+                                ((ExplorerItem)((TreeItem)child).getValue()).setLineShift(null);
                         }
                         else
-                            ((ExplorerItem)item.getValue()).setColor(null);
+                            ((ExplorerItem)item.getValue()).setLineShift(null);
                     }
                     mediator.getExplorer().refresh();
                     mediator.getCanvas2D().repaint();
                 }
             });
             final MenuItem fromHere = new MenuItem("From Here");
-            clearColors.getItems().add(fromHere);
+            clear.getItems().add(fromHere);
             fromHere.setOnAction(new EventHandler<ActionEvent>(){
                 @Override
                 public void handle(ActionEvent event) {
-                    for (TreeItem item: ColorTreeTableCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
+                    for (TreeItem item: LineShiftTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
                         if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
                             for (Object child:item.getChildren())
                                 for (Object i: mediator.getExplorer().getAllTreeViewItemsFrom((TreeItem)child))
-                                    ((TreeItem<ExplorerItem>)i).getValue().setColor(null);
+                                    ((TreeItem<ExplorerItem>)i).getValue().setLineShift(null);
                         }
                         else
                             for (Object child:item.getChildren())
                                 for (Object i: mediator.getExplorer().getAllTreeViewItemsFrom((TreeItem)child))
-                                    ((TreeItem<ExplorerItem>)i).getValue().setColor(null);
+                                    ((TreeItem<ExplorerItem>)i).getValue().setLineShift(null);
                     }
                     mediator.getExplorer().refresh();
                     mediator.getCanvas2D().repaint();

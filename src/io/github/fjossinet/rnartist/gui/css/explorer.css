@@ -8,6 +8,11 @@
     -fx-background-insets: 0, 1, 2;
 }
 
+.tree-table-row-cell:odd {
+    -fx-background-color: #f9f9f9;
+    -fx-background-insets: 0, 0 0 1 0;
+}
+
 .tree-table-row-cell:selected .tree-table-cell {
     -fx-text-fill: white;
 }
@@ -18,4 +23,31 @@
 
 .tree-table-row-cell:empty .tree-table-cell {
     -fx-border-width: 0px;
+}
+
+#layout-label {
+    -fx-background-color: white, white;
+    -fx-background-radius: 16.4, 15;
+    -fx-border-radius: 15;
+    -fx-border-width: 2;
+    -fx-border-color: dimgrey;
+    -fx-padding: 5;
+}
+
+.slider .axis {
+    -fx-tick-label-fill: black;
+}
+
+.slider .axis .axis-tick-mark, .slider .axis .axis-minor-tick-mark {
+    -fx-fill: null;
+    -fx-stroke: black;
+}
+
+.no-highlight .menu-item:focused {
+    -fx-background-color: transparent;
+}
+
+/*since there is a bug when one choose custom color from the color picker embedded in a context menu*/
+.color-palette .hyperlink {
+    visibility: hidden ;
 }

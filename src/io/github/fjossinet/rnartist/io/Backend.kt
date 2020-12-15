@@ -70,7 +70,7 @@ object Backend {
                         var ss = SecondaryStructureDrawing(
                             parseVienna(StringReader(">test\nUGCCAAXGCGCA\n(((.(...))))"))!!,
                             mediator.canvas2D.bounds,
-                                drawing.theme,
+                                mediator.theme,
                             WorkingSession()
                         )
                         mediator.workingSession!!.viewX = 0.0

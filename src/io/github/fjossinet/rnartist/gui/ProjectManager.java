@@ -113,6 +113,7 @@ public class ProjectManager {
         });
         Scene scene = new Scene(gridview);
         stage.setScene(scene);
+        scene.getStylesheets().add(getClass().getClassLoader().getResource("io/github/fjossinet/rnartist/gui/css/main.css").toExternalForm());
     }
 
     class ProjectCell extends GridCell<Project> {
@@ -139,7 +140,6 @@ public class ProjectManager {
                     if (ProjectCell.this.getItem().name.equals("New Project")) {
                         stage.hide();
                         mediator.get_2DDrawingsLoaded().clear();
-                        mediator.getToolbox().getStage().show();
                         mediator.getExplorer().getStage().show();
                         mediator.getRnartist().getStage().show();
                         mediator.getRnartist().getStage().toFront();
@@ -159,7 +159,6 @@ public class ProjectManager {
                             }
                         }
                         mediator.getRnartist().getStage().show();
-                        mediator.getToolbox().getStage().show();
                     }
 
                 }
