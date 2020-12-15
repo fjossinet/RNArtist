@@ -16,7 +16,7 @@ mvn clean package
 
 ## Run
 
-In the directory target/RNArtist, and run the file for your operating system by typing: 
+From the directory target/RNArtist, run the file for your operating system by typing: 
 
 ```./launch_rnartist_for_...```
 
