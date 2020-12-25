@@ -9,8 +9,7 @@
     <version>1.0</version>
 
     <name>RNArtist</name>
-    <!-- FIXME change it to the project's website -->
-    <url>http://www.example.com</url>
+    <url>https://github.com/fjossinet/RNArtist</url>
 
     <developers>
         <developer>
@@ -47,12 +46,9 @@
         <kotlin_version>1.4.10</kotlin_version>
 
         <slf4j.version>2.0.0-alpha1</slf4j.version>
-        <pi4j.version>2.0-SNAPSHOT</pi4j.version>
 
-        <exec-maven-plugin.version>1.6.0</exec-maven-plugin.version>
+        <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-
-        <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
 
         <main.class>io.github.fjossinet.rnartist.Main</main.class>
     </properties>
@@ -132,7 +128,7 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist.core</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.1.2-SNAPSHOT</version>
+            <version>0.1.3-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
@@ -220,6 +216,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <mainClass>${main.class}</mainClass>
+                            <useUniqueVersions>false</useUniqueVersions>
                         </manifest>
                     </archive>
                 </configuration>
@@ -241,7 +238,7 @@
                             <includeScope>runtime</includeScope>
                             <excludeTransitive>false</excludeTransitive>
                             <overWriteReleases>false</overWriteReleases>
-                            <overWriteSnapshots>true</overWriteSnapshots>
+                            <overWriteSnapshots>false</overWriteSnapshots>
                             <overWriteIfNewer>true</overWriteIfNewer>
                         </configuration>
                     </execution>
@@ -271,6 +268,29 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!-- to run RNArtist -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>-Xms500M</argument>
+                        <argument>-Xmx500M</argument>
+                        <argument>--module-path</argument>
+                        <argument>${project.basedir}/target/RNArtist/lib</argument>
+                        <argument>--add-modules=javafx.controls,javafx.swing,javafx.web</argument>
+                        <argument>--add-exports</argument>
+                        <argument>javafx.graphics/com.sun.javafx.css=ALL-UNNAMED</argument>
+                        <argument>--add-opens</argument>
+                        <argument>javafx.controls/javafx.scene.control.skin=ALL-UNNAMED</argument>
+                        <argument>-jar</argument>
+                        <argument>${project.basedir}/target/RNArtist/lib/rnartist-1.0.jar</argument>
+                    </arguments>
+                </configuration>
             </plugin>
 
         </plugins>

@@ -14,7 +14,7 @@ interface ExplorerItem {
     val drawingElement:DrawingElement?
     val residues:List<ResidueDrawing>
 
-    fun applyTheme(theme: Map<String, Map<String, String>>)
+    fun applyTheme(theme: Theme)
 
 }
 
@@ -48,19 +48,16 @@ class SecondaryStructureItem(val drawing:SecondaryStructureDrawing): AbstractExp
         }
 
     override var lineWidth: String? = drawing.drawingConfiguration.lineWidth!!.toString()
-
         set(value) {
             field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.LineWidth.toString(), value)
         }
 
     override var lineShift: String? = drawing.drawingConfiguration.lineShift!!.toString()
-
         set(value) {
             field =  this.setDrawingConfigurationParameter(DrawingConfigurationParameter.LineShift.toString(), value)
         }
 
     override var opacity: String? = drawing.drawingConfiguration.opacity?.toString()
-
         set(value) {
             field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.Opacity.toString(), value)
         }
@@ -76,12 +73,18 @@ class SecondaryStructureItem(val drawing:SecondaryStructureDrawing): AbstractExp
         return this.drawing.drawingConfiguration.params[param]
     }
 
-    override fun applyTheme(theme: Map<String, Map<String, String>>) {
-        this.color = theme[SecondaryStructureType.Full2D.toString()]?.get(DrawingConfigurationParameter.Color.toString())
-        this.lineWidth = theme[SecondaryStructureType.Full2D.toString()]?.get(DrawingConfigurationParameter.LineWidth.toString())
-        this.lineShift = theme[SecondaryStructureType.Full2D.toString()]?.get(DrawingConfigurationParameter.LineShift.toString())
-        this.opacity = theme[SecondaryStructureType.Full2D.toString()]?.get(DrawingConfigurationParameter.Opacity.toString())
-        this.fullDetails = theme[SecondaryStructureType.Full2D.toString()]?.get(DrawingConfigurationParameter.FullDetails.toString())
+    override fun applyTheme(theme: Theme) {
+        theme.configurations.get(SecondaryStructureType.Full2D.toString())?.let { configuration ->
+            configuration.keys.forEach {
+                when(it) {
+                    DrawingConfigurationParameter.Color.toString() -> this.color = configuration[it]
+                    DrawingConfigurationParameter.LineWidth.toString() -> this.lineWidth = configuration[it]
+                    DrawingConfigurationParameter.LineShift.toString() -> this.lineShift = configuration[it]
+                    DrawingConfigurationParameter.Opacity.toString() -> this.opacity = configuration[it]
+                    DrawingConfigurationParameter.FullDetails.toString() -> this.fullDetails = configuration[it]
+                }
+            }
+        }
     }
 
 }
@@ -128,11 +131,18 @@ abstract class StructuralItem(name:String, drawingElement:DrawingElement):Abstra
         return this.drawingElement!!.drawingConfiguration.params[param]
     }
 
-    override fun applyTheme(theme: Map<String, Map<String, String>>) {
-        this.color = theme[this.drawingElement!!.type.toString()]?.get(DrawingConfigurationParameter.Color.toString())
-        this.lineWidth = theme[this.drawingElement!!.type.toString()]?.get(DrawingConfigurationParameter.LineWidth.toString())
-        this.lineShift = theme[this.drawingElement!!.type.toString()]?.get(DrawingConfigurationParameter.LineShift.toString())
-        this.opacity = theme[this.drawingElement!!.type.toString()]?.get(DrawingConfigurationParameter.Opacity.toString())
+    override fun applyTheme(theme: Theme) {
+        theme.configurations.get(this.drawingElement!!.type.toString())?.let { configuration ->
+            configuration.keys.forEach {
+                when(it) {
+                    DrawingConfigurationParameter.Color.toString() -> this.color = configuration[it]
+                    DrawingConfigurationParameter.LineWidth.toString() -> this.lineWidth = configuration[it]
+                    DrawingConfigurationParameter.LineShift.toString() -> this.lineShift = configuration[it]
+                    DrawingConfigurationParameter.Opacity.toString() -> this.opacity = configuration[it]
+                    DrawingConfigurationParameter.FullDetails.toString() -> this.fullDetails = configuration[it]
+                }
+            }
+        }
     }
 }
 class GroupOfStructuralElements(name:String) : AbstractExplorerItem(name) {
@@ -155,7 +165,7 @@ class GroupOfStructuralElements(name:String) : AbstractExplorerItem(name) {
         return null
     }
 
-    override fun applyTheme(theme: Map<String, Map<String, String>>) {
+    override fun applyTheme(theme: Theme) {
 
     }
 }
@@ -165,12 +175,6 @@ class SingleStrandItem(val ss:SingleStrandDrawing): StructuralItem("${ss.name} [
 }
 
 class JunctionItem(val junction:JunctionDrawing): StructuralItem("${junction.junctionCategory.name} ${junction.name} [${junction.location}]", junction) {
-
-    private val locationWithoutSecondaries:Location
-
-    init {
-        this.locationWithoutSecondaries = junction.locationWithoutSecondaries //to compute it only once, and not with each call to the function getLocation in this class
-    }
 
 }
 

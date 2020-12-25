@@ -14,9 +14,19 @@ In the project directory type:
 mvn clean package
 ```
 
-## Run
+## Launch
 
-From the directory target/RNArtist, run the file for your operating system by typing: 
+### Using Maven
+
+From the project directory, type:
+
+```
+mvn exec:exec
+```
+
+### Using the launch scripts directly
+
+From the subdirectory target/RNArtist, run the file for your operating system by typing: 
 
 ```./launch_rnartist_for_...```
 

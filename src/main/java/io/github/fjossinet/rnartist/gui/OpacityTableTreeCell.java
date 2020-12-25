@@ -93,17 +93,8 @@ public class OpacityTableTreeCell<T> extends TreeTableCell<T, String> {
             fromHere.setOnAction(new EventHandler<ActionEvent>(){
                 @Override
                 public void handle(ActionEvent event) {
-                    for (TreeItem item: OpacityTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
-                        if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
-                            for (Object child:item.getChildren())
-                                for (Object i: mediator.getExplorer().getAllTreeViewItemsFrom((TreeItem)child))
-                                    ((TreeItem<ExplorerItem>)i).getValue().setOpacity(null);
-                        }
-                        else
-                            for (Object child:item.getChildren())
-                                for (Object i: mediator.getExplorer().getAllTreeViewItemsFrom((TreeItem)child))
-                                    ((TreeItem<ExplorerItem>)i).getValue().setOpacity(null);
-                    }
+                    for (TreeItem item: OpacityTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems())
+                        mediator.getExplorer().setOpacityFrom(item, null);
                     mediator.getExplorer().refresh();
                     mediator.getCanvas2D().repaint();
                 }

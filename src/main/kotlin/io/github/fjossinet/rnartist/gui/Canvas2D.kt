@@ -2,17 +2,12 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.gui.Explorer.DrawingElementFilter
-import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.model.ExplorerItem
-import javafx.scene.control.TreeItem
+import io.github.fjossinet.rnartist.io.javaFXToAwt
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
-import java.util.Timer
-import kotlin.concurrent.schedule
 
 class Canvas2D(val mediator: Mediator): JPanel() {
 
@@ -30,9 +25,10 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     fun load2D(drawing: SecondaryStructureDrawing) {
         this.secondaryStructureDrawing = drawing
         this.fps = 0
+        this.mediator.rnartist.detailsLevel.value = 1.0
         this.knobs.clear()
         this.secondaryStructureDrawing?.let { it ->
-            mediator.explorer.load(this.secondaryStructureDrawing)
+            mediator.explorer.load(it)
         }
         /*
         Timer("", false).schedule(1000) {
@@ -305,15 +301,17 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             g2.color = Color.BLACK
             if (drawing.workingSession.screen_capture)
                 g2.draw(drawing.workingSession.screen_capture_area)
-            //val start = System.currentTimeMillis()
+            val start = System.currentTimeMillis()
             val at = AffineTransform()
             at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
             at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
-            drawing.draw(g2, at)
+
+            drawing.draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()))
             this.knobs.forEach {
                 it.draw(g, at)
             }
-            //val t = 1000/(System.currentTimeMillis()-start)
+            println((System.currentTimeMillis()-start)/1000.0)
+
             //this.fps = if (t> this.fps) t else this.fps
             //println("FPS: ${this.fps}")
         }
@@ -351,9 +349,9 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
             at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
             if (secondaryStructureDrawing != null)
-                secondaryStructureDrawing.draw(g2, at);
+                secondaryStructureDrawing.draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()));
             else
-                drawing.draw(g2, at);
+                drawing.draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()));
             g2.dispose()
             drawing.workingSession.viewX += drawing.workingSession.screen_capture_area!!.minX
             drawing.workingSession.viewY += drawing.workingSession.screen_capture_area!!.minY

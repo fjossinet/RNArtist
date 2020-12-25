@@ -91,17 +91,8 @@ public class LineShiftTableTreeCell<T> extends TreeTableCell<T, String> {
             fromHere.setOnAction(new EventHandler<ActionEvent>(){
                 @Override
                 public void handle(ActionEvent event) {
-                    for (TreeItem item: LineShiftTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
-                        if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
-                            for (Object child:item.getChildren())
-                                for (Object i: mediator.getExplorer().getAllTreeViewItemsFrom((TreeItem)child))
-                                    ((TreeItem<ExplorerItem>)i).getValue().setLineShift(null);
-                        }
-                        else
-                            for (Object child:item.getChildren())
-                                for (Object i: mediator.getExplorer().getAllTreeViewItemsFrom((TreeItem)child))
-                                    ((TreeItem<ExplorerItem>)i).getValue().setLineShift(null);
-                    }
+                    for (TreeItem item: LineShiftTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems())
+                        mediator.getExplorer().setLineShiftFrom(item, null);
                     mediator.getExplorer().refresh();
                     mediator.getCanvas2D().repaint();
                 }

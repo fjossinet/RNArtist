@@ -7,7 +7,7 @@ import io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.getImage
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
-import javafx.collections.ObservableList
+import javafx.scene.control.Menu
 import javafx.scene.control.MenuItem
 import java.awt.image.RenderedImage
 import java.io.File
@@ -40,7 +40,7 @@ class Mediator(val rnartist: RNArtist) {
         get() {
             return this.secondaryStructure?.tertiaryStructure
         }
-    val secondaryStructure: SecondaryStructure?
+    private val secondaryStructure: SecondaryStructure?
         get() {
             return this.current2DDrawing?.secondaryStructure
         }
@@ -84,24 +84,43 @@ class Mediator(val rnartist: RNArtist) {
             while (change.next()) {
                 if (change.wasAdded()) {
                     for (drawing in change.addedSubList) {
-                        val item = MenuItem(drawing.name)
+                        val item = MenuItem("RNA ${drawing.secondaryStructure.rna.name} ${drawing.secondaryStructure.rna.length}nts")
                         item.userData = drawing
-                        item.setOnAction { actionEvent ->
+                        item.setOnAction {
                             canvas2D.load2D(item.userData as SecondaryStructureDrawing)
                             canvas2D.fitDisplayOn(current2DDrawing!!.getBounds())
                         }
-                        rnartist.load2DForMenu.items.add(0,item)
-                    }
-                } else if (change.wasRemoved()) {
-                    val toDelete = mutableListOf<MenuItem>()
-                    for (drawing in change.removed) {
-                        for (item in rnartist.load2DForMenu.items) {
-                            if (item.userData == drawing) {
-                                toDelete.add(item)
+                        var found = false
+                        rnartist.allStructuresAvailableMenu.items.forEach { fileName ->
+                            if (drawing.secondaryStructure.rna.source.equals(fileName.text))  {
+                                (fileName as Menu).items.add(0,item)
+                                found = true
                             }
                         }
+                        if (!found) {
+                            val menu = Menu(drawing.secondaryStructure.rna.source)
+                            menu.items.add(item)
+                            rnartist.allStructuresAvailableMenu.items.add(0, menu)
+                        }
                     }
-                    rnartist.load2DForMenu.items.removeAll(toDelete)
+                } else if (change.wasRemoved()) {
+                    for (fileName in rnartist.allStructuresAvailableMenu.items.toList()) {
+                        val toDelete = mutableListOf<MenuItem>()
+                        (fileName as? Menu)?.let { menu ->
+                            for (structureMenuItem in menu.items) {
+                                for (drawing in change.removed) {
+                                    if (structureMenuItem.userData == drawing) {
+                                        toDelete.add(structureMenuItem)
+                                    }
+                                }
+                            }
+                            toDelete.forEach {
+                                menu.items.remove(it)
+                            }
+                            if (menu.items.isEmpty())
+                                rnartist.allStructuresAvailableMenu.items.remove(menu)
+                        }
+                    }
                 }
             }
             if (!this._2DDrawingsLoaded.isEmpty()) {
@@ -121,7 +140,7 @@ class Mediator(val rnartist: RNArtist) {
     public fun focusInChimera() {
         this.chimeraDriver?.let { chimeraDriver ->
             val positions: MutableList<String> = ArrayList(1)
-            (this.tertiaryStructure as? TertiaryStructure)?.let { tertiaryStructure ->
+            this.tertiaryStructure?.let { tertiaryStructure ->
                 for (absPos in workingSession!!.selectedAbsPositions) {
                     (tertiaryStructure.getResidue3DAt(absPos) as Residue3D)?.let {
                         positions.add(if (it.label != null) it.label!! else "" + (absPos + 1))
@@ -136,7 +155,7 @@ class Mediator(val rnartist: RNArtist) {
     public fun pivotInChimera() {
         this.chimeraDriver?.let { chimeraDriver ->
             val positions: MutableList<String> = ArrayList(1)
-            (this.tertiaryStructure as? TertiaryStructure)?.let { tertiaryStructure ->
+            this.tertiaryStructure?.let { tertiaryStructure ->
                 for (absPos in workingSession!!.selectedAbsPositions) {
                     (tertiaryStructure.getResidue3DAt(absPos) as Residue3D)?.let {
                         positions.add(if (it.label != null) it.label!! else "" + (absPos + 1))

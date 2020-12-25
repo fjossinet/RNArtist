@@ -3,6 +3,7 @@ package io.github.fjossinet.rnartist.gui;
 import io.github.fjossinet.rnartist.Mediator;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.model.*;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Rectangle2D;
@@ -73,7 +74,6 @@ public class Explorer {
         colorColumn.setMinWidth(80);
         colorColumn.setMaxWidth(80);
         colorColumn.setSortable(false);
-
 
         TreeTableColumn<ExplorerItem, String> lineWidthColumn = new TreeTableColumn<ExplorerItem, String>("Width");
         lineWidthColumn.setUserData(DrawingConfigurationParameter.LineWidth);
@@ -197,11 +197,11 @@ public class Explorer {
         scene.getWindow().setY(0);
     }
 
-    public void applyTheme(Map<String, Map<String, String>> theme) {
+    public void applyTheme(Theme theme) {
         this.applyTheme(this.treeTableView.getRoot(), theme);
     }
 
-    public void applyTheme(TreeItem<ExplorerItem> item, Map<String, Map<String, String>> theme) {
+    public void applyTheme(TreeItem<ExplorerItem> item, Theme theme) {
         item.getValue().applyTheme(theme);
         for (TreeItem<ExplorerItem> c:item.getChildren())
             applyTheme(c, theme);
@@ -252,6 +252,8 @@ public class Explorer {
     }
 
     public List<TreeItem<ExplorerItem>> getAllTreeViewItems(List<TreeItem<ExplorerItem>> hits, TreeItem<ExplorerItem> start, DrawingElementFilter filter) {
+        if (hits == null)
+            hits = new ArrayList<TreeItem<ExplorerItem>>();
         if (filter.isOK(start.getValue().getDrawingElement()))
             hits.add(start);
 
@@ -261,9 +263,67 @@ public class Explorer {
         return hits;
     }
 
-
     public void clearSelection() {
         this.treeTableView.getSelectionModel().clearSelection();
+    }
+
+    public ObservableList<TreeItem<ExplorerItem>> getSelectedTreeViewItems() {
+        return this.treeTableView.getSelectionModel().getSelectedItems();
+    }
+
+    public void setFullDetailsFrom(TreeItem<ExplorerItem> from, String fullDetails) {
+        from.getValue().setFullDetails(fullDetails);
+        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                this.setFullDetailsFrom(child, fullDetails);
+        }
+        else
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                setFullDetailsFrom(child, fullDetails);
+    }
+
+    public void setColorFrom(TreeItem<ExplorerItem> from, String color) {
+        from.getValue().setColor(color);
+        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                this.setColorFrom(child, color);
+        }
+        else
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                setColorFrom(child, color);
+    }
+
+    public void setLineWidthFrom(TreeItem<ExplorerItem> from, String width) {
+        from.getValue().setLineWidth(width);
+        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                this.setLineWidthFrom(child, width);
+        }
+        else
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                setLineWidthFrom(child, width);
+    }
+
+    public void setLineShiftFrom(TreeItem<ExplorerItem> from, String shift) {
+        from.getValue().setLineShift(shift);
+        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                this.setLineShiftFrom(child, shift);
+        }
+        else
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                setLineShiftFrom(child, shift);
+    }
+
+    public void setOpacityFrom(TreeItem<ExplorerItem> from, String opacity) {
+        from.getValue().setOpacity(opacity);
+        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                this.setOpacityFrom(child, opacity);
+        }
+        else
+            for (TreeItem<ExplorerItem> child:from.getChildren())
+                setOpacityFrom(child, opacity);
     }
 
     //++++++++++ methods to construct the treetable
@@ -273,26 +333,31 @@ public class Explorer {
         root.setExpanded(true);
 
         TreeItem<ExplorerItem> allPknots = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Pseudoknots"));
+        root.getChildren().add(allPknots);
         for (PKnotDrawing pknot : drawing.getPknots())
             allPknots.getChildren().addAll(this.load(pknot));
-        root.getChildren().add(allPknots);
 
         TreeItem<ExplorerItem> allBranches = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Branches"));
+        root.getChildren().add(allBranches);
         for (JunctionDrawing j: drawing.getBranches())
             allBranches.getChildren().addAll(this.load(j));
-        root.getChildren().add(allBranches);
 
         TreeItem<ExplorerItem> allSingleStrands = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("SingleStrands"));
+        root.getChildren().add(allSingleStrands);
         for (SingleStrandDrawing ss : drawing.getSingleStrands())
             allSingleStrands.getChildren().addAll(this.load(ss));
-        root.getChildren().add(allSingleStrands);
 
         TreeItem<ExplorerItem> allTertiaries = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Tertiaries"));
+        root.getChildren().add(allTertiaries);
         for (TertiaryInteractionDrawing interaction : drawing.getTertiaryInteractions())
             if (interaction.getParent() == null) // if parent not null, this tertiary interaction is in a pknot and will be a child of this pknot
                 allTertiaries.getChildren().addAll(this.load(interaction, true));
 
-        root.getChildren().add(allTertiaries);
+        TreeItem<ExplorerItem> allphosphos = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Phosphodiester Bonds"));
+        root.getChildren().add(allphosphos);
+        for (PhosphodiesterBondDrawing p : drawing.getPhosphoBonds())
+            allphosphos.getChildren().addAll(this.load(p));
+
         this.treeTableView.setRoot(root);
     }
 
