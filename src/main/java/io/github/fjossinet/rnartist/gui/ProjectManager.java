@@ -113,7 +113,6 @@ public class ProjectManager {
         });
         Scene scene = new Scene(gridview);
         stage.setScene(scene);
-        scene.getStylesheets().add(getClass().getClassLoader().getResource("io/github/fjossinet/rnartist/gui/css/main.css").toExternalForm());
     }
 
     class ProjectCell extends GridCell<Project> {

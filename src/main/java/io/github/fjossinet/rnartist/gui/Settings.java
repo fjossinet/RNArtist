@@ -72,7 +72,6 @@ public class Settings {
 
         Scene scene = new Scene(root);
         stage.setScene(scene);
-        scene.getStylesheets().add(getClass().getClassLoader().getResource("io/github/fjossinet/rnartist/gui/css/main.css").toExternalForm());
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
         scene.getWindow().setWidth(400);
@@ -98,7 +97,6 @@ public class Settings {
 
         tertiaryInteractionStyle = new ComboBox<>();
         tertiaryInteractionStyle.getItems().addAll("solid", "dashed");
-        tertiaryInteractionStyle.setValue(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.TertiaryInteractionStyle.toString()));
         tertiaryInteractionStyle.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {

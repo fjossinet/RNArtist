@@ -16,6 +16,8 @@ interface ExplorerItem {
 
     fun applyTheme(theme: Theme)
 
+    fun setDrawingConfigurationParameter(param: String, value: String?): String?
+
 }
 
 abstract class AbstractExplorerItem(name:String, drawingElement:DrawingElement? = null):ExplorerItem {
@@ -29,38 +31,22 @@ abstract class AbstractExplorerItem(name:String, drawingElement:DrawingElement? 
     override var fullDetails:String? = null
     override val drawingElement:DrawingElement? = drawingElement
 
-    abstract protected fun setDrawingConfigurationParameter(param: String, value: String?): String?
-
 }
 
 class SecondaryStructureItem(val drawing:SecondaryStructureDrawing): AbstractExplorerItem("2D") {
 
     override var location = Location(1, drawing.length).toString()
 
-    override var color:String? = getHTMLColorString(drawing.drawingConfiguration.color!!)
-        set(value) {
-            field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.Color.toString(), value)
-        }
-
-    override var fullDetails:String? =  drawing.drawingConfiguration.fullDetails!!.toString()
-        set(value) {
-            field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.FullDetails.toString(), value)
-        }
-
-    override var lineWidth: String? = drawing.drawingConfiguration.lineWidth!!.toString()
-        set(value) {
-            field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.LineWidth.toString(), value)
-        }
-
-    override var lineShift: String? = drawing.drawingConfiguration.lineShift!!.toString()
-        set(value) {
-            field =  this.setDrawingConfigurationParameter(DrawingConfigurationParameter.LineShift.toString(), value)
-        }
-
-    override var opacity: String? = drawing.drawingConfiguration.opacity?.toString()
-        set(value) {
-            field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.Opacity.toString(), value)
-        }
+    override var color:String? = null
+        get () = null
+    override var lineWidth:String? = null
+        get () = null
+    override var lineShift:String? = null
+        get () = null
+    override var opacity: String? = null
+        get () = null
+    override var fullDetails: String? = null
+        get () = null
 
     override val residues:List<ResidueDrawing>
         get() =this.drawing.residues
@@ -94,27 +80,27 @@ abstract class StructuralItem(name:String, drawingElement:DrawingElement):Abstra
     override val name = name
     override var location = drawingElement.location.description
 
-    override var color:String? = if (drawingElement.drawingConfiguration.color != null) getHTMLColorString(drawingElement.drawingConfiguration.color!!) else null
+    override var color:String? = getHTMLColorString(drawingElement.drawingConfiguration.color)
         set(value) {
             field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.Color.toString(), value)
         }
 
-    override var lineWidth:String? = drawingElement.drawingConfiguration.lineWidth?.toString()
+    override var lineWidth:String? = drawingElement.drawingConfiguration.lineWidth.toString()
         set(value) {
             field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.LineWidth.toString(), value)
         }
 
-    override var fullDetails:String? = drawingElement.drawingConfiguration.fullDetails?.toString()
+    override var fullDetails:String? = drawingElement.drawingConfiguration.fullDetails.toString()
         set(value) {
             field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.FullDetails.toString(), value)
         }
 
-    override var lineShift:String? = drawingElement.drawingConfiguration.lineShift?.toString()
+    override var lineShift:String? = drawingElement.drawingConfiguration.lineShift.toString()
         set(value) {
             field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.LineShift.toString(), value)
         }
 
-    override var opacity: String? = drawingElement.drawingConfiguration.opacity?.toString()
+    override var opacity: String? = drawingElement.drawingConfiguration.opacity.toString()
 
         set(value) {
             field = this.setDrawingConfigurationParameter(DrawingConfigurationParameter.Opacity.toString(), value)
@@ -147,42 +133,66 @@ abstract class StructuralItem(name:String, drawingElement:DrawingElement):Abstra
 }
 class GroupOfStructuralElements(name:String) : AbstractExplorerItem(name) {
 
-    override var color:String? = ""
+    val children = mutableListOf<ExplorerItem>()
+
+    override var color:String?
+        set(value) {
+            children.forEach { it.color = value }
+        }
         get () = ""
-    override var lineWidth:String? = ""
+    override var lineWidth:String?
+        set(value) {
+            children.forEach { it.lineWidth = value }
+        }
         get () = ""
-    override var lineShift:String? = ""
+    override var lineShift:String?
+        set(value) {
+            children.forEach { it.lineShift = value }
+        }
         get () = ""
-    override var opacity: String? = ""
+    override var opacity: String?
+        set(value) {
+            children.forEach { it.opacity = value }
+        }
         get () = ""
-    override var fullDetails: String? = ""
+    override var fullDetails: String?
+        set(value) {
+            children.forEach { it.fullDetails = value }
+        }
         get () = ""
 
     override val residues:List<ResidueDrawing>
-        get() = listOf<ResidueDrawing>()
+        get() = this.children.flatMap { it.residues }
 
     override fun setDrawingConfigurationParameter(param:String, value:String?) : String? {
+        children.forEach { it.setDrawingConfigurationParameter(param, value) }
         return null
     }
 
     override fun applyTheme(theme: Theme) {
-
+        children.forEach { it.applyTheme(theme) }
     }
 }
 
 class SingleStrandItem(val ss:SingleStrandDrawing): StructuralItem("${ss.name} [${ss.location}]", ss) {
+    override var lineShift: String? = null
+        get() = null
 
 }
 
 class JunctionItem(val junction:JunctionDrawing): StructuralItem("${junction.junctionCategory.name} ${junction.name} [${junction.location}]", junction) {
-
+    override var lineShift: String? = null
+        get() = null
 }
 
 class PknotItem(val pknot:PKnotDrawing): StructuralItem("${pknot.name} [${pknot.location}]", pknot) {
-
+    override var lineShift: String? = null
+        get() = null
 }
 
 class HelixItem(val helix:HelixDrawing): StructuralItem("${helix.name} [${helix.location}]", helix) {
+    override var lineShift: String? = null
+        get() = null
 }
 
 class TertiaryInteractionItem(val tertiaryInteraction:TertiaryInteractionDrawing): StructuralItem("${tertiaryInteraction.name} [${tertiaryInteraction.location}]", tertiaryInteraction) {
@@ -198,7 +208,8 @@ class PhosphodiesterItem(val phosphodiesterBondLine: PhosphodiesterBondDrawing):
 }
 
 class InteractionSymbolItem(val interactionSymbol:InteractionSymbolDrawing): StructuralItem("Symbol", interactionSymbol) {
-
+    override var lineShift: String? = null
+        get() = null
 }
 
 class ResidueItem(val residue:ResidueDrawing): StructuralItem("${residue.name}${residue.location.start}", residue) {
@@ -210,6 +221,9 @@ class ResidueItem(val residue:ResidueDrawing): StructuralItem("${residue.name}${
 class ResidueLetterItem(val residueLetter:ResidueLetterDrawing): StructuralItem("${residueLetter.name}", residueLetter) {
 
     override var lineShift: String? = null
+        get() = null
+
+    override var lineWidth: String? = null
         get() = null
 }
 

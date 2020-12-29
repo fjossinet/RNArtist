@@ -15,10 +15,14 @@ class JunctionKnob(val junction: JunctionDrawing, val mediator: Mediator): Knob 
     val connectors = mutableListOf<JunctionConnector>()
     val arrows = mutableListOf<JunctionArrow>()
     var connectorRadius:Double = 0.0
-    lateinit var detailsButton:DetailsButton
+    //lateinit var detailsButton:DetailsButton
 
     init {
         this.update()
+    }
+
+    override fun getStructuralDomain(): StructuralDomain {
+        return this.junction
     }
 
     override fun update() {
@@ -46,11 +50,11 @@ class JunctionKnob(val junction: JunctionDrawing, val mediator: Mediator): Knob 
             }
             this.arrows.addAll(arrayListOf(Up(this), Down(this), Left(this), Right(this)));
             this.loadJunctionLayout()
-            this.detailsButton =  DetailsButton(this)
+            //this.detailsButton =  DetailsButton(this)
         }
         else {
             this.arrows.addAll(arrayListOf(Up(this), Down(this)));
-            this.detailsButton =  DetailsButton(this)
+            //this.detailsButton =  DetailsButton(this)
         }
     }
 
@@ -63,16 +67,16 @@ class JunctionKnob(val junction: JunctionDrawing, val mediator: Mediator): Knob 
         for (arrow in this.arrows)
             arrow.draw(g, at)
 
-        this.detailsButton.draw(g, at)
+        //this.detailsButton.draw(g, at)
 
         g.color = previousColor
     }
 
     override fun contains(x: Double, y: Double, at: AffineTransform): Boolean {
-        if (at.createTransformedShape(this.detailsButton.innerCircle).contains(x, y)) {
+        /*if (at.createTransformedShape(this.detailsButton.innerCircle).contains(x, y)) {
             this.detailsButton.mouseCliked()
             return true;
-        }
+        }*/
         for (connector in this.connectors) {
             if (!connector.isInId && at.createTransformedShape(connector.circle).contains(x, y)) {
                 connector.mouseCliked()
@@ -144,15 +148,14 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
     }
 
     fun draw(g: Graphics2D, at: AffineTransform) {
-        if (isInId) {
-            g.color = Color.RED
+        if (isInId)
             return;
-        }
-        else if (selected && this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("true"))
+        /*else if (selected && this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("true"))
             g.color = Color.GREEN
         else if (selected && this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("false"))
             g.color = Color.RED
-        else if (selected)
+        else*/
+        if (selected)
             g.color = Color.DARK_GRAY
         else
             g.color = Color.LIGHT_GRAY

@@ -20,7 +20,6 @@ public class LineShiftTableTreeCell<T> extends TreeTableCell<T, String> {
     public LineShiftTableTreeCell(Mediator mediator) {
         slider.setMin(0);
         slider.setMax(255);
-        this.setContextMenu(new CMenu());
         this.mediator = mediator;
     }
 
@@ -39,64 +38,4 @@ public class LineShiftTableTreeCell<T> extends TreeTableCell<T, String> {
         return (TreeTableColumn<T, String> tableColumn) -> new LineShiftTableTreeCell<>(mediator);
     }
 
-    private class CMenu extends ContextMenu {
-        CMenu() {
-            final Menu shift = new Menu("Set Shift");
-            shift.getStyleClass().add("no-highlight");
-            this.getItems().add(shift);
-            Slider slider = new Slider(0, 10,0);
-            slider.setShowTickLabels(true);
-            slider.setShowTickMarks(true);
-            slider.setMajorTickUnit(5);
-            slider.setMinorTickCount(1);
-            slider.setShowTickMarks(true);
-            slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent mouseEvent) {
-                    for (TreeItem item: LineShiftTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
-                        if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
-                            for (Object child:item.getChildren())
-                                ((ExplorerItem)((TreeItem)child).getValue()).setLineShift(Integer.toString((int)slider.getValue()));
-                        }
-                        else
-                            ((ExplorerItem)item.getValue()).setLineShift(Integer.toString((int)slider.getValue()));
-                    }
-                    mediator.getExplorer().refresh();
-                    mediator.getCanvas2D().repaint();
-
-                }
-            });
-            shift.getItems().add(new MenuItem(null,slider));
-            final Menu clear = new Menu("Clear Shift...");
-            this.getItems().add(clear);
-            final MenuItem here = new MenuItem("Here");
-            clear.getItems().add(here);
-            here.setOnAction(new EventHandler<ActionEvent>(){
-                @Override
-                public void handle(ActionEvent event) {
-                    for (TreeItem item: LineShiftTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
-                        if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
-                            for (Object child:item.getChildren())
-                                ((ExplorerItem)((TreeItem)child).getValue()).setLineShift(null);
-                        }
-                        else
-                            ((ExplorerItem)item.getValue()).setLineShift(null);
-                    }
-                    mediator.getExplorer().refresh();
-                    mediator.getCanvas2D().repaint();
-                }
-            });
-            final MenuItem fromHere = new MenuItem("From Here");
-            clear.getItems().add(fromHere);
-            fromHere.setOnAction(new EventHandler<ActionEvent>(){
-                @Override
-                public void handle(ActionEvent event) {
-                    for (TreeItem item: LineShiftTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems())
-                        mediator.getExplorer().setLineShiftFrom(item, null);
-                    mediator.getExplorer().refresh();
-                    mediator.getCanvas2D().repaint();
-                }
-            });
-        }
-    }
 }

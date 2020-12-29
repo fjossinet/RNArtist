@@ -20,7 +20,6 @@ public class OpacityTableTreeCell<T> extends TreeTableCell<T, String> {
     private Mediator mediator;
 
     public OpacityTableTreeCell(Mediator mediator) {
-        this.setContextMenu(new CMenu());
         this.mediator = mediator;
     }
 
@@ -40,65 +39,4 @@ public class OpacityTableTreeCell<T> extends TreeTableCell<T, String> {
         return (TreeTableColumn<T, String> tableColumn) -> new OpacityTableTreeCell<>(mediator);
     }
 
-    private class CMenu extends ContextMenu {
-        CMenu() {
-            final Menu opacity = new Menu("Set Opacity");
-            opacity.getStyleClass().add("no-highlight");
-            this.getItems().add(opacity);
-            Slider slider = new Slider(0, 100,100);
-            slider.setShowTickLabels(true);
-            slider.setShowTickMarks(true);
-            slider.setMajorTickUnit(25);
-            slider.setMinorTickCount(5);
-            slider.setShowTickMarks(true);
-            slider.setOnMouseReleased(new EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent mouseEvent) {
-                    int opacity = (int) ((double) (slider.getValue()) / 100.0 * 255.0);
-                    for (TreeItem item: OpacityTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
-                        if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
-                            for (Object child:item.getChildren())
-                                ((ExplorerItem)((TreeItem)child).getValue()).setOpacity(Integer.toString(opacity));
-                        }
-                        else
-                            ((ExplorerItem)item.getValue()).setOpacity(Integer.toString(opacity));
-                    }
-                    mediator.getExplorer().refresh();
-                    mediator.getCanvas2D().repaint();
-
-                }
-            });
-            opacity.getItems().add(new MenuItem(null,slider));
-            final Menu clear = new Menu("Clear Opacity...");
-            this.getItems().add(clear);
-            final MenuItem here = new MenuItem("Here");
-            clear.getItems().add(here);
-            here.setOnAction(new EventHandler<ActionEvent>(){
-                @Override
-                public void handle(ActionEvent event) {
-                    for (TreeItem item: OpacityTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
-                        if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
-                            for (Object child:item.getChildren())
-                                ((ExplorerItem)((TreeItem)child).getValue()).setOpacity(null);
-                        }
-                        else
-                            ((ExplorerItem)item.getValue()).setOpacity(null);
-                    }
-                    mediator.getExplorer().refresh();
-                    mediator.getCanvas2D().repaint();
-                }
-            });
-            final MenuItem fromHere = new MenuItem("From Here");
-            clear.getItems().add(fromHere);
-            fromHere.setOnAction(new EventHandler<ActionEvent>(){
-                @Override
-                public void handle(ActionEvent event) {
-                    for (TreeItem item: OpacityTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems())
-                        mediator.getExplorer().setOpacityFrom(item, null);
-                    mediator.getExplorer().refresh();
-                    mediator.getCanvas2D().repaint();
-                }
-            });
-        }
-    }
 }

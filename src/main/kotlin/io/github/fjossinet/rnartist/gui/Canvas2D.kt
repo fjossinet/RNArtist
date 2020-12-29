@@ -1,6 +1,7 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
+import io.github.fjossinet.rnartist.RNArtist
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import java.awt.*
@@ -25,11 +26,12 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     fun load2D(drawing: SecondaryStructureDrawing) {
         this.secondaryStructureDrawing = drawing
         this.fps = 0
-        this.mediator.rnartist.detailsLevel.value = 1.0
         this.knobs.clear()
         this.secondaryStructureDrawing?.let { it ->
             mediator.explorer.load(it)
         }
+        this.mediator.rnartist.detailsLevel.value = 1.0
+        mediator.explorer.applyTheme(Theme(RnartistConfig.themeDetailsLevel.get(0).toMutableMap()),RNArtist.BRANCH_SCOPE)
         /*
         Timer("", false).schedule(1000) {
             mediator.explorer.getTreeViewItemFor(mediator.explorer.treeTableView.root, secondaryStructureDrawing).value.lineWidth = "2.0"
@@ -377,5 +379,9 @@ class Canvas2D(val mediator: Mediator): JPanel() {
                 this.knobs.add(HelixKnob(el, mediator))
             repaint()
         }
+    }
+
+    fun structuralDomainsSelected():List<StructuralDomain>  {
+        return this.knobs.map { it.getStructuralDomain()}
     }
 }

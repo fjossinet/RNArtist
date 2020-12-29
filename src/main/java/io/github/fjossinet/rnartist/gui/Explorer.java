@@ -1,31 +1,44 @@
 package io.github.fjossinet.rnartist.gui;
 
 import io.github.fjossinet.rnartist.Mediator;
+import io.github.fjossinet.rnartist.RNArtist;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.model.*;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.Rectangle2D;
+import javafx.geometry.*;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.cell.TreeItemPropertyValueFactory;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.util.Callback;
+import org.controlsfx.glyphfont.FontAwesome;
+import org.controlsfx.glyphfont.Glyph;
+import org.kordamp.ikonli.javafx.FontIcon;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
+import static io.github.fjossinet.rnartist.io.UtilsKt.javaFXToAwt;
 
 public class Explorer {
     private Stage stage;
     private Mediator mediator;
     private TreeTableView<ExplorerItem> treeTableView;
+    private LastColor lastColorClicked;
 
     public Explorer(Mediator mediator) {
         this.mediator = mediator;
@@ -48,14 +61,13 @@ public class Explorer {
 
     private void createScene(Stage stage) {
         this.treeTableView = new TreeTableView<ExplorerItem>();
-        this.treeTableView.setEditable(true);
+        //this.treeTableView.setEditable(true);
 
         this.treeTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        this.treeTableView.getSelectionModel().setCellSelectionEnabled(true);
-        this.treeTableView.setColumnResizePolicy(TreeTableView.CONSTRAINED_RESIZE_POLICY);
+        //this.treeTableView.getSelectionModel().setCellSelectionEnabled(true);
+        this.treeTableView.setColumnResizePolicy(TreeTableView.UNCONSTRAINED_RESIZE_POLICY);
 
-        TreeTableColumn<ExplorerItem, String> nameColumn = new TreeTableColumn<ExplorerItem, String>("Name");
-        nameColumn.setContextMenu(new CMenu());
+        TreeTableColumn<ExplorerItem, String> nameColumn = new TreeTableColumn<ExplorerItem, String>(null);
         nameColumn.setCellValueFactory(new TreeItemPropertyValueFactory<ExplorerItem, String>("name"));
         nameColumn.setCellFactory(NameTreeTableCell.forTreeTableColumn(mediator));
         nameColumn.setSortable(false);
@@ -104,30 +116,34 @@ public class Explorer {
 
         treeTableView.getColumns().addAll(colorColumn, lineWidthColumn, lineShiftColumn, opacityColumn, fullDetailsColumn, nameColumn);
         treeTableView.setTreeColumn(nameColumn);
+
         treeTableView.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                if (mouseEvent.getButton() != MouseButton.SECONDARY) {
-                    if (!treeTableView.getSelectionModel().getSelectedItems().isEmpty()) {
-                        mediator.getCanvas2D().clearSelection();
-                        for (TreeItem<ExplorerItem> item : treeTableView.getSelectionModel().getSelectedItems()) {
-                            if (SecondaryStructureItem.class.isInstance((item.getValue())))
-                                continue;
-                            else if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
-                                for (TreeItem<ExplorerItem> c: item.getChildren())
-                                    mediator.getCanvas2D().addToSelection(c.getValue().getDrawingElement());
-                            } else
-                                mediator.getCanvas2D().addToSelection(item.getValue().getDrawingElement());
-                        }
+                if (!treeTableView.getSelectionModel().getSelectedCells().isEmpty()) {
+                    List<DrawingElement> selectedElements = new ArrayList<DrawingElement>();
+                    for (TreeTablePosition<ExplorerItem,?> item : treeTableView.getSelectionModel().getSelectedCells()) {
+                        if (SecondaryStructureItem.class.isInstance((item.getTreeItem().getValue())))
+                            continue;
+                        else if (GroupOfStructuralElements.class.isInstance(item.getTreeItem().getValue()))
+                            for (TreeItem<ExplorerItem> c : item.getTreeItem().getChildren())
+                                selectedElements.add(c.getValue().getDrawingElement());
+                        else
+                            selectedElements.add(item.getTreeItem().getValue().getDrawingElement());
+                    }
+                    if (!selectedElements.isEmpty()) {
+                        mediator.canvas2D.clearSelection();
+                        for (DrawingElement e : selectedElements)
+                            mediator.getCanvas2D().addToSelection(e);
                         if (RnartistConfig.getFitDisplayOnSelection()) {
                             mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
                         } else if (RnartistConfig.getCenterDisplayOnSelection()) {
                             mediator.canvas2D.centerDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
                         }
                         mediator.canvas2D.repaint();
-                    } else if (mediator.getCurrent2DDrawing() != null) {
-                        //no selection
+                    } else {
                         mediator.getCanvas2D().clearSelection();
+                        mediator.canvas2D.repaint();
                     }
                 }
             }
@@ -135,46 +151,26 @@ public class Explorer {
         treeTableView.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent keyEvent) {
-                if (keyEvent.getCode().equals(KeyCode.BACK_SPACE)) {
-                    for (TreeTablePosition<ExplorerItem, ?> cell : treeTableView.getSelectionModel().getSelectedCells()) {
-                        ExplorerItem item = cell.getTreeItem().getValue();
-                        if (item != null) {
-                            if (cell.getTableColumn() == colorColumn)
-                                item.setColor(null);
-                            else if (cell.getTableColumn() == lineWidthColumn)
-                                item.setLineWidth(null);
-                            else if (cell.getTableColumn() == lineShiftColumn)
-                                item.setLineShift(null);
-                            else if (cell.getTableColumn() == opacityColumn)
-                                item.setOpacity(null);
-                            else if (cell.getTableColumn() == fullDetailsColumn)
-                                item.setFullDetails(null);
-                            treeTableView.refresh();
-                        }
-                    }
-                    mediator.canvas2D.repaint();
-                }  else if (keyEvent.getCode().equals(KeyCode.UP) || keyEvent.getCode().equals(KeyCode.DOWN)) {
+                if (keyEvent.getCode().equals(KeyCode.UP) || keyEvent.getCode().equals(KeyCode.DOWN)) {
                     if (!treeTableView.getSelectionModel().getSelectedItems().isEmpty()) {
                         mediator.getCanvas2D().clearSelection();
                         for (TreeItem<ExplorerItem> item : treeTableView.getSelectionModel().getSelectedItems()) {
                             if (SecondaryStructureItem.class.isInstance((item.getValue())))
                                 continue;
-                            else if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
+                            else if (GroupOfStructuralElements.class.isInstance(item.getValue()))
                                 for (TreeItem<ExplorerItem> c: item.getChildren())
                                     mediator.getCanvas2D().addToSelection(c.getValue().getDrawingElement());
-                            } else
+                            else
                                 mediator.getCanvas2D().addToSelection(item.getValue().getDrawingElement());
                         }
-                        if (RnartistConfig.getFitDisplayOnSelection()) {
+                        if (RnartistConfig.getFitDisplayOnSelection())
                             mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
-                        } else if (RnartistConfig.getCenterDisplayOnSelection()) {
+                        else if (RnartistConfig.getCenterDisplayOnSelection())
                             mediator.canvas2D.centerDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
-                        }
                         mediator.canvas2D.repaint();
-                    } else if (mediator.getCurrent2DDrawing() != null) {
+                    } else if (mediator.getCurrent2DDrawing() != null)
                         //no selection
                         mediator.getCanvas2D().clearSelection();
-                    }
                 }
             }
         });
@@ -182,12 +178,352 @@ public class Explorer {
         javafx.scene.control.ScrollPane sp = new ScrollPane(treeTableView);
         sp.setFitToWidth(true);
         sp.setFitToHeight(true);
-        Scene scene = new Scene(sp);
-        stage.setScene(scene);
-        scene.getStylesheets().add(getClass().getClassLoader().getResource("io/github/fjossinet/rnartist/gui/css/main.css").toExternalForm());
 
-        /*JMetro jMetro = new JMetro(Style.LIGHT);
-        jMetro.setScene(scene);*/
+        VBox stackedTitledPanes = new VBox();
+
+        // COLORS TITLEDPANE
+        GridPane pane = new GridPane();
+        pane.setPadding(new Insets(10));
+        pane.setVgap(5);
+        pane.setHgap(5);
+        ColumnConstraints cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
+
+        FlowPane lastColorsUsed = new FlowPane();
+
+        ColorPicker picker = new ColorPicker();
+        picker.setOnAction(new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event) {
+                for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
+                    mediator.getExplorer().setColorFrom(item, getHTMLColorString(javaFXToAwt(picker.getValue())), mediator.getRnartist().getScope());
+                LastColor r = new LastColor(picker.getValue());
+                if (lastColorsUsed.getChildren().size() == 30)
+                    lastColorsUsed.getChildren().remove(29);
+                lastColorsUsed.getChildren().add(0, r);
+                mediator.getExplorer().refresh();
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        pane.add(picker, 0,0, 2,1);
+        GridPane.setHalignment(picker, HPos.CENTER);
+
+        pane.add(new Label("Last Colors"), 0,1, 2, 1);
+
+        lastColorsUsed.setHgap(1.0);
+        lastColorsUsed.setVgap(1.0);
+        Set<String> firstColors = new HashSet<String>();
+        for (Map<String, Map<String, String>> v:RnartistConfig.colorSchemes.values()) {
+            for (Map<String, String>_v: v.values())
+                firstColors.addAll(_v.values());
+        }
+        for (String c: firstColors) {
+            LastColor r = new LastColor(Color.web(c));
+            if (lastColorsUsed.getChildren().size() == 30)
+                lastColorsUsed.getChildren().remove(29);
+            lastColorsUsed.getChildren().add(0, r);
+        }
+        GridPane.setHalignment(lastColorsUsed, HPos.CENTER);
+        pane.add(lastColorsUsed, 0,2, 2,1);
+
+        TitledPane colors = new TitledPane("Colors" , pane);
+        colors.setExpanded(true);
+
+        // LINE WIDTH TITLEDPANE
+        pane = new GridPane();
+        pane.setPadding(new Insets(10));
+        pane.setVgap(5);
+        pane.setHgap(5);
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
+
+        ListView<String> lineWidth = new ListView<String>();
+        lineWidth.setMaxHeight(200);
+        lineWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "2.5", "3.0", "3.5", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
+        lineWidth.setCellFactory(new ShapeCellFactory());
+        lineWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
+                for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
+                    mediator.getExplorer().setLineWidthFrom(item, lineWidth.getSelectionModel().getSelectedItem(), mediator.getRnartist().getScope());
+                mediator.getExplorer().refresh();
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        pane.add(lineWidth, 0,0, 2, 1);
+        GridPane.setHalignment(lineWidth, HPos.CENTER);
+
+        TitledPane linesWidth = new TitledPane("Lines Width" ,pane);
+        linesWidth.setExpanded(true);
+
+        // LINE SHIFT TITLEDPANE
+        pane = new GridPane();
+        pane.setPadding(new Insets(10));
+        pane.setVgap(5);
+        pane.setHgap(5);
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
+
+        final Slider lineShiftSlider = new Slider(0, 10,0);
+        lineShiftSlider.setShowTickLabels(true);
+        lineShiftSlider.setShowTickMarks(true);
+        lineShiftSlider.setMajorTickUnit(5);
+        lineShiftSlider.setMinorTickCount(1);
+        lineShiftSlider.setShowTickMarks(true);
+        lineShiftSlider.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
+                    mediator.getExplorer().setLineShiftFrom(item, Integer.toString((int)lineShiftSlider.getValue()), mediator.getRnartist().getScope());
+                mediator.getExplorer().refresh();
+                mediator.getCanvas2D().repaint();
+
+            }
+        });
+        pane.add(lineShiftSlider, 0,0, 2, 1);
+        GridPane.setHalignment(lineShiftSlider, HPos.CENTER);
+
+        TitledPane linesShift = new TitledPane("Lines Shift", pane);
+        linesShift.setExpanded(false);
+
+        // OPACITY TITLEDPANE
+        pane = new GridPane();
+        pane.setPadding(new Insets(10));
+        pane.setVgap(5);
+        pane.setHgap(5);
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
+
+        final Slider opacitySlider = new Slider(0, 100,100);
+        opacitySlider.setShowTickLabels(true);
+        opacitySlider.setShowTickMarks(true);
+        opacitySlider.setMajorTickUnit(25);
+        opacitySlider.setMinorTickCount(5);
+        opacitySlider.setShowTickMarks(true);
+        opacitySlider.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                int opacity = (int) ((double) (opacitySlider.getValue()) / 100.0 * 255.0);
+                for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
+                    mediator.getExplorer().setOpacityFrom(item, Integer.toString(opacity), mediator.getRnartist().getScope());
+                mediator.getExplorer().refresh();
+                mediator.getCanvas2D().repaint();
+
+            }
+        });
+        pane.add(opacitySlider, 0,0, 2, 1);
+        GridPane.setHalignment(opacitySlider, HPos.CENTER);
+
+        TitledPane opacity = new TitledPane("Opacity", pane);
+        opacity.setExpanded(false);
+
+        // DETAILS TITLEDPANE
+        pane = new GridPane();
+        pane.setPadding(new Insets(10));
+        pane.setVgap(5);
+        pane.setHgap(5);
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
+
+        HBox hbox = new HBox();
+        hbox.setSpacing(5);
+        Button b = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
+        b.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                for (TreeItem item : treeTableView.getSelectionModel().getSelectedItems())
+                    mediator.getExplorer().setFullDetailsFrom(item, "true", mediator.getRnartist().getScope());
+                mediator.getExplorer().refresh();
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        hbox.getChildren().add(b);
+        b = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TIMES_CIRCLE));
+        b.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                for (TreeItem item : treeTableView.getSelectionModel().getSelectedItems())
+                    mediator.getExplorer().setFullDetailsFrom(item, "false", mediator.getRnartist().getScope());
+                mediator.getExplorer().refresh();
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        hbox.getChildren().add(b);
+        hbox.setAlignment(Pos.CENTER);
+        pane.add(hbox, 0,0, 2, 1);
+        GridPane.setHalignment(hbox, HPos.CENTER);
+
+        TitledPane details = new TitledPane("Full Details", pane);
+        details.setExpanded(true);
+
+        // SELECTION TITLEDPANE
+        pane = new GridPane();
+        pane.setPadding(new Insets(10));
+        pane.setVgap(5);
+        pane.setHgap(5);
+        cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
+
+        TitledPane selection = new TitledPane("Selection", pane);
+        selection.setExpanded(true);
+
+        ListView<String> elementsToSelect = new ListView<String>();
+        elementsToSelect.setMaxHeight(200);
+        elementsToSelect.getItems().addAll("Helices", "SingleStrands", "Junctions", "Apical Loops", "Inner Loops", "PseudoKnots", "Secondary Interactions", "Tertiary Interactions", "Interaction Symbols", "PhosphoDiester Bonds", "Residues", "As", "Us", "Gs", "Cs", "Xs", "Residue Letters");
+        pane.add(elementsToSelect, 0,0, 2, 1);
+        GridPane.setHalignment(elementsToSelect, HPos.CENTER);
+
+        b = new Button(null, new FontIcon("fas-search:15"));
+        b.setOnAction(new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event) {
+                List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
+                starts.add(getTreeTableView().getRoot());
+                switch (elementsToSelect.getSelectionModel().getSelectedItem()) {
+                    case "Helices":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> HelixDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "SingleStrands":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SingleStrandDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Junctions":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Apical Loops":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.ApicalLoop, starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Inner Loops":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.InnerLoop, starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "PseudoKnots":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PKnotDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Secondary Interactions":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SecondaryInteractionDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Tertiary Interactions":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> TertiaryInteractionDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Interaction Symbols":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> InteractionSymbolDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Phosphodiester Bonds":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PhosphodiesterBondDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Residues":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "As":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> AShapeDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Us":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> UShapeDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Gs":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> GShapeDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Cs":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> CShapeDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                    case "Residue Letters":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueLetterDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        break;
+                }
+                mediator.getExplorer().refresh();
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        pane.add(b, 0,1);
+        GridPane.setHalignment(b, HPos.LEFT);
+        pane.add(new Label("Search from Root"), 1,1);
+
+        b = new Button(null, new FontIcon("fas-search:15"));
+        b.setOnAction(new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event) {
+                List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
+                starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
+                switch (elementsToSelect.getSelectionModel().getSelectedItem()) {
+                    case "Helices":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> HelixDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "SingleStrands":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SingleStrandDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Junctions":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Apical Loops":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.ApicalLoop, starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Inner Loops":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.InnerLoop, starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "PseudoKnots":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PKnotDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Secondary Interactions":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SecondaryInteractionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Tertiary Interactions":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> TertiaryInteractionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Interaction Symbols":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> InteractionSymbolDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Phosphodiester Bonds":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PhosphodiesterBondDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Residues":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "As":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> AShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Us":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> UShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Gs":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> GShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Cs":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> CShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                    case "Residue Letters":
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueLetterDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        break;
+                }
+                mediator.getExplorer().refresh();
+                mediator.getCanvas2D().repaint();
+            }
+        });
+        pane.add(b, 0,2);
+        GridPane.setHalignment(b, HPos.LEFT);
+        pane.add(new Label("Search from Selection"), 1,2);
+
+        stackedTitledPanes.getChildren().add(selection);
+        stackedTitledPanes.getChildren().add(details);
+        stackedTitledPanes.getChildren().add(colors);
+        stackedTitledPanes.getChildren().add(linesWidth);
+        stackedTitledPanes.getChildren().add(linesShift);
+        stackedTitledPanes.getChildren().add(opacity);
+
+        SplitPane splitPane = new SplitPane();
+        splitPane.setDividerPosition(0, 0.25);
+        splitPane.setPadding(new Insets(5));
+        ScrollPane sp2 = new ScrollPane(stackedTitledPanes);
+        splitPane.setResizableWithParent(sp2, false);
+        sp2.setFitToWidth(true);
+        splitPane.getItems().addAll(sp2, sp);
+
+        Scene scene = new Scene(splitPane);
+        stage.setScene(scene);
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
         int width = (int)(screenSize.getWidth()*4.0/10.0);
@@ -197,14 +533,19 @@ public class Explorer {
         scene.getWindow().setY(0);
     }
 
-    public void applyTheme(Theme theme) {
-        this.applyTheme(this.treeTableView.getRoot(), theme);
+    public void applyTheme(Theme theme, byte scope) {
+        this.applyTheme(this.treeTableView.getRoot(), theme, scope);
     }
 
-    public void applyTheme(TreeItem<ExplorerItem> item, Theme theme) {
+    public void applyTheme(TreeItem<ExplorerItem> item, Theme theme, byte scope) {
         item.getValue().applyTheme(theme);
-        for (TreeItem<ExplorerItem> c:item.getChildren())
-            applyTheme(c, theme);
+        if (scope == RNArtist.ELEMENT_SCOPE)
+            return;
+        for (TreeItem<ExplorerItem> c:item.getChildren()) {
+            if (!GroupOfStructuralElements.class.isInstance(item.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(c.getValue().getDrawingElement()))
+                continue;
+            applyTheme(c, theme, scope);
+        }
     }
 
     public TreeItem<ExplorerItem> getTreeViewItemFor(TreeItem<ExplorerItem> item, Object o) {
@@ -230,11 +571,11 @@ public class Explorer {
         return hits;
     }
 
-    public void selectAllTreeViewItems(DrawingElementFilter filter, List<TreeItem<ExplorerItem>> starts, boolean updateCanvas) {
+    public void selectAllTreeViewItems(DrawingElementFilter filter, List<TreeItem<ExplorerItem>> starts, boolean updateCanvas, byte scope) {
         List<TreeItem<ExplorerItem>> hits = new ArrayList<TreeItem<ExplorerItem>>();
         clearSelection(); //we don't want in the selection the element we used at first to launch the selection (we selected an Helix to select all Residues -> we don't need/want the helix anymore in the selection)
         for (TreeItem<ExplorerItem> start:starts)
-            getAllTreeViewItems(hits, start, filter);
+            getAllTreeViewItems(hits, start, filter, scope);
         for (TreeItem<ExplorerItem> hit:hits) {
             TreeItem p = hit.getParent();
             while (p!= null) {
@@ -251,14 +592,17 @@ public class Explorer {
         }
     }
 
-    public List<TreeItem<ExplorerItem>> getAllTreeViewItems(List<TreeItem<ExplorerItem>> hits, TreeItem<ExplorerItem> start, DrawingElementFilter filter) {
+    public List<TreeItem<ExplorerItem>> getAllTreeViewItems(List<TreeItem<ExplorerItem>> hits, TreeItem<ExplorerItem> start, DrawingElementFilter filter, byte scope) {
         if (hits == null)
             hits = new ArrayList<TreeItem<ExplorerItem>>();
         if (filter.isOK(start.getValue().getDrawingElement()))
             hits.add(start);
 
-        for (TreeItem<ExplorerItem> child : start.getChildren())
-            getAllTreeViewItems(hits, child, filter);
+        for (TreeItem<ExplorerItem> child : start.getChildren()) {
+            if (!GroupOfStructuralElements.class.isInstance(start.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+                continue;
+            getAllTreeViewItems(hits, child, filter, scope);
+        }
 
         return hits;
     }
@@ -271,102 +615,155 @@ public class Explorer {
         return this.treeTableView.getSelectionModel().getSelectedItems();
     }
 
-    public void setFullDetailsFrom(TreeItem<ExplorerItem> from, String fullDetails) {
+    public void setFullDetailsFrom(TreeItem<ExplorerItem> from, String fullDetails, byte scope) {
         from.getValue().setFullDetails(fullDetails);
-        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                this.setFullDetailsFrom(child, fullDetails);
+        if (scope == RNArtist.ELEMENT_SCOPE)
+            return;
+        for (TreeItem<ExplorerItem> child:from.getChildren()) {
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+                continue;
+            setFullDetailsFrom(child, fullDetails, scope);
         }
-        else
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                setFullDetailsFrom(child, fullDetails);
     }
 
-    public void setColorFrom(TreeItem<ExplorerItem> from, String color) {
+    public void setColorFrom(TreeItem<ExplorerItem> from, String color, byte scope) {
         from.getValue().setColor(color);
-        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                this.setColorFrom(child, color);
+        if (scope == RNArtist.ELEMENT_SCOPE)
+            return;
+        for (TreeItem<ExplorerItem> child:from.getChildren()) {
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+                continue;
+            setColorFrom(child, color, scope);
         }
-        else
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                setColorFrom(child, color);
     }
 
-    public void setLineWidthFrom(TreeItem<ExplorerItem> from, String width) {
+    public void setLineWidthFrom(TreeItem<ExplorerItem> from, String width, byte scope) {
         from.getValue().setLineWidth(width);
-        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                this.setLineWidthFrom(child, width);
+        if (scope == RNArtist.ELEMENT_SCOPE)
+            return;
+        for (TreeItem<ExplorerItem> child:from.getChildren()) {
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+                continue;
+            setLineWidthFrom(child, width, scope);
         }
-        else
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                setLineWidthFrom(child, width);
     }
 
-    public void setLineShiftFrom(TreeItem<ExplorerItem> from, String shift) {
+    public void setLineShiftFrom(TreeItem<ExplorerItem> from, String shift, byte scope) {
         from.getValue().setLineShift(shift);
-        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                this.setLineShiftFrom(child, shift);
+        if (scope == RNArtist.ELEMENT_SCOPE)
+            return;
+        for (TreeItem<ExplorerItem> child:from.getChildren()) {
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+                continue;
+            setLineShiftFrom(child, shift, scope);
         }
-        else
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                setLineShiftFrom(child, shift);
     }
 
-    public void setOpacityFrom(TreeItem<ExplorerItem> from, String opacity) {
+    public void setOpacityFrom(TreeItem<ExplorerItem> from, String opacity, byte scope) {
         from.getValue().setOpacity(opacity);
-        if (GroupOfStructuralElements.class.isInstance(from.getValue())) {
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                this.setOpacityFrom(child, opacity);
+        if (scope == RNArtist.ELEMENT_SCOPE)
+            return;
+        for (TreeItem<ExplorerItem> child:from.getChildren()) {
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+                continue;
+            setOpacityFrom(child, opacity, scope);
         }
-        else
-            for (TreeItem<ExplorerItem> child:from.getChildren())
-                setOpacityFrom(child, opacity);
     }
 
     //++++++++++ methods to construct the treetable
 
+    private List<TreeItem<ExplorerItem>> helicesAlreadyInPknots = new ArrayList<>();
+    private List<TreeItem<ExplorerItem>> residuesAlreadyInTertiaries = new ArrayList<>();
+
     public void load(SecondaryStructureDrawing drawing) {
+        //we fit the width of the Name column to have enough space to expand the nodes
+        int max = 0;
+        for (Branch b: drawing.getBranches()) {
+            if (b.getBranchLength() > max)
+                max = b.getBranchLength();
+        }
+        treeTableView.getColumns().get(treeTableView.getColumns().size()-1).setMinWidth(50*max);
+        treeTableView.getColumns().get(treeTableView.getColumns().size()-1).setMaxWidth(60*max);
+
+        this.helicesAlreadyInPknots.clear();
+        this.residuesAlreadyInTertiaries.clear();
+
         TreeItem<ExplorerItem> root = new TreeItem<ExplorerItem>(new SecondaryStructureItem(drawing));
         root.setExpanded(true);
 
-        TreeItem<ExplorerItem> allPknots = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Pseudoknots"));
-        root.getChildren().add(allPknots);
-        for (PKnotDrawing pknot : drawing.getPknots())
-            allPknots.getChildren().addAll(this.load(pknot));
+        GroupOfStructuralElements pknotsGroup = new GroupOfStructuralElements("Pseudoknots");
+        TreeItem<ExplorerItem> pknotsTreeItem = new TreeItem<ExplorerItem>(pknotsGroup);
+        root.getChildren().add(pknotsTreeItem);
+        for (PKnotDrawing pknot : drawing.getPknots()) {
+            TreeItem<ExplorerItem> pknotTreeItem = this.load(pknot);
+            pknotsTreeItem.getChildren().add(pknotTreeItem);
+            pknotsGroup.getChildren().add(pknotTreeItem.getValue());
+        }
 
-        TreeItem<ExplorerItem> allBranches = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Branches"));
-        root.getChildren().add(allBranches);
-        for (JunctionDrawing j: drawing.getBranches())
-            allBranches.getChildren().addAll(this.load(j));
-
-        TreeItem<ExplorerItem> allSingleStrands = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("SingleStrands"));
-        root.getChildren().add(allSingleStrands);
-        for (SingleStrandDrawing ss : drawing.getSingleStrands())
-            allSingleStrands.getChildren().addAll(this.load(ss));
-
-        TreeItem<ExplorerItem> allTertiaries = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Tertiaries"));
-        root.getChildren().add(allTertiaries);
+        GroupOfStructuralElements tertiariesGroup = new GroupOfStructuralElements("Tertiaries");
+        TreeItem<ExplorerItem> tertiariesTreeItem = new TreeItem<ExplorerItem>(tertiariesGroup);
+        root.getChildren().add(tertiariesTreeItem);
         for (TertiaryInteractionDrawing interaction : drawing.getTertiaryInteractions())
-            if (interaction.getParent() == null) // if parent not null, this tertiary interaction is in a pknot and will be a child of this pknot
-                allTertiaries.getChildren().addAll(this.load(interaction, true));
+            if (interaction.getParent() == null) {// if parent not null, this tertiary interaction is in a pknot and will be a child of this pknot
+                TreeItem<ExplorerItem> tertiaryTreeItem = this.load(interaction, true);
+                tertiariesTreeItem.getChildren().add(tertiaryTreeItem);
+                tertiariesGroup.getChildren().add(tertiaryTreeItem.getValue());
+            }
 
-        TreeItem<ExplorerItem> allphosphos = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Phosphodiester Bonds"));
+        GroupOfStructuralElements branchesGroup = new GroupOfStructuralElements("Branches");
+        TreeItem<ExplorerItem> allBranches = new TreeItem<ExplorerItem>(branchesGroup);
+        root.getChildren().add(allBranches);
+        for (JunctionDrawing j: drawing.getBranches()) {
+            TreeItem<ExplorerItem> branchTreeItem = this.load(j);
+            allBranches.getChildren().addAll(branchTreeItem);
+            branchesGroup.getChildren().add(branchTreeItem.getValue());
+        }
+
+        GroupOfStructuralElements singleStrandsGroup = new GroupOfStructuralElements("SingleStrands");
+        TreeItem<ExplorerItem> allSingleStrands = new TreeItem<ExplorerItem>(singleStrandsGroup);
+        root.getChildren().add(allSingleStrands);
+        for (SingleStrandDrawing ss : drawing.getSingleStrands()) {
+            TreeItem<ExplorerItem> singleStrandTreeItem = this.load(ss);
+            allSingleStrands.getChildren().addAll(singleStrandTreeItem);
+            singleStrandsGroup.getChildren().add(singleStrandTreeItem.getValue());
+        }
+
+        GroupOfStructuralElements phosphoGroup = new GroupOfStructuralElements("Phosphodiester Bonds");
+        TreeItem<ExplorerItem> allphosphos = new TreeItem<ExplorerItem>(phosphoGroup);
         root.getChildren().add(allphosphos);
-        for (PhosphodiesterBondDrawing p : drawing.getPhosphoBonds())
-            allphosphos.getChildren().addAll(this.load(p));
+        for (PhosphodiesterBondDrawing p : drawing.getPhosphoBonds()) {
+            TreeItem<ExplorerItem> phosphoTreeItem = this.load(p);
+            allphosphos.getChildren().addAll(phosphoTreeItem);
+            phosphoGroup.getChildren().add(phosphoTreeItem.getValue());
+        }
 
         this.treeTableView.setRoot(root);
+
+        //cleaning
+        this.helicesAlreadyInPknots.clear();
+        this.residuesAlreadyInTertiaries.clear();
+    }
+
+
+    //make a tree of TreeItems containing the same ExplorerItems. This allows to synchronize two different tree items targeting the same drawing elements (Residues betwenn secondaries and tertiaries, helices between junctions and pknots)
+    private TreeItem<ExplorerItem> copy(TreeItem<ExplorerItem> toCopy) {
+        TreeItem<ExplorerItem> copy = new TreeItem<ExplorerItem>(toCopy.getValue());
+        for (TreeItem<ExplorerItem> c : toCopy.getChildren())
+            copy.getChildren().add(copy(c));
+        return copy;
     }
 
     private TreeItem<ExplorerItem> load(PKnotDrawing pknot) {
         TreeItem<ExplorerItem> pknotItem = new TreeItem<ExplorerItem>(new PknotItem(pknot));
         pknotItem.getChildren().add(this.load(pknot.helix));
-        TreeItem<ExplorerItem> allTertiaries = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Tertiaries"));
-        for (TertiaryInteractionDrawing interaction : pknot.getTertiaryInteractions())
-            allTertiaries.getChildren().addAll(this.load(interaction, true));
+        helicesAlreadyInPknots.add(this.copy(pknotItem.getChildren().get(0))) ; //a copy for the helix in the branches
+        GroupOfStructuralElements tertiariesGroup = new GroupOfStructuralElements("Tertiaries");
+        TreeItem<ExplorerItem> allTertiaries = new TreeItem<ExplorerItem>(tertiariesGroup);
+        for (TertiaryInteractionDrawing interaction : pknot.getTertiaryInteractions()) {
+            TreeItem<ExplorerItem> tertiaryTreeItem  = this.load(interaction, true);
+            allTertiaries.getChildren().addAll(tertiaryTreeItem);
+            tertiariesGroup.getChildren().add(tertiaryTreeItem.getValue());
+        }
         pknotItem.getChildren().add(allTertiaries);
         return pknotItem;
     }
@@ -374,15 +771,23 @@ public class Explorer {
     private TreeItem<ExplorerItem> load(HelixDrawing h) {
         TreeItem<ExplorerItem> helixItem = new TreeItem<ExplorerItem>(new HelixItem(h));
 
-        TreeItem<ExplorerItem> secondaries = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Secondaries"));
+        GroupOfStructuralElements secondariesGroup = new GroupOfStructuralElements("Secondaries");
+        TreeItem<ExplorerItem> secondaries = new TreeItem<ExplorerItem>(secondariesGroup);
         helixItem.getChildren().add(secondaries);
-        for (SecondaryInteractionDrawing interaction : h.getSecondaryInteractions())
-            secondaries.getChildren().addAll(this.load(interaction, false));
+        for (SecondaryInteractionDrawing interaction : h.getSecondaryInteractions()) {
+            TreeItem<ExplorerItem> secondaryTreeItem = this.load(interaction, false);
+            secondaries.getChildren().addAll(secondaryTreeItem);
+            secondariesGroup.getChildren().add(secondaryTreeItem.getValue());
+        }
 
-        TreeItem<ExplorerItem> allPhosphos = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Phosphodiester Bonds"));
+        GroupOfStructuralElements phosphoGroup = new GroupOfStructuralElements("Phosphodiester Bonds");
+        TreeItem<ExplorerItem> allPhosphos = new TreeItem<ExplorerItem>(phosphoGroup);
         helixItem.getChildren().add(allPhosphos);
-        for (PhosphodiesterBondDrawing p: h.getPhosphoBonds())
-            allPhosphos.getChildren().add(this.load(p));
+        for (PhosphodiesterBondDrawing p: h.getPhosphoBonds()) {
+            TreeItem<ExplorerItem> phosphoTreeItem = this.load(p);
+            allPhosphos.getChildren().add(phosphoTreeItem);
+            phosphoGroup.getChildren().add(phosphoTreeItem.getValue());
+        }
         return helixItem;
     }
 
@@ -390,20 +795,46 @@ public class Explorer {
 
         TreeItem<ExplorerItem> junctionItem = new TreeItem<ExplorerItem>(new JunctionItem(jc));
 
-        TreeItem<ExplorerItem> residues = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Residues"));
+        GroupOfStructuralElements residuesGroup = new GroupOfStructuralElements("Residues");
+        TreeItem<ExplorerItem> residues = new TreeItem<ExplorerItem>(residuesGroup);
         junctionItem.getChildren().add(residues);
         for (ResidueDrawing r : jc.getResidues())
-            if (r.getParent() == jc)
-                residues.getChildren().addAll(load(r));
+            if (r.getParent() == jc) {
+                boolean found = false;
+                for (TreeItem<ExplorerItem> _r: this.residuesAlreadyInTertiaries) {
+                    if (r.equals(_r.getValue().getDrawingElement())) {
+                        residues.getChildren().addAll(_r);
+                        residuesGroup.getChildren().add(_r.getValue());
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    TreeItem<ExplorerItem> residueTreeItem = load(r);
+                    residues.getChildren().addAll(residueTreeItem);
+                    residuesGroup.getChildren().add(residueTreeItem.getValue());
+                }
+            }
 
-        TreeItem<ExplorerItem> allPhosphos = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Phosphodiester Bonds"));
+        GroupOfStructuralElements phosphoGroup = new GroupOfStructuralElements("Phosphodiester Bonds");
+        TreeItem<ExplorerItem> allPhosphos = new TreeItem<ExplorerItem>(phosphoGroup);
         junctionItem.getChildren().add(allPhosphos);
-        for (PhosphodiesterBondDrawing p: jc.getPhosphoBonds())
-            allPhosphos.getChildren().add(this.load(p));
+        for (PhosphodiesterBondDrawing p: jc.getPhosphoBonds()) {
+            TreeItem<ExplorerItem> phosphoTreeItem = load(p);
+            allPhosphos.getChildren().add(phosphoTreeItem);
+            phosphoGroup.getChildren().add(phosphoTreeItem.getValue());
+        }
 
         for (JunctionDrawing connectedJC: jc.getConnectedJunctions().values())
             junctionItem.getChildren().add(this.load(connectedJC));
 
+        for (TreeItem<ExplorerItem> h: this.helicesAlreadyInPknots) {
+            if (h.getValue().getDrawingElement().equals(jc.getParent())) {
+                TreeItem<ExplorerItem> helixItem = h;
+                helixItem.getChildren().add(junctionItem);
+                return helixItem;
+            }
+        }
         TreeItem<ExplorerItem> helixItem = load((HelixDrawing)jc.getParent());
         helixItem.getChildren().add(junctionItem);
         return helixItem;
@@ -412,17 +843,36 @@ public class Explorer {
     private TreeItem<ExplorerItem> load(SingleStrandDrawing ss) {
         TreeItem<ExplorerItem> ssItem = new TreeItem<ExplorerItem>(new SingleStrandItem(ss));
 
-        TreeItem<ExplorerItem> residues = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Residues"));
+        GroupOfStructuralElements residuesGroup = new GroupOfStructuralElements("Residues");
+        TreeItem<ExplorerItem> residues = new TreeItem<ExplorerItem>(residuesGroup);
         ssItem.getChildren().add(residues);
         for (ResidueDrawing r : ss.getResidues()) {
-            if (r.getParent() == ss)
-                residues.getChildren().addAll(load(r));
+            if (r.getParent() == ss) {
+                boolean found = false;
+                for (TreeItem<ExplorerItem> _r: this.residuesAlreadyInTertiaries) {
+                    if (r.equals(_r.getValue().getDrawingElement())) {
+                        residues.getChildren().add(_r);
+                        residuesGroup.getChildren().add(_r.getValue());
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    TreeItem<ExplorerItem> residueTreeItem = load(r);
+                    residues.getChildren().add(residueTreeItem);
+                    residuesGroup.getChildren().add(residueTreeItem.getValue());
+                }
+            }
         }
 
-        TreeItem<ExplorerItem> allPhosphos = new TreeItem<ExplorerItem>(new GroupOfStructuralElements("Phosphodiester Bonds"));
+        GroupOfStructuralElements phosphoGroup = new GroupOfStructuralElements("Phosphodiester Bonds");
+        TreeItem<ExplorerItem> allPhosphos = new TreeItem<ExplorerItem>(phosphoGroup);
         ssItem.getChildren().add(allPhosphos);
-        for (PhosphodiesterBondDrawing p: ss.getPhosphoBonds())
-            allPhosphos.getChildren().add(this.load(p));
+        for (PhosphodiesterBondDrawing p: ss.getPhosphoBonds()) {
+            TreeItem<ExplorerItem> phosphoTreeItem = this.load(p);
+            allPhosphos.getChildren().add(phosphoTreeItem);
+            phosphoGroup.getChildren().add(phosphoTreeItem.getValue());
+        }
         return ssItem;
     }
 
@@ -432,10 +882,57 @@ public class Explorer {
 
         TreeItem<ExplorerItem> interactionSymbolItem = new TreeItem<ExplorerItem>(new InteractionSymbolItem(interaction.getInteractionSymbol()));
         interactionItem.getChildren().add(interactionSymbolItem);
-        if (interaction.getResidue().getParent() == interaction)
-            interactionItem.getChildren().add(load(interaction.getResidue()));
-        if (interaction.getPairedResidue().getParent() == interaction)
-            interactionItem.getChildren().add(load(interaction.getPairedResidue()));
+        if (isTertiary) {
+            boolean found = false;
+            for (TreeItem<ExplorerItem> r: this.residuesAlreadyInTertiaries) {
+                if (interaction.getResidue().equals(r.getValue().getDrawingElement())) {
+                    interactionItem.getChildren().add(r);
+                    this.residuesAlreadyInTertiaries.add(copy(r)); //we add a new copy if needed for an other interaction
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                TreeItem<ExplorerItem> r = load(interaction.getResidue());
+                this.residuesAlreadyInTertiaries.add(copy(r));
+                interactionItem.getChildren().add(r);
+            }
+            found = false;
+            for (TreeItem<ExplorerItem> r: this.residuesAlreadyInTertiaries) {
+                if (interaction.getPairedResidue().equals(r.getValue().getDrawingElement())) {
+                    interactionItem.getChildren().add(r);
+                    this.residuesAlreadyInTertiaries.add(copy(r)); //we add a new copy if needed for an other interaction
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                TreeItem<ExplorerItem> r = load(interaction.getPairedResidue());
+                this.residuesAlreadyInTertiaries.add(copy(r));
+                interactionItem.getChildren().add(r);
+            }
+        } else {
+            boolean foundR = false, foundPaired = false;
+            for (TreeItem<ExplorerItem> r: this.residuesAlreadyInTertiaries) {
+                if (interaction.getResidue().equals(r.getValue().getDrawingElement())) {
+                    interactionItem.getChildren().add(r);
+                    foundR = true;
+                } else if (interaction.getPairedResidue().equals(r.getValue().getDrawingElement())) {
+                    interactionItem.getChildren().add(r);
+                    foundPaired = true;
+                }
+                if (foundR && foundPaired)
+                    break;
+            }
+            if (!foundR) {
+                TreeItem<ExplorerItem> r = load(interaction.getResidue());
+                interactionItem.getChildren().add(r);
+            }
+            if (!foundPaired) {
+                TreeItem<ExplorerItem> r = load(interaction.getPairedResidue());
+                interactionItem.getChildren().add(r);
+            }
+        }
         return interactionItem;
     }
 
@@ -455,263 +952,137 @@ public class Explorer {
         public boolean isOK(DrawingElement el);
     }
 
-    private class CMenu extends ContextMenu {
-        CMenu() {
-            MenuItem clearSelection = new MenuItem("Clear Selection");
-            this.getItems().add(clearSelection);
-            clearSelection.setOnAction(new EventHandler<ActionEvent>() {
+    private class LastColor extends Rectangle {
 
+        private Color color;
+
+        private LastColor(Color color) {
+            super(20,20, color);
+            this.color = color;
+            this.setStyle("-fx-stroke: "+getHTMLColorString(javaFXToAwt(this.color))+" ;-fx-stroke-width: 2;");
+            this.setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
-                public void handle(ActionEvent t) {
-                    mediator.getExplorer().clearSelection();
-                    mediator.getCanvas2D().clearSelection();
+                public void handle(MouseEvent mouseEvent) {
+                    if (lastColorClicked != null)
+                        lastColorClicked.setStyle("-fx-stroke: "+getHTMLColorString(javaFXToAwt(lastColorClicked.color))+" ;-fx-stroke-width: 2;");
+                    lastColorClicked = LastColor.this;
+                    lastColorClicked.setStyle("-fx-stroke: black; -fx-stroke-width: 2;");
+                    for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
+                        mediator.getExplorer().setColorFrom(item, getHTMLColorString(javaFXToAwt(color)), mediator.getRnartist().getScope());
+                    mediator.getExplorer().refresh();
+                    mediator.getCanvas2D().repaint();
                 }
             });
-
-            Menu selectMenu = new Menu("Select...");
-            this.getItems().add(selectMenu);
-
-            MenuItem selectionMode = new MenuItem("Helices");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> HelixDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("SingleStrands");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SingleStrandDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Junctions");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Apical Loops");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing) drawingElement).getJunction().getType() == JunctionType.ApicalLoop, starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Inner Loops");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing) drawingElement).getJunction().getType() == JunctionType.InnerLoop, starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("PseudoKnots");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PKnotDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Secondary Interactions");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SecondaryInteractionDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Tertiary Interactions");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> TertiaryInteractionDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Interaction Symbols");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> InteractionSymbolDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("PhosphoDiester Bonds");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PhosphodiesterBondDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Residues");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Residue Letters");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueLetterDrawing.class.isInstance(drawingElement), starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("As");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement) && drawingElement.getType() == SecondaryStructureType.AShape, starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Us");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement) && drawingElement.getType() == SecondaryStructureType.UShape, starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Gs");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement) && drawingElement.getType() == SecondaryStructureType.GShape, starts, true);
-                }
-            });
-
-            selectionMode = new MenuItem("Cs");
-            selectMenu.getItems().add(selectionMode);
-            selectionMode.setOnAction(new EventHandler<ActionEvent>() {
-
-                @Override
-                public void handle(ActionEvent t) {
-                    List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                    if (getTreeTableView().getSelectionModel().getSelectedItems().isEmpty())
-                        starts.add(getTreeTableView().getRoot());
-                    else
-                        starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
-                    mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement) && drawingElement.getType() == SecondaryStructureType.CShape, starts, true);
-                }
-            });
-
         }
+
+    }
+
+    private class ShapeCellFactory implements Callback<ListView<String>, ListCell<String>> {
+        @Override
+        public ListCell<String> call(ListView<String> listview) {
+            return new ShapeCell();
+        }
+    }
+
+    private class ShapeCell extends ListCell<String> {
+        @Override
+        public void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+
+            if (empty) {
+                setText(null);
+                setGraphic(null);
+            } else {
+                setText(item);
+                setGraphic(Explorer.this.getShape(item));
+            }
+        }
+    }
+
+    private Node getShape(String lineWidth) {
+        Node node = null;
+
+        switch (lineWidth.toLowerCase()) {
+            case "0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(0);
+                break;
+            case "0.25":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(0.25);
+                break;
+            case "0.5":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(0.5);
+                break;
+            case "0.75":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(0.75);
+                break;
+            case "1.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(1);
+                break;
+            case "1.25":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(1.25);
+                break;
+            case "1.5":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(1.5);
+                break;
+            case "1.75":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(1.75);
+                break;
+            case "2.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(2);
+                break;
+            case "2.5":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(2.5);
+                break;
+            case "3.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(3);
+                break;
+            case "3.5":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(3.5);
+                break;
+            case "4.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(4);
+                break;
+            case "5.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(5);
+                break;
+            case "6.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(6);
+                break;
+            case "7.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(7);
+                break;
+            case "8.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(8);
+                break;
+            case "9.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(9);
+                break;
+            case "10.0":
+                node = new Line(0, 10, 100, 10);
+                ((Line)node).setStrokeWidth(10);
+                break;
+            default:
+                node = null;
+        }
+        return node;
     }
 
 }

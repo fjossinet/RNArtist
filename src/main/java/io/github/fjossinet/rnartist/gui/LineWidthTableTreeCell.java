@@ -39,7 +39,6 @@ public class LineWidthTableTreeCell<T> extends TreeTableCell<T, String> {
 
     public LineWidthTableTreeCell(Mediator mediator) {
         this.mediator = mediator;
-        this.setContextMenu(new CMenu());
     }
 
     @Override
@@ -58,88 +57,8 @@ public class LineWidthTableTreeCell<T> extends TreeTableCell<T, String> {
 
     }
 
-    class ShapeCell extends ListCell<String> {
-        @Override
-        public void updateItem(String item, boolean empty) {
-            super.updateItem(item, empty);
-
-            if (empty) {
-                setText(null);
-                setGraphic(null);
-            } else {
-                setText(item);
-                setGraphic(LineWidthTableTreeCell.this.getShape(item));
-            }
-        }
-    }
-
-    public class ShapeCellFactory implements Callback<ListView<String>, ListCell<String>> {
-        @Override
-        public ListCell<String> call(ListView<String> listview) {
-            return new ShapeCell();
-        }
-    }
-
     public static <T> Callback<TreeTableColumn<T, String>, TreeTableCell<T, String>> forTreeTableColumn(Mediator mediator) {
         return (TreeTableColumn<T, String> tableColumn) -> new LineWidthTableTreeCell<>(mediator);
-    }
-
-    private class CMenu extends ContextMenu {
-        CMenu() {
-            final Menu width = new Menu("Set Width");
-            width.getStyleClass().add("no-highlight");
-            this.getItems().add(width);
-            ComboBox<String> lineWidth = new ComboBox<String>();
-            lineWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "2.5", "3.0", "3.5", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
-            lineWidth.setCellFactory(new ShapeCellFactory());
-            lineWidth.setButtonCell(new ShapeCell());
-            lineWidth.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-                @Override
-                public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
-                    for (TreeItem item: LineWidthTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
-                        if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
-                            for (Object child:item.getChildren())
-                                ((ExplorerItem)((TreeItem)child).getValue()).setLineWidth(lineWidth.getValue());
-                        }
-                        else
-                            ((ExplorerItem)item.getValue()).setLineWidth(lineWidth.getValue());
-                    }
-                    mediator.getExplorer().refresh();
-                    mediator.getCanvas2D().repaint();
-                }
-            });
-            width.getItems().add(new MenuItem(null,lineWidth));
-            final Menu clear = new Menu("Clear Width...");
-            this.getItems().add(clear);
-            final MenuItem here = new MenuItem("Here");
-            clear.getItems().add(here);
-            here.setOnAction(new EventHandler<ActionEvent>(){
-                @Override
-                public void handle(ActionEvent event) {
-                    for (TreeItem item: LineWidthTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems()) {
-                        if (GroupOfStructuralElements.class.isInstance(item.getValue())) {
-                            for (Object child:item.getChildren())
-                                ((ExplorerItem)((TreeItem)child).getValue()).setLineWidth(null);
-                        }
-                        else
-                            ((ExplorerItem)item.getValue()).setLineWidth(null);
-                    }
-                    mediator.getExplorer().refresh();
-                    mediator.getCanvas2D().repaint();
-                }
-            });
-            final MenuItem fromHere = new MenuItem("From Here");
-            clear.getItems().add(fromHere);
-            fromHere.setOnAction(new EventHandler<ActionEvent>(){
-                @Override
-                public void handle(ActionEvent event) {
-                    for (TreeItem item: LineWidthTableTreeCell.this.getTreeTableView().getSelectionModel().getSelectedItems())
-                        mediator.getExplorer().setLineWidthFrom(item, null);
-                    mediator.getExplorer().refresh();
-                    mediator.getCanvas2D().repaint();
-                }
-            });
-        }
     }
 
     private Node getShape(String lineWidth) {
