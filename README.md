@@ -9,7 +9,9 @@ You need the tool maven and a Java distribution to be installed (type the comman
 
 ## Installation
 
-In the project directory type: 
+Download the project as [a zip file](https://github.com/fjossinet/RNArtist/archive/master.zip) or with the command git (git clone https://github.com/fjossinet/RNArtist.git).
+
+From the project directory, type: 
 
 ```
 mvn clean package
