@@ -225,11 +225,6 @@ public class Settings {
                     else
                         chimeraPath.setText(f.getAbsolutePath());
                     RnartistConfig.setChimeraPath(chimeraPath.getText());
-                    try {
-                        RnartistConfig.save(null, null); //we save the chimera path, not the theme (perhaps the user is not interested to save the current theme)
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 }
             }
         });
@@ -400,18 +395,6 @@ public class Settings {
         GridPane.setConstraints(svgBrowserFix, 0, row);
 
         l = new Label("Set Browser Compatibility for SVG Export");
-        optionsPane.getChildren().add(l);
-        GridPane.setConstraints(l, 1, row++);
-
-        CheckBox defaultThemeOnExit = new CheckBox();
-        defaultThemeOnExit.setSelected(RnartistConfig.saveCurrentThemeOnExit());
-        defaultThemeOnExit.setOnAction(actionEvent -> {
-            RnartistConfig.saveCurrentThemeOnExit(defaultThemeOnExit.isSelected());
-        });
-        optionsPane.getChildren().add(defaultThemeOnExit);
-        GridPane.setConstraints(defaultThemeOnExit, 0, row);
-
-        l = new Label("Set Current Theme as Default on Exit");
         optionsPane.getChildren().add(l);
         GridPane.setConstraints(l, 1, row++);
     }
