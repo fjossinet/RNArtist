@@ -88,7 +88,10 @@ class Mediator(val rnartist: RNArtist) {
                         item.userData = drawing
                         item.setOnAction {
                             canvas2D.load2D(item.userData as SecondaryStructureDrawing)
-                            canvas2D.fitDisplayOn(current2DDrawing!!.getBounds())
+                            if ((item.userData as SecondaryStructureDrawing).workingSession.viewX == 0.0 && (item.userData as SecondaryStructureDrawing).workingSession.viewY == 0.0 && (item.userData as SecondaryStructureDrawing).workingSession.finalZoomLevel == 1.0) {
+                                //it seems it is a first opening, then we fit to the display
+                                canvas2D.fitDisplayOn(current2DDrawing!!.getBounds())
+                            }
                         }
                         var found = false
                         rnartist.allStructuresAvailableMenu.items.forEach { fileName ->

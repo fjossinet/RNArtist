@@ -27,11 +27,12 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         this.secondaryStructureDrawing = drawing
         this.fps = 0
         this.knobs.clear()
+        this.secondaryStructureDrawing?.workingSession?.tertiariesDisplayLevel = mediator.rnartist.tertiariesLevel
         this.secondaryStructureDrawing?.let { it ->
             mediator.explorer.load(it)
         }
-        this.mediator.rnartist.detailsLevel.value = 1.0
-        mediator.explorer.applyTheme(Theme(RnartistConfig.themeDetailsLevel.get(0).toMutableMap()),RNArtist.BRANCH_SCOPE)
+        this.repaint();
+
         /*
         Timer("", false).schedule(1000) {
             mediator.explorer.getTreeViewItemFor(mediator.explorer.treeTableView.root, secondaryStructureDrawing).value.lineWidth = "2.0"

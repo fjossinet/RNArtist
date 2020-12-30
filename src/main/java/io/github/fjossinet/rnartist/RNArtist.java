@@ -17,6 +17,8 @@ import javafx.event.EventHandler;
 import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
@@ -55,8 +57,13 @@ public class RNArtist extends Application {
     private FlowPane statusBar;
     private MenuButton allStructuresAvailable;
     private MenuItem updateSavedThemeItem, clearAll2DsItem, clearAll2DsExceptCurrentItem;
+
+
+    //user defined global configurations
     private Slider detailsLevel, tertiariesLevel;
     private byte scope = BRANCH_SCOPE;
+    private boolean fitDisplayOnSelection = false;
+    private boolean centerDisplayOnSelection = false;
 
     public static void main(String[] args) {
         launch(args);
@@ -545,9 +552,53 @@ public class RNArtist extends Application {
         Menu colorSchemesMenu = new Menu("Colors...");
         _2dDrawing.getItems().add(colorSchemesMenu);
 
-        MenuItem branchingColors = new MenuItem("Branching");
+        Menu branchesColors = new Menu("Branches");
+        colorSchemesMenu.getItems().add(branchesColors);
 
-        branchingColors.setOnAction(new EventHandler<ActionEvent>() {
+        MenuItem randomColors = new MenuItem("Random");
+        branchesColors.getItems().add(randomColors);
+
+        randomColors.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                for (Branch branch: mediator.getCurrent2DDrawing().getBranches()) {
+                    Random rand = new Random();
+                    float r = rand.nextFloat();
+                    float g = rand.nextFloat();
+                    float b = rand.nextFloat();
+                    java.awt.Color c = new java.awt.Color(r, g, b);
+                    Map<String, Map<String,String>> configuration = new HashMap<>();
+                    Map<String,String> colorConfig = new HashMap<>();
+                    colorConfig.put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(c));
+                    Map<String,String> letterColorConfig = new HashMap<>();
+                    letterColorConfig.put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(java.awt.Color.BLACK));
+                    configuration.put(SecondaryStructureType.Helix.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.SecondaryInteraction.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.Junction.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.AShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.A.toString(), letterColorConfig);
+                    configuration.put(SecondaryStructureType.UShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.U.toString(), letterColorConfig);
+                    configuration.put(SecondaryStructureType.GShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.G.toString(), letterColorConfig);
+                    configuration.put(SecondaryStructureType.CShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.C.toString(), letterColorConfig);
+                    configuration.put(SecondaryStructureType.XShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.X.toString(), letterColorConfig);
+                    Theme theme = new Theme(configuration);
+                    for (TreeItem<ExplorerItem> item: mediator.getExplorer().getTreeViewItemsFor(mediator.getExplorer().getTreeTableView().getRoot(),branch.getParent()))
+                        mediator.getExplorer().applyTheme( item, theme ,BRANCH_SCOPE);
+                }
+
+                mediator.getCanvas2D().repaint();
+                mediator.getExplorer().refresh();
+            }
+        });
+
+        MenuItem distanceColors = new MenuItem("Distance");
+        branchesColors.getItems().add(distanceColors);
+
+        distanceColors.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
                 for (Branch branch: mediator.getCurrent2DDrawing().getBranches()) {
@@ -575,9 +626,7 @@ public class RNArtist extends Application {
             }
         });
 
-        colorSchemesMenu.getItems().add(branchingColors);
-
-        Menu colorSchemes = new Menu("Schemes...");
+        Menu colorSchemes = new Menu("Residues...");
 
         colorSchemesMenu.getItems().add(colorSchemes);
 
@@ -717,8 +766,8 @@ public class RNArtist extends Application {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 if (mouseEvent.isShiftDown()) {
-                    RnartistConfig.setCenterDisplayOnSelection(!RnartistConfig.getCenterDisplayOnSelection());
-                    if (RnartistConfig.getCenterDisplayOnSelection())
+                    setCenterDisplayOnSelection(!isCenterDisplayOnSelection());
+                    if (isCenterDisplayOnSelection())
                         center2D.setGraphic(new Glyph("FontAwesome", FontAwesome.Glyph.LOCK));
                     else
                         center2D.setGraphic(new Glyph("FontAwesome", FontAwesome.Glyph.CROSSHAIRS));
@@ -740,8 +789,8 @@ public class RNArtist extends Application {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 if (mouseEvent.isShiftDown()) {
-                    RnartistConfig.setFitDisplayOnSelection(!RnartistConfig.getFitDisplayOnSelection());
-                    if (RnartistConfig.getFitDisplayOnSelection()) {
+                   setFitDisplayOnSelection(!isFitDisplayOnSelection());
+                    if (isFitDisplayOnSelection()) {
                         fit2D.setGraphic(new Glyph("FontAwesome", FontAwesome.Glyph.LOCK));
                     }
                     else
@@ -1025,12 +1074,14 @@ public class RNArtist extends Application {
 
         //++++++ Canvas2D
         final SwingNode swingNode = new SwingNode();
+        swingNode.setOnKeyTyped(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent keyEvent) {
+                System.out.println(keyEvent.getCode());
+            }
+        });
         swingNode.setOnMouseClicked(mouseEvent -> {
-            if (mouseEvent.isControlDown() || mouseEvent.isAltDown()) {
-                mediator.getCanvas2D().clearSelection();
-                mediator.getExplorer().clearSelection();
-                return;
-            } else if (mouseEvent.getButton() == MouseButton.PRIMARY) {
+            if (mouseEvent.getButton() == MouseButton.PRIMARY) {
                 AffineTransform at = new AffineTransform();
                 at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
                 at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
@@ -1088,7 +1139,11 @@ public class RNArtist extends Application {
                             return;
                         }
                     }
-
+                    if (mouseEvent.getClickCount() == 2) {
+                        //no selection
+                        mediator.getCanvas2D().clearSelection();
+                        mediator.getExplorer().clearSelection();
+                    }
                 }
             }
         });
@@ -1181,6 +1236,22 @@ public class RNArtist extends Application {
         mediator.getProjectManager().getStage().toFront();
     }
 
+    public boolean isFitDisplayOnSelection() {
+        return fitDisplayOnSelection;
+    }
+
+    public void setFitDisplayOnSelection(boolean fitDisplayOnSelection) {
+        this.fitDisplayOnSelection = fitDisplayOnSelection;
+    }
+
+    public boolean isCenterDisplayOnSelection() {
+        return centerDisplayOnSelection;
+    }
+
+    public void setCenterDisplayOnSelection(boolean centerDisplayOnSelection) {
+        this.centerDisplayOnSelection = centerDisplayOnSelection;
+    }
+
     public byte getScope() {
         return scope;
     }
@@ -1212,6 +1283,14 @@ public class RNArtist extends Application {
         return detailsLevel;
     }
 
+    public TertiariesDisplayLevel getTertiariesLevel() {
+        switch ((int)RNArtist.this.tertiariesLevel.getValue()) {
+            case 1: return TertiariesDisplayLevel.None;
+            case 2: return TertiariesDisplayLevel.Pknots;
+            default: return TertiariesDisplayLevel.All;
+        }
+    }
+
     private void createSwingContent(final SwingNode swingNode) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -1220,75 +1299,6 @@ public class RNArtist extends Application {
                 swingNode.setContent(canvas);
             }
         });
-    }
-
-    private abstract class Option {
-
-        protected String title;
-
-        protected Option(String title) {
-            this.title = title;
-        }
-
-        abstract protected void check(boolean check);
-
-        abstract protected boolean isChecked();
-
-        @Override
-        public String toString() {
-            return this.title;
-        }
-    }
-
-    private class DisplayTertiariesInSelection extends Option {
-
-        public DisplayTertiariesInSelection() {
-            super("Display Tertiary Interactions for Selection");
-        }
-
-        @Override
-        protected boolean isChecked() {
-            return RnartistConfig.getDisplayTertiariesInSelection();
-        }
-
-        @Override
-        protected void check(boolean check) {
-            RnartistConfig.setDisplayTertiariesInSelection(check);
-        }
-    }
-
-    private class CenterDisplayOnSelection extends Option {
-
-        public CenterDisplayOnSelection() {
-            super("Center Display on Selection");
-        }
-
-        @Override
-        protected boolean isChecked() {
-            return RnartistConfig.getCenterDisplayOnSelection();
-        }
-
-        @Override
-        protected void check(boolean check) {
-            RnartistConfig.setCenterDisplayOnSelection(check);
-        }
-    }
-
-    private class FitDisplayOnSelection extends Option {
-
-        public FitDisplayOnSelection() {
-            super("Fit Display on Selection");
-        }
-
-        @Override
-        protected boolean isChecked() {
-            return RnartistConfig.getFitDisplayOnSelection();
-        }
-
-        @Override
-        protected void check(boolean check) {
-            RnartistConfig.setFitDisplayOnSelection(check);
-        }
     }
 
 }

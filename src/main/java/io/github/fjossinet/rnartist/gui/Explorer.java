@@ -135,9 +135,9 @@ public class Explorer {
                         mediator.canvas2D.clearSelection();
                         for (DrawingElement e : selectedElements)
                             mediator.getCanvas2D().addToSelection(e);
-                        if (RnartistConfig.getFitDisplayOnSelection()) {
+                        if (mediator.getRnartist().isFitDisplayOnSelection()) {
                             mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
-                        } else if (RnartistConfig.getCenterDisplayOnSelection()) {
+                        } else if (mediator.getRnartist().isCenterDisplayOnSelection()) {
                             mediator.canvas2D.centerDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
                         }
                         mediator.canvas2D.repaint();
@@ -163,9 +163,9 @@ public class Explorer {
                             else
                                 mediator.getCanvas2D().addToSelection(item.getValue().getDrawingElement());
                         }
-                        if (RnartistConfig.getFitDisplayOnSelection())
+                        if (mediator.getRnartist().isFitDisplayOnSelection())
                             mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
-                        else if (RnartistConfig.getCenterDisplayOnSelection())
+                        else if (mediator.getRnartist().isCenterDisplayOnSelection())
                             mediator.canvas2D.centerDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
                         mediator.canvas2D.repaint();
                     } else if (mediator.getCurrent2DDrawing() != null)
@@ -548,19 +548,29 @@ public class Explorer {
         }
     }
 
-    public TreeItem<ExplorerItem> getTreeViewItemFor(TreeItem<ExplorerItem> item, Object o) {
-        if (SecondaryStructureDrawing.class.isInstance(o)) //its the root element
-            return this.treeTableView.getRoot();
-
-        if (item != null && item.getValue().getDrawingElement() == o)
-            return item;
-
-        for (TreeItem<ExplorerItem> child : item.getChildren()) {
-            TreeItem<ExplorerItem> _item = getTreeViewItemFor(child, o);
-            if (_item != null)
-                return _item;
+    /**
+     * Return a list of TreeItem containing a DrawingElement. Can return several objects since a DrawingElement can be encapsulated at different places
+     * (like an helix and its children in a pknot or residues in tertiary interactions
+     * @param item
+     * @param drawingElement
+     * @return
+     */
+    public List<TreeItem<ExplorerItem>> getTreeViewItemsFor(TreeItem<ExplorerItem> item, DrawingElement drawingElement) {
+        List<TreeItem<ExplorerItem>> items = new ArrayList<>();
+        if (SecondaryStructureDrawing.class.isInstance(drawingElement)) {//its the root element
+            items.add(this.treeTableView.getRoot());
+            return items;
         }
-        return null;
+
+        if (item != null && item.getValue().getDrawingElement() == drawingElement) {
+            items.add(item);
+            return items;
+        }
+
+        for (TreeItem<ExplorerItem> child : item.getChildren())
+            items.addAll(getTreeViewItemsFor(child, drawingElement));
+
+        return items;
     }
 
     public List<TreeItem<ExplorerItem>> getAllTreeViewItemsFrom(TreeItem<ExplorerItem> item) {
@@ -701,13 +711,24 @@ public class Explorer {
         }
 
         GroupOfStructuralElements tertiariesGroup = new GroupOfStructuralElements("Tertiaries");
+        GroupOfStructuralElements singleHBondsGroup = new GroupOfStructuralElements("Single HBonds");
+        GroupOfStructuralElements multipleHBondsGroup = new GroupOfStructuralElements("Multiple HBonds");
         TreeItem<ExplorerItem> tertiariesTreeItem = new TreeItem<ExplorerItem>(tertiariesGroup);
+        TreeItem<ExplorerItem> singleHBondsTreeItem = new TreeItem<ExplorerItem>(singleHBondsGroup);
+        TreeItem<ExplorerItem> multipleHBondsTreeItem = new TreeItem<ExplorerItem>(multipleHBondsGroup);
+        tertiariesTreeItem.getChildren().add(multipleHBondsTreeItem);
+        tertiariesTreeItem.getChildren().add(singleHBondsTreeItem);
         root.getChildren().add(tertiariesTreeItem);
         for (TertiaryInteractionDrawing interaction : drawing.getTertiaryInteractions())
             if (interaction.getParent() == null) {// if parent not null, this tertiary interaction is in a pknot and will be a child of this pknot
                 TreeItem<ExplorerItem> tertiaryTreeItem = this.load(interaction, true);
-                tertiariesTreeItem.getChildren().add(tertiaryTreeItem);
-                tertiariesGroup.getChildren().add(tertiaryTreeItem.getValue());
+                if (interaction.toString().startsWith(Edge.SingleHBond.toString())) {
+                    singleHBondsTreeItem.getChildren().add(tertiaryTreeItem);
+                    singleHBondsGroup.getChildren().add(tertiaryTreeItem.getValue());
+                } else {
+                    multipleHBondsTreeItem.getChildren().add(tertiaryTreeItem);
+                    multipleHBondsGroup.getChildren().add(tertiaryTreeItem.getValue());
+                }
             }
 
         GroupOfStructuralElements branchesGroup = new GroupOfStructuralElements("Branches");
