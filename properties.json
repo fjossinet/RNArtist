@@ -1,3 +1,6 @@
 {
-  "website": "localhost:8080"
+  "website": {
+    "dev": "localhost:5000/",
+    "prod": "rnartist.herokuapp.com/"
+  }
 }
