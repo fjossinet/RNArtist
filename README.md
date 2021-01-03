@@ -9,9 +9,9 @@ You need the tool maven and a Java distribution to be installed (type the comman
 
 ## Installation
 
-Download the project as [a zip file](https://github.com/fjossinet/RNArtist/archive/master.zip) or with the command git (git clone https://github.com/fjossinet/RNArtist.git).
+Download the projectPanel as [a zip file](https://github.com/fjossinet/RNArtist/archive/master.zip) or with the command git (git clone https://github.com/fjossinet/RNArtist.git).
 
-From the project directory, type: 
+From the projectPanel directory, type: 
 
 ```
 mvn clean package
@@ -21,7 +21,7 @@ mvn clean package
 
 ### Using Maven
 
-From the project directory, type:
+From the projectPanel directory, type:
 
 ```
 mvn exec:exec
@@ -33,4 +33,4 @@ From the subdirectory target/RNArtist, run the file for your operating system by
 
 ```./launch_rnartist_for_...```
 
-You can find more details about this project on my [Twitter Account](https://twitter.com/rnartist_app)
+You can find more details about this projectPanel on my [Twitter Account](https://twitter.com/rnartist_app)

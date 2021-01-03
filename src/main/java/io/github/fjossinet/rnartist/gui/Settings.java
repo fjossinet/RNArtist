@@ -34,7 +34,6 @@ import org.controlsfx.glyphfont.Glyph;
 
 import javax.swing.*;
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 import static java.util.stream.Collectors.toList;
@@ -258,7 +257,7 @@ public class Settings {
         };
 
         fontNames.setOnAction(eventHandler);
-        fontNames.setValue(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.FontName.toString()));
+        fontNames.setValue(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.fontname.toString()));
         fontNames.setMaxWidth(Double.MAX_VALUE);
         GridPane.setConstraints(fontNames, 0, 0, 6, 1);
         fontsPane.getChildren().add(fontNames);
@@ -274,7 +273,7 @@ public class Settings {
         });
 
         deltaXRes = new Spinner<Integer>();
-        deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.DeltaXRes.toString()))));
+        deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.deltafontx.toString()))));
         deltaXRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -282,7 +281,7 @@ public class Settings {
         });
 
         deltaYRes = new Spinner<Integer>();
-        deltaYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.DeltaYRes.toString()))));
+        deltaYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.deltafonty.toString()))));
         deltaYRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -290,7 +289,7 @@ public class Settings {
         });
 
         deltaFontSize = new Spinner<Integer>();
-        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 5, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.DeltaFontSize.toString()))));
+        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 5, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.deltafontsize.toString()))));
         deltaFontSize.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {

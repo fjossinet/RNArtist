@@ -88,7 +88,7 @@ public class Explorer {
         colorColumn.setSortable(false);
 
         TreeTableColumn<ExplorerItem, String> lineWidthColumn = new TreeTableColumn<ExplorerItem, String>("Width");
-        lineWidthColumn.setUserData(DrawingConfigurationParameter.LineWidth);
+        lineWidthColumn.setUserData(DrawingConfigurationParameter.linewidth);
         lineWidthColumn.setEditable(true);
         lineWidthColumn.setCellValueFactory(new TreeItemPropertyValueFactory<ExplorerItem, String>("lineWidth"));
         lineWidthColumn.setCellFactory(LineWidthTableTreeCell.forTreeTableColumn(mediator));
@@ -97,7 +97,7 @@ public class Explorer {
         lineWidthColumn.setSortable(false);
 
         TreeTableColumn<ExplorerItem, String> lineShiftColumn = new TreeTableColumn<ExplorerItem, String>("Shift");
-        lineShiftColumn.setUserData(DrawingConfigurationParameter.LineShift);
+        lineShiftColumn.setUserData(DrawingConfigurationParameter.lineshift);
         lineShiftColumn.setEditable(true);
         lineShiftColumn.setCellValueFactory(new TreeItemPropertyValueFactory<ExplorerItem, String>("lineShift"));
         lineShiftColumn.setCellFactory(LineShiftTableTreeCell.forTreeTableColumn(mediator));
@@ -106,7 +106,7 @@ public class Explorer {
         lineShiftColumn.setSortable(false);
 
         TreeTableColumn<ExplorerItem, String> opacityColumn = new TreeTableColumn<ExplorerItem, String>("Opacity");
-        opacityColumn.setUserData(DrawingConfigurationParameter.Opacity);
+        opacityColumn.setUserData(DrawingConfigurationParameter.opacity);
         opacityColumn.setEditable(true);
         opacityColumn.setCellValueFactory(new TreeItemPropertyValueFactory<ExplorerItem, String>("opacity"));
         opacityColumn.setCellFactory(OpacityTableTreeCell.forTreeTableColumn(mediator));

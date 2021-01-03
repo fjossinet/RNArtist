@@ -313,7 +313,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             this.knobs.forEach {
                 it.draw(g, at)
             }
-            println((System.currentTimeMillis()-start)/1000.0)
+            //println((System.currentTimeMillis()-start)/1000.0)
 
             //this.fps = if (t> this.fps) t else this.fps
             //println("FPS: ${this.fps}")

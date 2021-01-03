@@ -1,9 +1,6 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.model.RnartistConfig
-import javafx.beans.value.ChangeListener
-import javafx.beans.value.ObservableValue
 import javafx.concurrent.Worker
 import javafx.event.EventHandler
 import javafx.scene.Scene
@@ -24,7 +21,7 @@ import javax.swing.SwingWorker
 
 class WebBrowser(val mediator: Mediator?) {
 
-    private var stage: Stage
+    var stage: Stage
     private val root = TabPane()
     private lateinit var rnartistEngine: WebEngine
 
@@ -36,11 +33,11 @@ class WebBrowser(val mediator: Mediator?) {
     private fun createScene() {
         root.tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
 
-        val rnartistThemesWebView = WebView();
+        /*val rnartistThemesWebView = WebView();
         rnartistEngine = rnartistThemesWebView.getEngine()
         rnartistEngine.load(RnartistConfig.website)
         val rnartistThemes = Tab("RNArtist", rnartistThemesWebView)
-        root.tabs.add(rnartistThemes)
+        root.tabs.add(rnartistThemes)*/
 
         val ndb = Tab("NDB", ndbBrowser())
         root.tabs.add(ndb)
@@ -48,8 +45,8 @@ class WebBrowser(val mediator: Mediator?) {
         val rnaCentral = Tab("RNA Central", rnacentralBrowser())
         root.tabs.add(rnaCentral)
 
-        val mfold = Tab("MFold", mfoldBrowser())
-        root.tabs.add(mfold)
+        /*val mfold = Tab("MFold", mfoldBrowser())
+        root.tabs.add(mfold)*/
 
         val scene = Scene(root)
         stage.scene = scene
@@ -105,6 +102,19 @@ class WebBrowser(val mediator: Mediator?) {
         val browser = WebView()
         val webEngine = browser.engine
         webEngine.load("http://rnacentral.org")
+        webEngine.loadWorker.stateProperty().addListener { _, _, newState ->
+            if (newState == Worker.State.SUCCEEDED) {
+                val doc = webEngine.document
+                val allPs = doc.getElementsByTagName("p")
+                for (i in 0 until allPs.length) {
+                    val p = allPs.item(i) as Node
+                    val content = p.textContent
+                    if (content.matches(Regex("Dot-bracket notation"))) {
+                        println(p.nextSibling.firstChild.textContent)
+                    }
+                }
+            }
+        }
         val buttons = HBox()
         val home = Button("Home", Glyph("FontAwesome", FontAwesome.Glyph.HOME))
         home.onAction = EventHandler { webEngine.load("http://rnacentral.org") }

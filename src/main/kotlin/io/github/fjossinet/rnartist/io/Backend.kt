@@ -5,6 +5,8 @@ import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import io.github.fjossinet.rnartist.core.model.WorkingSession
+import io.github.fjossinet.rnartist.core.model.io.EmbeddedDB
+import io.github.fjossinet.rnartist.core.model.io.dumpLayout
 import io.github.fjossinet.rnartist.core.model.io.parseVienna
 import javafx.concurrent.Task
 import java.awt.geom.Rectangle2D
@@ -50,18 +52,28 @@ object Backend {
     }
 
     @JvmStatic
-    fun submitTheme(mediator: Mediator, name:String, theme:Map<String,String>) {
-
-        val multipart = Multipart(URL(RnartistConfig.website+"/api/submit_theme"))
-        multipart.addFormField("userID", RnartistConfig.userID!!)
-        multipart.addFormField("name", name)
-        for ((k,v) in theme) {
-            multipart.addFormField(k, v)
-        }
+    fun shareLayout(mediator: Mediator) {
 
         val task = object: Task<Exception?>() {
 
             override fun call(): Exception? {
+                mediator.current2DDrawing?.let { drawing ->
+
+                    drawing.secondaryStructure.source?.let { source ->
+                        if (source.startsWith("db:")) {
+                            val multipart = Multipart(URL(RnartistConfig.website+"/api/submit_layout"))
+                            //multipart.addFormField("userID", RnartistConfig.userID!!)
+                            val gson = Gson()
+                            multipart.addFormField(source, gson.toJson(dumpLayout(drawing)).toString())
+                            multipart.upload(null)
+                        }
+                    }
+
+                }
+                return null
+            }
+
+            /*override fun call(): Exception? {
                 mediator.current2DDrawing?.let { drawing ->
                     val previous_viewX = mediator.workingSession!!.viewX
                     val previous_viewY = mediator.workingSession!!.viewY
@@ -99,7 +111,7 @@ object Backend {
                     mediator.workingSession!!.finalZoomLevel = previous_finalZoomLevel
                 }
                 return null
-            }
+            }*/
         }
 
         Thread(task).start();

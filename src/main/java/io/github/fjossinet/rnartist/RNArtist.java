@@ -1,6 +1,7 @@
 package io.github.fjossinet.rnartist;
 
 import io.github.fjossinet.rnartist.gui.*;
+import io.github.fjossinet.rnartist.io.Backend;
 import io.github.fjossinet.rnartist.io.ChimeraDriver;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.core.model.io.Rnaview;
@@ -17,8 +18,6 @@ import javafx.event.EventHandler;
 import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
@@ -31,7 +30,6 @@ import javafx.util.StringConverter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.controlsfx.glyphfont.FontAwesome;
 import org.controlsfx.glyphfont.Glyph;
-import org.dizitart.no2.Document;
 import org.dizitart.no2.NitriteId;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -45,6 +43,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
+import static io.github.fjossinet.rnartist.core.model.io.ParsersKt.toJSON;
 import static io.github.fjossinet.rnartist.io.UtilsKt.awtColorToJavaFX;
 import static io.github.fjossinet.rnartist.io.UtilsKt.javaFXToAwt;
 
@@ -172,6 +171,15 @@ public class RNArtist extends Application {
             }
         });
 
+        MenuItem shareLayoutItem = new MenuItem("Share Layout");
+
+        shareLayoutItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                Backend.shareLayout(mediator);
+            }
+        });
+
         Menu loadDataMenu = new Menu("Load Data from...");
 
         MenuItem filesMenuItem = new MenuItem("Files...");
@@ -191,30 +199,43 @@ public class RNArtist extends Application {
                                 SecondaryStructure ss = null;
                                 List<SecondaryStructureDrawing> secondaryStructureDrawings = new ArrayList<SecondaryStructureDrawing>();
                                 try {
+                                    String source = "file:"+file.getName();
+                                    if (file.getName().endsWith(".json")) {
+                                        SecondaryStructureDrawing drawing = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseJSON(new FileReader(file));
+                                        if (drawing != null) {
+                                            drawing.getSecondaryStructure().getRna().setSource(source);
+                                            drawing.getSecondaryStructure().setSource(source);
+                                            secondaryStructureDrawings.add(drawing);
+                                        }
+                                    }
                                     if (file.getName().endsWith(".ct")) {
                                         ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseCT(new FileReader(file));
                                         if (ss != null) {
-                                            ss.getRna().setSource(file.getName());
-                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
+                                            ss.getRna().setSource(source);
+                                            ss.setSource(source);
+                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, new Theme(), new WorkingSession(mediator.getCanvas2D().getBounds())));
                                         }
                                     } else if (file.getName().endsWith(".bpseq")) {
                                         ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseBPSeq(new FileReader(file));
                                         if (ss != null) {
-                                            ss.getRna().setSource(file.getName());
-                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
+                                            ss.getRna().setSource(source);
+                                            ss.setSource(source);
+                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, new Theme(), new WorkingSession(mediator.getCanvas2D().getBounds())));
                                         }
                                     } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
                                         ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseVienna(new FileReader(file));
                                         if (ss != null) {
-                                            ss.getRna().setSource(file.getName());
-                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
+                                            ss.getRna().setSource(source);
+                                            ss.setSource(source);
+                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, new Theme(), new WorkingSession(mediator.getCanvas2D().getBounds())));
                                         }
 
                                     } else if (file.getName().endsWith(".xml") || file.getName().endsWith(".rnaml")) {
                                         for (SecondaryStructure structure : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseRnaml(file)) {
                                             if (!structure.getHelices().isEmpty()) {
-                                                structure.getRna().setSource(file.getName());
-                                                secondaryStructureDrawings.add(new SecondaryStructureDrawing(structure, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
+                                                structure.getRna().setSource(source);
+                                                structure.setSource(source);
+                                                secondaryStructureDrawings.add(new SecondaryStructureDrawing(structure, new Theme(), new WorkingSession(mediator.getCanvas2D().getBounds())));
                                             }
                                         }
 
@@ -222,8 +243,9 @@ public class RNArtist extends Application {
                                         int countBefore = secondaryStructureDrawings.size();
                                         for (SecondaryStructure structure : new Rnaview().annotate(file)) {
                                             if (!structure.getHelices().isEmpty()) {
-                                                structure.getRna().setSource(file.getName());
-                                                secondaryStructureDrawings.add(new SecondaryStructureDrawing(structure, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
+                                                structure.getRna().setSource(source);
+                                                structure.setSource(source);
+                                                secondaryStructureDrawings.add(new SecondaryStructureDrawing(structure, new Theme(), new WorkingSession(mediator.getCanvas2D().getBounds())));
                                             }
                                         }
                                         if (countBefore < secondaryStructureDrawings.size()) {//RNAVIEW was able to annotate at least one RNA molecule
@@ -235,8 +257,9 @@ public class RNArtist extends Application {
 
                                     } else if (file.getName().endsWith(".stk") || file.getName().endsWith(".stockholm")) {
                                         for (SecondaryStructure structure : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
-                                            structure.getRna().setSource(file.getName());
-                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(structure, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
+                                            structure.getRna().setSource(source);
+                                            structure.setSource(source);
+                                            secondaryStructureDrawings.add(new SecondaryStructureDrawing(structure, new Theme(), new WorkingSession(mediator.getCanvas2D().getBounds())));
                                         }
                                     }
                                 } catch (Exception e) {
@@ -279,9 +302,10 @@ public class RNArtist extends Application {
                                     } else {
                                         for (SecondaryStructureDrawing drawing : loadData.get().getLeft())
                                             mediator.get_2DDrawingsLoaded().add(drawing);
-                                        //we load and fit on the last 2D loaded
+                                        //we load and fit (only if not a drawing from a JSON file) on the last 2D loaded
                                         mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1));
-                                        mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
+                                        if (mediator.getCurrent2DDrawing().getWorkingSession().getViewX() == 0.0 && mediator.getCurrent2DDrawing().getWorkingSession().getViewY() == 0.0 && mediator.getCurrent2DDrawing().getWorkingSession().getFinalZoomLevel() == 1.0)//this test allows to detect JSON files exported from RNArtist with a focus on a region
+                                            mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
                                     }
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
@@ -297,14 +321,60 @@ public class RNArtist extends Application {
             }
         });
 
-        MenuItem databasesMenuItem = new MenuItem("Databases...");
+        MenuItem databasesMenuItem = new MenuItem("Databases");
 
         databasesMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+              @Override
+              public void handle(ActionEvent actionEvent) {
+                  mediator.getWebBrowser().getStage().show();
+                  mediator.getWebBrowser().getStage().toFront();
+              }
+        });
+
+        /*databasesMenuItem.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                TextInputDialog dialog = new TextInputDialog("RF03160");
+                dialog.setTitle("Download 2Ds from Rfam");
+                dialog.setHeaderText("Enter your Rfam ID");
+                dialog.setContentText("Your ID:");
+                Optional<String> result = dialog.showAndWait();
+                result.ifPresent(id -> {
+                    javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>, Exception>> loadData = new javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>, Exception>>() {
 
+                        @Override
+                        protected Pair<List<SecondaryStructureDrawing>, Exception> call() {
+                            List<SecondaryStructureDrawing> secondaryStructureDrawings = new ArrayList<SecondaryStructureDrawing>();
+                            for (SecondaryStructure ss : ParsersKt.parseStockholm(new Rfam().getEntry(id.trim()))) {
+                                ss.getRna().setSource("db:rfam:" + id);
+                                ss.setSource("db:rfam:" + id);
+                                secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
+                            }
+                            return Pair.of(secondaryStructureDrawings, null);
+                        }
+                    };
+                    loadData.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+                        @Override
+                        public void handle(WorkerStateEvent workerStateEvent) {
+                            try {
+                                for (SecondaryStructureDrawing drawing : loadData.get().getLeft())
+                                    mediator.get_2DDrawingsLoaded().add(drawing);
+                                //we load and fit on the last 2D loaded
+                                mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1));
+                                mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            } catch (ExecutionException e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+                    });
+
+                    new Thread(loadData).start();
+                });
             }
-        });
+        });*/
 
         MenuItem scratchMenuItem = new MenuItem("Scratch");
 
@@ -359,7 +429,29 @@ public class RNArtist extends Application {
             }
         });
 
-        exportMenu.getItems().addAll(exportSVGMenuItem, exportCTMenuItem, exportViennaMenuItem);
+        MenuItem exportJSONMenuItem = new MenuItem("JSON...");
+
+        exportJSONMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON Files", "*.json"));
+                File file = fileChooser.showSaveDialog(stage);
+                if (file != null) {
+                    fileChooser.setInitialDirectory(file.getParentFile());
+                    PrintWriter writer;
+                    try {
+                        writer = new PrintWriter(file);
+                        writer.println(toJSON(mediator.getCurrent2DDrawing()));
+                        writer.close();
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        exportMenu.getItems().addAll(exportSVGMenuItem, exportCTMenuItem, exportViennaMenuItem, exportJSONMenuItem);
 
         fileMenu.getItems().addAll(newItem, loadDataMenu, saveasItem, saveItem, exportMenu);
 
@@ -376,11 +468,11 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
                 Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.FullDetails, "true");
+                t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.fulldetails, "true");
+                t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.fulldetails, "true");
+                t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.fulldetails, "true");
+                t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.fulldetails, "true");
+                t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.fulldetails, "true");
 
                 if (!selection.isEmpty()) {
                     for (TreeItem<ExplorerItem> item:selection)
@@ -400,11 +492,11 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
                 Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.FullDetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.FullDetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.FullDetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.FullDetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.FullDetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.fulldetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.fulldetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.fulldetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.fulldetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.fulldetails, "false");
 
                 if (!selection.isEmpty()) {
                     for (TreeItem<ExplorerItem> item:selection)
@@ -430,16 +522,11 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
                 Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.WHITE));
-                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.WHITE));
-                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.WHITE));
-                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.WHITE));
-                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.WHITE));
+                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
+                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
+                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
+                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
+                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
 
                 if (!selection.isEmpty()) {
                     for (TreeItem<ExplorerItem> item:selection)
@@ -459,16 +546,11 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
                 Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.BLACK));
-                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.BLACK));
-                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.BLACK));
-                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.BLACK));
-                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.FullDetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.Color, getHTMLColorString(java.awt.Color.BLACK));
+                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
+                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
+                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
+                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
+                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
 
                 if (!selection.isEmpty()) {
                     for (TreeItem<ExplorerItem> item:selection)
@@ -488,11 +570,11 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
                 Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.FullDetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.FullDetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.FullDetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.FullDetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.FullDetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.fulldetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.fulldetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.fulldetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.fulldetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.fulldetails, "false");
 
                 if (!selection.isEmpty()) {
                     for (TreeItem<ExplorerItem> item:selection)
@@ -517,7 +599,7 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
                 Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.InteractionSymbol, DrawingConfigurationParameter.FullDetails, "false");
+                t.setConfigurationFor(SecondaryStructureType.InteractionSymbol, DrawingConfigurationParameter.fulldetails, "false");
 
                 if (!selection.isEmpty()) {
                     for (TreeItem<ExplorerItem> item:selection)
@@ -536,7 +618,7 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
                 Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.InteractionSymbol, DrawingConfigurationParameter.FullDetails, "true");
+                t.setConfigurationFor(SecondaryStructureType.InteractionSymbol, DrawingConfigurationParameter.fulldetails, "true");
 
                 if (!selection.isEmpty()) {
                     for (TreeItem<ExplorerItem> item:selection)
@@ -569,9 +651,9 @@ public class RNArtist extends Application {
                     java.awt.Color c = new java.awt.Color(r, g, b);
                     Map<String, Map<String,String>> configuration = new HashMap<>();
                     Map<String,String> colorConfig = new HashMap<>();
-                    colorConfig.put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(c));
+                    colorConfig.put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(c));
                     Map<String,String> letterColorConfig = new HashMap<>();
-                    letterColorConfig.put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(java.awt.Color.BLACK));
+                    letterColorConfig.put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(java.awt.Color.BLACK));
                     configuration.put(SecondaryStructureType.Helix.toString(), colorConfig);
                     configuration.put(SecondaryStructureType.SecondaryInteraction.toString(), colorConfig);
                     configuration.put(SecondaryStructureType.Junction.toString(), colorConfig);
@@ -607,19 +689,19 @@ public class RNArtist extends Application {
                     for (JunctionDrawing junction:junctions) {
                             List<DrawingElement> path = junction.pathToRoot();
                         java.awt.Color interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate( javafx.scene.paint.Color.LIGHTGRAY, (double)(path.size()-1)/(double)branch.getBranchLength()));
-                        junction.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(interpolatedColor));
+                        junction.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
                         for (ResidueDrawing r:junction.getResidues())
-                            r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(interpolatedColor));
+                            r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
                         interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate( javafx.scene.paint.Color.LIGHTGRAY, (double)(path.size()-2)/(double)branch.getBranchLength()));
-                        junction.getParent().getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(interpolatedColor));
+                        junction.getParent().getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
                         for (ResidueDrawing r:junction.getParent().getResidues())
-                            r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(interpolatedColor));
+                            r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
                     }
                 }
                 for (SingleStrandDrawing ss: mediator.getCurrent2DDrawing().getSingleStrands()) {
-                    ss.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(java.awt.Color.BLACK));
+                    ss.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(java.awt.Color.BLACK));
                     for (ResidueDrawing r: ss.getResidues())
-                        r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.Color.toString(), getHTMLColorString(java.awt.Color.BLACK));
+                        r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(java.awt.Color.BLACK));
                 }
                 mediator.getCanvas2D().repaint();
                 mediator.getExplorer().refresh();
@@ -1074,12 +1156,6 @@ public class RNArtist extends Application {
 
         //++++++ Canvas2D
         final SwingNode swingNode = new SwingNode();
-        swingNode.setOnKeyTyped(new EventHandler<KeyEvent>() {
-            @Override
-            public void handle(KeyEvent keyEvent) {
-                System.out.println(keyEvent.getCode());
-            }
-        });
         swingNode.setOnMouseClicked(mouseEvent -> {
             if (mouseEvent.getButton() == MouseButton.PRIMARY) {
                 AffineTransform at = new AffineTransform();
@@ -1232,8 +1308,9 @@ public class RNArtist extends Application {
         scene.getWindow().setX(0);
         scene.getWindow().setY(0);
 
-        mediator.getProjectManager().getStage().show();
-        mediator.getProjectManager().getStage().toFront();
+        mediator.getExplorer().getStage().show();
+        mediator.getRnartist().getStage().show();
+        mediator.getRnartist().getStage().toFront();
     }
 
     public boolean isFitDisplayOnSelection() {

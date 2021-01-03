@@ -196,13 +196,14 @@ public class EmbeddedDBGUI {
                 @Override
                 public void handle(MouseEvent mouseEvent) {
                     SecondaryStructure ss = (SecondaryStructure)mediator.getEmbeddedDB().getPDBSecondaryStructures().getById(StructureCell.this.getItem().id).get("ss");
-                    mediator.get_2DDrawingsLoaded().add(new SecondaryStructureDrawing(ss,mediator.canvas2D.getBounds(), mediator.getTheme(), new WorkingSession()));
-                    Document doc = mediator.getEmbeddedDB().getPDBTertiaryStructure(ss.getPdbId(),ss.getRna().getName());
+                    mediator.get_2DDrawingsLoaded().add(new SecondaryStructureDrawing(ss, mediator.getTheme(), new WorkingSession(mediator.canvas2D.getBounds())));
+                    String[] tokens = ss.getSource().split("db:pdb:");
+                    Document doc = mediator.getEmbeddedDB().getPDBTertiaryStructure(tokens[tokens.length-1],ss.getRna().getName());
                     try {
                         if (doc != null)
                             mediator.setTertiaryStructure((TertiaryStructure) doc.get("ts"));
                         else {
-                            URL url = new URL("http://www.rcsb.org/pdb/download/downloadFile.do?fileFormat=pdb&compression=NO&structureId=" + ss.getPdbId());
+                            URL url = new URL("http://www.rcsb.org/pdb/download/downloadFile.do?fileFormat=pdb&compression=NO&structureId=" + tokens[tokens.length-1]);
                             StringBuffer content = new StringBuffer();
                             BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
                             String str = null;

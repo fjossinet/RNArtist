@@ -22,7 +22,7 @@ class Mediator(val rnartist: RNArtist) {
     val settings = Settings(this)
     val explorer = Explorer(this)
     val embeddedDBGUI = EmbeddedDBGUI(this)
-    val projectManager = ProjectManager(this)
+    val projectManager = ProjectsPanel(this)
     var webBrowser: WebBrowser? =
             WebBrowser(this)
     lateinit var canvas2D: Canvas2D
