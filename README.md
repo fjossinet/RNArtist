@@ -5,7 +5,7 @@ RNArtist allows you to design your RNA 2D structures interactively. To help you 
 ![Screen Capture](media/Capture%20d’écran%202020-12-27%20à%2020.48.24.png)
 
 ## Prerequisites
-You need the tool maven and a Java distribution to be installed (type the commands ```mvn``` and ```java``` from a command line to check). You need at least Java 11.
+You need the tool maven and a Java distribution to be installed (type the commands ```mvn``` and ```java``` from a command line to check). RNArtist has been developped with OpenJDK 15. To compile it with Java 11, you need to change the value of the property java.version in the pom file.
 
 ## Installation
 
