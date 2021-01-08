@@ -13,7 +13,8 @@ import javax.swing.JPanel
 class Canvas2D(val mediator: Mediator): JPanel() {
 
     var secondaryStructureDrawing: SecondaryStructureDrawing? = null
-    var knobs:MutableList<Knob> = arrayListOf()
+    var knobs:MutableList<JunctionKnob> = arrayListOf()
+    var selectionShapes:MutableList<SelectionShape> = arrayListOf()
     lateinit private var offScreenBuffer: Image
     var translateX = 0.0
     var translateY = 0.0
@@ -27,6 +28,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         this.secondaryStructureDrawing = drawing
         this.fps = 0
         this.knobs.clear()
+        this.selectionShapes.clear()
         this.secondaryStructureDrawing?.workingSession?.tertiariesDisplayLevel = mediator.rnartist.tertiariesLevel
         this.secondaryStructureDrawing?.let { it ->
             mediator.explorer.load(it)
@@ -268,27 +270,9 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         }
     }
 
-    fun fitDisplayOn(frame:Rectangle2D) {
+    fun fitStructure() {
         this.secondaryStructureDrawing?.let { drawing ->
-            drawing.workingSession.viewX = 0.0
-            drawing.workingSession.viewY = 0.0
-            drawing.workingSession.finalZoomLevel = 1.0
-            var at = AffineTransform()
-            at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
-            at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
-            var transformedBounds = at.createTransformedShape(frame)
-            //we compute the zoomLevel to fit the structure in the frame of the canvas2D
-            val widthRatio = transformedBounds.bounds2D.width / this.getBounds().width
-            val heightRatio = transformedBounds.bounds2D.height / this.getBounds().height
-            drawing.workingSession.finalZoomLevel = if (widthRatio > heightRatio) 1.0 / widthRatio else 1.0 / heightRatio
-            //We recompute the bounds of the structure with this new zoom level
-            at = AffineTransform()
-            at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
-            at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
-            transformedBounds = at.createTransformedShape(frame)
-            //we center the view on the new structure
-            drawing.workingSession.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
-            drawing.workingSession.viewY += this.getBounds().bounds2D.centerY - transformedBounds.bounds2D.centerY
+            drawing.fitTo(this.bounds)
             this.repaint()
         }
     }
@@ -310,10 +294,17 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
 
             drawing.draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()))
-            this.knobs.forEach {
-                it.draw(g, at)
+
+            if (!drawing.quickDraw) {
+                this.knobs.forEach {
+                    it.draw(g, at)
+                }
+                this.selectionShapes.forEach {
+                    it.draw(g, at)
+                }
             }
-            //println((System.currentTimeMillis()-start)/1000.0)
+
+            println((System.currentTimeMillis()-start)/1000.0)
 
             //this.fps = if (t> this.fps) t else this.fps
             //println("FPS: ${this.fps}")
@@ -365,24 +356,69 @@ class Canvas2D(val mediator: Mediator): JPanel() {
 
     fun clearSelection() {
         this.secondaryStructureDrawing?.let {
-            it.selection.clear()
+            this.knobs.clear()
+            this.selectionShapes.clear()
             repaint()
         }
-        this.knobs.clear()
+
+    }
+
+    fun getSelection(): List<DrawingElement> {
+        return this.selectionShapes.map{it.element}
+    }
+
+    fun getSelectionAbsPositions(): List<Int> {
+        val absPositions = mutableSetOf<Int>()
+        this.selectionShapes.map{it.element}.forEach {
+            absPositions.addAll(it.location.positions)
+        }
+        return absPositions.toList()
+    }
+
+    fun getSelectionFrame(): Rectangle2D? {
+        val allSelectionPoints = this.selectionShapes.flatMap{it.element.selectionPoints}
+        allSelectionPoints.minByOrNull { it.x }?.x?.let { minX ->
+            allSelectionPoints.minByOrNull { it.y }?.y?.let { minY ->
+                allSelectionPoints.maxByOrNull { it.x }?.x?.let { maxX ->
+                    allSelectionPoints.maxByOrNull { it.y }?.y?.let { maxY ->
+                        return Rectangle2D.Double(minX, minY, maxX-minX, maxY-minY)
+                    }
+                }
+            }
+        }
+        return null
+
+    }
+
+    fun isInSelection(el: DrawingElement):Boolean {
+        return this.selectionShapes.any{ it.element == el }
     }
 
     fun addToSelection(el: DrawingElement) {
         this.secondaryStructureDrawing?.let {
-            it.selection.addAll(el.residues)
             if (el is JunctionDrawing)
-                this.knobs.add(JunctionKnob(el, mediator))
-            else if (el is HelixDrawing)
-                this.knobs.add(HelixKnob(el, mediator))
+                this.knobs.add(JunctionKnob(mediator, el))
+            this.selectionShapes.add(SelectionShape(mediator, el))
             repaint()
         }
     }
 
+    fun removeFromSelection(el: DrawingElement) {
+        this.secondaryStructureDrawing?.let {
+            this.knobs.removeIf { it.junction == el }
+            this.selectionShapes.removeIf { it.element == el }
+            repaint()
+        }
+    }
+
+    fun isSelected(el: DrawingElement): Boolean {
+        return this.selectionShapes.any { it.element ==  el}
+    }
+
     fun structuralDomainsSelected():List<StructuralDomain>  {
-        return this.knobs.map { it.getStructuralDomain()}
+        val domains = mutableListOf<StructuralDomain>()
+        domains.addAll(this.knobs.map { it.junction })
+        domains.addAll(this.selectionShapes.filter { it.element is StructuralDomain  }.map { it.element as StructuralDomain})
+        return domains
     }
 }

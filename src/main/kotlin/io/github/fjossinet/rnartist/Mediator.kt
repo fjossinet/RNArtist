@@ -90,7 +90,7 @@ class Mediator(val rnartist: RNArtist) {
                             canvas2D.load2D(item.userData as SecondaryStructureDrawing)
                             if ((item.userData as SecondaryStructureDrawing).workingSession.viewX == 0.0 && (item.userData as SecondaryStructureDrawing).workingSession.viewY == 0.0 && (item.userData as SecondaryStructureDrawing).workingSession.finalZoomLevel == 1.0) {
                                 //it seems it is a first opening, then we fit to the display
-                                canvas2D.fitDisplayOn(current2DDrawing!!.getBounds())
+                                canvas2D.fitStructure()
                             }
                         }
                         var found = false
@@ -144,7 +144,7 @@ class Mediator(val rnartist: RNArtist) {
         this.chimeraDriver?.let { chimeraDriver ->
             val positions: MutableList<String> = ArrayList(1)
             this.tertiaryStructure?.let { tertiaryStructure ->
-                for (absPos in workingSession!!.selectedAbsPositions) {
+                for (absPos in this.canvas2D.getSelectionAbsPositions()) {
                     (tertiaryStructure.getResidue3DAt(absPos) as Residue3D)?.let {
                         positions.add(if (it.label != null) it.label!! else "" + (absPos + 1))
                     }
@@ -159,7 +159,7 @@ class Mediator(val rnartist: RNArtist) {
         this.chimeraDriver?.let { chimeraDriver ->
             val positions: MutableList<String> = ArrayList(1)
             this.tertiaryStructure?.let { tertiaryStructure ->
-                for (absPos in workingSession!!.selectedAbsPositions) {
+                for (absPos in this.canvas2D.getSelectionAbsPositions()) {
                     (tertiaryStructure.getResidue3DAt(absPos) as Residue3D)?.let {
                         positions.add(if (it.label != null) it.label!! else "" + (absPos + 1))
                     }

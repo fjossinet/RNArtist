@@ -135,11 +135,8 @@ public class Explorer {
                         mediator.canvas2D.clearSelection();
                         for (DrawingElement e : selectedElements)
                             mediator.getCanvas2D().addToSelection(e);
-                        if (mediator.getRnartist().isFitDisplayOnSelection()) {
-                            mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
-                        } else if (mediator.getRnartist().isCenterDisplayOnSelection()) {
-                            mediator.canvas2D.centerDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
-                        }
+                        if (mediator.getRnartist().isCenterDisplayOnSelection())
+                            mediator.canvas2D.centerDisplayOn(mediator.getCanvas2D().getSelectionFrame());
                         mediator.canvas2D.repaint();
                     } else {
                         mediator.getCanvas2D().clearSelection();
@@ -163,10 +160,8 @@ public class Explorer {
                             else
                                 mediator.getCanvas2D().addToSelection(item.getValue().getDrawingElement());
                         }
-                        if (mediator.getRnartist().isFitDisplayOnSelection())
-                            mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
-                        else if (mediator.getRnartist().isCenterDisplayOnSelection())
-                            mediator.canvas2D.centerDisplayOn(mediator.getCurrent2DDrawing().getSelectionBounds());
+                        if (mediator.getRnartist().isCenterDisplayOnSelection())
+                            mediator.canvas2D.centerDisplayOn(mediator.getCanvas2D().getSelectionFrame());
                         mediator.canvas2D.repaint();
                     } else if (mediator.getCurrent2DDrawing() != null)
                         //no selection
@@ -375,7 +370,7 @@ public class Explorer {
 
         ListView<String> elementsToSelect = new ListView<String>();
         elementsToSelect.setMaxHeight(200);
-        elementsToSelect.getItems().addAll("Helices", "SingleStrands", "Junctions", "Apical Loops", "Inner Loops", "PseudoKnots", "Secondary Interactions", "Tertiary Interactions", "Interaction Symbols", "PhosphoDiester Bonds", "Residues", "As", "Us", "Gs", "Cs", "Xs", "Residue Letters");
+        elementsToSelect.getItems().addAll("Helices", "SingleStrands", "Junctions", "Apical Loops", "Inner Loops", "PseudoKnots", "Secondary Interactions", "Tertiary Interactions", "Interaction Symbols", "Phosphodiester Bonds", "Residues", "As", "Us", "Gs", "Cs", "Xs", "Residue Letters");
         pane.add(elementsToSelect, 0,0, 2, 1);
         GridPane.setHalignment(elementsToSelect, HPos.CENTER);
 

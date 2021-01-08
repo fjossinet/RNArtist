@@ -10,7 +10,7 @@ import java.awt.geom.Path2D
 import java.awt.geom.Point2D
 
 
-class JunctionKnob(val junction: JunctionDrawing, val mediator: Mediator): Knob {
+class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
 
     val connectors = mutableListOf<JunctionConnector>()
     val arrows = mutableListOf<JunctionArrow>()
@@ -21,11 +21,11 @@ class JunctionKnob(val junction: JunctionDrawing, val mediator: Mediator): Knob 
         this.update()
     }
 
-    override fun getStructuralDomain(): StructuralDomain {
+    fun getStructuralDomain(): StructuralDomain {
         return this.junction
     }
 
-    override fun update() {
+    fun update() {
         this.connectorRadius = (if (junction.circle.width < 100.0)  junction.circle.width else 100.0)*Math.PI/(16.0*3.5)
         this.connectors.clear()
         this.arrows.clear()
@@ -58,7 +58,7 @@ class JunctionKnob(val junction: JunctionDrawing, val mediator: Mediator): Knob 
         }
     }
 
-    override fun draw(g: Graphics2D, at:AffineTransform) {
+    fun draw(g: Graphics2D, at:AffineTransform) {
         val previousColor = g.color
 
         for (c in this.connectors)
@@ -72,14 +72,14 @@ class JunctionKnob(val junction: JunctionDrawing, val mediator: Mediator): Knob 
         g.color = previousColor
     }
 
-    override fun contains(x: Double, y: Double, at: AffineTransform): Boolean {
+    fun contains(x: Double, y: Double, at: AffineTransform): Boolean {
         /*if (at.createTransformedShape(this.detailsButton.innerCircle).contains(x, y)) {
             this.detailsButton.mouseCliked()
             return true;
         }*/
         for (connector in this.connectors) {
             if (!connector.isInId && at.createTransformedShape(connector.circle).contains(x, y)) {
-                connector.mouseCliked()
+                connector.mouseClicked()
                 return true;
             }
         }
@@ -165,7 +165,7 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
         g.draw(at.createTransformedShape(this.circle))
     }
 
-    fun mouseCliked() {
+    fun mouseClicked() {
         var selectedCount = knob.connectors.count { it.selected }
         if (selectedCount < knob.junction.junctionCategory.value - 1 && !this.isInId ) {
             this.selected = !this.selected

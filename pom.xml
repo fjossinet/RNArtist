@@ -81,22 +81,22 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-base</artifactId>
-            <version>16-ea+4</version>
+            <version>16-ea+6</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>16-ea+4</version>
+            <version>16-ea+6</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-web</artifactId>
-            <version>16-ea+4</version>
+            <version>16-ea+6</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
-            <version>16-ea+4</version>
+            <version>16-ea+6</version>
         </dependency>
 
         <!-- slf4j for logging -->
@@ -141,7 +141,7 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist.core</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.1.5-SNAPSHOT</version>
+            <version>0.2.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

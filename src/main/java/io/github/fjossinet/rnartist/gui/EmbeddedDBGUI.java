@@ -196,7 +196,7 @@ public class EmbeddedDBGUI {
                 @Override
                 public void handle(MouseEvent mouseEvent) {
                     SecondaryStructure ss = (SecondaryStructure)mediator.getEmbeddedDB().getPDBSecondaryStructures().getById(StructureCell.this.getItem().id).get("ss");
-                    mediator.get_2DDrawingsLoaded().add(new SecondaryStructureDrawing(ss, mediator.getTheme(), new WorkingSession(mediator.canvas2D.getBounds())));
+                    mediator.get_2DDrawingsLoaded().add(new SecondaryStructureDrawing(ss, new WorkingSession()));
                     String[] tokens = ss.getSource().split("db:pdb:");
                     Document doc = mediator.getEmbeddedDB().getPDBTertiaryStructure(tokens[tokens.length-1],ss.getRna().getName());
                     try {

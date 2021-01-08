@@ -53,7 +53,6 @@ public class Settings {
         this.stage = new Stage();
         stage.setTitle("Settings");
         this.createScene(stage);
-        //new Thread(new LoadThemesFromWebsite()).run();
     }
 
     public Stage getStage() {
@@ -64,10 +63,7 @@ public class Settings {
 
         TabPane root = new TabPane();
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-
-        //this.createAllThemesPanel(root);
-        this.createJunctionsPanel(root);
-        this.createGLobalSettingsPanel(root);
+        this.createGlobalSettingsPanel(root);
 
         Scene scene = new Scene(root);
         stage.setScene(scene);
@@ -79,108 +75,7 @@ public class Settings {
         scene.getWindow().setY(0);
     }
 
-    private void createJunctionsPanel(TabPane root) {
-
-        VBox parent = new VBox();
-
-        GridPane targetForm = new GridPane();
-        targetForm.setHgap(5);
-        targetForm.setVgap(5);
-        targetForm.setPadding(new Insets(10, 10, 10, 10));
-        targetForm.setMaxWidth(Double.MAX_VALUE);
-        ColumnConstraints cc = new ColumnConstraints();
-        cc.setHgrow(Priority.ALWAYS);
-        targetForm.getColumnConstraints().addAll(cc);
-
-        parent.getChildren().add(targetForm);
-
-        tertiaryInteractionStyle = new ComboBox<>();
-        tertiaryInteractionStyle.getItems().addAll("solid", "dashed");
-        tertiaryInteractionStyle.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
-            }
-        });
-        tertiaryInteractionStyle.setMaxWidth(Double.MAX_VALUE);
-
-        /*applyTertiariesStyle.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                setMuted(false);
-                fireDrawingConfigurationChange(DrawingConfigurationParameter.TertiaryInteractionStyle, tertiaryInteractionStyle.getValue());
-                setMuted(true);
-            }
-        });*/
-
-        Button clearTertiariesStyle = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TRASH));
-
-        clearTertiariesStyle.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-            }
-        });
-
-        Button recoverTertiariesStyle = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYEDROPPER));
-        recoverTertiariesStyle.setMinWidth(Control.USE_PREF_SIZE);
-
-        recoverTertiariesStyle.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                }
-        });
-        recoverTertiariesStyle.setDisable(true);
-
-        Tab theme = new Tab("Junctions Settings", parent);
-        root.getTabs().add(theme);
-    }
-
-    private void createAllThemesPanel(TabPane root) {
-        VBox vbox = new VBox();
-        vbox.setFillWidth(true);
-
-        themesList = FXCollections.observableArrayList();
-
-        GridView<ThemeFromWebsite> gridView = new GridView<ThemeFromWebsite>(themesList);
-        gridView.setHorizontalCellSpacing(5);
-        gridView.setVerticalCellSpacing(5);
-        gridView.setCellWidth(400.0);
-        gridView.setCellHeight(300.0);
-        gridView.setCellFactory(new Callback<GridView<ThemeFromWebsite>, GridCell<ThemeFromWebsite>>() {
-            @Override
-            public GridCell<ThemeFromWebsite> call(GridView<ThemeFromWebsite> lv) {
-                return new ThemeCell();
-            }
-        });
-
-        GridPane reloadForm = new GridPane();
-        ColumnConstraints cc = new ColumnConstraints();
-        cc.setHgrow(Priority.ALWAYS);
-        reloadForm.getColumnConstraints().addAll(new ColumnConstraints(), cc);
-        reloadForm.setHgap(5);
-        reloadForm.setVgap(5);
-        reloadForm.setPadding(new Insets(10, 10, 10, 10));
-
-        Button reload = new Button("Reload");
-        reloadForm.add(reload, 0, 0, 2, 1);
-        GridPane.setHalignment(reload, HPos.CENTER);
-
-        reload.setOnMouseClicked(new EventHandler<MouseEvent>() {
-
-            @Override
-            public void handle(MouseEvent e) {
-                new Thread(new LoadThemesFromWebsite()).run();
-            }
-        });
-
-        vbox.getChildren().add(gridView);
-        vbox.getChildren().add(reloadForm);
-        VBox.setVgrow(gridView, Priority.ALWAYS);
-
-        Tab themes = new Tab("All Themes", vbox);
-        root.getTabs().add(themes);
-    }
-
-    private void createGLobalSettingsPanel(TabPane root) {
+    private void createGlobalSettingsPanel(TabPane root) {
         VBox vbox = new VBox();
         vbox.setFillWidth(true);
         vbox.setPadding(new Insets(10, 10, 10, 10));
@@ -257,7 +152,6 @@ public class Settings {
         };
 
         fontNames.setOnAction(eventHandler);
-        fontNames.setValue(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.fontname.toString()));
         fontNames.setMaxWidth(Double.MAX_VALUE);
         GridPane.setConstraints(fontNames, 0, 0, 6, 1);
         fontsPane.getChildren().add(fontNames);
@@ -273,7 +167,6 @@ public class Settings {
         });
 
         deltaXRes = new Spinner<Integer>();
-        deltaXRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.deltafontx.toString()))));
         deltaXRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -281,7 +174,6 @@ public class Settings {
         });
 
         deltaYRes = new Spinner<Integer>();
-        deltaYRes.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-15, 15, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.deltafonty.toString()))));
         deltaYRes.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -289,7 +181,6 @@ public class Settings {
         });
 
         deltaFontSize = new Spinner<Integer>();
-        deltaFontSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(-10, 5, Integer.parseInt(RnartistConfig.defaultTheme.get(SecondaryStructureType.Full2D.toString()).get(DrawingConfigurationParameter.deltafontsize.toString()))));
         deltaFontSize.valueProperty().addListener(new ChangeListener<Integer>() {
             @Override
             public void changed(ObservableValue<? extends Integer> observable, Integer oldValue, Integer newValue) {
@@ -334,7 +225,7 @@ public class Settings {
         //---- User ID
         title = new Label("User ID");
         title.setStyle("-fx-font-size: 20");
-        vbox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
+        //vbox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
 
         GridPane userIDPane = new GridPane();
         cc = new ColumnConstraints();
@@ -343,7 +234,7 @@ public class Settings {
         userIDPane.setPadding(new Insets(0, 5, 20, 5));
         userIDPane.setHgap(5);
         userIDPane.setVgap(5);
-        vbox.getChildren().add(userIDPane);
+        //vbox.getChildren().add(userIDPane);
 
         TextField userID = new TextField();
         userID.setEditable(false);
