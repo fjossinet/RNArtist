@@ -231,7 +231,7 @@ public class RNArtist extends Application {
                                             ss.setSource(source);
                                             secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, new WorkingSession()));
                                         }
-                                    } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".vienna")) {
+                                    } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fas") || file.getName().endsWith(".fa") || file.getName().endsWith(".vienna")) {
                                         ss = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseVienna(new FileReader(file));
                                         if (ss != null) {
                                             ss.getRna().setSource(source);

@@ -85,6 +85,7 @@ class Mediator(val rnartist: RNArtist) {
                 if (change.wasAdded()) {
                     for (drawing in change.addedSubList) {
                         val item = MenuItem("RNA ${drawing.secondaryStructure.rna.name} ${drawing.secondaryStructure.rna.length}nts")
+                        item.setMnemonicParsing(false)
                         item.userData = drawing
                         item.setOnAction {
                             canvas2D.load2D(item.userData as SecondaryStructureDrawing)
@@ -102,6 +103,7 @@ class Mediator(val rnartist: RNArtist) {
                         }
                         if (!found) {
                             val menu = Menu(drawing.secondaryStructure.rna.source)
+                            menu.setMnemonicParsing(false)
                             menu.items.add(item)
                             rnartist.allStructuresAvailableMenu.items.add(0, menu)
                         }
