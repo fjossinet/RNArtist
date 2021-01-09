@@ -17,10 +17,10 @@ import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 import javafx.stage.StageStyle
+import okhttp3.internal.wait
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.Locale
-
 
 class RegisterDialog(application: Application): Dialog<ButtonType>() {
 
@@ -28,8 +28,8 @@ class RegisterDialog(application: Application): Dialog<ButtonType>() {
         //this.headerText = "Please Register to Generate your User ID."
         this.headerText = null
         this.initStyle(StageStyle.UNDECORATED)
-        val cancelButtonType = ButtonType("Cancel", ButtonData.CANCEL_CLOSE)
-        val registerButtonType = ButtonType("Register", ButtonData.APPLY)
+        val cancelButtonType = ButtonType("Quit", ButtonData.CANCEL_CLOSE)
+        val registerButtonType = ButtonType("Launch RNArtist", ButtonData.APPLY)
         this.getDialogPane().getButtonTypes().addAll(cancelButtonType, registerButtonType)
 
         val root = StackPane()
@@ -55,14 +55,14 @@ class RegisterDialog(application: Application): Dialog<ButtonType>() {
         val im = ImageView()
         im.image = Image("/io/github/fjossinet/rnartist/io/images/logo.png")
         form.add(im, 0, 0, 2, 1)
-        form.add(header, 0, 1, 2, 1)
+        //form.add(header, 0, 1, 2, 1)
         val flow = FlowPane()
         flow.children.addAll(
                 subheader,link
         )
-        form.add(flow, 0, 2, 2, 1)
+        //form.add(flow, 0, 2, 2, 1)
 
-        val name = TextField()
+        /*val name = TextField()
         name.setPromptText("your name")
 
         val labo = TextField()
@@ -93,7 +93,7 @@ class RegisterDialog(application: Application): Dialog<ButtonType>() {
         val labelCountry = Label("Country")
         labelCountry.setTextFill(Color.web("black"));
         form.add(labelCountry, 0, 5)
-        form.add(country, 1, 5)
+        form.add(country, 1, 5)*/
 
         root.children.add(form)
 
@@ -109,14 +109,20 @@ class RegisterDialog(application: Application): Dialog<ButtonType>() {
             }
             else if (result.isPresent) {
                 if (result.get().buttonData == ButtonData.CANCEL_CLOSE) {
-                    if (RnartistConfig.userID == null) {
+                    /*if (RnartistConfig.userID == null) {
                         val alert = Alert(Alert.AlertType.INFORMATION)
                         alert.title = "For your Information"
                         alert.headerText = "You will use RNArtist without any User ID."
                         alert.contentText = "If you want to share online your themes or layouts, you will be able to register and get a User ID later."
                         alert.showAndWait()
                     }
+                    break*/
+                    System.exit(0)
+                } else if (result.get().buttonData == ButtonData.APPLY) {
                     break
+                }
+            }
+                /*
                 } else if (result.get().buttonData == ButtonData.APPLY && (name.text.trim().length == 0 || country.value == null)) {
                     if (name.text.trim().length == 0)
                         labelName.setTextFill(Color.web("red"));
@@ -182,7 +188,7 @@ class RegisterDialog(application: Application): Dialog<ButtonType>() {
                     }
                     Thread(task).start();
                 }
-            }
+            }*/
         }
 
     }
