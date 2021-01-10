@@ -21,9 +21,7 @@ class SelectionShape(val mediator: Mediator, val element: DrawingElement) {
         val previousColor = g.color
 
         g.color = RnartistConfig.selectionColor
-        val width =
-            this.mediator.current2DDrawing!!.workingSession.finalZoomLevel.toFloat() * RnartistConfig.selectionWidth
-        g.stroke = BasicStroke(width)
+        g.stroke = BasicStroke( this.mediator.current2DDrawing!!.workingSession.finalZoomLevel.toFloat() * RnartistConfig.selectionWidth)
 
         this.edges.forEach {
             it.draw(g, at)

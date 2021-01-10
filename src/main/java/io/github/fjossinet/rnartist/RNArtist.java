@@ -138,14 +138,14 @@ public class RNArtist extends Application {
             @Override
             public void handle(ActionEvent actionEvent) {
                 if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                    mediator.getWorkingSession().setScreen_capture(true);
+                    mediator.getWorkingSession().set_screen_capture(true);
                     mediator.getWorkingSession().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
                     mediator.getCanvas2D().repaint();
                     TextInputDialog dialog = new TextInputDialog("My Project");
                     dialog.initModality(Modality.NONE);
                     dialog.setTitle("Project Saving");
-                    dialog.setHeaderText("Fit your 2D preview into the black rectangle before saving.");
-                    dialog.setContentText("Please enter your project name:");
+                    dialog.setHeaderText("Keep right mouse button pressed and drag the rectangle to define your project icon.");
+                    dialog.setContentText("Project name:");
                     Optional<String> projectName = dialog.showAndWait();
                     if (projectName.isPresent()) {
                         BufferedImage image = mediator.getCanvas2D().screenCapture(null);
@@ -159,11 +159,11 @@ public class RNArtist extends Application {
                             }
                             mediator.getProjectManager().addProject(id, projectName.get().trim());
                         }
-                        mediator.getWorkingSession().setScreen_capture(false);
+                        mediator.getWorkingSession().set_screen_capture(false);
                         mediator.getWorkingSession().setScreen_capture_area(null);
                         mediator.getCanvas2D().repaint();
                     } else {
-                        mediator.getWorkingSession().setScreen_capture(false);
+                        mediator.getWorkingSession().set_screen_capture(false);
                         mediator.getWorkingSession().setScreen_capture_area(null);
                         mediator.getCanvas2D().repaint();
                     }
@@ -394,7 +394,7 @@ public class RNArtist extends Application {
             }
         });
 
-        loadDataMenu.getItems().addAll(filesMenuItem, databasesMenuItem, scratchMenuItem);
+        loadDataMenu.getItems().addAll(filesMenuItem, /*databasesMenuItem,*/ scratchMenuItem);
 
         Menu exportMenu = new Menu("Export 2D As...");
 
@@ -1155,8 +1155,12 @@ public class RNArtist extends Application {
 
         //++++++ Canvas2D
         final SwingNode swingNode = new SwingNode();
+        swingNode.setOnMouseMoved(mouseEvent -> {
+            if (mediator.getCurrent2DDrawing() != null)
+                mediator.getCurrent2DDrawing().setQuickDraw(false); //a trick if after the scroll event the quickdraw is still true
+        });
         swingNode.setOnMouseClicked(mouseEvent -> {
-            if (mouseEvent.getButton() == MouseButton.PRIMARY) {
+            if (mouseEvent.getButton() == MouseButton.PRIMARY && !mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
                 AffineTransform at = new AffineTransform();
                 at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
                 at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
@@ -1293,34 +1297,54 @@ public class RNArtist extends Application {
         });
         swingNode.setOnMouseDragged(mouseEvent -> {
             if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                mediator.getCurrent2DDrawing().setQuickDraw(true);
-                double transX = mouseEvent.getX() - mediator.getCanvas2D().getTranslateX();
-                double transY = mouseEvent.getY() - mediator.getCanvas2D().getTranslateY();
-                mediator.getWorkingSession().moveView(transX, transY);
-                mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
-                mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
+                if (mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
+                    double transX = mouseEvent.getX() - mediator.getCurrent2DDrawing().getWorkingSession().getScreen_capture_transX();
+                    double transY = mouseEvent.getY() - mediator.getCurrent2DDrawing().getWorkingSession().getScreen_capture_transY();
+                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transX(mouseEvent.getX());
+                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transY(mouseEvent.getY());
+                    AffineTransform at = new AffineTransform();
+                    at.translate(transX, transY);
+                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_area(at.createTransformedShape(mediator.getCurrent2DDrawing().getWorkingSession().getScreen_capture_area()).getBounds());
+                }
+                else {
+                    mediator.getCurrent2DDrawing().setQuickDraw(true);
+                    double transX = mouseEvent.getX() - mediator.getCanvas2D().getTranslateX();
+                    double transY = mouseEvent.getY() - mediator.getCanvas2D().getTranslateY();
+                    mediator.getWorkingSession().moveView(transX, transY);
+                    mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
+                    mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
         swingNode.setOnMouseReleased(mouseEvent -> {
             if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                mediator.getCurrent2DDrawing().setQuickDraw(false);
-                mediator.getCanvas2D().setTranslateX(0.0);
-                mediator.getCanvas2D().setTranslateY(0.0);
+                if (mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
+                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transX(0.0);
+                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transY(0.0);
+                } else {
+                    mediator.getCurrent2DDrawing().setQuickDraw(false);
+                    mediator.getCanvas2D().setTranslateX(0.0);
+                    mediator.getCanvas2D().setTranslateY(0.0);
+                }
                 mediator.getCanvas2D().repaint();
             }
         });
         swingNode.setOnMousePressed(mouseEvent -> {
             if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
-                mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
+                if (mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
+                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transX(mouseEvent.getX());
+                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transY(mouseEvent.getY());
+                } else {
+                    mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
+                    mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
+                }
             }
         });
         swingNode.setOnScroll(scrollEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
+            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null && !mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
                 mediator.getCurrent2DDrawing().setQuickDraw(true);
                 scrollCounter++;
-
                 Thread th = new Thread(() -> {
                     try {
                         Thread.sleep(100);

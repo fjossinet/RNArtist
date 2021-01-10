@@ -1,9 +1,7 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.RNArtist
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.io.javaFXToAwt
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
@@ -286,8 +284,10 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
             g2.background = Color.white
             g2.color = Color.BLACK
-            if (drawing.workingSession.screen_capture)
+            if (drawing.workingSession.is_screen_capture) {
+                g.stroke = BasicStroke( drawing.workingSession.finalZoomLevel.toFloat() * RnartistConfig.selectionWidth)
                 g2.draw(drawing.workingSession.screen_capture_area)
+            }
             val start = System.currentTimeMillis()
             val at = AffineTransform()
             at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
