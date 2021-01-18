@@ -200,7 +200,7 @@ public class EmbeddedDBGUI {
                     String[] tokens = ss.getSource().split("db:pdb:");
                     Document doc = mediator.getEmbeddedDB().getPDBTertiaryStructure(tokens[tokens.length-1],ss.getRna().getName());
                     try {
-                        if (doc != null)
+                        /*if (doc != null)
                             mediator.setTertiaryStructure((TertiaryStructure) doc.get("ts"));
                         else {
                             URL url = new URL("http://www.rcsb.org/pdb/download/downloadFile.do?fileFormat=pdb&compression=NO&structureId=" + tokens[tokens.length-1]);
@@ -213,6 +213,7 @@ public class EmbeddedDBGUI {
                             in.close();
                             //mediator.canvas2D.getMessagingSystem().addSingleStep("PDB entry downloaded.", null, null);
                             mediator.getCanvas2D().repaint();
+                            mediator.setTertiaryStructure(ts);
                             for (TertiaryStructure ts: parsePDB(new StringReader(content.toString()))) {
                                 if (ts.getRna().getName().equals(ss.getRna().getName())) {
                                     mediator.setTertiaryStructure(ts);
@@ -224,7 +225,7 @@ public class EmbeddedDBGUI {
                             File tmpF = createTemporaryFile("ts.pdb");
                             writePDB(mediator.getTertiaryStructure(), true, new FileWriter(tmpF));
                             mediator.getChimeraDriver().loadTertiaryStructure(tmpF);
-                        }
+                        }*/
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

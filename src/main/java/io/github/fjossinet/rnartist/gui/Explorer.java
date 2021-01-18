@@ -4,6 +4,7 @@ import io.github.fjossinet.rnartist.Mediator;
 import io.github.fjossinet.rnartist.RNArtist;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.model.*;
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -31,7 +32,9 @@ import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.*;
 
+import static io.github.fjossinet.rnartist.RNArtist.*;
 import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
+import static io.github.fjossinet.rnartist.io.UtilsKt.awtColorToJavaFX;
 import static io.github.fjossinet.rnartist.io.UtilsKt.javaFXToAwt;
 
 public class Explorer {
@@ -163,7 +166,7 @@ public class Explorer {
                         if (mediator.getRnartist().isCenterDisplayOnSelection())
                             mediator.canvas2D.centerDisplayOn(mediator.getCanvas2D().getSelectionFrame());
                         mediator.canvas2D.repaint();
-                    } else if (mediator.getCurrent2DDrawing() != null)
+                    } else if (mediator.getSecondaryStructureDrawingProperty().isNotNull().get())
                         //no selection
                         mediator.getCanvas2D().clearSelection();
                 }
@@ -176,7 +179,7 @@ public class Explorer {
 
         VBox stackedTitledPanes = new VBox();
 
-        // COLORS TITLEDPANE
+        //SCOPE TITLEDPANE
         GridPane pane = new GridPane();
         pane.setPadding(new Insets(10));
         pane.setVgap(5);
@@ -185,14 +188,95 @@ public class Explorer {
         cc.setHgrow(Priority.ALWAYS);
         pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
 
+        HBox scopeButtons = new HBox();
+        scopeButtons.setAlignment(Pos.CENTER);
+        scopeButtons.setSpacing(5);
+
+        ToggleButton currentElementScope = new ToggleButton(null, new FontIcon("fas-plus:15"));
+        ToggleButton up2NextDomainsScopeNoTertiaries = new ToggleButton(null, new FontIcon("fas-compress:15"));
+        ToggleButton up2NextDomainsScope = new ToggleButton(null, new FontIcon("fas-expand:15"));
+        ToggleButton branchesScope = new ToggleButton(null, new FontIcon("fas-expand-arrows-alt:15"));
+
+        currentElementScope.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                currentElementScope.setSelected(true);
+                mediator.setScope(ELEMENT_SCOPE);
+                up2NextDomainsScopeNoTertiaries.setSelected(false);
+                up2NextDomainsScope.setSelected(false);
+                branchesScope.setSelected(false);
+            }
+        });
+        currentElementScope.setTooltip(new Tooltip("Element selected"));
+        scopeButtons.getChildren().add(currentElementScope);
+
+        up2NextDomainsScopeNoTertiaries.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                up2NextDomainsScopeNoTertiaries.setSelected(true);
+                mediator.setScope(STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE);
+                up2NextDomainsScope.setSelected(false);
+                currentElementScope.setSelected(false);
+                branchesScope.setSelected(false);
+            }
+        });
+        up2NextDomainsScopeNoTertiaries.setTooltip(new Tooltip("Up to next Structural Domains without Tertiaries"));
+        scopeButtons.getChildren().add(up2NextDomainsScopeNoTertiaries);
+
+        up2NextDomainsScope.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                up2NextDomainsScope.setSelected(true);
+                mediator.setScope(STRUCTURAL_DOMAIN_SCOPE);
+                up2NextDomainsScopeNoTertiaries.setSelected(false);
+                currentElementScope.setSelected(false);
+                branchesScope.setSelected(false);
+            }
+        });
+        up2NextDomainsScope.setTooltip(new Tooltip("Up to next Structural Domains"));
+        scopeButtons.getChildren().add(up2NextDomainsScope);
+
+        branchesScope.setSelected(true);
+        branchesScope.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                branchesScope.setSelected(true);
+                mediator.setScope(BRANCH_SCOPE);
+                up2NextDomainsScopeNoTertiaries.setSelected(false);
+                currentElementScope.setSelected(false);
+                up2NextDomainsScope.setSelected(false);
+            }
+        });
+        branchesScope.setTooltip(new Tooltip("Along branches"));
+        scopeButtons.getChildren().add(branchesScope);
+
+        GridPane.setHalignment(scopeButtons, HPos.CENTER);
+        pane.add(scopeButtons, 0,0, 2, 1);
+
+        TitledPane scope = new TitledPane("Scope" , pane);
+        scope.setExpanded(true);
+
+        // COLORS TITLEDPANE
+        pane = new GridPane();
+        pane.setPadding(new Insets(10));
+        pane.setVgap(5);
+        pane.setHgap(5);
+        ColumnConstraints cc1 = new ColumnConstraints();
+        cc1.setPercentWidth(50);
+        ColumnConstraints cc2 = new ColumnConstraints();
+        cc2.setPercentWidth(50);
+        pane.getColumnConstraints().addAll(cc1,cc2);
+
         FlowPane lastColorsUsed = new FlowPane();
+        lastColorsUsed.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
 
         ColorPicker picker = new ColorPicker();
+        picker.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
         picker.setOnAction(new EventHandler<ActionEvent>(){
             @Override
             public void handle(ActionEvent event) {
                 for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
-                    mediator.getExplorer().setColorFrom(item, getHTMLColorString(javaFXToAwt(picker.getValue())), mediator.getRnartist().getScope());
+                    mediator.getExplorer().setColorFrom(item, getHTMLColorString(javaFXToAwt(picker.getValue())), mediator.getScope());
                 LastColor r = new LastColor(picker.getValue());
                 if (lastColorsUsed.getChildren().size() == 30)
                     lastColorsUsed.getChildren().remove(29);
@@ -201,8 +285,111 @@ public class Explorer {
                 mediator.getCanvas2D().repaint();
             }
         });
-        pane.add(picker, 0,0, 2,1);
-        GridPane.setHalignment(picker, HPos.CENTER);
+        pane.add(picker, 0,0);
+
+        MenuButton colorSchemesMenu = new MenuButton("Schemes");
+        colorSchemesMenu.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
+
+        Menu branchesColors = new Menu("Branches");
+        colorSchemesMenu.getItems().add(branchesColors);
+
+        MenuItem randomColors = new MenuItem("Random");
+        branchesColors.getItems().add(randomColors);
+
+        randomColors.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                for (Branch branch: mediator.getSecondaryStructureDrawingProperty().get().getBranches()) {
+                    Random rand = new Random();
+                    float r = rand.nextFloat();
+                    float g = rand.nextFloat();
+                    float b = rand.nextFloat();
+                    java.awt.Color c = new java.awt.Color(r, g, b);
+                    Map<String, Map<String,String>> configuration = new HashMap<>();
+                    Map<String,String> colorConfig = new HashMap<>();
+                    colorConfig.put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(c));
+                    Map<String,String> letterColorConfig = new HashMap<>();
+                    letterColorConfig.put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(java.awt.Color.BLACK));
+                    configuration.put(SecondaryStructureType.Helix.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.SecondaryInteraction.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.Junction.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.AShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.A.toString(), letterColorConfig);
+                    configuration.put(SecondaryStructureType.UShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.U.toString(), letterColorConfig);
+                    configuration.put(SecondaryStructureType.GShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.G.toString(), letterColorConfig);
+                    configuration.put(SecondaryStructureType.CShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.C.toString(), letterColorConfig);
+                    configuration.put(SecondaryStructureType.XShape.toString(), colorConfig);
+                    configuration.put(SecondaryStructureType.X.toString(), letterColorConfig);
+                    Theme theme = new Theme(configuration);
+                    for (TreeItem<ExplorerItem> item: mediator.getExplorer().getTreeViewItemsFor(mediator.getExplorer().getTreeTableView().getRoot(),branch.getParent()))
+                        mediator.getExplorer().applyTheme( item, theme ,BRANCH_SCOPE);
+                }
+
+                mediator.getCanvas2D().repaint();
+                mediator.getExplorer().refresh();
+            }
+        });
+
+        MenuItem distanceColors = new MenuItem("Distance");
+        branchesColors.getItems().add(distanceColors);
+
+        distanceColors.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                for (Branch branch: mediator.getSecondaryStructureDrawingProperty().get().getBranches()) {
+                    java.awt.Color c = branch.getParent().getColor();
+                    List<JunctionDrawing> junctions = branch.junctionsFromBranch();
+                    for (JunctionDrawing junction:junctions) {
+                        List<DrawingElement> path = junction.pathToRoot();
+                        java.awt.Color interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate( javafx.scene.paint.Color.LIGHTGRAY, (double)(path.size()-1)/(double)branch.getBranchLength()));
+                        junction.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
+                        for (ResidueDrawing r:junction.getResidues())
+                            r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
+                        interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate( javafx.scene.paint.Color.LIGHTGRAY, (double)(path.size()-2)/(double)branch.getBranchLength()));
+                        junction.getParent().getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
+                        for (ResidueDrawing r:junction.getParent().getResidues())
+                            r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
+                    }
+                }
+                for (SingleStrandDrawing ss: mediator.getSecondaryStructureDrawingProperty().get().getSingleStrands()) {
+                    ss.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(java.awt.Color.BLACK));
+                    for (ResidueDrawing r: ss.getResidues())
+                        r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(java.awt.Color.BLACK));
+                }
+                mediator.getCanvas2D().repaint();
+                mediator.getExplorer().refresh();
+            }
+        });
+
+        Menu colorSchemes = new Menu("Residues...");
+
+        colorSchemesMenu.getItems().add(colorSchemes);
+
+        for (String themeName : RnartistConfig.colorSchemes.keySet()) {
+            MenuItem residueThemeItem = new MenuItem(themeName);
+            residueThemeItem.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
+                    Theme t = new Theme(RnartistConfig.colorSchemes.get(themeName));
+
+                    if (!selection.isEmpty()) {
+                        for (TreeItem<ExplorerItem> item:selection)
+                            mediator.getExplorer().applyTheme(item, t, mediator.getScope());
+                    } else
+                        mediator.getExplorer().applyTheme(t, mediator.getScope());
+
+                    mediator.getCanvas2D().repaint();
+                    mediator.getExplorer().refresh();
+                }
+            });
+            colorSchemes.getItems().add(residueThemeItem);
+        }
+
+        pane.add(colorSchemesMenu, 1,0);
 
         pane.add(new Label("Last Colors"), 0,1, 2, 1);
 
@@ -235,6 +422,7 @@ public class Explorer {
         pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
 
         ListView<String> lineWidth = new ListView<String>();
+        lineWidth.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
         lineWidth.setMaxHeight(200);
         lineWidth.getItems().addAll("0", "0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "2.5", "3.0", "3.5", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0", "10.0");
         lineWidth.setCellFactory(new ShapeCellFactory());
@@ -242,7 +430,7 @@ public class Explorer {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String old_val, String new_val) {
                 for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
-                    mediator.getExplorer().setLineWidthFrom(item, lineWidth.getSelectionModel().getSelectedItem(), mediator.getRnartist().getScope());
+                    mediator.getExplorer().setLineWidthFrom(item, lineWidth.getSelectionModel().getSelectedItem(), mediator.getScope());
                 mediator.getExplorer().refresh();
                 mediator.getCanvas2D().repaint();
             }
@@ -263,6 +451,7 @@ public class Explorer {
         pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
 
         final Slider lineShiftSlider = new Slider(0, 10,0);
+        lineShiftSlider.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
         lineShiftSlider.setShowTickLabels(true);
         lineShiftSlider.setShowTickMarks(true);
         lineShiftSlider.setMajorTickUnit(5);
@@ -272,7 +461,7 @@ public class Explorer {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
-                    mediator.getExplorer().setLineShiftFrom(item, Integer.toString((int)lineShiftSlider.getValue()), mediator.getRnartist().getScope());
+                    mediator.getExplorer().setLineShiftFrom(item, Integer.toString((int)lineShiftSlider.getValue()), mediator.getScope());
                 mediator.getExplorer().refresh();
                 mediator.getCanvas2D().repaint();
 
@@ -294,6 +483,7 @@ public class Explorer {
         pane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
 
         final Slider opacitySlider = new Slider(0, 100,100);
+        opacitySlider.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
         opacitySlider.setShowTickLabels(true);
         opacitySlider.setShowTickMarks(true);
         opacitySlider.setMajorTickUnit(25);
@@ -304,7 +494,7 @@ public class Explorer {
             public void handle(MouseEvent mouseEvent) {
                 int opacity = (int) ((double) (opacitySlider.getValue()) / 100.0 * 255.0);
                 for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
-                    mediator.getExplorer().setOpacityFrom(item, Integer.toString(opacity), mediator.getRnartist().getScope());
+                    mediator.getExplorer().setOpacityFrom(item, Integer.toString(opacity), mediator.getScope());
                 mediator.getExplorer().refresh();
                 mediator.getCanvas2D().repaint();
 
@@ -328,22 +518,24 @@ public class Explorer {
         HBox hbox = new HBox();
         hbox.setSpacing(5);
         Button b = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
+        b.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
         b.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
                 for (TreeItem item : treeTableView.getSelectionModel().getSelectedItems())
-                    mediator.getExplorer().setFullDetailsFrom(item, "true", mediator.getRnartist().getScope());
+                    mediator.getExplorer().setFullDetailsFrom(item, "true", mediator.getScope());
                 mediator.getExplorer().refresh();
                 mediator.getCanvas2D().repaint();
             }
         });
         hbox.getChildren().add(b);
         b = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TIMES_CIRCLE));
+        b.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
         b.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
                 for (TreeItem item : treeTableView.getSelectionModel().getSelectedItems())
-                    mediator.getExplorer().setFullDetailsFrom(item, "false", mediator.getRnartist().getScope());
+                    mediator.getExplorer().setFullDetailsFrom(item, "false", mediator.getScope());
                 mediator.getExplorer().refresh();
                 mediator.getCanvas2D().repaint();
             }
@@ -375,6 +567,7 @@ public class Explorer {
         GridPane.setHalignment(elementsToSelect, HPos.CENTER);
 
         b = new Button(null, new FontIcon("fas-search:15"));
+        b.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
         b.setOnAction(new EventHandler<ActionEvent>(){
             @Override
             public void handle(ActionEvent event) {
@@ -382,52 +575,52 @@ public class Explorer {
                 starts.add(getTreeTableView().getRoot());
                 switch (elementsToSelect.getSelectionModel().getSelectedItem()) {
                     case "Helices":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> HelixDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> HelixDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "SingleStrands":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SingleStrandDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SingleStrandDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Junctions":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Apical Loops":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.ApicalLoop, starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.ApicalLoop, starts, true, BRANCH_SCOPE);
                         break;
                     case "Inner Loops":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.InnerLoop, starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.InnerLoop, starts, true, BRANCH_SCOPE);
                         break;
                     case "PseudoKnots":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PKnotDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PKnotDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Secondary Interactions":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SecondaryInteractionDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SecondaryInteractionDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Tertiary Interactions":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> TertiaryInteractionDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> TertiaryInteractionDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Interaction Symbols":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> InteractionSymbolDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> InteractionSymbolDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Phosphodiester Bonds":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PhosphodiesterBondDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PhosphodiesterBondDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Residues":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "As":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> AShapeDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> AShapeDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Us":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> UShapeDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> UShapeDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Gs":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> GShapeDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> GShapeDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Cs":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> CShapeDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> CShapeDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                     case "Residue Letters":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueLetterDrawing.class.isInstance(drawingElement), starts, true, RNArtist.BRANCH_SCOPE);
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueLetterDrawing.class.isInstance(drawingElement), starts, true, BRANCH_SCOPE);
                         break;
                 }
                 mediator.getExplorer().refresh();
@@ -436,9 +629,12 @@ public class Explorer {
         });
         pane.add(b, 0,1);
         GridPane.setHalignment(b, HPos.LEFT);
-        pane.add(new Label("Search from Root"), 1,1);
+        Label l = new Label("Search from Root");
+        l.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
+        pane.add(l, 1,1);
 
         b = new Button(null, new FontIcon("fas-search:15"));
+        b.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
         b.setOnAction(new EventHandler<ActionEvent>(){
             @Override
             public void handle(ActionEvent event) {
@@ -446,52 +642,52 @@ public class Explorer {
                 starts.addAll(getTreeTableView().getSelectionModel().getSelectedItems());
                 switch (elementsToSelect.getSelectionModel().getSelectedItem()) {
                     case "Helices":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> HelixDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> HelixDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "SingleStrands":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SingleStrandDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SingleStrandDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Junctions":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Apical Loops":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.ApicalLoop, starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.ApicalLoop, starts, true,  mediator.getScope());
                         break;
                     case "Inner Loops":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.InnerLoop, starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.InnerLoop, starts, true,  mediator.getScope());
                         break;
                     case "PseudoKnots":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PKnotDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PKnotDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Secondary Interactions":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SecondaryInteractionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> SecondaryInteractionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Tertiary Interactions":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> TertiaryInteractionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> TertiaryInteractionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Interaction Symbols":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> InteractionSymbolDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> InteractionSymbolDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Phosphodiester Bonds":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PhosphodiesterBondDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PhosphodiesterBondDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Residues":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "As":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> AShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> AShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Us":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> UShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> UShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Gs":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> GShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> GShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Cs":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> CShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> CShapeDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Residue Letters":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueLetterDrawing.class.isInstance(drawingElement), starts, true,  mediator.getRnartist().getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> ResidueLetterDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                 }
                 mediator.getExplorer().refresh();
@@ -500,8 +696,11 @@ public class Explorer {
         });
         pane.add(b, 0,2);
         GridPane.setHalignment(b, HPos.LEFT);
-        pane.add(new Label("Search from Selection"), 1,2);
+        l = new Label("Search from Selection");
+        l.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
+        pane.add(l, 1,2);
 
+        stackedTitledPanes.getChildren().add(scope);
         stackedTitledPanes.getChildren().add(selection);
         stackedTitledPanes.getChildren().add(details);
         stackedTitledPanes.getChildren().add(colors);
@@ -533,11 +732,13 @@ public class Explorer {
     }
 
     public void applyTheme(TreeItem<ExplorerItem> item, Theme theme, byte scope) {
+        if (scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE && item.getValue().getName().equals("Tertiaries"))
+            return;
         item.getValue().applyTheme(theme);
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> c:item.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(item.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(c.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(item.getValue()) && (scope == STRUCTURAL_DOMAIN_SCOPE || scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE) && StructuralDomain.class.isInstance(c.getValue().getDrawingElement()))
                 continue;
             applyTheme(c, theme, scope);
         }
@@ -600,11 +801,15 @@ public class Explorer {
     public List<TreeItem<ExplorerItem>> getAllTreeViewItems(List<TreeItem<ExplorerItem>> hits, TreeItem<ExplorerItem> start, DrawingElementFilter filter, byte scope) {
         if (hits == null)
             hits = new ArrayList<TreeItem<ExplorerItem>>();
+
+        if (scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE && start.getValue().getName().equals("Tertiaries"))
+            return hits;
+
         if (filter.isOK(start.getValue().getDrawingElement()))
             hits.add(start);
 
         for (TreeItem<ExplorerItem> child : start.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(start.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(start.getValue()) && (scope == STRUCTURAL_DOMAIN_SCOPE || scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE) && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             getAllTreeViewItems(hits, child, filter, scope);
         }
@@ -621,55 +826,65 @@ public class Explorer {
     }
 
     public void setFullDetailsFrom(TreeItem<ExplorerItem> from, String fullDetails, byte scope) {
+        if (scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE &&  from.getValue().getName().equals("Tertiaries"))
+            return;
         from.getValue().setFullDetails(fullDetails);
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && (scope == STRUCTURAL_DOMAIN_SCOPE || scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE) && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setFullDetailsFrom(child, fullDetails, scope);
         }
     }
 
     public void setColorFrom(TreeItem<ExplorerItem> from, String color, byte scope) {
+        if (scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE && from.getValue().getName().equals("Tertiaries"))
+            return;
         from.getValue().setColor(color);
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && (scope == STRUCTURAL_DOMAIN_SCOPE || scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE) && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setColorFrom(child, color, scope);
         }
     }
 
     public void setLineWidthFrom(TreeItem<ExplorerItem> from, String width, byte scope) {
+        if (scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE && from.getValue().getName().equals("Tertiaries"))
+            return;
         from.getValue().setLineWidth(width);
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && (scope == STRUCTURAL_DOMAIN_SCOPE || scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE) && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setLineWidthFrom(child, width, scope);
         }
     }
 
     public void setLineShiftFrom(TreeItem<ExplorerItem> from, String shift, byte scope) {
+        if (scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE && from.getValue().getName().equals("Tertiaries"))
+            return;
         from.getValue().setLineShift(shift);
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && (scope == STRUCTURAL_DOMAIN_SCOPE || scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE) && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setLineShiftFrom(child, shift, scope);
         }
     }
 
     public void setOpacityFrom(TreeItem<ExplorerItem> from, String opacity, byte scope) {
+        if (scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE && from.getValue().getName().equals("Tertiaries"))
+            return;
         from.getValue().setOpacity(opacity);
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == RNArtist.STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && (scope == STRUCTURAL_DOMAIN_SCOPE || scope == STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE) && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setOpacityFrom(child, opacity, scope);
         }
@@ -679,6 +894,7 @@ public class Explorer {
 
     private List<TreeItem<ExplorerItem>> helicesAlreadyInPknots = new ArrayList<>();
     private List<TreeItem<ExplorerItem>> residuesAlreadyInTertiaries = new ArrayList<>();
+    private List<TreeItem<ExplorerItem>> alreadyTertiaries = new ArrayList<>();
 
     public void load(SecondaryStructureDrawing drawing) {
         //we fit the width of the Name column to have enough space to expand the nodes
@@ -704,27 +920,6 @@ public class Explorer {
             pknotsTreeItem.getChildren().add(pknotTreeItem);
             pknotsGroup.getChildren().add(pknotTreeItem.getValue());
         }
-
-        GroupOfStructuralElements tertiariesGroup = new GroupOfStructuralElements("Tertiaries");
-        GroupOfStructuralElements singleHBondsGroup = new GroupOfStructuralElements("Single HBonds");
-        GroupOfStructuralElements multipleHBondsGroup = new GroupOfStructuralElements("Multiple HBonds");
-        TreeItem<ExplorerItem> tertiariesTreeItem = new TreeItem<ExplorerItem>(tertiariesGroup);
-        TreeItem<ExplorerItem> singleHBondsTreeItem = new TreeItem<ExplorerItem>(singleHBondsGroup);
-        TreeItem<ExplorerItem> multipleHBondsTreeItem = new TreeItem<ExplorerItem>(multipleHBondsGroup);
-        tertiariesTreeItem.getChildren().add(multipleHBondsTreeItem);
-        tertiariesTreeItem.getChildren().add(singleHBondsTreeItem);
-        root.getChildren().add(tertiariesTreeItem);
-        for (TertiaryInteractionDrawing interaction : drawing.getTertiaryInteractions())
-            if (interaction.getParent() == null) {// if parent not null, this tertiary interaction is in a pknot and will be a child of this pknot
-                TreeItem<ExplorerItem> tertiaryTreeItem = this.load(interaction, true);
-                if (interaction.toString().startsWith(Edge.SingleHBond.toString())) {
-                    singleHBondsTreeItem.getChildren().add(tertiaryTreeItem);
-                    singleHBondsGroup.getChildren().add(tertiaryTreeItem.getValue());
-                } else {
-                    multipleHBondsTreeItem.getChildren().add(tertiaryTreeItem);
-                    multipleHBondsGroup.getChildren().add(tertiaryTreeItem.getValue());
-                }
-            }
 
         GroupOfStructuralElements branchesGroup = new GroupOfStructuralElements("Branches");
         TreeItem<ExplorerItem> allBranches = new TreeItem<ExplorerItem>(branchesGroup);
@@ -796,6 +991,16 @@ public class Explorer {
             secondariesGroup.getChildren().add(secondaryTreeItem.getValue());
         }
 
+        GroupOfStructuralElements tertiariesGroup = new GroupOfStructuralElements("Tertiaries");
+        TreeItem<ExplorerItem> tertiariesTreeItem = new TreeItem<ExplorerItem>(tertiariesGroup);
+        helixItem.getChildren().add(tertiariesTreeItem);
+        for (TertiaryInteractionDrawing interaction : h.getSsDrawing().getAllTertiaryInteractions())
+            if (h.getResidues().contains(interaction.getResidue()) ||  h.getResidues().contains(interaction.getPairedResidue())) {
+                TreeItem<ExplorerItem> tertiaryTreeItem = this.load(interaction, true);
+                tertiariesTreeItem.getChildren().addAll(tertiaryTreeItem);
+                tertiariesGroup.getChildren().add(tertiaryTreeItem.getValue());
+            }
+
         GroupOfStructuralElements phosphoGroup = new GroupOfStructuralElements("Phosphodiester Bonds");
         TreeItem<ExplorerItem> allPhosphos = new TreeItem<ExplorerItem>(phosphoGroup);
         helixItem.getChildren().add(allPhosphos);
@@ -830,6 +1035,16 @@ public class Explorer {
                     residues.getChildren().addAll(residueTreeItem);
                     residuesGroup.getChildren().add(residueTreeItem.getValue());
                 }
+            }
+
+        GroupOfStructuralElements tertiariesGroup = new GroupOfStructuralElements("Tertiaries");
+        TreeItem<ExplorerItem> tertiariesTreeItem = new TreeItem<ExplorerItem>(tertiariesGroup);
+        junctionItem.getChildren().add(tertiariesTreeItem);
+        for (TertiaryInteractionDrawing interaction : jc.getSsDrawing().getAllTertiaryInteractions())
+            if (jc.getResidues().contains(interaction.getResidue()) ||  jc.getResidues().contains(interaction.getPairedResidue())) {
+                TreeItem<ExplorerItem> tertiaryTreeItem = this.load(interaction, true);
+                tertiariesTreeItem.getChildren().addAll(tertiaryTreeItem);
+                tertiariesGroup.getChildren().add(tertiaryTreeItem.getValue());
             }
 
         GroupOfStructuralElements phosphoGroup = new GroupOfStructuralElements("Phosphodiester Bonds");
@@ -881,6 +1096,16 @@ public class Explorer {
             }
         }
 
+        GroupOfStructuralElements tertiariesGroup = new GroupOfStructuralElements("Tertiaries");
+        TreeItem<ExplorerItem> tertiariesTreeItem = new TreeItem<ExplorerItem>(tertiariesGroup);
+        ssItem.getChildren().add(tertiariesTreeItem);
+        for (TertiaryInteractionDrawing interaction : ss.getSsDrawing().getAllTertiaryInteractions())
+            if (ss.getResidues().contains(interaction.getResidue()) ||  ss.getResidues().contains(interaction.getPairedResidue())) {
+                TreeItem<ExplorerItem> tertiaryTreeItem = this.load(interaction, true);
+                tertiariesTreeItem.getChildren().addAll(tertiaryTreeItem);
+                tertiariesGroup.getChildren().add(tertiaryTreeItem.getValue());
+            }
+
         GroupOfStructuralElements phosphoGroup = new GroupOfStructuralElements("Phosphodiester Bonds");
         TreeItem<ExplorerItem> allPhosphos = new TreeItem<ExplorerItem>(phosphoGroup);
         ssItem.getChildren().add(allPhosphos);
@@ -893,6 +1118,13 @@ public class Explorer {
     }
 
     private TreeItem<ExplorerItem> load(BaseBaseInteractionDrawing interaction, boolean isTertiary) {
+        if (isTertiary)
+            for (TreeItem<ExplorerItem> already: this.alreadyTertiaries) {
+                if (interaction.equals(already.getValue().getDrawingElement())) {
+                    return copy(already);
+                }
+            }
+
         TreeItem<ExplorerItem> interactionItem =
                 isTertiary ? new TreeItem<ExplorerItem>(new TertiaryInteractionItem((TertiaryInteractionDrawing) interaction)) : new TreeItem<ExplorerItem>(new SecondaryInteractionItem((SecondaryInteractionDrawing) interaction));
 
@@ -949,6 +1181,8 @@ public class Explorer {
                 interactionItem.getChildren().add(r);
             }
         }
+        if (isTertiary)
+            alreadyTertiaries.add(interactionItem);
         return interactionItem;
     }
 
@@ -984,7 +1218,7 @@ public class Explorer {
                     lastColorClicked = LastColor.this;
                     lastColorClicked.setStyle("-fx-stroke: black; -fx-stroke-width: 2;");
                     for (TreeItem item: treeTableView.getSelectionModel().getSelectedItems())
-                        mediator.getExplorer().setColorFrom(item, getHTMLColorString(javaFXToAwt(color)), mediator.getRnartist().getScope());
+                        mediator.getExplorer().setColorFrom(item, getHTMLColorString(javaFXToAwt(color)), mediator.getScope());
                     mediator.getExplorer().refresh();
                     mediator.getCanvas2D().repaint();
                 }

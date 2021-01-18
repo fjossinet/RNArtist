@@ -6,33 +6,44 @@ import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
+import java.io.File
 import javax.swing.JPanel
 
-class Canvas2D(val mediator: Mediator): JPanel() {
+class Canvas2D(val mediator: Mediator) : JPanel() {
 
-    var secondaryStructureDrawing: SecondaryStructureDrawing? = null
-    var knobs:MutableList<JunctionKnob> = arrayListOf()
-    var selectionShapes:MutableList<SelectionShape> = arrayListOf()
+    var knobs: MutableList<JunctionKnob> = arrayListOf()
+    private var selectionShapes: MutableList<SelectionShape> = arrayListOf()
     lateinit private var offScreenBuffer: Image
     var translateX = 0.0
     var translateY = 0.0
-    private var fps:Long = 0
+    private var fps: Long = 0
 
     init {
         this.mediator.canvas2D = this
     }
 
-    fun load2D(drawing: SecondaryStructureDrawing) {
-        this.secondaryStructureDrawing = drawing
+    fun load2D(drawing: SecondaryStructureDrawing, chimeraSession:File? = null, pdbFile:File? = null) {
+        val previousPdbSource = this.mediator.secondaryStructureDrawingProperty.get()?.secondaryStructure?.rna?.source //to avoid to re-open the same PDB file if we load 2Ds from the same 3Ds
+        this.mediator.secondaryStructureDrawingProperty.set(drawing)
         this.fps = 0
         this.knobs.clear()
         this.selectionShapes.clear()
-        this.secondaryStructureDrawing?.workingSession?.tertiariesDisplayLevel = mediator.rnartist.tertiariesLevel
-        this.secondaryStructureDrawing?.let { it ->
+        this.mediator.secondaryStructureDrawingProperty.get()?.let { it ->
             mediator.explorer.load(it)
+            if (chimeraSession != null && pdbFile != null)
+                mediator.chimeraDriver.restoreSession(chimeraSession, pdbFile)
+            else {
+                if (!it.secondaryStructure.rna.source.equals(previousPdbSource))
+                    mediator.chimeraDriver.closeSession()
+                if (it.secondaryStructure.rna.source.startsWith("file:") && it.secondaryStructure.rna.source.endsWith(".pdb"))
+                    mediator.chimeraDriver.loadTertiaryStructure(
+                        File(
+                            it.secondaryStructure.rna.source.split(":").last()
+                        )
+                    )
+            }
         }
         this.repaint();
-
         /*
         Timer("", false).schedule(1000) {
             mediator.explorer.getTreeViewItemFor(mediator.explorer.treeTableView.root, secondaryStructureDrawing).value.lineWidth = "2.0"
@@ -253,13 +264,13 @@ class Canvas2D(val mediator: Mediator): JPanel() {
         }*/
     }
 
-    fun centerDisplayOn(frame:Rectangle2D) {
-        this.secondaryStructureDrawing?.let { drawing ->
+    fun centerDisplayOn(frame: Rectangle2D) {
+        this.mediator.secondaryStructureDrawingProperty.get()?.let { drawing ->
             drawing.workingSession.viewX = 0.0
             drawing.workingSession.viewY = 0.0
             var at = AffineTransform()
-            at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
-            at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
+            at.translate(drawing.viewX, drawing.viewY)
+            at.scale(drawing.zoomLevel, drawing.zoomLevel)
             var transformedBounds = at.createTransformedShape(frame)
             //we center the view on the new structure
             drawing.workingSession.viewX += this.getBounds().bounds2D.centerX - transformedBounds.bounds2D.centerX
@@ -269,7 +280,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     fun fitStructure() {
-        this.secondaryStructureDrawing?.let { drawing ->
+        this.mediator.secondaryStructureDrawingProperty.get()?.let { drawing ->
             drawing.fitTo(this.bounds)
             this.repaint()
         }
@@ -277,7 +288,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
 
     override fun paintComponent(g: Graphics?) {
         super.paintComponent(g)
-        this.secondaryStructureDrawing?.let { drawing ->
+        this.mediator.secondaryStructureDrawingProperty.get()?.let { drawing ->
             val g2 = g as Graphics2D
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
@@ -285,13 +296,13 @@ class Canvas2D(val mediator: Mediator): JPanel() {
             g2.background = Color.white
             g2.color = Color.BLACK
             if (drawing.workingSession.is_screen_capture) {
-                g.stroke = BasicStroke( drawing.workingSession.finalZoomLevel.toFloat() * RnartistConfig.selectionWidth)
+                g.stroke = BasicStroke(drawing.zoomLevel.toFloat() * RnartistConfig.selectionWidth)
                 g2.draw(drawing.workingSession.screen_capture_area)
             }
             val start = System.currentTimeMillis()
             val at = AffineTransform()
-            at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
-            at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
+            at.translate(drawing.viewX, drawing.viewY)
+            at.scale(drawing.zoomLevel, drawing.zoomLevel)
 
             drawing.draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()))
 
@@ -304,7 +315,7 @@ class Canvas2D(val mediator: Mediator): JPanel() {
                 }
             }
 
-            println((System.currentTimeMillis()-start)/1000.0)
+            println((System.currentTimeMillis() - start) / 1000.0)
 
             //this.fps = if (t> this.fps) t else this.fps
             //println("FPS: ${this.fps}")
@@ -314,8 +325,9 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     override fun update(g: Graphics) {
         val gr: Graphics2D
         if (this.offScreenBuffer == null ||
-                !(offScreenBuffer.getWidth(this) == this.size.width
-                        && offScreenBuffer.getHeight(this) == this.size.height)) {
+            !(offScreenBuffer.getWidth(this) == this.size.width
+                    && offScreenBuffer.getHeight(this) == this.size.height)
+        ) {
             this.offScreenBuffer = this.createImage(this.size.width, this.size.height)
         }
         // We need to use our buffer Image as a Graphics object:
@@ -325,25 +337,35 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     fun screenCapture(secondaryStructureDrawing: SecondaryStructureDrawing?): BufferedImage? {
-        this.secondaryStructureDrawing?.let { drawing ->
+        this.mediator.secondaryStructureDrawingProperty.get()?.let { drawing ->
             var bufferedImage: BufferedImage?
             drawing.workingSession.viewX -= drawing.workingSession.screen_capture_area!!.minX
             drawing.workingSession.viewY -= drawing.workingSession.screen_capture_area!!.minY
-            bufferedImage = BufferedImage(drawing.workingSession.screen_capture_area!!.width.toInt(),
-                    drawing.workingSession.screen_capture_area!!.height.toInt(), BufferedImage.TYPE_INT_ARGB)
+            bufferedImage = BufferedImage(
+                drawing.workingSession.screen_capture_area!!.width.toInt(),
+                drawing.workingSession.screen_capture_area!!.height.toInt(), BufferedImage.TYPE_INT_ARGB
+            )
             val g2 = bufferedImage.createGraphics()
             g2.color = Color.WHITE
-            g2.fill(Rectangle2D.Double(0.0, 0.0, drawing.workingSession.screen_capture_area!!.width,
-                    drawing.workingSession.screen_capture_area!!.height))
+            g2.fill(
+                Rectangle2D.Double(
+                    0.0, 0.0, drawing.workingSession.screen_capture_area!!.width,
+                    drawing.workingSession.screen_capture_area!!.height
+                )
+            )
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
             g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
             g2.background = Color.white
             val at = AffineTransform()
-            at.translate(drawing.workingSession.viewX, drawing.workingSession.viewY)
-            at.scale(drawing.workingSession.finalZoomLevel, drawing.workingSession.finalZoomLevel)
+            at.translate(drawing.viewX, drawing.viewY)
+            at.scale(drawing.zoomLevel, drawing.zoomLevel)
             if (secondaryStructureDrawing != null)
-                secondaryStructureDrawing.draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()));
+                secondaryStructureDrawing.draw(
+                    g2,
+                    at,
+                    Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight())
+                );
             else
                 drawing.draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()));
             g2.dispose()
@@ -355,33 +377,34 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     fun clearSelection() {
-        this.secondaryStructureDrawing?.let {
+        this.mediator.secondaryStructureDrawingProperty.get()?.let {
             this.knobs.clear()
             this.selectionShapes.clear()
             repaint()
+            mediator.chimeraDriver.selectionCleared()
         }
 
     }
 
     fun getSelection(): List<DrawingElement> {
-        return this.selectionShapes.map{it.element}
+        return this.selectionShapes.map { it.element }
     }
 
     fun getSelectionAbsPositions(): List<Int> {
         val absPositions = mutableSetOf<Int>()
-        this.selectionShapes.map{it.element}.forEach {
+        this.selectionShapes.map { it.element }.forEach {
             absPositions.addAll(it.location.positions)
         }
         return absPositions.toList()
     }
 
     fun getSelectionFrame(): Rectangle2D? {
-        val allSelectionPoints = this.selectionShapes.flatMap{it.element.selectionPoints}
+        val allSelectionPoints = this.selectionShapes.flatMap { it.element.selectionPoints }
         allSelectionPoints.minByOrNull { it.x }?.x?.let { minX ->
             allSelectionPoints.minByOrNull { it.y }?.y?.let { minY ->
                 allSelectionPoints.maxByOrNull { it.x }?.x?.let { maxX ->
                     allSelectionPoints.maxByOrNull { it.y }?.y?.let { maxY ->
-                        return Rectangle2D.Double(minX, minY, maxX-minX, maxY-minY)
+                        return Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY)
                     }
                 }
             }
@@ -390,21 +413,30 @@ class Canvas2D(val mediator: Mediator): JPanel() {
 
     }
 
-    fun isInSelection(el: DrawingElement):Boolean {
-        return this.selectionShapes.any{ it.element == el }
+    fun isInSelection(el: DrawingElement): Boolean {
+        return this.selectionShapes.any { it.element == el }
     }
 
     fun addToSelection(el: DrawingElement) {
-        this.secondaryStructureDrawing?.let {
+        this.mediator.secondaryStructureDrawingProperty.get()?.let {
             if (el is JunctionDrawing)
                 this.knobs.add(JunctionKnob(mediator, el))
             this.selectionShapes.add(SelectionShape(mediator, el))
             repaint()
+            mediator.chimeraDriver.selectResidues(
+                getSelectionAbsPositions(),
+                it.secondaryStructure.rna.name
+            )
+            if (mediator.rnartist.isCenterDisplayOnSelection)
+                mediator.chimeraDriver.setFocus(
+                        getSelectionAbsPositions(),
+                        it.secondaryStructure.rna.name
+                    )
         }
     }
 
     fun removeFromSelection(el: DrawingElement) {
-        this.secondaryStructureDrawing?.let {
+        this.mediator.secondaryStructureDrawingProperty.get()?.let {
             this.knobs.removeIf { it.junction == el }
             this.selectionShapes.removeIf { it.element == el }
             repaint()
@@ -412,13 +444,14 @@ class Canvas2D(val mediator: Mediator): JPanel() {
     }
 
     fun isSelected(el: DrawingElement): Boolean {
-        return this.selectionShapes.any { it.element ==  el}
+        return this.selectionShapes.any { it.element == el }
     }
 
-    fun structuralDomainsSelected():List<StructuralDomain>  {
+    fun structuralDomainsSelected(): List<StructuralDomain> {
         val domains = mutableListOf<StructuralDomain>()
         domains.addAll(this.knobs.map { it.junction })
-        domains.addAll(this.selectionShapes.filter { it.element is StructuralDomain  }.map { it.element as StructuralDomain})
+        domains.addAll(this.selectionShapes.filter { it.element is StructuralDomain }
+            .map { it.element as StructuralDomain })
         return domains
     }
 }

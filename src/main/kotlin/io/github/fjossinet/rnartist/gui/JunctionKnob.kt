@@ -13,7 +13,7 @@ import java.awt.geom.Point2D
 class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
 
     val connectors = mutableListOf<JunctionConnector>()
-    val arrows = mutableListOf<JunctionArrow>()
+    private val arrows = mutableListOf<JunctionArrow>()
     var connectorRadius:Double = 0.0
     //lateinit var detailsButton:DetailsButton
 
@@ -135,7 +135,7 @@ class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
 
 }
 
-class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = false, centerX:Double, centerY:Double, val knob:JunctionKnob) {
+class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = false, centerX:Double, centerY:Double, private val knob:JunctionKnob) {
 
     var isInId = false
     var circle:Ellipse2D
@@ -176,7 +176,7 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
         selectedCount = knob.connectors.count { it.selected }
         if (selectedCount == knob.junction.junctionCategory.value - 1) {
             knob.junction.layout = knob.getJunctionLayout().toMutableList()
-            knob.mediator.current2DDrawing!!.computeResidues(knob.junction)
+            knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(knob.junction)
             this.knob.mediator.canvas2D.knobs.forEach {
                 it.update()
             }
@@ -213,7 +213,7 @@ abstract class AbstractJunctionArrow:JunctionArrow {
     }
 }
 
-class Up(val knob:JunctionKnob):AbstractJunctionArrow() {
+class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
@@ -251,7 +251,7 @@ class Up(val knob:JunctionKnob):AbstractJunctionArrow() {
     override fun mouseClicked() {
         this.knob.junction.radius = this.knob.junction.radius * 1.1
         this.knob.junction.layout = this.knob.junction.layout //a trick to recompute the stuff
-        this.knob.mediator.current2DDrawing!!.computeResidues(this.knob.junction)
+        this.knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(this.knob.junction)
         this.knob.mediator.canvas2D.knobs.forEach {
             it.update()
         }
@@ -264,7 +264,7 @@ class Up(val knob:JunctionKnob):AbstractJunctionArrow() {
 
 }
 
-class Down(val knob:JunctionKnob):AbstractJunctionArrow() {
+class Down(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
@@ -295,7 +295,7 @@ class Down(val knob:JunctionKnob):AbstractJunctionArrow() {
     override fun mouseClicked() {
         this.knob.junction.radius = this.knob.junction.radius * 0.9
         this.knob.junction.layout = this.knob.junction.layout //a trick to recompute the stuff
-        this.knob.mediator.current2DDrawing!!.computeResidues(this.knob.junction)
+        this.knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(this.knob.junction)
         this.knob.mediator.canvas2D.knobs.forEach {
             it.update()
         }
@@ -307,7 +307,7 @@ class Down(val knob:JunctionKnob):AbstractJunctionArrow() {
 
 }
 
-class Left(val knob:JunctionKnob):AbstractJunctionArrow() {
+class Left(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
@@ -336,7 +336,7 @@ class Left(val knob:JunctionKnob):AbstractJunctionArrow() {
                 currentPos = (currentPos+1)%16
             }
             this.knob.junction.layout = this.knob.getJunctionLayout().toMutableList()
-            this.knob.mediator.current2DDrawing!!.computeResidues(this.knob.junction)
+            this.knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(this.knob.junction)
             this.knob.mediator.canvas2D.knobs.forEach {
                 it.update()
             }
@@ -349,7 +349,7 @@ class Left(val knob:JunctionKnob):AbstractJunctionArrow() {
 
 }
 
-class Right(val knob:JunctionKnob):AbstractJunctionArrow() {
+class Right(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
@@ -378,7 +378,7 @@ class Right(val knob:JunctionKnob):AbstractJunctionArrow() {
                 currentPos = if (currentPos-1 == -1) 15 else currentPos-1
             }
             this.knob.junction.layout = this.knob.getJunctionLayout().toMutableList()
-            this.knob.mediator.current2DDrawing!!.computeResidues(this.knob.junction)
+            this.knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(this.knob.junction)
             this.knob.mediator.canvas2D.knobs.forEach {
                 it.update()
             }

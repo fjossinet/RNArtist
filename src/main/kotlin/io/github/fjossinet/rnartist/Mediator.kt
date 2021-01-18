@@ -5,58 +5,45 @@ import io.github.fjossinet.rnartist.core.model.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.getImage
+import javafx.beans.property.SimpleObjectProperty
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.scene.control.Menu
 import javafx.scene.control.MenuItem
 import java.awt.image.RenderedImage
 import java.io.File
-import java.util.*
 import javax.imageio.ImageIO
 
 class Mediator(val rnartist: RNArtist) {
 
     val _2DDrawingsLoaded = FXCollections.observableArrayList<SecondaryStructureDrawing>()
+    var secondaryStructureDrawingProperty: SimpleObjectProperty<SecondaryStructureDrawing?> = SimpleObjectProperty<SecondaryStructureDrawing?>(null)
+
+    var scope = RNArtist.BRANCH_SCOPE
 
     val embeddedDB = EmbeddedDB()
+    var webBrowser = WebBrowser(this)
+    var chimeraDriver = ChimeraDriver(this)
     val settings = Settings(this)
     val explorer = Explorer(this)
     val embeddedDBGUI = EmbeddedDBGUI(this)
-    val projectManager = ProjectsPanel(this)
-    var webBrowser: WebBrowser? =
-            WebBrowser(this)
+    val projectsPanel = ProjectsPanel(this)
+
     lateinit var canvas2D: Canvas2D
-    var chimeraDriver: ChimeraDriver? = null
+    var rnaGallery:Map<String, List<String>>? = null
 
     //++++++ shortcuts
-    var current2DDrawing: SecondaryStructureDrawing?
-        set(value) {
-            this.canvas2D.secondaryStructureDrawing = value
-        }
-        get() {
-            return this.canvas2D.secondaryStructureDrawing
-        }
-    var tertiaryStructure: TertiaryStructure? = null
-        get() {
-            return this.secondaryStructure?.tertiaryStructure
-        }
     private val secondaryStructure: SecondaryStructure?
         get() {
-            return this.current2DDrawing?.secondaryStructure
+            return this.secondaryStructureDrawingProperty.get()?.secondaryStructure
         }
     val rna: RNA?
         get() {
             return this.secondaryStructure?.rna
         }
-    val theme: Theme
-        get() {
-            return this.current2DDrawing?.let {
-                Theme() //TODO export the current theme
-            } ?: Theme()
-        }
     val workingSession: WorkingSession?
         get() {
-            return this.current2DDrawing?.workingSession
+            return this.secondaryStructureDrawingProperty.get()?.workingSession
         }
 
     val viewX: Double?
@@ -69,9 +56,9 @@ class Mediator(val rnartist: RNArtist) {
             return this.workingSession?.viewY
         }
 
-    val finalZoomLevel: Double?
+    val zoomLevel: Double?
         get() {
-            return this.workingSession?.finalZoomLevel
+            return this.workingSession?.zoomLevel
         }
 
 
@@ -89,20 +76,20 @@ class Mediator(val rnartist: RNArtist) {
                         item.userData = drawing
                         item.setOnAction {
                             canvas2D.load2D(item.userData as SecondaryStructureDrawing)
-                            if ((item.userData as SecondaryStructureDrawing).workingSession.viewX == 0.0 && (item.userData as SecondaryStructureDrawing).workingSession.viewY == 0.0 && (item.userData as SecondaryStructureDrawing).workingSession.finalZoomLevel == 1.0) {
+                            if ((item.userData as SecondaryStructureDrawing).viewX == 0.0 && (item.userData as SecondaryStructureDrawing).viewY == 0.0 && (item.userData as SecondaryStructureDrawing).zoomLevel == 1.0) {
                                 //it seems it is a first opening, then we fit to the display
                                 canvas2D.fitStructure()
                             }
                         }
                         var found = false
                         rnartist.allStructuresAvailableMenu.items.forEach { fileName ->
-                            if (drawing.secondaryStructure.rna.source.equals(fileName.text))  {
+                            if (drawing.secondaryStructure.rna.source.split("/") .last().equals(fileName.text))  {
                                 (fileName as Menu).items.add(0,item)
                                 found = true
                             }
                         }
                         if (!found) {
-                            val menu = Menu(drawing.secondaryStructure.rna.source)
+                            val menu = Menu(drawing.secondaryStructure.rna.source.split("/") .last())
                             menu.setMnemonicParsing(false)
                             menu.items.add(item)
                             rnartist.allStructuresAvailableMenu.items.add(0, menu)
@@ -133,7 +120,7 @@ class Mediator(val rnartist: RNArtist) {
                 rnartist.clearAll2DsExceptCurrentItem.isDisable = false
             }
             else {
-                current2DDrawing = null
+                this.secondaryStructureDrawingProperty.set(null)
                 rnartist.clearAll2DsItem.isDisable = true
                 rnartist.clearAll2DsExceptCurrentItem.isDisable = true
                 canvas2D.repaint()
@@ -143,32 +130,20 @@ class Mediator(val rnartist: RNArtist) {
     }
 
     public fun focusInChimera() {
-        this.chimeraDriver?.let { chimeraDriver ->
-            val positions: MutableList<String> = ArrayList(1)
-            this.tertiaryStructure?.let { tertiaryStructure ->
-                for (absPos in this.canvas2D.getSelectionAbsPositions()) {
-                    (tertiaryStructure.getResidue3DAt(absPos) as Residue3D)?.let {
-                        positions.add(if (it.label != null) it.label!! else "" + (absPos + 1))
-                    }
-                }
-                chimeraDriver.selectResidues(positions, this.secondaryStructure?.rna?.name)
-                chimeraDriver.setFocus(positions, this.secondaryStructure?.rna?.name)
-            }
+        this.secondaryStructureDrawingProperty.get()?.let { drawing ->
+            chimeraDriver.setFocus(
+                canvas2D.getSelectionAbsPositions(),
+                drawing.secondaryStructure.rna.name
+            )
         }
     }
 
     public fun pivotInChimera() {
-        this.chimeraDriver?.let { chimeraDriver ->
-            val positions: MutableList<String> = ArrayList(1)
-            this.tertiaryStructure?.let { tertiaryStructure ->
-                for (absPos in this.canvas2D.getSelectionAbsPositions()) {
-                    (tertiaryStructure.getResidue3DAt(absPos) as Residue3D)?.let {
-                        positions.add(if (it.label != null) it.label!! else "" + (absPos + 1))
-                    }
-                }
-                chimeraDriver.selectResidues(positions, this.secondaryStructure?.rna?.name)
-                chimeraDriver.setPivot(positions, this.secondaryStructure?.rna?.name)
-            }
+        this.secondaryStructureDrawingProperty.get()?.let { drawing ->
+            chimeraDriver.setPivot(
+                canvas2D.getSelectionAbsPositions(),
+                drawing.secondaryStructure.rna.name
+            )
         }
     }
 

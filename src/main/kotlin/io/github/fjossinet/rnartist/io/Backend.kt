@@ -57,16 +57,14 @@ object Backend {
         val task = object: Task<Exception?>() {
 
             override fun call(): Exception? {
-                mediator.current2DDrawing?.let { drawing ->
+                mediator.secondaryStructureDrawingProperty.get()?.let { drawing ->
 
-                    drawing.secondaryStructure.source?.let { source ->
-                        if (source.startsWith("db:")) {
-                            val multipart = Multipart(URL(RnartistConfig.website+"/api/submit_layout"))
-                            //multipart.addFormField("userID", RnartistConfig.userID!!)
-                            val gson = Gson()
-                            multipart.addFormField(source, gson.toJson(dumpLayout(drawing)).toString())
-                            multipart.upload(null)
-                        }
+                    if (drawing.secondaryStructure.source.startsWith("db:")) {
+                        val multipart = Multipart(URL(RnartistConfig.website+"/api/submit_layout"))
+                        //multipart.addFormField("userID", RnartistConfig.userID!!)
+                        val gson = Gson()
+                        multipart.addFormField(drawing.secondaryStructure.source, gson.toJson(dumpLayout(drawing)).toString())
+                        multipart.upload(null)
                     }
 
                 }
@@ -148,7 +146,7 @@ constructor(url: URL) {
         httpConnection.setRequestProperty("Accept-Charset", "UTF-8")
         httpConnection.setRequestProperty("Connection", "Keep-Alive")
         httpConnection.setRequestProperty("Cache-Control", "no-cache")
-        httpConnection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary)
+        httpConnection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
         httpConnection.setChunkedStreamingMode(maxBufferSize)
         httpConnection.doInput = true
         httpConnection.doOutput = true    // indicates POST method
@@ -205,7 +203,7 @@ constructor(url: URL) {
      * @param value - value of the header field
      */
     fun addHeaderField(name: String, value: String) {
-        writer.append(name + ": " + value).append(LINE_FEED)
+        writer.append("$name: $value").append(LINE_FEED)
         writer.flush()
     }
 

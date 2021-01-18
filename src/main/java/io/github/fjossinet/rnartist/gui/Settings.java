@@ -5,9 +5,9 @@ import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.io.Backend;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -23,14 +23,16 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Font;
+import javafx.scene.web.WebView;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import org.controlsfx.control.GridCell;
-import org.controlsfx.control.GridView;
 import org.controlsfx.glyphfont.FontAwesome;
 import org.controlsfx.glyphfont.Glyph;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import javax.swing.*;
 import java.io.File;
@@ -69,10 +71,10 @@ public class Settings {
         stage.setScene(scene);
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        scene.getWindow().setWidth(400);
-        scene.getWindow().setHeight(screenSize.getHeight());
-        scene.getWindow().setX(0);
-        scene.getWindow().setY(0);
+        scene.getWindow().setWidth(screenSize.getWidth()/2);
+        scene.getWindow().setHeight(screenSize.getHeight()/2);
+        scene.getWindow().setX(screenSize.getWidth()/2-screenSize.getWidth()/4);
+        scene.getWindow().setY(screenSize.getHeight()/2-screenSize.getHeight()/4);
     }
 
     private void createGlobalSettingsPanel(TabPane root) {
@@ -84,16 +86,19 @@ public class Settings {
         root.getTabs().add(settings);
 
         //---- Chimera
-
         Label title = new Label("UCSF Chimera");
         title.setStyle("-fx-font-size: 20");
         vbox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
 
         GridPane chimeraPane = new GridPane();
-        ColumnConstraints cc = new ColumnConstraints();
-        cc.setHgrow(Priority.ALWAYS);
-        chimeraPane.getColumnConstraints().addAll(cc, new ColumnConstraints());
-        chimeraPane.setPadding(new Insets(0, 5, 20, 5));
+
+        for (int i = 0; i < 6; i++) {
+            ColumnConstraints constraints = new ColumnConstraints();
+            if (i == 3)
+                constraints.setHgrow(Priority.ALWAYS);
+            chimeraPane.getColumnConstraints().add(constraints);
+        }
+        chimeraPane.setPadding(new Insets(10, 5, 15, 5));
         chimeraPane.setHgap(5);
         chimeraPane.setVgap(5);
 
@@ -103,16 +108,16 @@ public class Settings {
         chimeraPath.setEditable(false);
         chimeraPath.setText(RnartistConfig.getChimeraPath());
         chimeraPane.getChildren().add(chimeraPath);
-        GridPane.setConstraints(chimeraPath, 0, 1);
+        GridPane.setConstraints(chimeraPath, 0, 0, 4, 1);
 
         Button chimeraSearch = new Button("Browse");
         chimeraPane.getChildren().add(chimeraSearch);
-        GridPane.setConstraints(chimeraSearch, 1, 1);
+        GridPane.setConstraints(chimeraSearch, 4, 0);
         chimeraSearch.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 FileChooser fileChooser = new FileChooser();
-                File f = fileChooser.showOpenDialog(null);
+                File f = fileChooser.showOpenDialog(mediator.getRnartist().getStage());
                 if (f != null) {
                     if (f.getName().endsWith(".app")) //MacOSX
                         chimeraPath.setText(f.getAbsolutePath() + "/Contents/MacOS/chimera");
@@ -123,13 +128,127 @@ public class Settings {
             }
         });
 
+        Button chimeraRun = new Button("Run");
+        chimeraPane.getChildren().add(chimeraRun);
+        GridPane.setConstraints(chimeraRun, 5, 0);
+        chimeraRun.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getChimeraDriver().connectToExecutable();
+            }
+        });
+
+        Label hostLabel = new Label("Host");
+        chimeraPane.getChildren().add(hostLabel);
+        GridPane.setConstraints(hostLabel, 0, 1);
+
+        TextField hostValue = new TextField(RnartistConfig.getChimeraHost());
+        chimeraPane.getChildren().add(hostValue);
+        GridPane.setConstraints(hostValue, 1, 1);
+
+        Label portLabel = new Label("Port");
+        chimeraPane.getChildren().add(portLabel);
+        GridPane.setConstraints(portLabel, 2, 1);
+
+        TextField portValue = new TextField(""+RnartistConfig.getChimeraPort());
+        chimeraPane.getChildren().add(portValue);
+        GridPane.setConstraints(portValue, 3, 1);
+
+        Button connect2ChimeraRest = new Button("Connect");
+        connect2ChimeraRest.setMaxWidth(Double.MAX_VALUE);
+        chimeraPane.getChildren().add(connect2ChimeraRest);
+        GridPane.setConstraints(connect2ChimeraRest, 4, 1, 2,1);
+        connect2ChimeraRest.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                try {
+                    RnartistConfig.setChimeraHost(hostValue.getText().trim());
+                    RnartistConfig.setChimeraPort(Integer.parseInt(portValue.getText().trim()));
+                    mediator.getChimeraDriver().connectToRestServer();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        //---- RNA GAllery
+        title = new Label("RNA Gallery");
+        title.setStyle("-fx-font-size: 20");
+        vbox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
+
+        GridPane rnaGalleryPane = new GridPane();
+        ColumnConstraints cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        rnaGalleryPane.getColumnConstraints().addAll(cc, new ColumnConstraints());
+        rnaGalleryPane.setPadding(new Insets(10, 5, 15, 5));
+        rnaGalleryPane.setHgap(5);
+        rnaGalleryPane.setVgap(5);
+
+        vbox.getChildren().add(rnaGalleryPane);
+
+        TextField galleryPath = new TextField();
+        galleryPath.setEditable(false);
+        galleryPath.setText(RnartistConfig.getRnaGalleryPath());
+        rnaGalleryPane.getChildren().add(galleryPath);
+        GridPane.setConstraints(galleryPath, 0, 1);
+
+        Button gallerySearch = new Button("Browse");
+        rnaGalleryPane.getChildren().add(gallerySearch);
+        GridPane.setConstraints(gallerySearch, 1, 1);
+        gallerySearch.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                DirectoryChooser directoryChooser = new DirectoryChooser();
+                File f = directoryChooser.showDialog(mediator.getRnartist().getStage());
+                if (f != null) {
+                    if (f.isDirectory() && new File(f,"PDB").exists()) {
+                        galleryPath.setText(f.getAbsolutePath());
+                        RnartistConfig.setRnaGalleryPath(galleryPath.getText());
+                    } else {
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Problem with your RNA Gallery");
+                        alert.setHeaderText("The directory selected doesn't look like an RNA Gallery");
+                        HBox box = new HBox();
+                        box.setAlignment(Pos.CENTER);
+                        box.setSpacing(10);
+                        box.getChildren().add(new Label("You need to download and select a copy of the RNA Gallery project."));
+                        Button button = new Button(null, new FontIcon("fas-download:15"));
+                        button.setOnAction(new EventHandler<ActionEvent>() {
+                            @Override
+                            public void handle(ActionEvent actionEvent) {
+                                mediator.getRnartist().getHostServices().showDocument("https://github.com/fjossinet/RNAGallery");
+                            }
+                        });
+                        box.getChildren().add(button);
+                        alert.getDialogPane().setContent(box);
+                        alert.showAndWait();
+                    }
+                }
+            }
+        });
+
+        CheckBox useOnlineGallery = new CheckBox("Use online gallery");
+        useOnlineGallery.setSelected(RnartistConfig.getUseOnlineRNAGallery());
+        galleryPath.setDisable(RnartistConfig.getUseOnlineRNAGallery());
+        gallerySearch.setDisable(RnartistConfig.getUseOnlineRNAGallery());
+        useOnlineGallery.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                RnartistConfig.setUseOnlineRNAGallery(useOnlineGallery.isSelected());
+                galleryPath.setDisable(RnartistConfig.getUseOnlineRNAGallery());
+                gallerySearch.setDisable(RnartistConfig.getUseOnlineRNAGallery());
+            }
+        });
+        rnaGalleryPane.getChildren().add(useOnlineGallery);
+        GridPane.setConstraints(useOnlineGallery, 0, 2, 2, 1);
+
         //++++++ pane for the fonts
         title = new Label("Font");
         title.setStyle("-fx-font-size: 20");
         vbox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
 
         GridPane fontsPane = new GridPane();
-        fontsPane.setPadding(new Insets(0, 5, 20, 5));
+        fontsPane.setPadding(new Insets(10, 5, 15, 5));
         fontsPane.setMaxWidth(Double.MAX_VALUE);
         fontsPane.setHgap(5);
         fontsPane.setVgap(5);
@@ -222,44 +341,6 @@ public class Settings {
             }
         });
 
-        //---- User ID
-        title = new Label("User ID");
-        title.setStyle("-fx-font-size: 20");
-        //vbox.getChildren().add(new VBox(title, new Separator(Orientation.HORIZONTAL)));
-
-        GridPane userIDPane = new GridPane();
-        cc = new ColumnConstraints();
-        cc.setHgrow(Priority.ALWAYS);
-        userIDPane.getColumnConstraints().addAll(cc, new ColumnConstraints());
-        userIDPane.setPadding(new Insets(0, 5, 20, 5));
-        userIDPane.setHgap(5);
-        userIDPane.setVgap(5);
-        //vbox.getChildren().add(userIDPane);
-
-        TextField userID = new TextField();
-        userID.setEditable(false);
-        userID.setPromptText("Click on register to get a User ID");
-        if (RnartistConfig.getUserID() != null)
-            userID.setText(RnartistConfig.getUserID());
-        userIDPane.getChildren().add(userID);
-        GridPane.setConstraints(userID, 0, 1);
-
-        Button register = new Button("Register");
-        if (RnartistConfig.getUserID() != null)
-            register.setDisable(true);
-        userIDPane.getChildren().add(register);
-        GridPane.setConstraints(register, 1, 1);
-        register.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                new RegisterDialog(mediator.getRnartist());
-                if (RnartistConfig.getUserID() != null) {
-                    userID.setText(RnartistConfig.getUserID());
-                    register.setDisable(true);
-                }
-            }
-        });
-
         //---- Bunch of options
         title = new Label("Misc Settings");
         title.setStyle("-fx-font-size: 20");
@@ -270,7 +351,7 @@ public class Settings {
         cc.setHgrow(Priority.ALWAYS);
         optionsPane.getColumnConstraints().addAll(new ColumnConstraints(), cc);
         vbox.getChildren().add(optionsPane);
-        optionsPane.setPadding(new Insets(0, 5, 20, 5));
+        optionsPane.setPadding(new Insets(10, 5, 15, 5));
         optionsPane.setHgap(5);
         optionsPane.setVgap(5);
 

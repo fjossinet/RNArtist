@@ -5,6 +5,7 @@ import io.github.fjossinet.rnartist.core.model.Location;
 import io.github.fjossinet.rnartist.core.model.Residue3D;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public abstract class AbstractTertiaryViewerDriver extends OnHangApplicationDriver implements TertiaryViewerDriver {
@@ -16,7 +17,7 @@ public abstract class AbstractTertiaryViewerDriver extends OnHangApplicationDriv
     public void closeSession() {
     }
 
-    public void restoreSession(File f) {
+    public void restoreSession(File sessionFile, File pdbFile) {
     }
 
     public void removeSelection(final List<Integer> positions) {
@@ -50,5 +51,5 @@ public abstract class AbstractTertiaryViewerDriver extends OnHangApplicationDriv
     public void selectionCleared() {
     }
 
-    public abstract void saveSession(File file);
+    public abstract void saveSession(File sessioNFile, File pdbFile) throws IOException;
 }

@@ -34,49 +34,51 @@ public abstract class OnHangApplicationDriver extends AbstractDriver {
     }
 
     public void evaluate(final String command) {
-        new SwingWorker() {
-            private PrintWriter commandInput;
+        if (this.process != null) {
 
-            protected Object doInBackground() throws Exception {
-                this.commandInput = new PrintWriter((new OutputStreamWriter(new BufferedOutputStream(process.getOutputStream()))), true);
-                this.commandInput.println(command);
-                return null;        }
+            new SwingWorker() {
+                private PrintWriter commandInput;
 
-        }.execute();
-
-        new SwingWorker() {
-            private BufferedReader commandOutput;
-
-            public Object doInBackground() throws Exception {
-                this.commandOutput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                try {
-                    this.commandOutput.readLine();
-                    this.commandOutput.reset();
-                }
-                catch (IOException e) {
-                    System.out.println(e.getMessage());
+                protected Object doInBackground() throws Exception {
+                    this.commandInput = new PrintWriter((new OutputStreamWriter(new BufferedOutputStream(process.getOutputStream()))), true);
+                    this.commandInput.println(command);
                     return null;
                 }
-                return null;
-            }
-        }.execute();
 
-        new SwingWorker() {
-            private BufferedReader errorStream;
+            }.execute();
 
-            public Object doInBackground() throws Exception {
-                this.errorStream = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                try {
-                    this.errorStream.readLine();
-                    this.errorStream.reset();
+            new SwingWorker() {
+                private BufferedReader commandOutput;
 
-                }
-                catch (IOException e) {
-                    System.out.println(e.getMessage());
+                public Object doInBackground() throws Exception {
+                    this.commandOutput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    try {
+                        this.commandOutput.readLine();
+                        this.commandOutput.reset();
+                    } catch (IOException e) {
+                        System.out.println(e.getMessage());
+                        return null;
+                    }
                     return null;
                 }
-                return null;
-            }
-        }.execute();
+            }.execute();
+
+            new SwingWorker() {
+                private BufferedReader errorStream;
+
+                public Object doInBackground() throws Exception {
+                    this.errorStream = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                    try {
+                        this.errorStream.readLine();
+                        this.errorStream.reset();
+
+                    } catch (IOException e) {
+                        System.out.println(e.getMessage());
+                        return null;
+                    }
+                    return null;
+                }
+            }.execute();
+        }
     }
 }

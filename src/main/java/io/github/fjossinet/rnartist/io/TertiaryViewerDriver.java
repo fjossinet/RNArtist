@@ -13,7 +13,7 @@ public interface TertiaryViewerDriver extends Driver {
 
     public void closeSession();
 
-    public void restoreSession(File f);
+    public void restoreSession(File sessionFile, File pdbFile);
 
     public void addFragment(File f, List<Residue3D> residues, int anchorResidue1, int anchorResidue2, boolean firstFragment);
 

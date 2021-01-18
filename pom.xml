@@ -121,13 +121,13 @@
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-javafx</artifactId>
-            <version>2.4.0</version>
+            <version>12.1.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-fontawesome5-pack</artifactId>
-            <version>2.4.0</version>
+            <version>12.1.0</version>
         </dependency>
 
         <!--jdesktop (for SwingWorker) -->
@@ -141,7 +141,7 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist.core</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.2.0-SNAPSHOT</version>
+            <version>0.2.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

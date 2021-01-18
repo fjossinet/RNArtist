@@ -1,16 +1,15 @@
 package io.github.fjossinet.rnartist;
 
 import io.github.fjossinet.rnartist.gui.*;
-import io.github.fjossinet.rnartist.io.Backend;
-import io.github.fjossinet.rnartist.io.ChimeraDriver;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.core.model.io.Rnaview;
-import io.github.fjossinet.rnartist.model.ExplorerItem;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.embed.swing.SwingNode;
 import javafx.event.ActionEvent;
@@ -21,8 +20,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.MouseButton;
@@ -33,33 +30,26 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import javafx.util.StringConverter;
+import javafx.util.Duration;
 import org.apache.commons.lang3.tuple.Pair;
-import org.controlsfx.glyphfont.FontAwesome;
-import org.controlsfx.glyphfont.Glyph;
-import org.dizitart.no2.NitriteId;
 import org.kordamp.ikonli.javafx.FontIcon;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import static io.github.fjossinet.rnartist.core.model.DrawingsKt.getHTMLColorString;
-import static io.github.fjossinet.rnartist.core.model.io.ParsersKt.toJSON;
-import static io.github.fjossinet.rnartist.core.model.io.ParsersKt.toSVG;
+import static io.github.fjossinet.rnartist.core.model.io.ParsersKt.*;
 import static io.github.fjossinet.rnartist.io.UtilsKt.awtColorToJavaFX;
 import static io.github.fjossinet.rnartist.io.UtilsKt.javaFXToAwt;
 
 public class RNArtist extends Application {
 
-    public static final byte ELEMENT_SCOPE = 0, STRUCTURAL_DOMAIN_SCOPE = 1, BRANCH_SCOPE = 2;
+    public static final byte ELEMENT_SCOPE = 0, STRUCTURAL_DOMAIN_NO_TERTIARIES_SCOPE = 1,STRUCTURAL_DOMAIN_SCOPE = 2, BRANCH_SCOPE = 3;
     private Mediator mediator;
     private Stage stage;
     private int scrollCounter = 0;
@@ -68,8 +58,7 @@ public class RNArtist extends Application {
     private MenuItem updateSavedThemeItem, clearAll2DsItem, clearAll2DsExceptCurrentItem;
 
     //user defined global configurations
-    private Slider detailsLevel, tertiariesLevel;
-    private byte scope = BRANCH_SCOPE;
+    private Slider detailsLevel;
     private boolean centerDisplayOnSelection = false;
 
     public static void main(String[] args) {
@@ -105,97 +94,27 @@ public class RNArtist extends Application {
             }
         });
         RnartistConfig.load();
-        if (RnartistConfig.getUserID() == null)
-            new RegisterDialog(this);
         this.mediator = new Mediator(this);
 
         Screen screen = Screen.getPrimary();
         BorderPane root = new BorderPane();
 
-        //++++++ Menus
-        MenuBar menuBar = new MenuBar();
+        //++++++ Toolbar
+        ToolBar toolbar = new ToolBar();
+        toolbar.setPadding(new Insets(5, 5, 5, 5));
 
-        Menu fileMenu = new Menu("File");
-        Menu _2dDrawing = new Menu("2D Drawing");
-        Menu windowsMenu = new Menu("Windows");
+        GridPane files = new GridPane();
+        files.setVgap(5.0);
+        files.setHgap(5.0);
 
-        menuBar.getMenus().addAll(fileMenu, _2dDrawing, windowsMenu);
+        Label l = new Label("Load");
+        GridPane.setConstraints(l, 0, 0);
+        files.getChildren().add(l);
 
-        //++++++++ Project Menu
-        MenuItem newItem = new MenuItem("New/Open Project...");
-
-        newItem.setOnAction(new EventHandler<ActionEvent>() {
+        Button loadData = new Button(null, new FontIcon("fas-sign-in-alt:15"));
+        loadData.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
-            public void handle(ActionEvent actionEvent) {
-                mediator.getProjectManager().getStage().show();
-                mediator.getProjectManager().getStage().toFront();
-            }
-        });
-
-        MenuItem saveasItem = new MenuItem("Save Project As...");
-
-        saveasItem.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                    mediator.getWorkingSession().set_screen_capture(true);
-                    mediator.getWorkingSession().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
-                    mediator.getCanvas2D().repaint();
-                    TextInputDialog dialog = new TextInputDialog("My Project");
-                    dialog.initModality(Modality.NONE);
-                    dialog.setTitle("Project Saving");
-                    dialog.setHeaderText("Keep right mouse button pressed and drag the rectangle to define your project icon.");
-                    dialog.setContentText("Project name:");
-                    Optional<String> projectName = dialog.showAndWait();
-                    if (projectName.isPresent()) {
-                        BufferedImage image = mediator.getCanvas2D().screenCapture(null);
-                        if (image != null) {
-                            NitriteId id = mediator.getEmbeddedDB().addProject(projectName.get().trim(), mediator.getCurrent2DDrawing());
-                            File pngFile = new File(new File(new File(mediator.getEmbeddedDB().getRootDir(), "images"), "user"), id.toString() + ".png");
-                            try {
-                                ImageIO.write(image, "PNG", pngFile);
-                            } catch (IOException ex) {
-                                ex.printStackTrace();
-                            }
-                            mediator.getProjectManager().addProject(id, projectName.get().trim());
-                        }
-                        mediator.getWorkingSession().set_screen_capture(false);
-                        mediator.getWorkingSession().setScreen_capture_area(null);
-                        mediator.getCanvas2D().repaint();
-                    } else {
-                        mediator.getWorkingSession().set_screen_capture(false);
-                        mediator.getWorkingSession().setScreen_capture_area(null);
-                        mediator.getCanvas2D().repaint();
-                    }
-                }
-            }
-        });
-
-        MenuItem saveItem = new MenuItem("Save Project");
-
-        saveItem.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-
-            }
-        });
-
-        MenuItem shareLayoutItem = new MenuItem("Share Layout");
-
-        shareLayoutItem.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                Backend.shareLayout(mediator);
-            }
-        });
-
-        Menu loadDataMenu = new Menu("Load Data from...");
-
-        MenuItem filesMenuItem = new MenuItem("Files...");
-
-        filesMenuItem.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
+            public void handle(MouseEvent mouseEvent) {
                 FileChooser fileChooser = new FileChooser();
                 List<File> files = fileChooser.showOpenMultipleDialog(stage);
                 if (files != null) {
@@ -208,7 +127,7 @@ public class RNArtist extends Application {
                                 SecondaryStructure ss = null;
                                 List<SecondaryStructureDrawing> secondaryStructureDrawings = new ArrayList<SecondaryStructureDrawing>();
                                 try {
-                                    String source = "file:"+file.getName();
+                                    String source = "file:"+file.getAbsolutePath();
                                     if (file.getName().endsWith(".json")) {
                                         SecondaryStructureDrawing drawing = io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseJSON(new FileReader(file));
                                         if (drawing != null) {
@@ -249,21 +168,15 @@ public class RNArtist extends Application {
                                         }
 
                                     } else if (file.getName().endsWith(".pdb")) {
-                                        int countBefore = secondaryStructureDrawings.size();
+                                        if (! (RnartistConfig.isDockerInstalled() && RnartistConfig.isAssemble2DockerImageInstalled())) {
+                                            throw new Exception("You cannot use PDB files, it seems that RNArtist cannot find the RNAVIEW algorithm on your computer.\n Possible causes:\n- the tool Docker is not installed\n- the tool Docker is not running\n- the docker image fjossinet/assemble2 is not installed");
+                                        }
                                         for (SecondaryStructure structure : new Rnaview().annotate(file)) {
                                             if (!structure.getHelices().isEmpty()) {
                                                 structure.getRna().setSource(source);
-                                                structure.setSource(source);
                                                 secondaryStructureDrawings.add(new SecondaryStructureDrawing(structure, new WorkingSession()));
                                             }
                                         }
-                                        if (countBefore < secondaryStructureDrawings.size()) {//RNAVIEW was able to annotate at least one RNA molecule
-                                            if (mediator.getChimeraDriver() != null)
-                                                mediator.getChimeraDriver().loadTertiaryStructure(file);
-                                        } else { //we generate an Exception to show the Alert dialog
-                                            throw new Exception("RNAVIEW was not able to annotate the 3D structure stored in " + file.getName());
-                                        }
-
                                     } else if (file.getName().endsWith(".stk") || file.getName().endsWith(".stockholm")) {
                                         for (SecondaryStructure structure : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
                                             structure.getRna().setSource(source);
@@ -309,11 +222,12 @@ public class RNArtist extends Application {
                                         alert.getDialogPane().setExpandableContent(expContent);
                                         alert.showAndWait();
                                     } else {
+                                        mediator.getProjectsPanel().currentProject().set(null);
                                         for (SecondaryStructureDrawing drawing : loadData.get().getLeft())
                                             mediator.get_2DDrawingsLoaded().add(drawing);
                                         //we load and fit (only if not a drawing from a JSON file) on the last 2D loaded
-                                        mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1));
-                                        if (mediator.getCurrent2DDrawing().getWorkingSession().getViewX() == 0.0 && mediator.getCurrent2DDrawing().getWorkingSession().getViewY() == 0.0 && mediator.getCurrent2DDrawing().getWorkingSession().getFinalZoomLevel() == 1.0)//this test allows to detect JSON files exported from RNArtist with a focus on a region
+                                        mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1), null, null);
+                                        if (mediator.getViewX() == 0.0 && mediator.getViewY() == 0.0 && mediator.getZoomLevel() == 1.0)//this test allows to detect JSON files exported from RNArtist with a focus on a region
                                             mediator.canvas2D.fitStructure();
                                     }
                                 } catch (InterruptedException e) {
@@ -329,472 +243,246 @@ public class RNArtist extends Application {
                 }
             }
         });
+        loadData.setTooltip(new Tooltip("Load 2D from file"));
+        GridPane.setConstraints(loadData, 1, 0);
+        files.getChildren().add(loadData);
 
-        MenuItem databasesMenuItem = new MenuItem("Databases");
-
-        databasesMenuItem.setOnAction(new EventHandler<ActionEvent>() {
-              @Override
-              public void handle(ActionEvent actionEvent) {
-                  mediator.getWebBrowser().getStage().show();
-                  mediator.getWebBrowser().getStage().toFront();
-              }
-        });
-
-        /*databasesMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+        Button loadProject = new Button(null, new FontIcon("fas-grip-horizontal:15"));
+        loadProject.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
-            public void handle(ActionEvent actionEvent) {
-                TextInputDialog dialog = new TextInputDialog("RF03160");
-                dialog.setTitle("Download 2Ds from Rfam");
-                dialog.setHeaderText("Enter your Rfam ID");
-                dialog.setContentText("Your ID:");
-                Optional<String> result = dialog.showAndWait();
-                result.ifPresent(id -> {
-                    javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>, Exception>> loadData = new javafx.concurrent.Task<Pair<List<SecondaryStructureDrawing>, Exception>>() {
-
-                        @Override
-                        protected Pair<List<SecondaryStructureDrawing>, Exception> call() {
-                            List<SecondaryStructureDrawing> secondaryStructureDrawings = new ArrayList<SecondaryStructureDrawing>();
-                            for (SecondaryStructure ss : ParsersKt.parseStockholm(new Rfam().getEntry(id.trim()))) {
-                                ss.getRna().setSource("db:rfam:" + id);
-                                ss.setSource("db:rfam:" + id);
-                                secondaryStructureDrawings.add(new SecondaryStructureDrawing(ss, mediator.getCanvas2D().getBounds(), new Theme(), new WorkingSession()));
-                            }
-                            return Pair.of(secondaryStructureDrawings, null);
-                        }
-                    };
-                    loadData.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
-                        @Override
-                        public void handle(WorkerStateEvent workerStateEvent) {
-                            try {
-                                for (SecondaryStructureDrawing drawing : loadData.get().getLeft())
-                                    mediator.get_2DDrawingsLoaded().add(drawing);
-                                //we load and fit on the last 2D loaded
-                                mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1));
-                                mediator.canvas2D.fitDisplayOn(mediator.getCurrent2DDrawing().getBounds());
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            } catch (ExecutionException e) {
-                                e.printStackTrace();
-                            }
-
-                        }
-                    });
-
-                    new Thread(loadData).start();
-                });
-            }
-        });*/
-
-        MenuItem scratchMenuItem = new MenuItem("Scratch");
-
-        scratchMenuItem.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getProjectsPanel().getStage().show();
+                mediator.getProjectsPanel().getStage().toFront();
             }
         });
+        loadProject.setTooltip(new Tooltip("Load Project"));
+        GridPane.setConstraints(loadProject, 2, 0);
+        files.getChildren().add(loadProject);
 
-        loadDataMenu.getItems().addAll(filesMenuItem, /*databasesMenuItem,*/ scratchMenuItem);
+        l = new Label("Save");
+        GridPane.setConstraints(l, 0, 1);
+        files.getChildren().add(l);
 
-        Menu exportMenu = new Menu("Export 2D As...");
-
-        MenuItem exportSVGMenuItem = new MenuItem("SVG...");
-
-        exportSVGMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+        Button saveProjectAs = new Button(null, new FontIcon("fas-database:15"));
+        saveProjectAs.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
+        saveProjectAs.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
-            public void handle(ActionEvent actionEvent) {
-                FileChooser fileChooser = new FileChooser();
-                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("SVG Files", "*.svg"));
-                File file = fileChooser.showSaveDialog(stage);
-                if (file != null) {
-                    fileChooser.setInitialDirectory(file.getParentFile());
-                    PrintWriter writer;
-                    try {
-                        writer = new PrintWriter(file);
-                        writer.println(toSVG(mediator.getCurrent2DDrawing(), mediator.getCanvas2D().getBounds().width, mediator.getCanvas2D().getBounds().height, mediator.getRnartist().getTertiariesLevel()));
-                        writer.close();
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
+            public void handle(MouseEvent mouseEvent) {
+                if (mediator.getSecondaryStructureDrawingProperty().isNotNull().get()) {
+                    mediator.getWorkingSession().set_screen_capture(true);
+                    mediator.getWorkingSession().setScreen_capture_area(new java.awt.geom.Rectangle2D.Double(mediator.getCanvas2D().getBounds().getCenterX() - 200, mediator.getCanvas2D().getBounds().getCenterY() - 100, 400.0, 200.0));
+                    mediator.getCanvas2D().repaint();
+                    TextInputDialog dialog = new TextInputDialog("My Project");
+                    dialog.initModality(Modality.NONE);
+                    dialog.setTitle("Project Saving");
+                    dialog.setHeaderText("Keep right mouse button pressed and drag the rectangle to define your project icon.");
+                    dialog.setContentText("Project name:");
+                    Optional<String> projectName = dialog.showAndWait();
+                    if (projectName.isPresent()) {
+                        try {
+                            mediator.getProjectsPanel().saveProjectAs(projectName.get().trim(), mediator.getCanvas2D().screenCapture(null));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        mediator.getWorkingSession().set_screen_capture(false);
+                        mediator.getWorkingSession().setScreen_capture_area(null);
+                        mediator.getCanvas2D().repaint();
+                    } else {
+                        mediator.getWorkingSession().set_screen_capture(false);
+                        mediator.getWorkingSession().setScreen_capture_area(null);
+                        mediator.getCanvas2D().repaint();
                     }
                 }
             }
         });
+        saveProjectAs.setTooltip(new Tooltip("Save Project As..."));
+        GridPane.setConstraints(saveProjectAs, 1, 1);
+        files.getChildren().add(saveProjectAs);
 
-        MenuItem exportCTMenuItem = new MenuItem("CT...");
-
-        exportCTMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+        Button saveProject = new Button(null, new FontIcon("fas-sync:15"));
+        saveProject.disableProperty().bind(Bindings.when(mediator.getProjectsPanel().currentProject().isNull()).then(true).otherwise(false));
+        saveProject.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
-            public void handle(ActionEvent actionEvent) {
-
+            public void handle(MouseEvent mouseEvent) {
+                try {
+                    mediator.getProjectsPanel().saveProject();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
+        saveProject.setTooltip(new Tooltip("Update Project in DB"));
+        GridPane.setConstraints(saveProject, 2, 1);
+        files.getChildren().add(saveProject);
 
-        MenuItem exportViennaMenuItem = new MenuItem("Vienna...");
-
-        exportViennaMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+        Button export2D = new Button(null, new FontIcon("fas-sign-out-alt:15"));
+        export2D.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
+        export2D.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
-            public void handle(ActionEvent actionEvent) {
-
-            }
-        });
-
-        MenuItem exportJSONMenuItem = new MenuItem("JSON...");
-
-        exportJSONMenuItem.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
+            public void handle(MouseEvent mouseEvent) {
                 FileChooser fileChooser = new FileChooser();
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("SVG Files", "*.svg"));
                 fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON Files", "*.json"));
                 File file = fileChooser.showSaveDialog(stage);
                 if (file != null) {
-                    fileChooser.setInitialDirectory(file.getParentFile());
-                    PrintWriter writer;
-                    try {
-                        writer = new PrintWriter(file);
-                        writer.println(toJSON(mediator.getCurrent2DDrawing()));
-                        writer.close();
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
+                    if (file.getName().endsWith(".svg")) {
+                        fileChooser.setInitialDirectory(file.getParentFile());
+                        PrintWriter writer;
+                        try {
+                            writer = new PrintWriter(file);
+                            writer.println(toSVG(mediator.getSecondaryStructureDrawingProperty().get(), mediator.getCanvas2D().getBounds().width, mediator.getCanvas2D().getBounds().height));
+                            writer.close();
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                    } else if (file.getName().endsWith(".json")) {
+                        fileChooser.setInitialDirectory(file.getParentFile());
+                        PrintWriter writer;
+                        try {
+                            writer = new PrintWriter(file);
+                            writer.println(toJSON(mediator.getSecondaryStructureDrawingProperty().get()));
+                            writer.close();
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
         });
+        export2D.setTooltip(new Tooltip("Export 2D to file"));
+        GridPane.setConstraints(export2D, 3, 1);
+        files.getChildren().add(export2D);
 
-        exportMenu.getItems().addAll(exportSVGMenuItem, exportCTMenuItem, exportViennaMenuItem, exportJSONMenuItem);
+        GridPane _2D3DButtons = new GridPane();
+        _2D3DButtons.setVgap(5.0);
+        _2D3DButtons.setHgap(5.0);
 
-        fileMenu.getItems().addAll(newItem, loadDataMenu, saveasItem, saveItem, exportMenu);
+        l = new Label("2D");
+        GridPane.setConstraints(l, 0, 0);
+        _2D3DButtons.getChildren().add(l);
 
-        Menu residuesMenu = new Menu("Residues...");
-        _2dDrawing.getItems().add(residuesMenu);
-
-        Menu shapeMenu = new Menu("Shape...");
-        residuesMenu.getItems().add(shapeMenu);
-
-        MenuItem showShape = new MenuItem("Show");
-        shapeMenu.getItems().add(showShape);
-        showShape.setOnAction(new EventHandler<ActionEvent>() {
+        Button center2D = new Button(null, new FontIcon("fas-crosshairs:15"));
+        center2D.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
+        center2D.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
-            public void handle(ActionEvent actionEvent) {
-                ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
-                Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.fulldetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.fulldetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.fulldetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.fulldetails, "true");
-                t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.fulldetails, "true");
-
-                if (!selection.isEmpty()) {
-                    for (TreeItem<ExplorerItem> item:selection)
-                        mediator.getExplorer().applyTheme(item, t, scope);
-                } else if (mediator.getCurrent2DDrawing() != null)
-                    mediator.getExplorer().applyTheme(t, scope);
-
-                mediator.getCanvas2D().repaint();
-                mediator.getExplorer().refresh();
-            }
-        });
-
-        MenuItem hideShape = new MenuItem("Hide");
-        shapeMenu.getItems().add(hideShape);
-        hideShape.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
-                Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.fulldetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.fulldetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.fulldetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.fulldetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.fulldetails, "false");
-
-                if (!selection.isEmpty()) {
-                    for (TreeItem<ExplorerItem> item:selection)
-                        mediator.getExplorer().applyTheme(item, t, scope);
-                } else if (mediator.getCurrent2DDrawing() != null)
-                    mediator.getExplorer().applyTheme(t, scope);
-
-                mediator.getCanvas2D().repaint();
-                mediator.getExplorer().refresh();
-            }
-        });
-
-        Menu nameMenu = new Menu("Name...");
-        residuesMenu.getItems().add(nameMenu);
-
-        Menu showName = new Menu("Show...");
-        nameMenu.getItems().add(showName);
-
-        MenuItem inWhiteName = new MenuItem("in White");
-        showName.getItems().add(inWhiteName);
-        inWhiteName.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
-                Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
-                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
-                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
-                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
-                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.WHITE));
-
-                if (!selection.isEmpty()) {
-                    for (TreeItem<ExplorerItem> item:selection)
-                        mediator.getExplorer().applyTheme(item, t, scope);
-                } else if (mediator.getCurrent2DDrawing() != null)
-                    mediator.getExplorer().applyTheme(t, scope);
-
-                mediator.getCanvas2D().repaint();
-                mediator.getExplorer().refresh();
-            }
-        });
-
-        MenuItem inBlackName = new MenuItem("in Black");
-        showName.getItems().add(inBlackName);
-        inBlackName.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
-                Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
-                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
-                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
-                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
-                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.color, getHTMLColorString(java.awt.Color.BLACK));
-
-                if (!selection.isEmpty()) {
-                    for (TreeItem<ExplorerItem> item:selection)
-                        mediator.getExplorer().applyTheme(item, t, scope);
-                } else if (mediator.getCurrent2DDrawing() != null)
-                    mediator.getExplorer().applyTheme(t, scope);
-
-                mediator.getCanvas2D().repaint();
-                mediator.getExplorer().refresh();
-            }
-        });
-
-        MenuItem hideName = new MenuItem("Hide");
-        nameMenu.getItems().add(hideName);
-        hideName.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
-                Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.fulldetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.fulldetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.fulldetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.fulldetails, "false");
-                t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.fulldetails, "false");
-
-                if (!selection.isEmpty()) {
-                    for (TreeItem<ExplorerItem> item:selection)
-                        mediator.getExplorer().applyTheme(item, t, scope);
-                } else if (mediator.getCurrent2DDrawing() != null)
-                    mediator.getExplorer().applyTheme(t, scope);
-
-                mediator.getCanvas2D().repaint();
-                mediator.getExplorer().refresh();
-            }
-        });
-
-        Menu symbolsMenu = new Menu("Symbols...");
-        _2dDrawing.getItems().add(symbolsMenu);
-
-        final MenuItem defaultSymbol = new MenuItem(" Default");
-        final MenuItem lwSymbol = new MenuItem("LW");
-
-        symbolsMenu.getItems().add(defaultSymbol);
-        defaultSymbol.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
-                Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.InteractionSymbol, DrawingConfigurationParameter.fulldetails, "false");
-
-                if (!selection.isEmpty()) {
-                    for (TreeItem<ExplorerItem> item:selection)
-                        mediator.getExplorer().applyTheme(item, t, scope);
-                } else if (mediator.getCurrent2DDrawing() != null)
-                    mediator.getExplorer().applyTheme(t, scope);
-
-                mediator.getCanvas2D().repaint();
-                mediator.getExplorer().refresh();
-            }
-        });
-
-        symbolsMenu.getItems().add(lwSymbol);
-        lwSymbol.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
-                Theme t = new Theme(new HashMap<String, Map<String,String>>());
-                t.setConfigurationFor(SecondaryStructureType.InteractionSymbol, DrawingConfigurationParameter.fulldetails, "true");
-
-                if (!selection.isEmpty()) {
-                    for (TreeItem<ExplorerItem> item:selection)
-                        mediator.getExplorer().applyTheme(item, t, scope);
-                } else if (mediator.getCurrent2DDrawing() != null)
-                    mediator.getExplorer().applyTheme(t, scope);
-
-                mediator.getCanvas2D().repaint();
-                mediator.getExplorer().refresh();
-            }
-        });
-
-        Menu colorSchemesMenu = new Menu("Colors...");
-        _2dDrawing.getItems().add(colorSchemesMenu);
-
-        Menu branchesColors = new Menu("Branches");
-        colorSchemesMenu.getItems().add(branchesColors);
-
-        MenuItem randomColors = new MenuItem("Random");
-        branchesColors.getItems().add(randomColors);
-
-        randomColors.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                for (Branch branch: mediator.getCurrent2DDrawing().getBranches()) {
-                    Random rand = new Random();
-                    float r = rand.nextFloat();
-                    float g = rand.nextFloat();
-                    float b = rand.nextFloat();
-                    java.awt.Color c = new java.awt.Color(r, g, b);
-                    Map<String, Map<String,String>> configuration = new HashMap<>();
-                    Map<String,String> colorConfig = new HashMap<>();
-                    colorConfig.put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(c));
-                    Map<String,String> letterColorConfig = new HashMap<>();
-                    letterColorConfig.put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(java.awt.Color.BLACK));
-                    configuration.put(SecondaryStructureType.Helix.toString(), colorConfig);
-                    configuration.put(SecondaryStructureType.SecondaryInteraction.toString(), colorConfig);
-                    configuration.put(SecondaryStructureType.Junction.toString(), colorConfig);
-                    configuration.put(SecondaryStructureType.AShape.toString(), colorConfig);
-                    configuration.put(SecondaryStructureType.A.toString(), letterColorConfig);
-                    configuration.put(SecondaryStructureType.UShape.toString(), colorConfig);
-                    configuration.put(SecondaryStructureType.U.toString(), letterColorConfig);
-                    configuration.put(SecondaryStructureType.GShape.toString(), colorConfig);
-                    configuration.put(SecondaryStructureType.G.toString(), letterColorConfig);
-                    configuration.put(SecondaryStructureType.CShape.toString(), colorConfig);
-                    configuration.put(SecondaryStructureType.C.toString(), letterColorConfig);
-                    configuration.put(SecondaryStructureType.XShape.toString(), colorConfig);
-                    configuration.put(SecondaryStructureType.X.toString(), letterColorConfig);
-                    Theme theme = new Theme(configuration);
-                    for (TreeItem<ExplorerItem> item: mediator.getExplorer().getTreeViewItemsFor(mediator.getExplorer().getTreeTableView().getRoot(),branch.getParent()))
-                        mediator.getExplorer().applyTheme( item, theme ,BRANCH_SCOPE);
+            public void handle(MouseEvent mouseEvent) {
+                if (mouseEvent.isShiftDown()) {
+                    setCenterDisplayOnSelection(!isCenterDisplayOnSelection());
+                    if (isCenterDisplayOnSelection())
+                        center2D.setGraphic(new FontIcon("fas-lock:15"));
+                    else
+                        center2D.setGraphic(new FontIcon("fas-crosshairs:15"));
                 }
+                else {
+                    java.awt.geom.Rectangle2D selectionFrame = mediator.getCanvas2D().getSelectionFrame();
+                    if (selectionFrame == null)
+                        mediator.getCanvas2D().centerDisplayOn(mediator.getSecondaryStructureDrawingProperty().get().getFrame());
+                    else
+                        mediator.getCanvas2D().centerDisplayOn(selectionFrame);
+                    mediator.getChimeraDriver().setFocus(mediator.getCanvas2D().getSelectionAbsPositions(), mediator.getSecondaryStructureDrawingProperty().get().getSecondaryStructure().getRna().getName());
+                }
+            }
+        });
+        center2D.setTooltip(new Tooltip("Focus 2D on Selection"));
+        GridPane.setConstraints(center2D, 1, 0);
+        _2D3DButtons.getChildren().add(center2D);
 
+        Button fit2D = new Button(null, new FontIcon("fas-expand-arrows-alt:15"));
+        fit2D.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
+        fit2D.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.getCanvas2D().fitStructure();
+            }
+        });
+        fit2D.setTooltip(new Tooltip("Fit 2D"));
+        GridPane.setConstraints(fit2D, 2, 0);
+        _2D3DButtons.getChildren().add(fit2D);
+
+        l = new Label("3D");
+        GridPane.setConstraints(l, 0, 1);
+        _2D3DButtons.getChildren().add(l);
+
+        Button focus3D = new Button(null, new FontIcon("fas-crosshairs:15"));
+        focus3D.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
+        focus3D.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.focusInChimera();
+            }
+        });
+        focus3D.setTooltip(new Tooltip("Focus 3D on Selection"));
+        GridPane.setConstraints(focus3D, 1, 1);
+        _2D3DButtons.getChildren().add(focus3D);
+
+        Button set3DPivot = new Button(null, new FontIcon("fas-thumbtack:15"));
+        set3DPivot.disableProperty().bind(Bindings.when(mediator.getSecondaryStructureDrawingProperty().isNull()).then(true).otherwise(false));
+        set3DPivot.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediator.pivotInChimera();
+            }
+        });
+        set3DPivot.setTooltip(new Tooltip("Define Selection as Pivot"));
+        GridPane.setConstraints(set3DPivot, 2, 1);
+        _2D3DButtons.getChildren().add(set3DPivot);
+
+        GridPane selectionSize = new GridPane();
+        selectionSize.setVgap(5.0);
+        selectionSize.setHgap(5.0);
+
+        l = new Label("Selection Width (px)");
+        GridPane.setHalignment(l, HPos.CENTER);
+        GridPane.setConstraints(l, 0, 0);
+        selectionSize.getChildren().add(l);
+
+        final Slider sliderSize = new Slider(1, 3, RnartistConfig.getSelectionWidth());
+        sliderSize.setShowTickLabels(true);
+        sliderSize.setShowTickMarks(true);
+        sliderSize.setSnapToTicks(true);
+        sliderSize.setMajorTickUnit(1);
+        sliderSize.setMinorTickCount(0);
+
+        sliderSize.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                RnartistConfig.setSelectionWidth((int) sliderSize.getValue());
                 mediator.getCanvas2D().repaint();
-                mediator.getExplorer().refresh();
             }
         });
+        GridPane.setHalignment(sliderSize, HPos.CENTER);
+        GridPane.setConstraints(sliderSize, 0, 1);
+        selectionSize.getChildren().add(sliderSize);
 
-        MenuItem distanceColors = new MenuItem("Distance");
-        branchesColors.getItems().add(distanceColors);
+        GridPane selectionColor = new GridPane();
+        selectionColor.setVgap(5.0);
+        selectionColor.setHgap(5.0);
 
-        distanceColors.setOnAction(new EventHandler<ActionEvent>() {
+        l = new Label("Selection Color");
+        GridPane.setHalignment(l, HPos.CENTER);
+        GridPane.setConstraints(l, 0, 0);
+        selectionColor.getChildren().add(l);
+
+        ColorPicker colorPicker = new ColorPicker();
+        colorPicker.setValue(awtColorToJavaFX(RnartistConfig.getSelectionColor()));
+        colorPicker.valueProperty().addListener(new ChangeListener<Color>() {
             @Override
-            public void handle(ActionEvent actionEvent) {
-                for (Branch branch: mediator.getCurrent2DDrawing().getBranches()) {
-                    java.awt.Color c = branch.getParent().getColor();
-                    List<JunctionDrawing> junctions = branch.junctionsFromBranch();
-                    for (JunctionDrawing junction:junctions) {
-                            List<DrawingElement> path = junction.pathToRoot();
-                        java.awt.Color interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate( javafx.scene.paint.Color.LIGHTGRAY, (double)(path.size()-1)/(double)branch.getBranchLength()));
-                        junction.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
-                        for (ResidueDrawing r:junction.getResidues())
-                            r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
-                        interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate( javafx.scene.paint.Color.LIGHTGRAY, (double)(path.size()-2)/(double)branch.getBranchLength()));
-                        junction.getParent().getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
-                        for (ResidueDrawing r:junction.getParent().getResidues())
-                            r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(interpolatedColor));
-                    }
-                }
-                for (SingleStrandDrawing ss: mediator.getCurrent2DDrawing().getSingleStrands()) {
-                    ss.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(java.awt.Color.BLACK));
-                    for (ResidueDrawing r: ss.getResidues())
-                        r.getDrawingConfiguration().getParams().put(DrawingConfigurationParameter.color.toString(), getHTMLColorString(java.awt.Color.BLACK));
-                }
-                mediator.getCanvas2D().repaint();
-                mediator.getExplorer().refresh();
+            public void changed(ObservableValue<? extends Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color newValue) {
+                java.awt.Color c = javaFXToAwt(colorPicker.getValue());
+                RnartistConfig.setSelectionColor(c);
+                mediator.canvas2D.repaint();
             }
         });
-
-        Menu colorSchemes = new Menu("Residues...");
-
-        colorSchemesMenu.getItems().add(colorSchemes);
-
-        for (String themeName : RnartistConfig.colorSchemes.keySet()) {
-            MenuItem residueThemeItem = new MenuItem(themeName);
-            residueThemeItem.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent actionEvent) {
-                    ObservableList<TreeItem<ExplorerItem>> selection = mediator.getExplorer().getSelectedTreeViewItems();
-                    Theme t = new Theme(RnartistConfig.colorSchemes.get(themeName));
-
-                    if (!selection.isEmpty()) {
-                        for (TreeItem<ExplorerItem> item:selection)
-                            mediator.getExplorer().applyTheme(item, t, scope);
-                    } else
-                        mediator.getExplorer().applyTheme(t, scope);
-
-                    mediator.getCanvas2D().repaint();
-                    mediator.getExplorer().refresh();
-                }
-            });
-            colorSchemes.getItems().add(residueThemeItem);
-        }
-
-        //++++++++ Windows Menu
-        MenuItem toolboxItem = new MenuItem("Settings");
-
-        toolboxItem.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                mediator.getSettings().getStage().show();
-                mediator.getSettings().getStage().toFront();
-            }
-        });
-
-        MenuItem explorerItem = new MenuItem("Explorer");
-
-        explorerItem.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                mediator.getExplorer().getStage().show();
-                mediator.getExplorer().getStage().toFront();
-            }
-        });
-
-        MenuItem chimeraItem = new MenuItem("Chimera");
-
-        chimeraItem.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                if (mediator.getChimeraDriver() != null) {
-                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                    alert.setTitle("Please Confirm");
-                    alert.setHeaderText("A Chimera windows is already linked to RNArtist");
-                    alert.setContentText("The new one will replace it for the linkage");
-                    Optional<ButtonType> result = alert.showAndWait();
-                    if (result.isPresent() && result.get().equals(ButtonType.OK)) {
-                        new ChimeraDriver(mediator);
-                    }
-                } else
-                    new ChimeraDriver(mediator);
-            }
-        });
-
-        windowsMenu.getItems().addAll(toolboxItem, explorerItem, chimeraItem);
-
-        //++++++ Toolbar
-
-        ToolBar toolbar = new ToolBar();
-
-        toolbar.setPadding(new Insets(5, 10, 10, 10));
+        colorPicker.setMaxWidth(Double.MAX_VALUE);
+        colorPicker.setMinWidth(Control.USE_PREF_SIZE);
+        GridPane.setConstraints(colorPicker, 0, 1);
+        selectionColor.getChildren().add(colorPicker);
 
         GridPane structureSelection = new GridPane();
         structureSelection.setVgap(5.0);
         structureSelection.setHgap(5.0);
 
-        Label l = new Label("2Ds Available");
+        l = new Label("2Ds Available");
         GridPane.setHalignment(l, HPos.CENTER);
         GridPane.setConstraints(l, 0, 0);
         structureSelection.getChildren().add(l);
@@ -831,308 +519,21 @@ public class RNArtist extends Application {
                 if (result.get() == ButtonType.OK) {
                     List<SecondaryStructureDrawing> toDelete = new ArrayList<SecondaryStructureDrawing>();
                     for (SecondaryStructureDrawing drawing : mediator.get_2DDrawingsLoaded())
-                        if (drawing != mediator.getCurrent2DDrawing())
+                        if (drawing != mediator.getSecondaryStructureDrawingProperty().get())
                             toDelete.add(drawing);
                     mediator.get_2DDrawingsLoaded().removeAll(toDelete);
                 }
             }
         });
 
-       allStructuresAvailable.getItems().addAll(new SeparatorMenuItem(), clearAll2DsItem, clearAll2DsExceptCurrentItem);
+        allStructuresAvailable.getItems().addAll(new SeparatorMenuItem(), clearAll2DsItem, clearAll2DsExceptCurrentItem);
 
         GridPane.setHalignment(allStructuresAvailable, HPos.CENTER);
         GridPane.setConstraints(allStructuresAvailable, 0, 1);
         structureSelection.getChildren().add(allStructuresAvailable);
 
-        GridPane allButtons = new GridPane();
-        allButtons.setVgap(5.0);
-        allButtons.setHgap(5.0);
-
-        l = new Label("2D");
-        GridPane.setConstraints(l, 0, 0);
-        allButtons.getChildren().add(l);
-
-        Button center2D = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CROSSHAIRS));
-        center2D.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                if (mouseEvent.isShiftDown()) {
-                    setCenterDisplayOnSelection(!isCenterDisplayOnSelection());
-                    if (isCenterDisplayOnSelection())
-                        center2D.setGraphic(new Glyph("FontAwesome", FontAwesome.Glyph.LOCK));
-                    else
-                        center2D.setGraphic(new Glyph("FontAwesome", FontAwesome.Glyph.CROSSHAIRS));
-                }
-                else if (mediator.getCurrent2DDrawing() != null) {
-                    java.awt.geom.Rectangle2D selectionFrame = mediator.getCanvas2D().getSelectionFrame();
-                    if (selectionFrame == null)
-                        mediator.getCanvas2D().centerDisplayOn(mediator.getCurrent2DDrawing().getFrame());
-                    else
-                        mediator.getCanvas2D().centerDisplayOn(selectionFrame);
-                }
-            }
-        });
-        center2D.setTooltip(new Tooltip("Center 2D"));
-        GridPane.setConstraints(center2D, 1, 0);
-        allButtons.getChildren().add(center2D);
-
-        Button fit2D = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.ARROWS_ALT));
-        fit2D.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                mediator.getCanvas2D().fitStructure();
-            }
-        });
-        fit2D.setTooltip(new Tooltip("Fit 2D"));
-        GridPane.setConstraints(fit2D, 2, 0);
-        allButtons.getChildren().add(fit2D);
-
-        l = new Label("3D");
-        GridPane.setConstraints(l, 0, 1);
-        allButtons.getChildren().add(l);
-
-        Button set3DPivot = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.UNDO));
-        set3DPivot.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                if (mediator.getCurrent2DDrawing() != null && mediator.getChimeraDriver() != null)
-                    mediator.pivotInChimera();
-            }
-        });
-        set3DPivot.setTooltip(new Tooltip("Define Selection as Pivot"));
-        GridPane.setConstraints(set3DPivot, 1, 1);
-        allButtons.getChildren().add(set3DPivot);
-
-        Button focus3D = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.EYE));
-        focus3D.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                if (mediator.getCurrent2DDrawing() != null && mediator.getChimeraDriver() != null)
-                    mediator.focusInChimera();
-            }
-        });
-        focus3D.setTooltip(new Tooltip("Focus 3D on Selection"));
-        GridPane.setConstraints(focus3D, 2, 1);
-        allButtons.getChildren().add(focus3D);
-
-        GridPane selectionSize = new GridPane();
-        selectionSize.setVgap(5.0);
-        selectionSize.setHgap(5.0);
-
-        l = new Label("Selection Width (px)");
-        GridPane.setHalignment(l, HPos.CENTER);
-        GridPane.setConstraints(l, 0, 0);
-        selectionSize.getChildren().add(l);
-
-        final Slider sliderSize = new Slider(1, 3, RnartistConfig.getSelectionWidth());
-        sliderSize.setShowTickLabels(true);
-        sliderSize.setShowTickMarks(true);
-        sliderSize.setSnapToTicks(true);
-        sliderSize.setMajorTickUnit(1);
-        sliderSize.setMinorTickCount(0);
-
-        sliderSize.setOnMouseReleased(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                RnartistConfig.setSelectionWidth((int) sliderSize.getValue());
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setHalignment(sliderSize, HPos.CENTER);
-        GridPane.setConstraints(sliderSize, 0, 1);
-        selectionSize.getChildren().add(sliderSize);
-
-        GridPane detailsLevel = new GridPane();
-        detailsLevel.setVgap(5.0);
-        detailsLevel.setHgap(5.0);
-
-        l = new Label("Details Level");
-        GridPane.setHalignment(l, HPos.CENTER);
-        GridPane.setConstraints(l, 0, 0);
-        detailsLevel.getChildren().add(l);
-
-        this.detailsLevel = new Slider(1, 5, 1);
-        this.detailsLevel.setShowTickLabels(true);
-        this.detailsLevel.setShowTickMarks(true);
-        this.detailsLevel.setSnapToTicks(true);
-        this.detailsLevel.setMajorTickUnit(1);
-        this.detailsLevel.setMinorTickCount(0);
-
-        this.detailsLevel.setOnMouseReleased(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                List<StructuralDomain> structuralDomainsSelected = mediator.getCanvas2D().structuralDomainsSelected();
-                Theme t = new Theme(RnartistConfig.themeDetailsLevel.get((int) RNArtist.this.detailsLevel.getValue()-1));
-                //if at least one structural domain selected, apply level inside or from these elements
-                if (!structuralDomainsSelected.isEmpty()) {
-                    byte _scope = scope;
-                    if (_scope == ELEMENT_SCOPE)
-                        _scope = STRUCTURAL_DOMAIN_SCOPE; //not working well if ELEMENT SCOPE, since only parts of the details above lvl 1 can be applied
-                    for (TreeItem<ExplorerItem> item : mediator.getExplorer().getSelectedTreeViewItems()) {
-                        mediator.getExplorer().applyTheme(item, t, _scope);
-                    }
-                }
-                //else apply branch scope along all branches and single strands drawn
-                else {
-                    List<DrawingElement> drawingElements = new ArrayList<>();
-                    for (JunctionDrawing j:mediator.getWorkingSession().getBranchesDrawn())
-                        drawingElements.add(j.getParent());
-                    drawingElements.addAll(mediator.getWorkingSession().getSingleStrandsDrawn());
-                    List<TreeItem<ExplorerItem>> hits = mediator.getExplorer().getAllTreeViewItems(null, mediator.getExplorer().getTreeTableView().getRoot(), drawingElement -> drawingElements.contains(drawingElement), RNArtist.BRANCH_SCOPE);
-                    for (TreeItem<ExplorerItem> item: hits)
-                        mediator.getExplorer().applyTheme(item, t, BRANCH_SCOPE);
-                }
-                mediator.getExplorer().refresh();
-                mediator.getCanvas2D().repaint();
-            }
-        });
-        GridPane.setHalignment(this.detailsLevel, HPos.CENTER);
-        GridPane.setConstraints(this.detailsLevel, 0, 1);
-        detailsLevel.getChildren().add(this.detailsLevel);
-
-        GridPane scopeLevel = new GridPane();
-        scopeLevel.setVgap(5.0);
-        scopeLevel.setHgap(5.0);
-        l = new Label("Scope");
-        GridPane.setHalignment(l, HPos.CENTER);
-        GridPane.setConstraints(l, 0, 0);
-        scopeLevel.getChildren().add(l);
-
-        HBox scopeButtons = new HBox();
-        scopeButtons.setSpacing(5);
-
-        ToggleButton currentElementScope = new ToggleButton(null, new FontIcon("fas-plus:15"));
-        ToggleButton up2NextDomainsScope = new ToggleButton(null, new FontIcon("fas-compress:15"));
-        ToggleButton branchesScope = new ToggleButton(null, new FontIcon("fas-expand:15"));
-
-        currentElementScope.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                currentElementScope.setSelected(true);
-                scope = ELEMENT_SCOPE;
-                up2NextDomainsScope.setSelected(false);
-                branchesScope.setSelected(false);
-            }
-        });
-        currentElementScope.setTooltip(new Tooltip("Element selected"));
-        scopeButtons.getChildren().add(currentElementScope);
-
-        up2NextDomainsScope.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                up2NextDomainsScope.setSelected(true);
-                scope = STRUCTURAL_DOMAIN_SCOPE;
-                currentElementScope.setSelected(false);
-                branchesScope.setSelected(false);
-            }
-        });
-        up2NextDomainsScope.setTooltip(new Tooltip("Up to next Structural Domains"));
-        scopeButtons.getChildren().add(up2NextDomainsScope);
-
-        branchesScope.setSelected(true);
-        branchesScope.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                branchesScope.setSelected(true);
-                scope = BRANCH_SCOPE;
-                currentElementScope.setSelected(false);
-                up2NextDomainsScope.setSelected(false);
-            }
-        });
-        branchesScope.setTooltip(new Tooltip("Along branches"));
-        scopeButtons.getChildren().add(branchesScope);
-
-        GridPane.setHalignment(scopeButtons, HPos.CENTER);
-        GridPane.setConstraints(scopeButtons, 0, 1);
-        scopeLevel.getChildren().add(scopeButtons);
-
-        GridPane tertiariesLevel = new GridPane();
-        tertiariesLevel.setVgap(5.0);
-        tertiariesLevel.setHgap(5.0);
-
-        l = new Label("Tertiaries Level");
-        GridPane.setHalignment(l, HPos.CENTER);
-        GridPane.setConstraints(l, 0, 0);
-        tertiariesLevel.getChildren().add(l);
-
-        this.tertiariesLevel = new Slider(1, 3, 1);
-        this.tertiariesLevel.setShowTickLabels(true);
-        this.tertiariesLevel.setShowTickMarks(true);
-        this.tertiariesLevel.setSnapToTicks(true);
-        this.tertiariesLevel.setMajorTickUnit(1);
-        this.tertiariesLevel.setMinorTickCount(0);
-
-        this.tertiariesLevel.setLabelFormatter(new StringConverter<Double>() {
-            @Override
-            public String toString(Double n) {
-                if (n == 1.0) return "None";
-                if (n == 2.0) return "Pknots";
-                if (n == 3.0) return "All";
-
-                return "";
-            }
-
-            @Override
-            public Double fromString(String s) {
-                switch (s) {
-                    case "None":
-                        return 1d;
-                    case "Pknots":
-                        return 2d;
-                    case "All":
-                        return 3d;
-
-                    default:
-                        return 0d;
-                }
-            }
-        });
-
-        this.tertiariesLevel.setOnMouseReleased(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent mouseEvent) {
-                switch ((int)RNArtist.this.tertiariesLevel.getValue()) {
-                    case 1: mediator.getWorkingSession().setTertiariesDisplayLevel(TertiariesDisplayLevel.None); break;
-                    case 2: mediator.getWorkingSession().setTertiariesDisplayLevel(TertiariesDisplayLevel.Pknots); break;
-                    case 3: mediator.getWorkingSession().setTertiariesDisplayLevel(TertiariesDisplayLevel.All); break;
-                }
-                mediator.getCanvas2D().repaint();
-            }
-        });
-
-        GridPane.setHalignment(this.tertiariesLevel, HPos.CENTER);
-        GridPane.setConstraints(this.tertiariesLevel, 0, 1);
-        tertiariesLevel.getChildren().add(this.tertiariesLevel);
-
-        GridPane selectionColor = new GridPane();
-        selectionColor.setVgap(5.0);
-        selectionColor.setHgap(5.0);
-
-        l = new Label("Selection Color");
-        GridPane.setHalignment(l, HPos.CENTER);
-        GridPane.setConstraints(l, 0, 0);
-        selectionColor.getChildren().add(l);
-
-        ColorPicker colorPicker = new ColorPicker();
-        colorPicker.setValue(awtColorToJavaFX(RnartistConfig.getSelectionColor()));
-        colorPicker.valueProperty().addListener(new ChangeListener<Color>() {
-            @Override
-            public void changed(ObservableValue<? extends Color> observableValue, javafx.scene.paint.Color color, javafx.scene.paint.Color newValue) {
-                java.awt.Color c = javaFXToAwt(colorPicker.getValue());
-                RnartistConfig.setSelectionColor(c);
-                mediator.canvas2D.repaint();
-            }
-        });
-        colorPicker.setMaxWidth(Double.MAX_VALUE);
-        colorPicker.setMinWidth(Control.USE_PREF_SIZE);
-        GridPane.setConstraints(colorPicker, 0, 1);
-        selectionColor.getChildren().add(colorPicker);
-
-        Separator s = new Separator();
-        s.setPadding(new Insets(0, 5, 0, 5));
-
         Separator s1 = new Separator();
-        s.setPadding(new Insets(0, 5, 0, 5));
+        s1.setPadding(new Insets(0, 5, 0, 5));
 
         Separator s2 = new Separator();
         s2.setPadding(new Insets(0, 5, 0, 5));
@@ -1140,35 +541,26 @@ public class RNArtist extends Application {
         Separator s3 = new Separator();
         s2.setPadding(new Insets(0, 5, 0, 5));
 
-        Separator s4 = new Separator();
-        s2.setPadding(new Insets(0, 5, 0, 5));
+        toolbar.getItems().addAll(files, s1, _2D3DButtons, s2, selectionSize, selectionColor, s3, structureSelection);
 
-        toolbar.getItems().addAll(allButtons, s, scopeLevel, s1, detailsLevel, s2, tertiariesLevel, s3, selectionSize, selectionColor, s4, structureSelection);
-
-        VBox vbox = new VBox();
-        vbox.setPadding(new Insets(0, 0, 0, 0));
-        vbox.setSpacing(5);
-        vbox.getChildren().add(menuBar);
-        vbox.getChildren().add(toolbar);
-
-        root.setTop(vbox);
+        root.setTop(toolbar);
 
         //++++++ Canvas2D
         final SwingNode swingNode = new SwingNode();
         swingNode.setOnMouseMoved(mouseEvent -> {
-            if (mediator.getCurrent2DDrawing() != null)
-                mediator.getCurrent2DDrawing().setQuickDraw(false); //a trick if after the scroll event the quickdraw is still true
+            if (mediator.getSecondaryStructureDrawingProperty().isNotNull().get())
+                mediator.getSecondaryStructureDrawingProperty().get().setQuickDraw(false); //a trick if after the scroll event the quickdraw is still true
         });
         swingNode.setOnMouseClicked(mouseEvent -> {
-            if (mouseEvent.getButton() == MouseButton.PRIMARY && !mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
+            if (mouseEvent.getButton() == MouseButton.PRIMARY && mediator.getSecondaryStructureDrawingProperty().isNotNull().get() && !mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().is_screen_capture()) {
                 AffineTransform at = new AffineTransform();
-                at.translate(mediator.getWorkingSession().getViewX(), mediator.getWorkingSession().getViewY());
-                at.scale(mediator.getWorkingSession().getFinalZoomLevel(), mediator.getWorkingSession().getFinalZoomLevel());
+                at.translate(mediator.getViewX(), mediator.getViewY());
+                at.scale(mediator.getZoomLevel(), mediator.getZoomLevel());
                 for (JunctionKnob knob : mediator.getCanvas2D().getKnobs()) {
                     if (knob.contains(mouseEvent.getX(), mouseEvent.getY(), at))
                         return;
                 }
-                if (mediator.getCurrent2DDrawing() != null) {
+                if (mediator.getSecondaryStructureDrawingProperty().isNotNull().get()) {
                     for (JunctionDrawing j:mediator.getWorkingSession().getJunctionsDrawn()) {
                         Shape shape = j.getSelectionFrame();
                         if (shape != null && at.createTransformedShape(shape).contains(mouseEvent.getX(), mouseEvent.getY())) {
@@ -1296,18 +688,18 @@ public class RNArtist extends Application {
             }
         });
         swingNode.setOnMouseDragged(mouseEvent -> {
-            if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                if (mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
-                    double transX = mouseEvent.getX() - mediator.getCurrent2DDrawing().getWorkingSession().getScreen_capture_transX();
-                    double transY = mouseEvent.getY() - mediator.getCurrent2DDrawing().getWorkingSession().getScreen_capture_transY();
-                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transX(mouseEvent.getX());
-                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transY(mouseEvent.getY());
+            if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getSecondaryStructureDrawingProperty().isNotNull().get()) {
+                if (mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().is_screen_capture()) {
+                    double transX = mouseEvent.getX() - mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().getScreen_capture_transX();
+                    double transY = mouseEvent.getY() - mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().getScreen_capture_transY();
+                    mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().setScreen_capture_transX(mouseEvent.getX());
+                    mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().setScreen_capture_transY(mouseEvent.getY());
                     AffineTransform at = new AffineTransform();
                     at.translate(transX, transY);
-                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_area(at.createTransformedShape(mediator.getCurrent2DDrawing().getWorkingSession().getScreen_capture_area()).getBounds());
+                    mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().setScreen_capture_area(at.createTransformedShape(mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().getScreen_capture_area()).getBounds());
                 }
                 else {
-                    mediator.getCurrent2DDrawing().setQuickDraw(true);
+                    mediator.getSecondaryStructureDrawingProperty().get().setQuickDraw(true);
                     double transX = mouseEvent.getX() - mediator.getCanvas2D().getTranslateX();
                     double transY = mouseEvent.getY() - mediator.getCanvas2D().getTranslateY();
                     mediator.getWorkingSession().moveView(transX, transY);
@@ -1318,12 +710,12 @@ public class RNArtist extends Application {
             }
         });
         swingNode.setOnMouseReleased(mouseEvent -> {
-            if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                if (mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
-                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transX(0.0);
-                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transY(0.0);
+            if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getSecondaryStructureDrawingProperty().isNotNull().get()) {
+                if (mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().is_screen_capture()) {
+                    mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().setScreen_capture_transX(0.0);
+                    mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().setScreen_capture_transY(0.0);
                 } else {
-                    mediator.getCurrent2DDrawing().setQuickDraw(false);
+                    mediator.getSecondaryStructureDrawingProperty().get().setQuickDraw(false);
                     mediator.getCanvas2D().setTranslateX(0.0);
                     mediator.getCanvas2D().setTranslateY(0.0);
                 }
@@ -1331,10 +723,10 @@ public class RNArtist extends Application {
             }
         });
         swingNode.setOnMousePressed(mouseEvent -> {
-            if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getCanvas2D().getSecondaryStructureDrawing() != null) {
-                if (mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
-                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transX(mouseEvent.getX());
-                    mediator.getCurrent2DDrawing().getWorkingSession().setScreen_capture_transY(mouseEvent.getY());
+            if (mouseEvent.getButton() == MouseButton.SECONDARY && mediator.getSecondaryStructureDrawingProperty().isNotNull().get()) {
+                if (mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().is_screen_capture()) {
+                    mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().setScreen_capture_transX(mouseEvent.getX());
+                    mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().setScreen_capture_transY(mouseEvent.getY());
                 } else {
                     mediator.getCanvas2D().setTranslateX(mouseEvent.getX());
                     mediator.getCanvas2D().setTranslateY(mouseEvent.getY());
@@ -1342,14 +734,14 @@ public class RNArtist extends Application {
             }
         });
         swingNode.setOnScroll(scrollEvent -> {
-            if (mediator.getCanvas2D().getSecondaryStructureDrawing() != null && !mediator.getCurrent2DDrawing().getWorkingSession().is_screen_capture()) {
-                mediator.getCurrent2DDrawing().setQuickDraw(true);
+            if (mediator.getSecondaryStructureDrawingProperty().isNotNull().get() && !mediator.getSecondaryStructureDrawingProperty().get().getWorkingSession().is_screen_capture()) {
+                mediator.getSecondaryStructureDrawingProperty().get().setQuickDraw(true);
                 scrollCounter++;
                 Thread th = new Thread(() -> {
                     try {
                         Thread.sleep(100);
                         if (scrollCounter == 1) {
-                            mediator.getCurrent2DDrawing().setQuickDraw(false);
+                            mediator.getSecondaryStructureDrawingProperty().get().setQuickDraw(false);
                             mediator.getCanvas2D().repaint();
                         }
                         scrollCounter--;
@@ -1359,14 +751,14 @@ public class RNArtist extends Application {
                 });
                 th.setDaemon(true);
                 th.start();
-                Point2D.Double realMouse = new Point2D.Double(((double) scrollEvent.getX() - mediator.getWorkingSession().getViewX()) / mediator.getWorkingSession().getFinalZoomLevel(), ((double) scrollEvent.getY() - mediator.getWorkingSession().getViewY()) / mediator.getWorkingSession().getFinalZoomLevel());
+                Point2D.Double realMouse = new Point2D.Double(((double) scrollEvent.getX() - mediator.getViewX()) / mediator.getZoomLevel(), ((double) scrollEvent.getY() - mediator.getViewY()) / mediator.getZoomLevel());
                 double notches = scrollEvent.getDeltaY();
                 if (notches < 0)
                     mediator.getWorkingSession().setZoom(1.25);
                 if (notches > 0)
                     mediator.getWorkingSession().setZoom(1.0 / 1.25);
-                Point2D.Double newRealMouse = new Point2D.Double(((double) scrollEvent.getX() - mediator.getWorkingSession().getViewX()) / mediator.getWorkingSession().getFinalZoomLevel(), ((double) scrollEvent.getY() - mediator.getWorkingSession().getViewY()) / mediator.getWorkingSession().getFinalZoomLevel());
-                mediator.getWorkingSession().moveView((newRealMouse.getX() - realMouse.getX()) * mediator.getWorkingSession().getFinalZoomLevel(), (newRealMouse.getY() - realMouse.getY()) * mediator.getWorkingSession().getFinalZoomLevel());
+                Point2D.Double newRealMouse = new Point2D.Double(((double) scrollEvent.getX() - mediator.getViewX()) / mediator.getZoomLevel(), ((double) scrollEvent.getY() - mediator.getViewY()) / mediator.getZoomLevel());
+                mediator.getWorkingSession().moveView((newRealMouse.getX() - realMouse.getX()) * mediator.getZoomLevel(), (newRealMouse.getY() - realMouse.getY()) * mediator.getZoomLevel());
                 mediator.getCanvas2D().repaint();
             }
         });
@@ -1377,18 +769,103 @@ public class RNArtist extends Application {
         this.statusBar = new FlowPane();
         statusBar.setAlignment(Pos.CENTER_RIGHT);
         statusBar.setPadding(new Insets(5, 10, 5, 10));
-        statusBar.setHgap(10);
+        statusBar.setHgap(20);
 
         Label release = new Label(RnartistConfig.getRnartistRelease());
         statusBar.getChildren().add(release);
 
-        Button twitter = new Button("Follow Us", new Glyph("FontAwesome", FontAwesome.Glyph.TWITTER));
-        twitter.setOnAction(actionEvent -> {
-            this.getHostServices().showDocument("https://twitter.com/rnartist_app");
-        });
-        statusBar.getChildren().add(twitter);
+        boolean status = RnartistConfig.isDockerInstalled() && RnartistConfig.isAssemble2DockerImageInstalled();
+        Label dockerStatus = new Label(null,  status ? new FontIcon("fas-check-circle:15") : new FontIcon("fas-exclamation-circle:15"));
+        dockerStatus.setTooltip(new Tooltip(status ? "I found RNAVIEW! You can open PDB files" : "RNAVIEW not found! You cannot open PDB files!"));
+        if (status)
+            ((FontIcon)dockerStatus.getGraphic()).setFill(Color.GREEN);
+        else
+            ((FontIcon)dockerStatus.getGraphic()).setFill(Color.RED);
+        Timeline checkDockerStatus = new Timeline(new KeyFrame(Duration.seconds(30),
+                new EventHandler<ActionEvent>() {
 
-        root.setBottom(statusBar);
+                    @Override
+                    public void handle(ActionEvent event) {
+                        boolean status = RnartistConfig.isDockerInstalled() && RnartistConfig.isAssemble2DockerImageInstalled();
+                        dockerStatus.setGraphic(status ? new FontIcon("fas-check-circle:15") : new FontIcon("fas-exclamation-circle:15"));
+                        dockerStatus.setTooltip(new Tooltip(status ? "I found RNAVIEW! You can open PDB files" : "RNAVIEW not found! You cannot open PDB files!"));
+                        if (status)
+                            ((FontIcon)dockerStatus.getGraphic()).setFill(Color.GREEN);
+                        else
+                            ((FontIcon)dockerStatus.getGraphic()).setFill(Color.RED);
+                    }
+                }));
+        checkDockerStatus.setCycleCount(Timeline.INDEFINITE);
+        checkDockerStatus.play();
+
+        statusBar.getChildren().add(dockerStatus);
+
+        Button shutdown = new Button(null, new FontIcon("fas-power-off:15"));
+        shutdown.setOnAction(actionEvent -> {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.initOwner(RNArtist.this.stage);
+            alert.initModality(Modality.WINDOW_MODAL);
+            alert.setTitle("Confirm Exit");
+            alert.setHeaderText(null);
+            alert.setContentText("Are you sure to exit RNArtist?");
+
+            Stage alerttStage = (Stage) alert.getDialogPane().getScene().getWindow();
+            alerttStage.setAlwaysOnTop(true);
+            alerttStage.toFront();
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.get() == ButtonType.OK) {
+                try {
+                    Platform.exit();
+                    RnartistConfig.save();
+                    System.exit(0);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else {
+                actionEvent.consume();
+            }
+        });
+        statusBar.getChildren().add(shutdown);
+
+        FlowPane windowsBar = new FlowPane();
+        windowsBar.setAlignment(Pos.CENTER_LEFT);
+        windowsBar.setPadding(new Insets(5, 10, 5, 10));
+        windowsBar.setHgap(10);
+
+        Button settings = new Button(null, new FontIcon("fas-cog:15"));
+        settings.setOnAction(actionEvent -> {
+            mediator.getSettings().getStage().show();
+            mediator.getSettings().getStage().toFront();
+        });
+        windowsBar.getChildren().add(settings);
+
+        Button explorer = new Button(null, new FontIcon("fas-th-list:15"));
+        explorer.setOnAction(actionEvent -> {
+            mediator.getExplorer().getStage().show();
+            mediator.getExplorer().getStage().toFront();
+        });
+        windowsBar.getChildren().add(explorer);
+
+        Button browser = new Button(null, new FontIcon("fas-globe-europe:15"));
+        browser.setOnAction(actionEvent -> {
+            mediator.getWebBrowser().getStage().show();
+            mediator.getWebBrowser().getStage().toFront();
+        });
+        windowsBar.getChildren().add(browser);
+
+        GridPane bar = new GridPane();
+        ColumnConstraints cc = new ColumnConstraints();
+        cc.setHgrow(Priority.ALWAYS);
+        bar.getColumnConstraints().addAll(cc, new ColumnConstraints());
+
+        bar.add(windowsBar, 0,0);
+        GridPane.setFillWidth(windowsBar, true);
+        GridPane.setHalignment(windowsBar, HPos.LEFT);
+        bar.add(this.statusBar, 1,0);
+        GridPane.setHalignment(this.statusBar, HPos.RIGHT);
+
+        root.setBottom(bar);
         Scene scene = new Scene(root, screen.getBounds().getWidth(), screen.getBounds().getHeight());
         stage.setScene(scene);
         stage.setTitle("RNArtist");
@@ -1400,9 +877,8 @@ public class RNArtist extends Application {
         scene.getWindow().setX(0);
         scene.getWindow().setY(0);
 
-        mediator.getExplorer().getStage().show();
-        mediator.getRnartist().getStage().show();
-        mediator.getRnartist().getStage().toFront();
+        new SplashWindow(this.mediator);
+
     }
 
     public boolean isCenterDisplayOnSelection() {
@@ -1411,10 +887,6 @@ public class RNArtist extends Application {
 
     public void setCenterDisplayOnSelection(boolean centerDisplayOnSelection) {
         this.centerDisplayOnSelection = centerDisplayOnSelection;
-    }
-
-    public byte getScope() {
-        return scope;
     }
 
     public MenuItem getClearAll2DsItem() {
@@ -1438,18 +910,6 @@ public class RNArtist extends Application {
 
     public Stage getStage() {
         return stage;
-    }
-
-    public Slider getDetailsLevel() {
-        return detailsLevel;
-    }
-
-    public TertiariesDisplayLevel getTertiariesLevel() {
-        switch ((int)RNArtist.this.tertiariesLevel.getValue()) {
-            case 1: return TertiariesDisplayLevel.None;
-            case 2: return TertiariesDisplayLevel.Pknots;
-            default: return TertiariesDisplayLevel.All;
-        }
     }
 
     private void createSwingContent(final SwingNode swingNode) {

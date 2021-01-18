@@ -15,13 +15,11 @@ class SelectionShape(val mediator: Mediator, val element: DrawingElement) {
     )
 
     fun draw(g: Graphics2D, at: AffineTransform) {
-        if (element !is StructuralDomain && !element.isFullDetails())
-            return
         val previousStroke = g.stroke
         val previousColor = g.color
 
         g.color = RnartistConfig.selectionColor
-        g.stroke = BasicStroke( this.mediator.current2DDrawing!!.workingSession.finalZoomLevel.toFloat() * RnartistConfig.selectionWidth)
+        g.stroke = BasicStroke( this.mediator.zoomLevel!!.toFloat() * RnartistConfig.selectionWidth)
 
         this.edges.forEach {
             it.draw(g, at)
@@ -35,12 +33,12 @@ class SelectionShape(val mediator: Mediator, val element: DrawingElement) {
         fun draw(g: Graphics2D, at: AffineTransform) {
             if (element.selectionPoints.size - 1 >= p2) {
                 val (p1_1, p2_1) = pointsFrom(
-                    element.selectionPoints.get(p1),
-                    element.selectionPoints.get(p2),
+                    element.selectionPoints[p1],
+                    element.selectionPoints[p2],
                     spaceBetweenResidues
                 )
-                g.draw(at.createTransformedShape(Line2D.Double(element.selectionPoints.get(p1), p1_1)))
-                g.draw(at.createTransformedShape(Line2D.Double(p2_1, element.selectionPoints.get(p2))))
+                g.draw(at.createTransformedShape(Line2D.Double(element.selectionPoints[p1], p1_1)))
+                g.draw(at.createTransformedShape(Line2D.Double(p2_1, element.selectionPoints[p2])))
             }
 
         }

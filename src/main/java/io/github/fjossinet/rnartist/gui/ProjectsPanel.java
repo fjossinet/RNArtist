@@ -3,6 +3,11 @@ package io.github.fjossinet.rnartist.gui;
 import io.github.fjossinet.rnartist.Mediator;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.core.model.io.Project;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.WorkerStateEvent;
@@ -27,7 +32,10 @@ import org.controlsfx.control.GridView;
 import org.dizitart.no2.Document;
 import org.dizitart.no2.NitriteId;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
@@ -42,13 +50,14 @@ public class ProjectsPanel {
     private ObservableList<ProjectPanel> projectPanels;
     private GridView<ProjectPanel> gridview;
     private Stage stage;
+    private SimpleObjectProperty<NitriteId> currentProject = new SimpleObjectProperty<NitriteId>(null);
 
     public ProjectsPanel(Mediator mediator) {
         this.mediator = mediator;
         this.stage = new Stage();
         stage.setTitle("RNArtist Projects");
         stage.setOnCloseRequest(windowEvent -> {
-            if (mediator.getCurrent2DDrawing() != null) { //the user has decided to cancel its idea to open an other project
+            if (mediator.getSecondaryStructureDrawingProperty().isNotNull().get()) { //the user has decided to cancel its idea to open an other project
                 mediator.getRnartist().getStage().show();
                 mediator.getRnartist().getStage().toFront();
             }
@@ -73,8 +82,26 @@ public class ProjectsPanel {
         return stage;
     }
 
-    public void addProject(NitriteId id, String name) {
+    public SimpleObjectProperty<NitriteId> currentProject() {
+        return currentProject;
+    }
+
+    public void saveProjectAs(String name, BufferedImage image) throws IOException {
+        NitriteId id = mediator.getEmbeddedDB().saveProjectAs(name, mediator.getSecondaryStructureDrawingProperty().get());
+        this.currentProject.set(id);
+        File pngFile = new File(new File(new File(mediator.getEmbeddedDB().getRootDir(), "images"), "user"), id.toString() + ".png");
+        ImageIO.write(image, "PNG", pngFile);
+        File chimera_sessions = new File(mediator.getEmbeddedDB().getRootDir(), "chimera_sessions");
+        if (!chimera_sessions.exists())
+            chimera_sessions.mkdir();
+        mediator.getChimeraDriver().saveSession(new File(chimera_sessions, id.toString()), new File(chimera_sessions, id.toString()+".pdb"));
         this.projectPanels.add(new ProjectPanel(id, name));
+    }
+
+    public void saveProject() throws IOException {
+        mediator.getEmbeddedDB().saveProject(this.currentProject.get(), mediator.getSecondaryStructureDrawingProperty().get());
+        File chimera_sessions = new File(mediator.getEmbeddedDB().getRootDir(), "chimera_sessions");
+        mediator.getChimeraDriver().saveSession(new File(chimera_sessions, this.currentProject.get().toString()), new File(chimera_sessions, this.currentProject.get().toString()+".pdb"));
     }
 
     private void createScene(Stage stage) {
@@ -118,16 +145,13 @@ public class ProjectsPanel {
                 public void handle(MouseEvent event) {
                     if (ProjectCell.this.getItem().name.equals("New Project")) {
                         stage.hide();
+                        currentProject.set(null);
+                        mediator.getChimeraDriver().closeSession();
                         mediator.get_2DDrawingsLoaded().clear();
                         mediator.getExplorer().getStage().show();
                         mediator.getRnartist().getStage().show();
                         mediator.getRnartist().getStage().toFront();
                     } else {
-                        stage.hide();
-                        mediator.get_2DDrawingsLoaded().clear();
-                        mediator.getExplorer().getStage().show();
-                        mediator.getRnartist().getStage().show();
-                        mediator.getRnartist().getStage().toFront();
                         javafx.concurrent.Task<Pair<SecondaryStructureDrawing, Exception>> loadData = new javafx.concurrent.Task<Pair<SecondaryStructureDrawing, Exception>>() {
 
                             @Override
@@ -173,12 +197,20 @@ public class ProjectsPanel {
                                         alert.showAndWait();
                                     } else {
                                         stage.hide();
+                                        mediator.getChimeraDriver().closeSession();
                                         mediator.get_2DDrawingsLoaded().clear();
                                         mediator.getExplorer().getStage().show();
                                         mediator.getRnartist().getStage().show();
                                         mediator.getRnartist().getStage().toFront();
+
+                                        currentProject.set(ProjectCell.this.getItem().id);
                                         mediator.get_2DDrawingsLoaded().add(loadData.get().getLeft());
-                                        mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1));
+                                        File chimera_session = ProjectCell.this.getItem().getChimeraSession();
+                                        File pdbFile = ProjectCell.this.getItem().getPdbFile();
+                                        if (chimera_session.exists() && pdbFile.exists())
+                                            mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1), chimera_session, pdbFile);
+                                        else
+                                            mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1), null, null);
 
                                     }
                                 } catch (InterruptedException e) {
@@ -243,6 +275,14 @@ public class ProjectsPanel {
                 e.printStackTrace();
             }
             return null;
+        }
+
+        File getChimeraSession() {
+            return new File(new File(mediator.getEmbeddedDB().getRootDir(),"chimera_sessions"),id.toString()+".py");
+        }
+
+        File getPdbFile() {
+            return new File(new File(mediator.getEmbeddedDB().getRootDir(),"chimera_sessions"),id.toString()+".pdb");
         }
 
     }
