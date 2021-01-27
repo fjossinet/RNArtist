@@ -57,13 +57,13 @@ object Backend {
         val task = object: Task<Exception?>() {
 
             override fun call(): Exception? {
-                mediator.secondaryStructureDrawingProperty.get()?.let { drawing ->
+                mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
 
-                    if (drawing.secondaryStructure.source.startsWith("db:")) {
+                    if (drawingDisplayed.drawing.secondaryStructure.source.startsWith("db:")) {
                         val multipart = Multipart(URL(RnartistConfig.website+"/api/submit_layout"))
                         //multipart.addFormField("userID", RnartistConfig.userID!!)
                         val gson = Gson()
-                        multipart.addFormField(drawing.secondaryStructure.source, gson.toJson(dumpLayout(drawing)).toString())
+                        multipart.addFormField(drawingDisplayed.drawing.secondaryStructure.source, gson.toJson(dumpLayout(drawingDisplayed.drawing)).toString())
                         multipart.upload(null)
                     }
 

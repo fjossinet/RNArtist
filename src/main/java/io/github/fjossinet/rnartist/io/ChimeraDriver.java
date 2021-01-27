@@ -19,10 +19,17 @@ import static io.github.fjossinet.rnartist.core.model.io.UtilsKt.createTemporary
 
 public class ChimeraDriver extends AbstractTertiaryViewerDriver {
 
+    public static final byte STICK = 0, RIBBON_SHOW = 1, RIBBON_HIDE = 2, CARTOON = 3;
+
+    //the URL constructed from the host and port defined in the RNArtist settings
     private URL url;
-    private File sessionToRestore;
-    private List<TertiaryStructure> tertiaryStructures;
+    //the pdbFile is given to Chimera to load and display the 3D structure
     private File pdbFile;
+    //the pdbFile is given to Chimera to load and display the 3D structure
+    private File sessionFile;
+    //the tertiary structures are constructed from the parsing of the PDB file. They're mainly used to get the numbering system for each molecular chain when some residues are selected in the Canvas2D.
+    private List<TertiaryStructure> tertiaryStructures;
+
 
     public ChimeraDriver(final Mediator mediator) {
         super(mediator, RnartistConfig.getChimeraPath());
@@ -54,10 +61,6 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
     public void connectToRestServer() throws MalformedURLException {
         this.url = new URL("http://"+RnartistConfig.getChimeraHost()+":"+RnartistConfig.getChimeraPort()+"/run");
         this.showVersion();
-        if (this.sessionToRestore != null) {
-            this.postCommand("open " + this.sessionToRestore.getAbsolutePath());
-            this.sessionToRestore = null;
-        }
         this.process = null;
     }
 
@@ -65,6 +68,11 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         this.postCommand("version");
     }
 
+    /**
+     * The command is either sent to the process or to the REST server
+     * @param command
+     * @return
+     */
     private String postCommand(final String command) {
         if (this.url == null && this.process == null)
             return null;
@@ -105,6 +113,8 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
     }
 
     public void closeSession() {
+        this.pdbFile = null;
+        this.sessionFile = null;
         this.tertiaryStructures.clear();
         this.postCommand("close session");
     }
@@ -112,6 +122,7 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
     public void restoreSession(File sessionFile, File pdbFile) {
         try {
             this.postCommand("open " + sessionFile.getAbsolutePath());
+            this.sessionFile = sessionFile;
             this.pdbFile = pdbFile;
             this.tertiaryStructures.addAll(parsePDB(new FileReader(pdbFile)));
         } catch (FileNotFoundException e) {
@@ -140,14 +151,11 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         }
     }
 
-    public void loadRefinedModel(File f) {
-        this.postCommand("close 2");
-        this.postCommand("open 2 "+f.getAbsolutePath());
-    }
-
-    public void removeSelection(final List<Integer> positions) {
-        for (int pos: positions)
-            this.postCommand("delete #0:"+pos);
+    public void reloadTertiaryStructure() {
+        if (this.sessionFile.exists())
+            this.postCommand("open " + sessionFile.getAbsolutePath());
+        else if (this.pdbFile.exists())
+            this.postCommand("open " + this.pdbFile.getAbsolutePath());
     }
 
     public void close() {
@@ -163,6 +171,153 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         }
     }
 
+    public void represent(byte mode, List<Integer> positions) {
+        String chainName = mediator.getDrawingDisplayed().get().getDrawing().getSecondaryStructure().getRna().getName();
+        List<String> numberingSystem = null;
+        for (TertiaryStructure ts:this.tertiaryStructures) {
+            if (ts.getRna().getName().equals(chainName)) {
+                numberingSystem = ts.getNumberingSystem();
+                break;
+            }
+        }
+        if (numberingSystem != null) {
+            final StringBuffer atomsSpec = new StringBuffer();
+            if (!positions.isEmpty()) {
+                atomsSpec.append("#0:");
+                for (int pos : positions)
+                    atomsSpec.append(numberingSystem.get(pos - 1) + "." + chainName + ",");
+                atomsSpec.deleteCharAt(atomsSpec.length()-1);
+            }
+
+
+            //2. the mode chosen
+            switch (mode) {
+                case CARTOON: StringBuffer command = new StringBuffer("nucleotides side tube/slab "+atomsSpec.toString());
+                    this.postCommand(command.toString());
+                    break;
+                case STICK:
+                    command = new StringBuffer("nucleotides sidechain atoms "+atomsSpec.toString());
+                    this.postCommand(command.toString());
+                    System.out.println(command.toString());
+                    break;
+                case RIBBON_SHOW:
+                    command = new StringBuffer("ribbon "+atomsSpec.toString());
+                    this.postCommand(command.toString());
+                    System.out.println(command.toString());
+                    break;
+                case RIBBON_HIDE:
+                    command = new StringBuffer("~ribbon "+atomsSpec.toString());
+                    this.postCommand(command.toString());
+                    System.out.println(command.toString());
+                    break;
+
+            }
+
+        }
+    }
+
+    public void selectResidues(List<Integer> positions) {
+        String chainName = mediator.getDrawingDisplayed().get().getDrawing().getSecondaryStructure().getRna().getName();
+        List<String> numberingSystem = null;
+        for (TertiaryStructure ts:this.tertiaryStructures) {
+            if (ts.getRna().getName().equals(chainName)) {
+                numberingSystem = ts.getNumberingSystem();
+                break;
+            }
+        }
+        if (numberingSystem != null) {
+            final StringBuffer command = new StringBuffer("select #0,2:");  //the #2 is to select residues for the refined structure (if any)
+            for (int pos : positions)
+                command.append(numberingSystem.get(pos - 1) + "." + chainName + ",");
+            this.postCommand(command.substring(0, command.length() - 1));
+        }
+    }
+
+    public void selectResidues(List<Integer> positions, int layer) {
+        String chainName = mediator.getDrawingDisplayed().get().getDrawing().getSecondaryStructure().getRna().getName();
+        List<String> numberingSystem = null;
+        for (TertiaryStructure ts:this.tertiaryStructures)
+            if (ts.getRna().getName().equals(chainName)) {
+                numberingSystem = ts.getNumberingSystem();
+                break;
+            }
+        if (numberingSystem != null) {
+            final StringBuffer command = new StringBuffer("select #" + layer + ":");
+            for (int pos : positions)
+                command.append(numberingSystem.get(pos - 1) + ",");
+            this.postCommand(command.substring(0, command.length() - 1));
+        }
+    }
+
+    public void showResidues(List<String> positions) {
+        final StringBuffer command = new StringBuffer("show #0,2:");  //the #2 is to select residues for the refined structure (if any)
+        for (String pos:positions)
+            command.append(pos+",");
+        this.postCommand(command.substring(0, command.length() - 1));
+    }
+
+    public void selectionCleared() {
+        this.postCommand("~select");
+    }
+
+    public void color3D(List<ResidueDrawing> residues) {
+        String chainName = mediator.getDrawingDisplayed().get().getDrawing().getSecondaryStructure().getRna().getName();
+        List<String> numberingSystem = null;
+        for (TertiaryStructure ts:this.tertiaryStructures)
+            if (ts.getRna().getName().equals(chainName)) {
+                numberingSystem = ts.getNumberingSystem();
+                break;
+            }
+        if (numberingSystem != null) {
+            final StringBuffer command = new StringBuffer();
+            for (ResidueDrawing r : residues)
+                command.append("color " + ((float) r.getColor().getRed() / (float) 255) + "," + (float) r.getColor().getGreen() / (float) 255 + "," + (float) r.getColor().getBlue() / (float) 255 + "," + (float) r.getColor().getAlpha() / (float) 255 + " #0,2:" + numberingSystem.get(r.getAbsPos() - 1) + "." + chainName + "; ");
+            this.postCommand(command.toString());
+        }
+    }
+
+    public void setPivot(List<Integer> positions) {
+        String chainName = mediator.getDrawingDisplayed().get().getDrawing().getSecondaryStructure().getRna().getName();
+        List<String> numberingSystem = null;
+        for (TertiaryStructure ts:this.tertiaryStructures)
+            if (ts.getRna().getName().equals(chainName)) {
+                numberingSystem = ts.getNumberingSystem();
+                break;
+            }
+        final StringBuffer command = new StringBuffer("cofr #0:");
+        for (int pos:positions)
+            command.append(numberingSystem.get(pos-1)+"."+chainName+",");
+        this.postCommand(command.substring(0,command.length()-1));
+    }
+
+    public void setFocus(List<Integer> positions) {
+        String chainName = mediator.getDrawingDisplayed().get().getDrawing().getSecondaryStructure().getRna().getName();
+        List<String> numberingSystem = null;
+        for (TertiaryStructure ts:this.tertiaryStructures)
+            if (ts.getRna().getName().equals(chainName)) {
+                numberingSystem = ts.getNumberingSystem();
+                break;
+            }
+        final StringBuffer command = new StringBuffer("focus #0:");
+        for (int pos:positions)
+            command.append(numberingSystem.get(pos-1)+"."+chainName+",");
+        this.postCommand(command.substring(0,command.length()-1));
+    }
+
+    public URL getUrl() {
+        return url;
+    }
+
+    public File getPdbFile() {
+        return pdbFile;
+    }
+
+    public List<TertiaryStructure> getTertiaryStructures() {
+        return tertiaryStructures;
+    }
+
+    //+++++++ Methods used for 3D modeling (not available with RNArtist at now)
+
     public void importStructure(int modelID, int relativeID) throws Exception {
         File f = createTemporaryFile("export.pdb");
         PrintWriter commandInput = new PrintWriter((new OutputStreamWriter(new BufferedOutputStream(process.getOutputStream()))), true);
@@ -172,10 +327,6 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
             commandInput.println("write format pdb "+modelID+" " + f.getAbsolutePath());
         Thread.sleep(3000);
         //mediator.getAssemble().loadTertiaryStructures(FileParser.parsePDB(mediator, new FileReader(f)));
-    }
-
-    public void turny(int angle) {
-        this.postCommand("turn y 1 "+angle);
     }
 
     public void synchronizeFrom() throws Exception {
@@ -198,31 +349,14 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         //mediator.getSecondaryCanvas().getMessagingSystem().addSingleStep("Synchronization done!!", null, null);
         //mediator.getSecondaryCanvas().getActivityToolBar().stopActivity();
     }
-
-    public void setPivot(List<Integer> positions, String chainName) {
-        List<String> numberingSystem = null;
-        for (TertiaryStructure ts:this.tertiaryStructures)
-            if (ts.getRna().getName().equals(chainName)) {
-                numberingSystem = ts.getNumberingSystem();
-                break;
-            }
-        final StringBuffer command = new StringBuffer("cofr #0:");
-        for (int pos:positions)
-            command.append(numberingSystem.get(pos-1)+"."+chainName+",");
-        this.postCommand(command.substring(0,command.length()-1));
+    public void loadRefinedModel(File f) {
+        this.postCommand("close 2");
+        this.postCommand("open 2 "+f.getAbsolutePath());
     }
 
-    public void setFocus(List<Integer> positions, String chainName) {
-        List<String> numberingSystem = null;
-        for (TertiaryStructure ts:this.tertiaryStructures)
-            if (ts.getRna().getName().equals(chainName)) {
-                numberingSystem = ts.getNumberingSystem();
-                break;
-            }
-        final StringBuffer command = new StringBuffer("focus #0:");
-        for (int pos:positions)
-            command.append(numberingSystem.get(pos-1)+"."+chainName+",");
-        this.postCommand(command.substring(0,command.length()-1));
+    public void removeSelection(final List<Integer> positions) {
+        for (int pos: positions)
+            this.postCommand("delete #0:"+pos);
     }
 
     public void synchronizeTo() throws Exception {
@@ -254,7 +388,7 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         //this.synchronizeFrom(false); //we need to to that since Chimera has oved atoms to do the match
     }
 
-    public void addFragment(File f, List<Residue3D> residues, int anchorResidue1, int anchorResidue2, boolean firstFragment) {
+    /*public void addFragment(File f, List<Residue3D> residues, int anchorResidue1, int anchorResidue2, boolean firstFragment) {
         this.postCommand("open " + f.getAbsolutePath());
         if (anchorResidue1 != -1 && anchorResidue2 != -1)
             this.postCommand("match #1:"+anchorResidue1+","+anchorResidue2+" #0:"+anchorResidue1+","+anchorResidue2);
@@ -309,10 +443,10 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
 
         if (toBedeleted.size() == 1)
             anchorResidue1 = toBedeleted.get(0).getAbsolutePosition();
-        /*if (toBedeleted.size() == 2 && mediator.getCanvas2D().getSecondaryStructureDrawing().getSecondaryStructure().getPairedResidueInSecondaryInteraction(mediator.getSecondaryStructure().getResidue(toBedeleted.get(0).getAbsolutePosition())).getAbsolutePosition() == toBedeleted.get(1).getAbsolutePosition()) {
+        if (toBedeleted.size() == 2 && mediator.getCanvas2D().getSecondaryStructureDrawing().getSecondaryStructure().getPairedResidueInSecondaryInteraction(mediator.getSecondaryStructure().getResidue(toBedeleted.get(0).getAbsolutePosition())).getAbsolutePosition() == toBedeleted.get(1).getAbsolutePosition()) {
             anchorResidue1 = toBedeleted.get(0).getAbsolutePosition();
             anchorResidue2 = toBedeleted.get(1).getAbsolutePosition();
-        }*/
+        }
         else {
             List<Integer> positions = new ArrayList<Integer>();
             for (Residue3D r: toBedeleted)
@@ -341,52 +475,5 @@ public class ChimeraDriver extends AbstractTertiaryViewerDriver {
         if (anchorResidue2 != -1) //we are not selecting the anchor residues to more easily remove the fragment just added without to remove the anchor residues
             positions.remove(""+anchorResidue2);
         this.selectResidues(positions);
-    }
-
-    public void selectResidues(List<Integer> positions, String chainName) {
-        List<String> numberingSystem = null;
-        for (TertiaryStructure ts:this.tertiaryStructures) {
-            System.out.println("Search for "+chainName);
-            System.out.println("get "+ts.getRna().getName());
-            if (ts.getRna().getName().equals(chainName)) {
-                numberingSystem = ts.getNumberingSystem();
-                break;
-            }
-        }
-        final StringBuffer command = new StringBuffer("select #0,2:");  //the #2 is to select residues for the refined structure (if any)
-        for (int pos:positions)
-            command.append(numberingSystem.get(pos-1)+"."+chainName+",");
-        this.postCommand(command.substring(0,command.length()-1));
-    }
-
-    public void selectResidues(List<Integer> positions, String chainName, int layer) {
-        List<String> numberingSystem = null;
-        for (TertiaryStructure ts:this.tertiaryStructures)
-            if (ts.getRna().getName().equals(chainName)) {
-                numberingSystem = ts.getNumberingSystem();
-                break;
-            }
-        final StringBuffer command = new StringBuffer("select #"+layer+":");
-        for (int pos:positions)
-            command.append(numberingSystem.get(pos-1)+",");
-        this.postCommand(command.substring(0,command.length()-1));
-    }
-
-    public void showResidues(List<String> positions) {
-        final StringBuffer command = new StringBuffer("show #0,2:");  //the #2 is to select residues for the refined structure (if any)
-        for (String pos:positions)
-            command.append(pos+",");
-        this.postCommand(command.substring(0, command.length() - 1));
-    }
-
-    public void selectionCleared() {
-        this.postCommand("~select");
-    }
-
-    public void color3D(List<ResidueDrawing> residues) {
-        /*final StringBuffer command = new StringBuffer();
-        for (ResidueCircle r: residues)
-            command.append("color "+((float)r.getColor().getRed()/(float)255)+","+(float)r.getColor().getGreen()/(float)255+","+(float)r.getColor().getBlue()/(float)255+","+(float)r.getColor().getAlpha()/(float)255+" #0,2:"+(mediator.getTertiaryStructure().getResidue3DAt(r.getAbsPos()) != null ? mediator.getTertiaryStructure().getResidue3DAt(r.getAbsPos()).getLabel() : "") +"; ");
-        this.postCommand(command.toString());*/
-    }
+    }*/
 }

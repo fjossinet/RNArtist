@@ -125,9 +125,9 @@ public class EmbeddedDBGUI {
                         filters.add(text("title", titleField.getText().trim()) );
                     if (yearField.getText().trim().length() != 0)
                         filters.add(eq("pubDate", yearField.getText().trim()) );
-                    for (Document doc: mediator.getEmbeddedDB().getPDBSecondaryStructures().find(and(filters.toArray(new Filter[0])))) {
+                    /*for (Document doc: mediator.getEmbeddedDB().getPDBSecondaryStructures().find(and(filters.toArray(new Filter[0])))) {
                         addStructure((String)doc.get("pdbId"), doc.getId(), (String)doc.get("title"), (String)doc.get("chain"), (String)doc.get("authors"), (String)doc.get("pubDate"));
-                    }
+                    }*/
             }
         });
         vbox.getChildren().add(searchForm);
@@ -195,10 +195,10 @@ public class EmbeddedDBGUI {
             this.setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent mouseEvent) {
-                    SecondaryStructure ss = (SecondaryStructure)mediator.getEmbeddedDB().getPDBSecondaryStructures().getById(StructureCell.this.getItem().id).get("ss");
-                    mediator.get_2DDrawingsLoaded().add(new SecondaryStructureDrawing(ss, new WorkingSession()));
-                    String[] tokens = ss.getSource().split("db:pdb:");
-                    Document doc = mediator.getEmbeddedDB().getPDBTertiaryStructure(tokens[tokens.length-1],ss.getRna().getName());
+                    //SecondaryStructure ss = (SecondaryStructure)mediator.getEmbeddedDB().getPDBSecondaryStructures().getById(StructureCell.this.getItem().id).get("ss");
+                    //mediator.get_2DDrawingsLoaded().add(new SecondaryStructureDrawing(ss, new WorkingSession()));
+                    //String[] tokens = ss.getSource().split("db:pdb:");
+                    //Document doc = mediator.getEmbeddedDB().getPDBTertiaryStructure(tokens[tokens.length-1],ss.getRna().getName());
                     try {
                         /*if (doc != null)
                             mediator.setTertiaryStructure((TertiaryStructure) doc.get("ts"));

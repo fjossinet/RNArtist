@@ -6,10 +6,9 @@ import io.github.fjossinet.rnartist.core.model.RNAGallery
 import io.github.fjossinet.rnartist.core.model.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import io.github.fjossinet.rnartist.core.model.io.parseJSON
-import io.github.fjossinet.rnartist.io.ChimeraDriver
+import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNAGallery
 import javafx.concurrent.Task
 import javafx.concurrent.Worker
-import javafx.concurrent.WorkerStateEvent
 import javafx.event.EventHandler
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -29,7 +28,6 @@ import org.w3c.dom.Node
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.PrintWriter
-import java.net.MalformedURLException
 import javax.swing.SwingWorker
 
 class WebBrowser(val mediator: Mediator) {
@@ -79,7 +77,7 @@ class WebBrowser(val mediator: Mediator) {
         buttons.spacing = 10.0
         val home = Button("Home", Glyph("FontAwesome", FontAwesome.Glyph.HOME))
         home.onAction = EventHandler {
-            webEngine.load(if (RnartistConfig.useOnlineRNAGallery) "https://github.com/fjossinet/RNAGallery/main/PDB/status.md" else File("${RnartistConfig.rnaGalleryPath}/PDB/status.md").toURI().toURL().toExternalForm())
+            webEngine.load(if (RnartistConfig.useOnlineRNAGallery) "https://github.com/fjossinet/RNAGallery/blob/main/PDB/status.md" else File("${RnartistConfig.rnaGalleryPath}/PDB/status.md").toURI().toURL().toExternalForm())
         }
         val pdbID = TextField()
         pdbID.isEditable = false
@@ -106,25 +104,8 @@ class WebBrowser(val mediator: Mediator) {
                     loadData.onSucceeded = EventHandler {
                         try {
                             if (loadData.get().left != null) {
-                                val tmpFile = File.createTempFile(loadData.get().left!!.left, ".pdb")
-                                val writer: PrintWriter
-                                try {
-                                    val reader = PDB().getEntry(loadData.get().left!!.left)
-                                    val buffer = StringBuilder()
-                                    var intValueOfChar: Int
-                                    while (reader.read().also { intValueOfChar = it } != -1) {
-                                        buffer.append(intValueOfChar.toChar())
-                                    }
-                                    reader.close()
-                                    writer = PrintWriter(tmpFile)
-                                    writer.println(buffer.toString())
-                                    writer.close()
-                                } catch (e: FileNotFoundException) {
-                                    e.printStackTrace()
-                                }
-                                mediator._2DDrawingsLoaded.add(loadData.get().left!!.right)
-                                mediator.canvas2D.load2D(mediator._2DDrawingsLoaded[mediator._2DDrawingsLoaded.size - 1])
-
+                                mediator.drawingsLoaded.add(DrawingLoadedFromRNAGallery(mediator, loadData.get().left!!.right, loadData.get().left!!.left))
+                                mediator.drawingDisplayed.set(mediator.drawingsLoaded[mediator.drawingsLoaded.size - 1])
                             }
                         } catch (e: java.lang.Exception) {
                             e.printStackTrace()
@@ -138,7 +119,7 @@ class WebBrowser(val mediator: Mediator) {
         }
         buttons.children.addAll(home, Label("PDB ID"), pdbID, Label("Chain ID"), chainIds, loadInRNArtist)
 
-        webEngine.load(if (RnartistConfig.useOnlineRNAGallery) "https://github.com/fjossinet/RNAGallery/main/PDB/status.md" else File("${RnartistConfig.rnaGalleryPath}/PDB/status.md").toURI().toURL().toExternalForm())
+        webEngine.load(if (RnartistConfig.useOnlineRNAGallery) "https://github.com/fjossinet/RNAGallery/blob/main/PDB/status.md" else File("${RnartistConfig.rnaGalleryPath}/PDB/status.md").toURI().toURL().toExternalForm())
         webEngine.loadWorker.stateProperty().addListener { _, _, newState ->
             if (webEngine.location.matches(Regex("https://www\\.rcsb\\.org/structure/...."))) {
                 pdbID.text = webEngine.location.split("/").last()
@@ -198,24 +179,8 @@ class WebBrowser(val mediator: Mediator) {
                     loadData.onSucceeded = EventHandler {
                         try {
                             if (loadData.get().left != null) {
-                                val tmpFile = File.createTempFile(loadData.get().left!!.left, ".pdb")
-                                val writer: PrintWriter
-                                try {
-                                    val reader = PDB().getEntry(loadData.get().left!!.left)
-                                    val buffer = StringBuilder()
-                                    var intValueOfChar: Int
-                                    while (reader.read().also { intValueOfChar = it } != -1) {
-                                        buffer.append(intValueOfChar.toChar())
-                                    }
-                                    reader.close()
-                                    writer = PrintWriter(tmpFile)
-                                    writer.println(buffer.toString())
-                                    writer.close()
-                                } catch (e: FileNotFoundException) {
-                                    e.printStackTrace()
-                                }
-                                mediator._2DDrawingsLoaded.add(loadData.get().left!!.right)
-                                mediator.canvas2D.load2D(mediator._2DDrawingsLoaded[mediator._2DDrawingsLoaded.size - 1])
+                                mediator.drawingsLoaded.add(DrawingLoadedFromRNAGallery(mediator, loadData.get().left!!.right, loadData.get().left!!.left))
+                                mediator.drawingDisplayed.set(mediator.drawingsLoaded[mediator.drawingsLoaded.size - 1])
                             }
                         } catch (e: java.lang.Exception) {
                             e.printStackTrace()

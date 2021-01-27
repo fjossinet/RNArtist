@@ -176,8 +176,8 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
         selectedCount = knob.connectors.count { it.selected }
         if (selectedCount == knob.junction.junctionCategory.value - 1) {
             knob.junction.layout = knob.getJunctionLayout().toMutableList()
-            knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(knob.junction)
-            this.knob.mediator.canvas2D.knobs.forEach {
+            knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(knob.junction)
+            this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
         }
@@ -251,8 +251,8 @@ class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
     override fun mouseClicked() {
         this.knob.junction.radius = this.knob.junction.radius * 1.1
         this.knob.junction.layout = this.knob.junction.layout //a trick to recompute the stuff
-        this.knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(this.knob.junction)
-        this.knob.mediator.canvas2D.knobs.forEach {
+        this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
+        this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
             it.update()
         }
         this.knob.mediator.canvas2D.repaint()
@@ -295,8 +295,8 @@ class Down(private val knob:JunctionKnob):AbstractJunctionArrow() {
     override fun mouseClicked() {
         this.knob.junction.radius = this.knob.junction.radius * 0.9
         this.knob.junction.layout = this.knob.junction.layout //a trick to recompute the stuff
-        this.knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(this.knob.junction)
-        this.knob.mediator.canvas2D.knobs.forEach {
+        this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
+        this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
             it.update()
         }
         this.knob.mediator.canvas2D.repaint()
@@ -336,8 +336,8 @@ class Left(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 currentPos = (currentPos+1)%16
             }
             this.knob.junction.layout = this.knob.getJunctionLayout().toMutableList()
-            this.knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(this.knob.junction)
-            this.knob.mediator.canvas2D.knobs.forEach {
+            this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
+            this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
             this.knob.mediator.canvas2D.repaint()
@@ -378,8 +378,8 @@ class Right(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 currentPos = if (currentPos-1 == -1) 15 else currentPos-1
             }
             this.knob.junction.layout = this.knob.getJunctionLayout().toMutableList()
-            this.knob.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(this.knob.junction)
-            this.knob.mediator.canvas2D.knobs.forEach {
+            this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
+            this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
             this.knob.mediator.canvas2D.repaint()

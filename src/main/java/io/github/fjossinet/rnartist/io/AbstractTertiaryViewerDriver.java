@@ -42,12 +42,6 @@ public abstract class AbstractTertiaryViewerDriver extends OnHangApplicationDriv
     public void eraseModel() {
     }
 
-    public void selectResidues(List<String> positions) {
-    }
-
-    public void residuesUnSelected(List<Integer> positions) {
-    }
-
     public void selectionCleared() {
     }
 

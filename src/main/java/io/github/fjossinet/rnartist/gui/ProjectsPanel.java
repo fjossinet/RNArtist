@@ -1,13 +1,10 @@
 package io.github.fjossinet.rnartist.gui;
 
 import io.github.fjossinet.rnartist.Mediator;
+import io.github.fjossinet.rnartist.RNArtist;
 import io.github.fjossinet.rnartist.core.model.*;
-import io.github.fjossinet.rnartist.core.model.io.Project;
-import javafx.beans.InvalidationListener;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
+import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNArtistDB;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.WorkerStateEvent;
@@ -16,6 +13,7 @@ import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
@@ -23,6 +21,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
@@ -31,6 +30,7 @@ import org.controlsfx.control.GridCell;
 import org.controlsfx.control.GridView;
 import org.dizitart.no2.Document;
 import org.dizitart.no2.NitriteId;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -39,9 +39,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
-import static io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseProject;
 import static io.github.fjossinet.rnartist.core.model.io.UtilsKt.createTemporaryFile;
 
 public class ProjectsPanel {
@@ -50,21 +50,19 @@ public class ProjectsPanel {
     private ObservableList<ProjectPanel> projectPanels;
     private GridView<ProjectPanel> gridview;
     private Stage stage;
-    private SimpleObjectProperty<NitriteId> currentProject = new SimpleObjectProperty<NitriteId>(null);
 
     public ProjectsPanel(Mediator mediator) {
         this.mediator = mediator;
         this.stage = new Stage();
-        stage.setTitle("RNArtist Projects");
+        stage.setTitle("Saved Projects");
         stage.setOnCloseRequest(windowEvent -> {
-            if (mediator.getSecondaryStructureDrawingProperty().isNotNull().get()) { //the user has decided to cancel its idea to open an other project
+            if (mediator.getDrawingDisplayed().isNotNull().get()) { //the user has decided to cancel its idea to open an other project
                 mediator.getRnartist().getStage().show();
                 mediator.getRnartist().getStage().toFront();
             }
         });
 
         this.projectPanels = FXCollections.observableArrayList();
-        this.projectPanels.add(new NewProjectPanel());
         for (Document project: this.mediator.getEmbeddedDB().getProjects().find()) {
             this.projectPanels.add(new ProjectPanel(project.getId(), (String)project.get("name")));
         }
@@ -82,13 +80,8 @@ public class ProjectsPanel {
         return stage;
     }
 
-    public SimpleObjectProperty<NitriteId> currentProject() {
-        return currentProject;
-    }
-
-    public void saveProjectAs(String name, BufferedImage image) throws IOException {
-        NitriteId id = mediator.getEmbeddedDB().saveProjectAs(name, mediator.getSecondaryStructureDrawingProperty().get());
-        this.currentProject.set(id);
+    public NitriteId saveProjectAs(String name, BufferedImage image) throws IOException {
+        NitriteId id = mediator.getEmbeddedDB().saveProjectAs(name, mediator.getDrawingDisplayed().get().getDrawing());
         File pngFile = new File(new File(new File(mediator.getEmbeddedDB().getRootDir(), "images"), "user"), id.toString() + ".png");
         ImageIO.write(image, "PNG", pngFile);
         File chimera_sessions = new File(mediator.getEmbeddedDB().getRootDir(), "chimera_sessions");
@@ -96,12 +89,13 @@ public class ProjectsPanel {
             chimera_sessions.mkdir();
         mediator.getChimeraDriver().saveSession(new File(chimera_sessions, id.toString()), new File(chimera_sessions, id.toString()+".pdb"));
         this.projectPanels.add(new ProjectPanel(id, name));
+        return id;
     }
 
     public void saveProject() throws IOException {
-        mediator.getEmbeddedDB().saveProject(this.currentProject.get(), mediator.getSecondaryStructureDrawingProperty().get());
+        mediator.getEmbeddedDB().saveProject(((DrawingLoadedFromRNArtistDB)mediator.getDrawingDisplayed().get()).getId(), mediator.getDrawingDisplayed().get().getDrawing());
         File chimera_sessions = new File(mediator.getEmbeddedDB().getRootDir(), "chimera_sessions");
-        mediator.getChimeraDriver().saveSession(new File(chimera_sessions, this.currentProject.get().toString()), new File(chimera_sessions, this.currentProject.get().toString()+".pdb"));
+        mediator.getChimeraDriver().saveSession(new File(chimera_sessions,((DrawingLoadedFromRNArtistDB)mediator.getDrawingDisplayed().get()).getId().toString()), new File(chimera_sessions, ((DrawingLoadedFromRNArtistDB)mediator.getDrawingDisplayed().get()).getId().toString()+".pdb"));
     }
 
     private void createScene(Stage stage) {
@@ -125,57 +119,68 @@ public class ProjectsPanel {
     class ProjectCell extends GridCell<ProjectPanel> {
 
         private ImageView icon = new ImageView();
-        private Label name = new Label();
+        private Label projectName = new Label();
         private VBox content;
         private HBox border;
+        private HBox titleBar;
 
         public ProjectCell() {
             this.content = new VBox();
             this.content.setSpacing(5);
             this.content.setAlignment(Pos.CENTER);
-            border = new HBox();
-            border.getChildren().add(icon);
-            border.setStyle("-fx-border-color: lightgray; -fx-border-width: 4px;");
+            this.border = new HBox();
+            this.border.getChildren().add(icon);
+            this.border.setStyle("-fx-border-color: lightgray; -fx-border-width: 4px;");
             this.content.getChildren().add(border);
-            this.content.getChildren().add(name);
-            name.setTextFill(Color.BLACK);
-            name.setStyle("-fx-font-weight: bold");
-            this.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            this.titleBar = new HBox();
+            this.titleBar.setSpacing(5);
+            this.titleBar.setAlignment(Pos.CENTER);
+            this.titleBar.getChildren().add(projectName);
+            Label deleteProject = new Label(null, new FontIcon("fas-trash:15"));
+            ((FontIcon)deleteProject.getGraphic()).setFill(Color.BLACK);
+            this.titleBar.getChildren().add(deleteProject);
+            this.content.getChildren().add(this.titleBar);
+            this.projectName.setTextFill(Color.BLACK);
+            this.projectName.setStyle("-fx-font-weight: bold");
+            deleteProject.setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent event) {
-                    if (ProjectCell.this.getItem().name.equals("New Project")) {
-                        stage.hide();
-                        currentProject.set(null);
-                        mediator.getChimeraDriver().closeSession();
-                        mediator.get_2DDrawingsLoaded().clear();
-                        mediator.getExplorer().getStage().show();
-                        mediator.getRnartist().getStage().show();
-                        mediator.getRnartist().getStage().toFront();
-                    } else {
-                        javafx.concurrent.Task<Pair<SecondaryStructureDrawing, Exception>> loadData = new javafx.concurrent.Task<Pair<SecondaryStructureDrawing, Exception>>() {
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    alert.initOwner(ProjectsPanel.this.stage);
+                    alert.initModality(Modality.WINDOW_MODAL);
+                    alert.setTitle("Confirm Deletion");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Are you sure to delete this project?");
 
+                    Stage alerttStage = (Stage) alert.getDialogPane().getScene().getWindow();
+                    alerttStage.setAlwaysOnTop(true);
+                    alerttStage.toFront();
+
+                    Optional<ButtonType> result = alert.showAndWait();
+                    if (result.get() == ButtonType.OK) {
+                        javafx.concurrent.Task<Exception> deleteProject = new javafx.concurrent.Task<Exception>() {
                             @Override
-                            protected Pair<SecondaryStructureDrawing, Exception> call() {
+                            protected Exception call() {
                                 try {
-                                    Project project = mediator.getEmbeddedDB().getProject(ProjectCell.this.getItem().id);
-                                    return Pair.of(parseProject(project), null);
+                                    mediator.getEmbeddedDB().removeProject(ProjectCell.this.getItem().id);
+                                    return null;
                                 } catch (Exception e) {
-                                    return Pair.of(null, e);
+                                    return e;
                                 }
                             }
                         };
-                        loadData.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+                        deleteProject.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
                             @Override
                             public void handle(WorkerStateEvent workerStateEvent) {
                                 try {
-                                    if (loadData.get().getRight() != null) {
+                                    if (deleteProject.get() != null) {
                                         Alert alert = new Alert(Alert.AlertType.ERROR);
-                                        alert.setTitle("Project loading error");
-                                        alert.setHeaderText(loadData.get().getRight().getMessage());
+                                        alert.setTitle("Project deletion error");
+                                        alert.setHeaderText(deleteProject.get().getMessage());
                                         alert.setContentText("If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com");
                                         StringWriter sw = new StringWriter();
                                         PrintWriter pw = new PrintWriter(sw);
-                                        loadData.get().getRight().printStackTrace(pw);
+                                        deleteProject.get().printStackTrace(pw);
                                         String exceptionText = sw.toString();
 
                                         Label label = new Label("The exception stacktrace was:");
@@ -196,22 +201,10 @@ public class ProjectsPanel {
                                         alert.getDialogPane().setExpandableContent(expContent);
                                         alert.showAndWait();
                                     } else {
-                                        stage.hide();
-                                        mediator.getChimeraDriver().closeSession();
-                                        mediator.get_2DDrawingsLoaded().clear();
-                                        mediator.getExplorer().getStage().show();
-                                        mediator.getRnartist().getStage().show();
-                                        mediator.getRnartist().getStage().toFront();
-
-                                        currentProject.set(ProjectCell.this.getItem().id);
-                                        mediator.get_2DDrawingsLoaded().add(loadData.get().getLeft());
-                                        File chimera_session = ProjectCell.this.getItem().getChimeraSession();
-                                        File pdbFile = ProjectCell.this.getItem().getPdbFile();
-                                        if (chimera_session.exists() && pdbFile.exists())
-                                            mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1), chimera_session, pdbFile);
-                                        else
-                                            mediator.canvas2D.load2D(mediator.get_2DDrawingsLoaded().get(mediator.get_2DDrawingsLoaded().size() - 1), null, null);
-
+                                        projectPanels.clear();
+                                        for (Document project: mediator.getEmbeddedDB().getProjects().find()) {
+                                            projectPanels.add(new ProjectPanel(project.getId(), (String)project.get("name")));
+                                        }
                                     }
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
@@ -220,9 +213,75 @@ public class ProjectsPanel {
                                 }
                             }
                         });
-                        new Thread(loadData).start();
+                        new Thread(deleteProject).start();
+                    } else {
+                        event.consume();
                     }
+                }
+            });
+            icon.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent event) {
+                    javafx.concurrent.Task<Pair<SecondaryStructureDrawing, Exception>> loadData = new javafx.concurrent.Task<Pair<SecondaryStructureDrawing, Exception>>() {
 
+                        @Override
+                        protected Pair<SecondaryStructureDrawing, Exception> call() {
+                            try {
+                                return Pair.of(mediator.getEmbeddedDB().getProject(ProjectCell.this.getItem().id), null);
+                            } catch (Exception e) {
+                                return Pair.of(null, e);
+                            }
+                        }
+                    };
+                    loadData.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+                        @Override
+                        public void handle(WorkerStateEvent workerStateEvent) {
+                            try {
+                                if (loadData.get().getRight() != null) {
+                                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                                    alert.setTitle("Project loading error");
+                                    alert.setHeaderText(loadData.get().getRight().getMessage());
+                                    alert.setContentText("If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com");
+                                    StringWriter sw = new StringWriter();
+                                    PrintWriter pw = new PrintWriter(sw);
+                                    loadData.get().getRight().printStackTrace(pw);
+                                    String exceptionText = sw.toString();
+
+                                    Label label = new Label("The exception stacktrace was:");
+
+                                    TextArea textArea = new TextArea(exceptionText);
+                                    textArea.setEditable(false);
+                                    textArea.setWrapText(true);
+
+                                    textArea.setMaxWidth(Double.MAX_VALUE);
+                                    textArea.setMaxHeight(Double.MAX_VALUE);
+                                    GridPane.setVgrow(textArea, Priority.ALWAYS);
+                                    GridPane.setHgrow(textArea, Priority.ALWAYS);
+
+                                    GridPane expContent = new GridPane();
+                                    expContent.setMaxWidth(Double.MAX_VALUE);
+                                    expContent.add(label, 0, 0);
+                                    expContent.add(textArea, 0, 1);
+                                    alert.getDialogPane().setExpandableContent(expContent);
+                                    alert.showAndWait();
+                                } else {
+                                    stage.hide();
+                                    mediator.getExplorer().getStage().show();
+                                    mediator.getRnartist().getStage().show();
+                                    mediator.getRnartist().getStage().toFront();
+
+                                    mediator.getDrawingsLoaded().add(new DrawingLoadedFromRNArtistDB(mediator, loadData.get().getLeft(),ProjectCell.this.getItem().id, ProjectCell.this.getItem().name));
+                                    mediator.getDrawingDisplayed().set(mediator.getDrawingsLoaded().get(mediator.getDrawingsLoaded().size() - 1));
+
+                                }
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            } catch (ExecutionException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                    new Thread(loadData).start();
                 }
             });
 
@@ -247,7 +306,7 @@ public class ProjectsPanel {
             setGraphic(null);
             setText(null);
             if (!empty && projectPanel != null) {
-                name.setText(projectPanel.name);
+                projectName.setText(projectPanel.name);
                 icon.setImage(projectPanel.getImage());
                 setGraphic(this.content);
             }
@@ -277,29 +336,6 @@ public class ProjectsPanel {
             return null;
         }
 
-        File getChimeraSession() {
-            return new File(new File(mediator.getEmbeddedDB().getRootDir(),"chimera_sessions"),id.toString()+".py");
-        }
-
-        File getPdbFile() {
-            return new File(new File(mediator.getEmbeddedDB().getRootDir(),"chimera_sessions"),id.toString()+".pdb");
-        }
-
-    }
-
-    class NewProjectPanel extends ProjectPanel {
-        public NewProjectPanel() {
-            this.name = "New Project";
-        }
-
-        Image getImage() {
-            try {
-                return new Image(new File(new File(new File(mediator.getEmbeddedDB().getRootDir(),"images"),"user"),"New Project.png").toURI().toURL().toString());
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
     }
 
 }

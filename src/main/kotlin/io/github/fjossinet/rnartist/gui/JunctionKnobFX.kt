@@ -35,7 +35,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
             selectedCount = connectors.count { it.selected }
             if (selectedCount == this.junctionCircle.junctionCategory.value - 1) {
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(junctionCircle)
+                this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.explorer.refresh()
                 this.mediator.canvas2D.repaint()
@@ -63,7 +63,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
                 selectedCount = connectors.count { it.selected }
                 if (selectedCount == this.junctionCircle.junctionCategory.value - 1) {
                     junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                    this.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(junctionCircle)
+                    this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                     //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                     mediator.explorer.refresh()
                     this.mediator.canvas2D.repaint()
@@ -91,7 +91,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
             up.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 1.1
             junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
-            this.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(junctionCircle)
+            this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
             this.mediator.canvas2D.repaint()
         }
         up.setOnMouseReleased {
@@ -111,7 +111,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
             bottom.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 0.9
             junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
-            this.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(junctionCircle)
+            this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
             this.mediator.canvas2D.repaint()
         }
         bottom.setOnMouseReleased {
@@ -153,7 +153,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
                     currentPos = (currentPos+1)%16
                 }
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(junctionCircle)
+                this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                 this.mediator.canvas2D.repaint()
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.explorer.refresh()
@@ -199,7 +199,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
                     currentPos = if (currentPos-1 == -1) 15 else currentPos-1
                 }
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
-                this.mediator.secondaryStructureDrawingProperty.get()!!.computeResidues(junctionCircle)
+                this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                 this.mediator.canvas2D.repaint()
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.explorer.refresh()
