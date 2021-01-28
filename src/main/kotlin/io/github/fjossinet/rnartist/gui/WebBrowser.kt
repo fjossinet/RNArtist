@@ -57,6 +57,7 @@ class WebBrowser(val mediator: Mediator) {
         root.tabs.add(mfold)*/
 
         val scene = Scene(root)
+        scene.stylesheets.add("io/github/fjossinet/rnartist/gui/css/main.css")
         stage.scene = scene
         val screenSize = Screen.getPrimary().bounds
         this.stage.width = screenSize.width

@@ -113,6 +113,7 @@ public class ProjectsPanel {
             }
         });
         Scene scene = new Scene(gridview);
+        scene.getStylesheets().add("io/github/fjossinet/rnartist/gui/css/main.css");
         stage.setScene(scene);
     }
 

@@ -70,10 +70,11 @@ public class Settings {
         this.createGlobalSettingsPanel(root);
 
         Scene scene = new Scene(root);
+        scene.getStylesheets().add("io/github/fjossinet/rnartist/gui/css/main.css");
         stage.setScene(scene);
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();
-        scene.getWindow().setWidth(screenSize.getWidth()/2);
+        scene.getWindow().setWidth(screenSize.getWidth()/3);
         scene.getWindow().setHeight(screenSize.getHeight()/2);
         scene.getWindow().setX(screenSize.getWidth()/2-screenSize.getWidth()/4);
         scene.getWindow().setY(screenSize.getHeight()/2-screenSize.getHeight()/4);

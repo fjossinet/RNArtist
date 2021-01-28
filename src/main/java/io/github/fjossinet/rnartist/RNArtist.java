@@ -76,6 +76,7 @@ public class RNArtist extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
+        System.setProperty("prism.lcdtext", "false"); // to avoid to have the font "scratched"
         this.stage = stage;
         this.stage.setOnCloseRequest(windowEvent -> {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -237,7 +238,7 @@ public class RNArtist extends Application {
                                         //we load and fit (only if not a drawing from a JSON file) on the last 2D loaded
                                         mediator.getDrawingDisplayed().set(mediator.getDrawingsLoaded().get(mediator.getDrawingsLoaded().size() - 1));
                                         if (mediator.getViewX() == 0.0 && mediator.getViewY() == 0.0 && mediator.getZoomLevel() == 1.0)//this test allows to detect JSON loadFiles exported from RNArtist with a focus on a region
-                                            mediator.canvas2D.fitStructure();
+                                            mediator.canvas2D.fitStructure(null);
                                     }
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
@@ -497,17 +498,31 @@ public class RNArtist extends Application {
 
         root.setTop(toolbar);
 
-        //++++++ left/2D Toolbar
+        //++++++ left Toolbar
 
-        VBox _2DToolbar = new VBox();
-        _2DToolbar.setAlignment(Pos.TOP_CENTER);
-        _2DToolbar.setPadding(new Insets(5.0));
-        _2DToolbar.setSpacing(5.0);
+        GridPane leftToolBar = new GridPane();
+        leftToolBar.setAlignment(Pos.TOP_CENTER);
+        leftToolBar.setPadding(new Insets(5.0));
+        leftToolBar.setVgap(5);
+        leftToolBar.setHgap(5);
 
-        _2DToolbar.getChildren().add(new Label("2D"));
+        int row = 0;
+
         Separator s = new Separator();
         s.setPadding(new Insets(5, 0, 5, 0));
-        _2DToolbar.getChildren().add(s);
+        s.getStyleClass().add("thick-separator");
+        leftToolBar.add(s, 0, row++, 2, 1);
+        GridPane.setHalignment(s, HPos.CENTER);
+
+        l = new Label("2D");
+        leftToolBar.add(l, 0, row++, 2, 1);
+        GridPane.setHalignment(l, HPos.CENTER);
+
+        s = new Separator();
+        s.setPadding(new Insets(5, 0, 5, 0));
+        s.getStyleClass().add("thick-separator");
+        leftToolBar.add(s, 0, row++, 2, 1);
+        GridPane.setHalignment(s, HPos.CENTER);
 
         Button center2D = new Button(null, new FontIcon("fas-crosshairs:15"));
         center2D.setMaxWidth(Double.MAX_VALUE);
@@ -532,7 +547,6 @@ public class RNArtist extends Application {
             }
         });
         center2D.setTooltip(new Tooltip("Focus 2D on Selection"));
-        _2DToolbar.getChildren().add(center2D);
 
         Button fit2D = new Button(null, new FontIcon("fas-expand-arrows-alt:15"));
         fit2D.setMaxWidth(Double.MAX_VALUE);
@@ -540,11 +554,15 @@ public class RNArtist extends Application {
         fit2D.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                mediator.getCanvas2D().fitStructure();
+                mediator.getCanvas2D().fitStructure(mediator.getCanvas2D().getSelectionFrame());
             }
         });
         fit2D.setTooltip(new Tooltip("Fit 2D"));
-        _2DToolbar.getChildren().add(fit2D);
+
+        leftToolBar.add(center2D, 0, row);
+        GridPane.setHalignment(center2D, HPos.CENTER);
+        leftToolBar.add(fit2D, 1, row++);
+        GridPane.setHalignment(fit2D, HPos.CENTER);
 
         Button showTertiaries = new Button(null, new FontIcon("fas-eye:15"));
         showTertiaries.setMaxWidth(Double.MAX_VALUE);
@@ -562,7 +580,11 @@ public class RNArtist extends Application {
                     starts.add(mediator.getExplorer().getTreeTableView().getRoot());
                 }
                 else {
-                    starts.addAll(mediator.getExplorer().getTreeTableView().getSelectionModel().getSelectedItems());
+                    for (TreeItem<ExplorerItem> selectedItem: mediator.getExplorer().getTreeTableView().getSelectionModel().getSelectedItems()) {
+                        if (ResidueDrawing.class.isInstance(selectedItem.getValue().getDrawingElement()))
+                            starts.add(selectedItem.getParent()); //if the user has selected single residues, this allows to display its tertiary interactions, since a tertiary can be a parent of a residue in the explorer
+                        starts.add(selectedItem);
+                    }
                     scope = STRUCTURAL_DOMAIN_SCOPE;
                 }
                 for (TreeItem<ExplorerItem> start:starts)
@@ -574,7 +596,6 @@ public class RNArtist extends Application {
             }
         });
         showTertiaries.setTooltip(new Tooltip("Show Tertiaries"));
-        _2DToolbar.getChildren().add(showTertiaries);
 
         Button hideTertiaries = new Button(null, new FontIcon("fas-eye-slash:15"));
         hideTertiaries.setMaxWidth(Double.MAX_VALUE);
@@ -602,12 +623,18 @@ public class RNArtist extends Application {
 
             }
         });
+
         hideTertiaries.setTooltip(new Tooltip("Hide Tertiaries"));
-        _2DToolbar.getChildren().add(hideTertiaries);
+
+        leftToolBar.add(showTertiaries, 0, row);
+        GridPane.setHalignment(showTertiaries, HPos.CENTER);
+        leftToolBar.add(hideTertiaries, 1, row++);
+        GridPane.setHalignment(hideTertiaries, HPos.CENTER);
 
         s = new Separator();
         s.setPadding(new Insets(5, 0, 5, 0));
-        _2DToolbar.getChildren().add(s);
+        leftToolBar.add(s, 0, row++, 2, 1);
+        GridPane.setHalignment(s, HPos.CENTER);
 
         Button levelDetails1 = new Button("1");
         levelDetails1.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
@@ -652,7 +679,6 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(levelDetails1);
 
         Button levelDetails2 = new Button("2");
         levelDetails2.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
@@ -697,7 +723,11 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(levelDetails2);
+
+        leftToolBar.add(levelDetails1, 0, row);
+        GridPane.setHalignment(levelDetails1, HPos.CENTER);
+        leftToolBar.add(levelDetails2, 1, row++);
+        GridPane.setHalignment(levelDetails2, HPos.CENTER);
 
         Button levelDetails3 = new Button("3");
         levelDetails3.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
@@ -742,7 +772,6 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(levelDetails3);
 
         Button levelDetails4 = new Button("4");
         levelDetails4.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
@@ -787,7 +816,10 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(levelDetails4);
+        leftToolBar.add(levelDetails3, 0, row);
+        GridPane.setHalignment(levelDetails1, HPos.CENTER);
+        leftToolBar.add(levelDetails4, 1, row++);
+        GridPane.setHalignment(levelDetails2, HPos.CENTER);
 
         Button levelDetails5 = new Button("5");
         levelDetails5.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
@@ -832,24 +864,91 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(levelDetails5);
+
+        leftToolBar.add(levelDetails5, 0, row++);
+        GridPane.setHalignment(levelDetails5, HPos.CENTER);
 
         s = new Separator();
         s.setPadding(new Insets(5, 0, 5, 0));
-        _2DToolbar.getChildren().add(s);
+        leftToolBar.add(s, 0, row++, 2, 1);
+        GridPane.setHalignment(s, HPos.CENTER);
 
-        Button pickColorScheme = new Button(null, new FontIcon("fas-palette:15"));
-        pickColorScheme.setMaxWidth(Double.MAX_VALUE);
-        pickColorScheme.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
-        _2DToolbar.getChildren().add(pickColorScheme);
+        Button syncColors = new Button(null, new FontIcon("fas-unlock:12"));
 
-        Button ALabel = new Button("A");
         ColorPicker AColorPicker = new ColorPicker();
         AColorPicker.setMaxWidth(Double.MAX_VALUE);
+        ColorPicker UColorPicker = new ColorPicker();
+        UColorPicker.setMaxWidth(Double.MAX_VALUE);
+        ColorPicker GColorPicker = new ColorPicker();
+        GColorPicker.setMaxWidth(Double.MAX_VALUE);
+        ColorPicker CColorPicker = new ColorPicker();
+        CColorPicker.setMaxWidth(Double.MAX_VALUE);
+
+        Button ALabel = new Button("A");
         ALabel.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
         ALabel.setMaxWidth(Double.MAX_VALUE);
         ALabel.setUserData("white");
         ALabel.setTextFill(Color.WHITE);
+        Button ULabel = new Button("U");
+        ULabel.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
+        ULabel.setMaxWidth(Double.MAX_VALUE);
+        ULabel.setUserData("white");
+        ULabel.setTextFill(Color.WHITE);
+        Button GLabel = new Button("G");
+        GLabel.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
+        GLabel.setUserData("white");
+        GLabel.setTextFill(Color.WHITE);
+        GLabel.setMaxWidth(Double.MAX_VALUE);
+        Button CLabel = new Button("C");
+        CLabel.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
+        CLabel.setMaxWidth(Double.MAX_VALUE);
+        CLabel.setUserData("white");
+        CLabel.setTextFill(Color.WHITE);
+
+        Button pickColorScheme = new Button(null, new FontIcon("fas-swatchbook:15"));
+        pickColorScheme.setMaxWidth(Double.MAX_VALUE);
+        pickColorScheme.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
+
+        Button paintResidues = new Button(null, new FontIcon("fas-fill:15"));
+        paintResidues.setMaxWidth(Double.MAX_VALUE);
+        paintResidues.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
+        paintResidues.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
+                List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
+                byte scope = BRANCH_SCOPE;
+                if (mediator.getExplorer().getTreeTableView().getSelectionModel().isEmpty() || mediator.getExplorer().getTreeTableView().getSelectionModel().getSelectedItems().size() == 1 && mediator.getExplorer().getTreeTableView().getSelectionModel().getSelectedItem() == mediator.getExplorer().getTreeTableView().getRoot() ) {
+                    starts.add(mediator.getExplorer().getTreeTableView().getRoot());
+                }
+                else {
+                    starts.addAll(mediator.getExplorer().getTreeTableView().getSelectionModel().getSelectedItems());
+                    scope = STRUCTURAL_DOMAIN_SCOPE;
+                }
+
+                Theme t = new Theme();
+                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+
+                for (TreeItem<ExplorerItem> start:starts)
+                    mediator.getExplorer().applyTheme(start, t, scope);
+
+                mediator.getExplorer().refresh();
+                mediator.getCanvas2D().repaint();
+            }
+        });
+
+        leftToolBar.add(pickColorScheme, 0, row);
+        GridPane.setHalignment(pickColorScheme, HPos.CENTER);
+        leftToolBar.add(paintResidues, 1, row++);
+        GridPane.setHalignment(paintResidues, HPos.CENTER);
+
         ALabel.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -858,10 +957,26 @@ public class RNArtist extends Application {
                     ALabel.setUserData("white");
                     c = Color.WHITE;
                     ALabel.setTextFill(Color.WHITE);
+                    if ("lock".equals(syncColors.getUserData())) {
+                        ULabel.setUserData("white");
+                        ULabel.setTextFill(Color.WHITE);
+                        GLabel.setUserData("white");
+                        GLabel.setTextFill(Color.WHITE);
+                        CLabel.setUserData("white");
+                        CLabel.setTextFill(Color.WHITE);
+                    }
                 } else {
                     ALabel.setUserData("black");
                     c = Color.BLACK;
                     ALabel.setTextFill(Color.BLACK);
+                    if ("lock".equals(syncColors.getUserData())) {
+                        ULabel.setUserData("black");
+                        ULabel.setTextFill(Color.BLACK);
+                        GLabel.setUserData("black");
+                        GLabel.setTextFill(Color.BLACK);
+                        CLabel.setUserData("black");
+                        CLabel.setTextFill(Color.BLACK);
+                    }
                 }
 
                 List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
@@ -878,6 +993,14 @@ public class RNArtist extends Application {
                 Theme t = new Theme();
                 t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
                 t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                if ("lock".equals(syncColors.getUserData())) {
+                    t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                }
 
                 for (TreeItem<ExplorerItem> start:starts)
                     mediator.getExplorer().applyTheme(start, t, scope);
@@ -886,7 +1009,11 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(ALabel);
+
+        leftToolBar.add(ALabel, 0, row);
+        GridPane.setHalignment(ALabel, HPos.CENTER);
+        leftToolBar.add(AColorPicker, 1, row++);
+        GridPane.setHalignment(AColorPicker, HPos.CENTER);
 
         AColorPicker.getStyleClass().add("button");
         AColorPicker.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
@@ -896,6 +1023,15 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 ALabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
 
+                if ("lock".equals(syncColors.getUserData())) {
+                    GColorPicker.setValue(AColorPicker.getValue());
+                    GLabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                    UColorPicker.setValue(AColorPicker.getValue());
+                    ULabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                    CColorPicker.setValue(AColorPicker.getValue());
+                    CLabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                }
+
                 List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
                 List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
                 byte scope = BRANCH_SCOPE;
@@ -911,6 +1047,15 @@ public class RNArtist extends Application {
                 t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
                 t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
 
+                if ("lock".equals(syncColors.getUserData())) {
+                    t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                }
+
                 for (TreeItem<ExplorerItem> start:starts)
                     mediator.getExplorer().applyTheme(start, t, scope);
 
@@ -918,15 +1063,7 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(AColorPicker);
 
-        Button ULabel = new Button("U");
-        ULabel.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
-        ColorPicker UColorPicker = new ColorPicker();
-        UColorPicker.setMaxWidth(Double.MAX_VALUE);
-        ULabel.setMaxWidth(Double.MAX_VALUE);
-        ULabel.setUserData("white");
-        ULabel.setTextFill(Color.WHITE);
         ULabel.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -935,10 +1072,26 @@ public class RNArtist extends Application {
                     ULabel.setUserData("white");
                     c = Color.WHITE;
                     ULabel.setTextFill(Color.WHITE);
+                    if ("lock".equals(syncColors.getUserData())) {
+                        ALabel.setUserData("white");
+                        ALabel.setTextFill(Color.WHITE);
+                        GLabel.setUserData("white");
+                        GLabel.setTextFill(Color.WHITE);
+                        CLabel.setUserData("white");
+                        CLabel.setTextFill(Color.WHITE);
+                    }
                 } else {
                     ULabel.setUserData("black");
                     c = Color.BLACK;
                     ULabel.setTextFill(Color.BLACK);
+                    if ("lock".equals(syncColors.getUserData())) {
+                        ALabel.setUserData("black");
+                        ALabel.setTextFill(Color.BLACK);
+                        GLabel.setUserData("black");
+                        GLabel.setTextFill(Color.BLACK);
+                        CLabel.setUserData("black");
+                        CLabel.setTextFill(Color.BLACK);
+                    }
                 }
 
                 List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
@@ -955,6 +1108,14 @@ public class RNArtist extends Application {
                 Theme t = new Theme();
                 t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
                 t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                if ("lock".equals(syncColors.getUserData())) {
+                    t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                }
 
                 for (TreeItem<ExplorerItem> start:starts)
                     mediator.getExplorer().applyTheme(start, t, scope);
@@ -963,7 +1124,11 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(ULabel);
+
+        leftToolBar.add(ULabel, 0, row);
+        GridPane.setHalignment(ULabel, HPos.CENTER);
+        leftToolBar.add(UColorPicker, 1, row++);
+        GridPane.setHalignment(UColorPicker, HPos.CENTER);
 
         UColorPicker.getStyleClass().add("button");
         UColorPicker.setStyle("-fx-color-label-visible: false ;");
@@ -972,6 +1137,15 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 ULabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
 
+                if ("lock".equals(syncColors.getUserData())) {
+                    AColorPicker.setValue(UColorPicker.getValue());
+                    ALabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                    GColorPicker.setValue(UColorPicker.getValue());
+                    GLabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                    CColorPicker.setValue(UColorPicker.getValue());
+                    CLabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                }
+
                 List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
                 List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
                 byte scope = BRANCH_SCOPE;
@@ -986,6 +1160,14 @@ public class RNArtist extends Application {
                 Theme t = new Theme();
                 t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
                 t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                if ("lock".equals(syncColors.getUserData())) {
+                    t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                }
 
                 for (TreeItem<ExplorerItem> start:starts)
                     mediator.getExplorer().applyTheme(start, t, scope);
@@ -994,15 +1176,7 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(UColorPicker);
 
-        Button GLabel = new Button("G");
-        GLabel.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
-        ColorPicker GColorPicker = new ColorPicker();
-        GColorPicker.setMaxWidth(Double.MAX_VALUE);
-        GLabel.setUserData("white");
-        GLabel.setTextFill(Color.WHITE);
-        GLabel.setMaxWidth(Double.MAX_VALUE);
         GLabel.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -1011,10 +1185,26 @@ public class RNArtist extends Application {
                     GLabel.setUserData("white");
                     c = Color.WHITE;
                     GLabel.setTextFill(Color.WHITE);
+                    if ("lock".equals(syncColors.getUserData())) {
+                        ULabel.setUserData("white");
+                        ULabel.setTextFill(Color.WHITE);
+                        ALabel.setUserData("white");
+                        ALabel.setTextFill(Color.WHITE);
+                        CLabel.setUserData("white");
+                        CLabel.setTextFill(Color.WHITE);
+                    }
                 } else {
                     GLabel.setUserData("black");
                     c = Color.BLACK;
                     GLabel.setTextFill(Color.BLACK);
+                    if ("lock".equals(syncColors.getUserData())) {
+                        ULabel.setUserData("black");
+                        ULabel.setTextFill(Color.BLACK);
+                        ALabel.setUserData("black");
+                        ALabel.setTextFill(Color.BLACK);
+                        CLabel.setUserData("black");
+                        CLabel.setTextFill(Color.BLACK);
+                    }
                 }
 
                 List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
@@ -1031,6 +1221,14 @@ public class RNArtist extends Application {
                 Theme t = new Theme();
                 t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
                 t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                if ("lock".equals(syncColors.getUserData())) {
+                    t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                }
 
                 for (TreeItem<ExplorerItem> start:starts)
                     mediator.getExplorer().applyTheme(start, t, scope);
@@ -1039,7 +1237,10 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(GLabel);
+        leftToolBar.add(GLabel, 0, row);
+        GridPane.setHalignment(GLabel, HPos.CENTER);
+        leftToolBar.add(GColorPicker, 1, row++);
+        GridPane.setHalignment(GColorPicker, HPos.CENTER);
 
         GColorPicker.getStyleClass().add("button");
         GColorPicker.setStyle("-fx-color-label-visible: false ;");
@@ -1048,6 +1249,15 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 GLabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
 
+                if ("lock".equals(syncColors.getUserData())) {
+                    AColorPicker.setValue(GColorPicker.getValue());
+                    ALabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                    UColorPicker.setValue(GColorPicker.getValue());
+                    ULabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                    CColorPicker.setValue(GColorPicker.getValue());
+                    CLabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                }
+
                 List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
                 List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
                 byte scope = BRANCH_SCOPE;
@@ -1062,6 +1272,14 @@ public class RNArtist extends Application {
                 Theme t = new Theme();
                 t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
                 t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                if ("lock".equals(syncColors.getUserData())) {
+                    t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                }
 
                 for (TreeItem<ExplorerItem> start:starts)
                     mediator.getExplorer().applyTheme(start, t, scope);
@@ -1070,15 +1288,7 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(GColorPicker);
 
-        Button CLabel = new Button("C");
-        ColorPicker CColorPicker = new ColorPicker();
-        CColorPicker.setMaxWidth(Double.MAX_VALUE);
-        CLabel.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
-        CLabel.setMaxWidth(Double.MAX_VALUE);
-        CLabel.setUserData("white");
-        CLabel.setTextFill(Color.WHITE);
         CLabel.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -1087,10 +1297,26 @@ public class RNArtist extends Application {
                     CLabel.setUserData("white");
                     c = Color.WHITE;
                     CLabel.setTextFill(Color.WHITE);
+                    if ("lock".equals(syncColors.getUserData())) {
+                        ULabel.setUserData("white");
+                        ULabel.setTextFill(Color.WHITE);
+                        GLabel.setUserData("white");
+                        GLabel.setTextFill(Color.WHITE);
+                        ALabel.setUserData("white");
+                        ALabel.setTextFill(Color.WHITE);
+                    }
                 } else {
                     CLabel.setUserData("black");
                     c = Color.BLACK;
                     CLabel.setTextFill(Color.BLACK);
+                    if ("lock".equals(syncColors.getUserData())) {
+                        ULabel.setUserData("black");
+                        ULabel.setTextFill(Color.BLACK);
+                        GLabel.setUserData("black");
+                        GLabel.setTextFill(Color.BLACK);
+                        ALabel.setUserData("black");
+                        ALabel.setTextFill(Color.BLACK);
+                    }
                 }
 
                 List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
@@ -1107,6 +1333,14 @@ public class RNArtist extends Application {
                 Theme t = new Theme();
                 t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
                 t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                if ("lock".equals(syncColors.getUserData())) {
+                    t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                }
 
                 for (TreeItem<ExplorerItem> start:starts)
                     mediator.getExplorer().applyTheme(start, t, scope);
@@ -1115,7 +1349,10 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(CLabel);
+        leftToolBar.add(CLabel, 0, row);
+        GridPane.setHalignment(CLabel, HPos.CENTER);
+        leftToolBar.add(CColorPicker, 1, row++);
+        GridPane.setHalignment(CColorPicker, HPos.CENTER);
 
         CColorPicker.getStyleClass().add("button");
         CColorPicker.setStyle("-fx-color-label-visible: false ;");
@@ -1124,6 +1361,15 @@ public class RNArtist extends Application {
             public void handle(ActionEvent actionEvent) {
                 CLabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
 
+                if ("lock".equals(syncColors.getUserData())) {
+                    AColorPicker.setValue(CColorPicker.getValue());
+                    ALabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                    UColorPicker.setValue(CColorPicker.getValue());
+                    ULabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                    GColorPicker.setValue(CColorPicker.getValue());
+                    GLabel.setStyle("-fx-background-color: "+getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                }
+
                 List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
                 List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
                 byte scope = BRANCH_SCOPE;
@@ -1138,6 +1384,14 @@ public class RNArtist extends Application {
                 Theme t = new Theme();
                 t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
                 t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
+                if ("lock".equals(syncColors.getUserData())) {
+                    t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
+                    t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
+                    t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
+                }
 
                 for (TreeItem<ExplorerItem> start:starts)
                     mediator.getExplorer().applyTheme(start, t, scope);
@@ -1146,7 +1400,6 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(CColorPicker);
 
         //++++++++++ we init the color buttons with a random scheme
 
@@ -1242,45 +1495,29 @@ public class RNArtist extends Application {
 
         //++++++++++
 
-        Button paintResidues = new Button(null, new FontIcon("fas-fill:15"));
-        paintResidues.setMaxWidth(Double.MAX_VALUE);
-        paintResidues.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
-        paintResidues.setOnAction(new EventHandler<ActionEvent>() {
+        //syncColors.setMaxWidth(Double.MAX_VALUE);
+        syncColors.setUserData("unlock");
+        syncColors.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
+        syncColors.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
-                List<TreeItem<ExplorerItem>> hits = new ArrayList<>();
-                List<TreeItem<ExplorerItem>> starts = new ArrayList<>();
-                byte scope = BRANCH_SCOPE;
-                if (mediator.getExplorer().getTreeTableView().getSelectionModel().isEmpty() || mediator.getExplorer().getTreeTableView().getSelectionModel().getSelectedItems().size() == 1 && mediator.getExplorer().getTreeTableView().getSelectionModel().getSelectedItem() == mediator.getExplorer().getTreeTableView().getRoot() ) {
-                    starts.add(mediator.getExplorer().getTreeTableView().getRoot());
+                if ("unlock".equals(syncColors.getUserData())) {
+                    syncColors.setGraphic(new FontIcon("fas-lock:12"));
+                    syncColors.setUserData("lock");
+                } else {
+                    syncColors.setGraphic(new FontIcon("fas-unlock:12"));
+                    syncColors.setUserData("unlock");
                 }
-                else {
-                    starts.addAll(mediator.getExplorer().getTreeTableView().getSelectionModel().getSelectedItems());
-                    scope = STRUCTURAL_DOMAIN_SCOPE;
-                }
-
-                Theme t = new Theme();
-                t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ALabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
-                t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(AColorPicker.getValue())));
-                t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(ULabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
-                t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(UColorPicker.getValue())));
-                t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
-                t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(GColorPicker.getValue())));
-                t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CLabel.getUserData().equals("black")? Color.BLACK : Color.WHITE)));
-                t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.color, getHTMLColorString(javaFXToAwt(CColorPicker.getValue())));
-
-                for (TreeItem<ExplorerItem> start:starts)
-                    mediator.getExplorer().applyTheme(start, t, scope);
-
-                mediator.getExplorer().refresh();
-                mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(paintResidues);
+
+        leftToolBar.add(syncColors, 0, row++, 2, 1);
+        GridPane.setHalignment(syncColors, HPos.CENTER);
 
         s = new Separator();
         s.setPadding(new Insets(5, 0, 5, 0));
-        _2DToolbar.getChildren().add(s);
+        leftToolBar.add(s, 0, row++, 2, 1);
+        GridPane.setHalignment(s, HPos.CENTER);
 
         Button lineWidth1 = new Button(null, null);
         lineWidth1.setMaxWidth(Double.MAX_VALUE);
@@ -1323,7 +1560,6 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(lineWidth1);
 
         Button lineWidth2 = new Button(null, null);
         lineWidth2.setMaxWidth(Double.MAX_VALUE);
@@ -1366,7 +1602,10 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(lineWidth2);
+        leftToolBar.add(lineWidth1, 0, row);
+        GridPane.setHalignment(lineWidth1, HPos.CENTER);
+        leftToolBar.add(lineWidth2, 1, row++);
+        GridPane.setHalignment(lineWidth2, HPos.CENTER);
 
         Button lineWidth3 = new Button(null, null);
         lineWidth3.setMaxWidth(Double.MAX_VALUE);
@@ -1409,7 +1648,6 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(lineWidth3);
 
         Button lineWidth4 = new Button(null, null);
         lineWidth4.setMaxWidth(Double.MAX_VALUE);
@@ -1452,7 +1690,10 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(lineWidth4);
+        leftToolBar.add(lineWidth3, 0, row);
+        GridPane.setHalignment(lineWidth3, HPos.CENTER);
+        leftToolBar.add(lineWidth4, 1, row++);
+        GridPane.setHalignment(lineWidth4, HPos.CENTER);
 
         Button lineWidth5 = new Button(null, null);
         lineWidth5.setMaxWidth(Double.MAX_VALUE);
@@ -1490,9 +1731,9 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(lineWidth5);
 
         ColorPicker lineColorPicker = new ColorPicker(Color.BLACK);
+        lineColorPicker.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
         lineColorPicker.setMaxWidth(Double.MAX_VALUE);
         lineColorPicker.getStyleClass().add("button");
         lineColorPicker.setStyle("-fx-color-label-visible: false ;");
@@ -1527,21 +1768,26 @@ public class RNArtist extends Application {
                 mediator.getCanvas2D().repaint();
             }
         });
-        _2DToolbar.getChildren().add(lineColorPicker);
+        leftToolBar.add(lineWidth5, 0, row);
+        GridPane.setHalignment(lineWidth5, HPos.CENTER);
+        leftToolBar.add(lineColorPicker, 1, row++);
+        GridPane.setHalignment(lineColorPicker, HPos.CENTER);
 
-        root.setLeft(_2DToolbar);
+        s = new Separator();
+        s.setPadding(new Insets(10, 0, 5, 0));
+        s.getStyleClass().add("thick-separator");
+        leftToolBar.add(s, 0, row++, 2, 1);
+        GridPane.setHalignment(s, HPos.CENTER);
 
-        //++++++ right/3D Toolbar
+        l = new Label("3D");
+        leftToolBar.add(l, 0, row++, 2, 1);
+        GridPane.setHalignment(l, HPos.CENTER);
 
-        VBox _3DToolbar = new VBox();
-        _3DToolbar.setPadding(new Insets(5.0));
-        _3DToolbar.setAlignment(Pos.TOP_CENTER);
-        _3DToolbar.setSpacing(5.0);
-
-        _3DToolbar.getChildren().add(new Label("3D"));
         s = new Separator();
         s.setPadding(new Insets(5, 0, 5, 0));
-        _3DToolbar.getChildren().add(s);
+        s.getStyleClass().add("thick-separator");
+        leftToolBar.add(s, 0, row++, 2, 1);
+        GridPane.setHalignment(s, HPos.CENTER);
 
         this.reload3D = new Button(null, new FontIcon("fas-redo:15"));
         this.reload3D.setDisable(true);
@@ -1552,7 +1798,6 @@ public class RNArtist extends Application {
             }
         });
         this.reload3D.setTooltip(new Tooltip("Reload 3D"));
-        _3DToolbar.getChildren().add(this.reload3D);
 
         this.focus3D = new Button(null, new FontIcon("fas-crosshairs:15"));
         this.focus3D.setDisable(true);
@@ -1563,11 +1808,11 @@ public class RNArtist extends Application {
             }
         });
         this.focus3D.setTooltip(new Tooltip("Focus 3D on Selection"));
-        _3DToolbar.getChildren().add(this.focus3D);
 
-        s = new Separator();
-        s.setPadding(new Insets(5, 0, 5, 0));
-        _3DToolbar.getChildren().add(s);
+        leftToolBar.add(this.reload3D, 0, row);
+        GridPane.setHalignment(this.reload3D, HPos.CENTER);
+        leftToolBar.add(this.focus3D, 1, row++);
+        GridPane.setHalignment(this.focus3D, HPos.CENTER);
 
         this.paintSelectionin3D = new Button(null, new FontIcon("fas-fill:15"));
         this.paintSelectionin3D.setDisable(true);
@@ -1578,53 +1823,66 @@ public class RNArtist extends Application {
             }
         });
         this.paintSelectionin3D.setTooltip(new Tooltip("Paint 3D selection"));
-        _3DToolbar.getChildren().add(this.paintSelectionin3D);
+
+        leftToolBar.add(this.paintSelectionin3D, 0, row++);
+        GridPane.setHalignment(this.paintSelectionin3D, HPos.CENTER);
+
+        s = new Separator();
+        s.setPadding(new Insets(5, 0, 5, 0));
+        leftToolBar.add(s, 0, row++, 2, 1);
+        GridPane.setHalignment(s, HPos.CENTER);
 
         this.paintSelectionAsCartoon = new Button("SC", null);
-        paintSelectionAsCartoon.setDisable(true);
-        paintSelectionAsCartoon.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        this.paintSelectionAsCartoon.setDisable(true);
+        this.paintSelectionAsCartoon.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 mediator.getChimeraDriver().represent(ChimeraDriver.CARTOON, mediator.getCanvas2D().getSelectedPositions());
             }
         });
-        paintSelectionAsCartoon.setTooltip(new Tooltip("Selection as Cartoon"));
-        _3DToolbar.getChildren().add(paintSelectionAsCartoon);
+        this.paintSelectionAsCartoon.setTooltip(new Tooltip("Selection as Cartoon"));
 
         this.paintSelectionAsStick = new Button("SS", null);
-        paintSelectionAsStick.setDisable(true);
-        paintSelectionAsStick.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        this.paintSelectionAsStick.setDisable(true);
+        this.paintSelectionAsStick.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 mediator.getChimeraDriver().represent(ChimeraDriver.STICK, mediator.getCanvas2D().getSelectedPositions());
             }
         });
-        paintSelectionAsStick.setTooltip(new Tooltip("Selection as Stick"));
-        _3DToolbar.getChildren().add(paintSelectionAsStick);
+        this.paintSelectionAsStick.setTooltip(new Tooltip("Selection as Stick"));
+
+        leftToolBar.add(this.paintSelectionAsCartoon, 0, row);
+        GridPane.setHalignment(this.paintSelectionAsCartoon, HPos.CENTER);
+        leftToolBar.add(this.paintSelectionAsStick, 1, row++);
+        GridPane.setHalignment(this.paintSelectionAsStick, HPos.CENTER);
 
         this.showRibbon = new Button("SR", null);
-        showRibbon.setDisable(true);
-        showRibbon.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        this.showRibbon.setDisable(true);
+        this.showRibbon.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 mediator.getChimeraDriver().represent(ChimeraDriver.RIBBON_SHOW, mediator.getCanvas2D().getSelectedPositions());
             }
         });
-        showRibbon.setTooltip(new Tooltip("Show Ribbon"));
-        _3DToolbar.getChildren().add(showRibbon);
+        this.showRibbon.setTooltip(new Tooltip("Show Ribbon"));
 
         this.hideRibbon = new Button("HR", null);
-        hideRibbon.setDisable(true);
-        hideRibbon.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        this.hideRibbon.setDisable(true);
+        this.hideRibbon.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
                 mediator.getChimeraDriver().represent(ChimeraDriver.RIBBON_HIDE, mediator.getCanvas2D().getSelectedPositions());
             }
         });
-        hideRibbon.setTooltip(new Tooltip("Hide Ribbon"));
-        _3DToolbar.getChildren().add(hideRibbon);
+        this.hideRibbon.setTooltip(new Tooltip("Hide Ribbon"));
 
-        root.setRight(_3DToolbar);
+        leftToolBar.add(this.showRibbon, 0, row);
+        GridPane.setHalignment(this.showRibbon, HPos.CENTER);
+        leftToolBar.add(this.hideRibbon, 1, row++);
+        GridPane.setHalignment(this.hideRibbon, HPos.CENTER);
+
+        root.setLeft(leftToolBar);
 
         //++++++ Canvas2D
         final SwingNode swingNode = new SwingNode();
@@ -1958,6 +2216,8 @@ public class RNArtist extends Application {
         scene.getWindow().setHeight(screenSize.getHeight());
         scene.getWindow().setX(0);
         scene.getWindow().setY(0);
+
+        scene.getStylesheets().add("io/github/fjossinet/rnartist/gui/css/main.css");
 
         new SplashWindow(this.mediator);
 

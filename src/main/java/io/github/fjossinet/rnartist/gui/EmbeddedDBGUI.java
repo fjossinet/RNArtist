@@ -144,6 +144,7 @@ public class EmbeddedDBGUI {
         root.getTabs().add(_2D);
 
         Scene scene = new Scene(root);
+        scene.getStylesheets().add("io/github/fjossinet/rnartist/gui/css/main.css");
         stage.setScene(scene);
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();

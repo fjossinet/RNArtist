@@ -10,6 +10,7 @@ import javafx.scene.control.*;
 import javafx.util.Callback;
 import org.controlsfx.glyphfont.FontAwesome;
 import org.controlsfx.glyphfont.Glyph;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 public class FullDetailsTreeTableCell<T> extends TreeTableCell<T, String> {
 
@@ -25,14 +26,13 @@ public class FullDetailsTreeTableCell<T> extends TreeTableCell<T, String> {
         setText(null);
         setGraphic(null);
         if (!empty) {
-            Glyph g = null;
+            FontIcon icon = null;
             if (value == "true")
-                g = new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE);
+                icon =  new FontIcon("fas-eye:15");
             else if (value == "false")
-                g = new Glyph("FontAwesome", FontAwesome.Glyph.TIMES_CIRCLE);
-            if (g != null) {
-                g.setFontSize(20);
-                Label l = new Label(null, g);
+                icon =  new FontIcon("fas-eye-slash:15");
+            if (icon != null) {
+                Label l = new Label(null, icon);
                 setGraphic(l);
                 setAlignment(Pos.CENTER);
             }

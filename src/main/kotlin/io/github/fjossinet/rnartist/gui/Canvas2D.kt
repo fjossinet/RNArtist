@@ -1,18 +1,11 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.RNArtist.BRANCH_SCOPE
-import io.github.fjossinet.rnartist.RNArtist.STRUCTURAL_DOMAIN_SCOPE
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.gui.Explorer.DrawingElementFilter
-import io.github.fjossinet.rnartist.model.*
-import javafx.scene.control.TreeItem
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
-import java.io.File
-import java.util.ArrayList
 import javax.swing.JPanel
 
 class Canvas2D(val mediator: Mediator) : JPanel() {
@@ -40,9 +33,13 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
         }
     }
 
-    fun fitStructure() {
+    fun fitStructure(selectionFrame:Rectangle2D?) {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            drawingDisplayed.drawing.fitTo(this.bounds)
+            selectionFrame?.let {
+                drawingDisplayed.drawing.fitTo(this.bounds, it)
+            } ?: run {
+                drawingDisplayed.drawing.fitTo(this.bounds)
+            }
             this.repaint()
         }
     }

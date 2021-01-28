@@ -232,7 +232,7 @@ class Mediator(val rnartist: RNArtist) {
                             this.drawingDisplayed.set(item.userData as DrawingLoaded)
                             if ((item.userData as DrawingLoaded).drawing.viewX == 0.0 && (item.userData as DrawingLoaded).drawing.viewY == 0.0 && (item.userData as DrawingLoaded).drawing.zoomLevel == 1.0) {
                                 //it seems it is a first opening, then we fit to the display
-                                canvas2D.fitStructure()
+                                canvas2D.fitStructure(null)
                             }
                         }
                         rnartist.allStructuresAvailableMenu.items.add(0, item)

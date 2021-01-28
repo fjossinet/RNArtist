@@ -511,7 +511,7 @@ public class Explorer {
 
         HBox hbox = new HBox();
         hbox.setSpacing(5);
-        Button b = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE));
+        Button b = new Button(null, new FontIcon("fas-eye:15"));
         b.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
         b.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -523,7 +523,7 @@ public class Explorer {
             }
         });
         hbox.getChildren().add(b);
-        b = new Button(null, new Glyph("FontAwesome", FontAwesome.Glyph.TIMES_CIRCLE));
+        b = new Button(null, new FontIcon("fas-eye-slash:15"));
         b.disableProperty().bind(Bindings.when(mediator.getDrawingDisplayed().isNull()).then(true).otherwise(false));
         b.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -647,6 +647,7 @@ public class Explorer {
         splitPane.getItems().addAll(sp2, sp);
 
         Scene scene = new Scene(splitPane);
+        scene.getStylesheets().add("io/github/fjossinet/rnartist/gui/css/main.css");
         stage.setScene(scene);
 
         Rectangle2D screenSize = Screen.getPrimary().getBounds();

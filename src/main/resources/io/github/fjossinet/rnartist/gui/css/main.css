@@ -19,7 +19,7 @@
 	The "color" is your main color (in this case greenish)
 	*/
 * {
-    -color : #2e9fcc;
+    -color : #78b5b5;
     -white : #efefef;
     -gray : #dfdfdf;
     -darkGray : derive(-gray,-20%);
@@ -451,4 +451,9 @@
 
 .no-highlight .menu-item:focused {
     -fx-background-color: transparent;
+}
+
+.thick-separator .line {
+    -fx-border-color: black ;
+    -fx-border-width: 2 0 0 0 ;
 }
