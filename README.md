@@ -4,6 +4,8 @@ RNArtist allows you to design your RNA 2D structures interactively. To help you 
 
 ![Screen Capture](media/Capture%20d’écran%202020-12-27%20à%2020.48.24.png)
 
+![Screen Capture](media/Capture%20d’écran%202021-01-28%20à%2007.56.07.png)
+
 ![Screen Capture](media/Capture%20d’écran%202021-01-26%20à%2015.15.27.png)
 
 ## Prerequisites
