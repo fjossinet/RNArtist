@@ -2,12 +2,19 @@
 
 RNArtist allows you to design your RNA 2D structures interactively. To help you to be an RNArtist, this tool provides numerous graphical options to find your theme and to modify the 2D layout.
 
+## Screen captures
+
+* Any part of an RNA 2D can have different design, from single residues to entire branches
+
 ![Screen Capture](media/Capture%20d’écran%202020-12-27%20à%2020.48.24.png)
 
-![Screen Capture](media/Capture%20d’écran%202021-01-28%20à%2007.56.07.png)
+* [P4-P6 domain](https://www.rcsb.org/structure/1HR2) in RNArtist linked to UCSF chimera. You can easily apply colors in your 2D to the 3D architecture.
 
 ![Screen Capture](media/Capture%20d’écran%202021-01-26%20à%2015.15.27.png)
 
+* [tRNA crystal structure](https://www.rcsb.org/structure/1EHZ) in RNArtist linked to UCSF chimera. 
+
+![Screen Capture](media/Capture%20d’écran%202021-01-28%20à%2007.56.07.png)
 ## Prerequisites
 
 You need the tool [maven](https://maven.apache.org) and a [Java distribution](https://www.oracle.com/java/technologies/javase-downloads.html) to be installed (type the commands ```mvn``` and ```java``` from a command line to check). 
