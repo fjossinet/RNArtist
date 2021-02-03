@@ -26,8 +26,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-import org.controlsfx.glyphfont.FontAwesome;
-import org.controlsfx.glyphfont.Glyph;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.*;
@@ -581,10 +579,10 @@ public class Explorer {
                         mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
                         break;
                     case "Apical Loops":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.ApicalLoop, starts, true,  mediator.getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionType() == JunctionType.ApicalLoop, starts, true,  mediator.getScope());
                         break;
                     case "Inner Loops":
-                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionCategory() == JunctionType.InnerLoop, starts, true,  mediator.getScope());
+                        mediator.getExplorer().selectAllTreeViewItems(drawingElement -> JunctionDrawing.class.isInstance(drawingElement) && ((JunctionDrawing)drawingElement).getJunctionType() == JunctionType.InnerLoop, starts, true,  mediator.getScope());
                         break;
                     case "PseudoKnots":
                         mediator.getExplorer().selectAllTreeViewItems(drawingElement -> PKnotDrawing.class.isInstance(drawingElement), starts, true,  mediator.getScope());
@@ -669,7 +667,7 @@ public class Explorer {
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> c:item.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(item.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(c.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(item.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomainDrawing.class.isInstance(c.getValue().getDrawingElement()))
                 continue;
             applyTheme(c, theme, scope);
         }
@@ -743,7 +741,7 @@ public class Explorer {
             return hits;
 
         for (TreeItem<ExplorerItem> child : start.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(start.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(start.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomainDrawing.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             getAllTreeViewItems(hits, child, filter, scope);
         }
@@ -766,7 +764,7 @@ public class Explorer {
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomainDrawing.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setFullDetailsFrom(child, fullDetails, scope);
         }
@@ -779,7 +777,7 @@ public class Explorer {
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomainDrawing.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setColorFrom(child, color, scope);
         }
@@ -792,7 +790,7 @@ public class Explorer {
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomainDrawing.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setLineWidthFrom(child, width, scope);
         }
@@ -805,7 +803,7 @@ public class Explorer {
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomainDrawing.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setLineShiftFrom(child, shift, scope);
         }
@@ -818,7 +816,7 @@ public class Explorer {
         if (scope == RNArtist.ELEMENT_SCOPE)
             return;
         for (TreeItem<ExplorerItem> child:from.getChildren()) {
-            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomain.class.isInstance(child.getValue().getDrawingElement()))
+            if (!GroupOfStructuralElements.class.isInstance(from.getValue()) && scope == STRUCTURAL_DOMAIN_SCOPE && StructuralDomainDrawing.class.isInstance(child.getValue().getDrawingElement()))
                 continue;
             setOpacityFrom(child, opacity, scope);
         }

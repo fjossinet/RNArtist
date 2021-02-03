@@ -22,18 +22,18 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
         val connector = Connector(ConnectorId.s)
         connector.setOnMouseClicked {
             var selectedCount = connectors.count { it.selected }
-            if (selectedCount < this.junctionCircle.junctionCategory.value - 1 && !connector.isInId ) {
+            if (selectedCount < this.junctionCircle.junctionType.value - 1 && !connector.isInId ) {
                 connector.selected = !connector.selected
                 connector.fill = if (connector.selected) Color.STEELBLUE else Color.LIGHTGRAY
                 connector.stroke = if (connector.selected) Color.DARKBLUE else Color.BLACK
-            } else if (selectedCount >= this.junctionCircle.junctionCategory.value - 1 && !connector.isInId ) { //we can only unselect
+            } else if (selectedCount >= this.junctionCircle.junctionType.value - 1 && !connector.isInId ) { //we can only unselect
                 connector.selected = false
                 connector.fill = Color.LIGHTGRAY
                 connector.stroke = Color.BLACK
             }
             //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
             selectedCount = connectors.count { it.selected }
-            if (selectedCount == this.junctionCircle.junctionCategory.value - 1) {
+            if (selectedCount == this.junctionCircle.junctionType.value - 1) {
                 junctionCircle.layout = this.getJunctionLayout().toMutableList()
                 this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
@@ -50,18 +50,18 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
             val _connector = Connector(getConnectorId(i))
             _connector.setOnMouseClicked {
                 var selectedCount = connectors.count { it.selected }
-                if (selectedCount < this.junctionCircle.junctionCategory.value - 1 && !_connector.isInId ) {
+                if (selectedCount < this.junctionCircle.junctionType.value - 1 && !_connector.isInId ) {
                     _connector.selected = !_connector.selected
                     _connector.fill = if (_connector.selected) Color.STEELBLUE else Color.LIGHTGRAY
                     _connector.stroke = if (_connector.selected) Color.DARKBLUE else Color.BLACK
-                }  else if (selectedCount >= this.junctionCircle.junctionCategory.value - 1 && !_connector.isInId ) { //we can only unselect
+                }  else if (selectedCount >= this.junctionCircle.junctionType.value - 1 && !_connector.isInId ) { //we can only unselect
                     _connector.selected = false
                     _connector.fill = Color.LIGHTGRAY
                     _connector.stroke = Color.BLACK
                 }
                 //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
                 selectedCount = connectors.count { it.selected }
-                if (selectedCount == this.junctionCircle.junctionCategory.value - 1) {
+                if (selectedCount == this.junctionCircle.junctionType.value - 1) {
                     junctionCircle.layout = this.getJunctionLayout().toMutableList()
                     this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                     //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
@@ -162,7 +162,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
         left.setOnMouseReleased {
             left.fill = Color.LIGHTGRAY
         }
-        if (this.junctionCircle.junction.type != JunctionType.ApicalLoop)
+        if (this.junctionCircle.junctionType != JunctionType.ApicalLoop)
             this.getChildren().addAll(left);
 
         var right = Polygon()
@@ -208,7 +208,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
         right.setOnMouseReleased {
             right.fill = Color.LIGHTGRAY
         }
-        if (this.junctionCircle.junction.type != JunctionType.ApicalLoop)
+        if (this.junctionCircle.junctionType != JunctionType.ApicalLoop)
             this.getChildren().addAll(right);
 
         this.loadJunctionLayout()

@@ -21,7 +21,7 @@ class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
         this.update()
     }
 
-    fun getStructuralDomain(): StructuralDomain {
+    fun getStructuralDomain(): StructuralDomainDrawing {
         return this.junction
     }
 
@@ -29,7 +29,7 @@ class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
         this.connectorRadius = (if (junction.circle.width < 100.0)  junction.circle.width else 100.0)*Math.PI/(16.0*3.5)
         this.connectors.clear()
         this.arrows.clear()
-        if (this.junction.junctionCategory != JunctionType.ApicalLoop) {
+        if (this.junction.junctionType != JunctionType.ApicalLoop) {
             val connector = JunctionConnector(
                 ConnectorId.s,
                 false,
@@ -167,14 +167,14 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
 
     fun mouseClicked() {
         var selectedCount = knob.connectors.count { it.selected }
-        if (selectedCount < knob.junction.junctionCategory.value - 1 && !this.isInId ) {
+        if (selectedCount < knob.junction.junctionType.value - 1 && !this.isInId ) {
             this.selected = !this.selected
-        } else if (selectedCount >= knob.junction.junctionCategory.value - 1 && !this.isInId ) { //we can only unselect
+        } else if (selectedCount >= knob.junction.junctionType.value - 1 && !this.isInId ) { //we can only unselect
             this.selected = false
         }
         //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
         selectedCount = knob.connectors.count { it.selected }
-        if (selectedCount == knob.junction.junctionCategory.value - 1) {
+        if (selectedCount == knob.junction.junctionType.value - 1) {
             knob.junction.layout = knob.getJunctionLayout().toMutableList()
             knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(knob.junction)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
@@ -217,7 +217,7 @@ class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
-        if (knob.junction.junctionCategory == JunctionType.ApicalLoop) {
+        if (knob.junction.junctionType == JunctionType.ApicalLoop) {
             this.shape.moveTo(knob.junction.center.x, knob.junction.center.y - 8 * knob.connectorRadius)
             this.shape.lineTo(
                 knob.junction.center.x - knob.connectorRadius * 3,
@@ -268,7 +268,7 @@ class Down(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
-        if (knob.junction.junctionCategory == JunctionType.ApicalLoop) {
+        if (knob.junction.junctionType == JunctionType.ApicalLoop) {
             this.shape.moveTo(knob.junction.center.x, knob.junction.center.y + 8 * knob.connectorRadius)
             this.shape.lineTo(
                 knob.junction.center.x - knob.connectorRadius * 3,

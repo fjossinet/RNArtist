@@ -7,7 +7,7 @@ RNArtist allows you to design your RNA 2D structures interactively. To help you 
 * [Installation](#installation)
 * [Launch](#launch)
 
-## Screen captures<a name="captures"></a>
+##<a name="captures"></a>Screen captures
 
 * Any part of an RNA 2D can have different design, from single residues to entire branches
 
@@ -20,7 +20,7 @@ RNArtist allows you to design your RNA 2D structures interactively. To help you 
 * [tRNA crystal structure](https://www.rcsb.org/structure/1EHZ) in RNArtist linked to UCSF chimera. 
 
 ![Screen Capture](media/Capture%20d’écran%202021-01-28%20à%2007.56.07.png)
-## Prerequisites<a name="prerequesites"></a>
+## <a name="prerequesites"></a>Prerequisites
 
 You need the tool [maven](https://maven.apache.org) and a [Java distribution](https://www.oracle.com/java/technologies/javase-downloads.html) to be installed (type the commands ```mvn``` and ```java``` from a command line to check). 
 
@@ -28,7 +28,7 @@ On Linux Systems, you can install maven with the command ``sudo apt get install 
 
 RNArtist has been developed with OpenJDK 15. To compile it with OpenJDK 11 (the most recent Long Term Support version available on computers), you just need to change the value of the property java.version in the pom file.
 
-## Installation<a name="installation"></a>
+##<a name="installation"></a>Installation
 
 Download the project as [a zip file](https://github.com/fjossinet/RNArtist/archive/master.zip) or with the command git (git clone https://github.com/fjossinet/RNArtist.git).
 
@@ -38,7 +38,7 @@ From the project directory, type:
 mvn clean package
 ```
 
-## Launch<a name="launch"></a>
+##<a name="launch"></a>Launch
 
 ### Using Maven
 

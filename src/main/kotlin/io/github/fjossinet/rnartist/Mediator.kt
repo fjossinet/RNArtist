@@ -67,9 +67,6 @@ class Mediator(val rnartist: RNArtist) {
 
 
     init {
-        val img = File(File(File(embeddedDB.rootDir, "images"), "user"), "New Project.png");
-        if (!img.exists())
-            ImageIO.write(getImage("New Project.png") as RenderedImage, "png", img)
 
         this.drawingDisplayed.addListener(ChangeListener<DrawingLoaded?> {
                 observableValue, oldValue, newValue ->

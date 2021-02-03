@@ -189,7 +189,7 @@ public class RNArtist extends Application {
                                             }
                                         }
                                     } else if (file.getName().endsWith(".stk") || file.getName().endsWith(".stockholm")) {
-                                        for (SecondaryStructure structure : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseStockholm(new FileReader(file))) {
+                                        for (SecondaryStructure structure : io.github.fjossinet.rnartist.core.model.io.ParsersKt.parseStockholm(new FileReader(file), false)) {
                                             structure.getRna().setSource(source);
                                             structure.setSource(source);
                                             secondaryStructureDrawings.add(new SecondaryStructureDrawing(structure, new WorkingSession()));

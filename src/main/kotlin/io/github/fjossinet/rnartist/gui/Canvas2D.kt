@@ -219,12 +219,12 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
         }
     }
 
-    fun structuralDomainsSelected(): List<StructuralDomain> {
-        val domains = mutableListOf<StructuralDomain>()
+    fun structuralDomainsSelected(): List<StructuralDomainDrawing> {
+        val domains = mutableListOf<StructuralDomainDrawing>()
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
             domains.addAll(drawingDisplayed.knobs.map { it.junction })
-            domains.addAll(drawingDisplayed.selectionShapes.filter { it.element is StructuralDomain }
-                .map { it.element as StructuralDomain })
+            domains.addAll(drawingDisplayed.selectionShapes.filter { it.element is StructuralDomainDrawing }
+                .map { it.element as StructuralDomainDrawing })
         }
         return domains
     }

@@ -162,7 +162,7 @@ class SingleStrandItem(private val ss:SingleStrandDrawing): StructuralItem("${ss
 
 }
 
-class JunctionItem(val junction:JunctionDrawing): StructuralItem("${junction.junctionCategory.name} ${junction.name} [${junction.location}]", junction) {
+class JunctionItem(val junction:JunctionDrawing): StructuralItem("${junction.junctionType.name} ${junction.name} [${junction.location}]", junction) {
     override var lineShift: String = ""
         get() = ""
 }
