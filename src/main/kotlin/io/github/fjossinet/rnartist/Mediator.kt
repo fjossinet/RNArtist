@@ -1,10 +1,9 @@
 package io.github.fjossinet.rnartist
 
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.core.model.io.EmbeddedDB
+import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.io.ChimeraDriver
-import io.github.fjossinet.rnartist.io.getImage
 import io.github.fjossinet.rnartist.model.DrawingLoaded
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromFile
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNAGallery
@@ -14,9 +13,7 @@ import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.scene.control.MenuItem
-import java.awt.image.RenderedImage
 import java.io.File
-import javax.imageio.ImageIO
 
 class Mediator(val rnartist: RNArtist) {
 

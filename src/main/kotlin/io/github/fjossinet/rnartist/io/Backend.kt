@@ -3,13 +3,8 @@ package io.github.fjossinet.rnartist.io
 import com.google.gson.Gson
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.RnartistConfig
-import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
-import io.github.fjossinet.rnartist.core.model.WorkingSession
-import io.github.fjossinet.rnartist.core.model.io.EmbeddedDB
 import io.github.fjossinet.rnartist.core.model.io.dumpLayout
-import io.github.fjossinet.rnartist.core.model.io.parseVienna
 import javafx.concurrent.Task
-import java.awt.geom.Rectangle2D
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URI
@@ -19,7 +14,6 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.util.*
-import javax.imageio.ImageIO
 
 
 object Backend {

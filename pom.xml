@@ -111,6 +111,13 @@
             <version>${slf4j.version}</version>
         </dependency>
 
+        <!-- NitriteDB -->
+        <dependency>
+            <groupId>org.dizitart</groupId>
+            <artifactId>nitrite</artifactId>
+            <version>3.4.1</version>
+        </dependency>
+
         <!--controlsfx -->
         <dependency>
             <groupId>org.controlsfx</groupId>
@@ -141,8 +148,9 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist.core</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.2.2-SNAPSHOT</version>
+            <version>0.2.4-SNAPSHOT</version>
         </dependency>
+
     </dependencies>
 
     <build>
