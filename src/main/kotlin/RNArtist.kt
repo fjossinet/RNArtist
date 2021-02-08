@@ -8,6 +8,7 @@ import io.github.fjossinet.rnartist.core.model.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.save
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.selectionWidth
 import io.github.fjossinet.rnartist.core.model.io.*
+import io.github.fjossinet.rnartist.core.rnartist
 import io.github.fjossinet.rnartist.gui.Canvas2D
 import io.github.fjossinet.rnartist.gui.SplashWindow
 import io.github.fjossinet.rnartist.io.ChimeraDriver
@@ -58,8 +59,8 @@ class RNArtist: Application() {
     }
     val mediator: Mediator
     lateinit var stage: Stage
-    var scrollCounter = 0
-    val statusBar: FlowPane
+    private var scrollCounter = 0
+    private val statusBar: FlowPane
     val allStructuresAvailable: MenuButton
     val clearAll2DsItem:MenuItem
     val clearAll2DsExceptCurrentItem:MenuItem
@@ -97,51 +98,66 @@ class RNArtist: Application() {
             val fileChooser = FileChooser()
             val files = fileChooser.showOpenMultipleDialog(stage)
             if (files != null) {
-                for (file in files) {
-                    fileChooser.initialDirectory = file.parentFile
+                for (f in files) {
+                    fileChooser.initialDirectory = f.parentFile
                     val loadData =
                         object : Task<Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?>?>() {
                             override fun call(): Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?>? {
                                 var ss: SecondaryStructure?
                                 val secondaryStructureDrawings: MutableList<SecondaryStructureDrawing> = ArrayList()
                                 try {
-                                    val source = "file:" + file.absolutePath
-                                    if (file.name.endsWith(".json")) {
-                                        val drawing = parseJSON(FileReader(file))
+                                    val source = "file:" + f.absolutePath
+                                    if (f.name.endsWith(".json")) {
+                                        val drawing = parseJSON(FileReader(f))
                                         if (drawing != null) {
                                             drawing.secondaryStructure.rna.source = source
                                             drawing.secondaryStructure.source = source
                                             secondaryStructureDrawings.add(drawing)
                                         }
                                     }
-                                    if (file.name.endsWith(".ct")) {
-                                        ss = parseCT(FileReader(file))
-                                        if (ss != null) {
-                                            ss.rna.source = source
-                                            ss.source = source
-                                            secondaryStructureDrawings.add(SecondaryStructureDrawing(ss,
-                                                WorkingSession()))
+                                    if (f.name.endsWith(".ct")) {
+                                        val drawing = rnartist {
+                                            ss {
+                                                ct {
+                                                    file = f.absolutePath
+                                                }
+                                            }
                                         }
-                                    } else if (file.name.endsWith(".bpseq")) {
-                                        ss = parseBPSeq(FileReader(file))
-                                        if (ss != null) {
-                                            ss.rna.source = source
-                                            ss.source = source
-                                            secondaryStructureDrawings.add(SecondaryStructureDrawing(ss,
-                                                WorkingSession()))
+                                        drawing?.let {
+                                            it.secondaryStructure.source = source
+                                            it.secondaryStructure.rna.source = source
+                                            secondaryStructureDrawings.add(drawing)
                                         }
-                                    } else if (file.name.endsWith(".fasta") || file.name.endsWith(".fas") || file.name.endsWith(
-                                            ".fa") || file.name.endsWith(".vienna")
+                                    } else if (f.name.endsWith(".bpseq")) {
+                                        val drawing = rnartist {
+                                            ss {
+                                                bpseq {
+                                                    file = f.absolutePath
+                                                }
+                                            }
+                                        }
+                                        drawing?.let {
+                                            it.secondaryStructure.source = source
+                                            it.secondaryStructure.rna.source = source
+                                            secondaryStructureDrawings.add(drawing)
+                                        }
+                                    } else if (f.name.endsWith(".fasta") || f.name.endsWith(".fas") || f.name.endsWith(
+                                            ".fa") || f.name.endsWith(".vienna")
                                     ) {
-                                        ss = parseVienna(FileReader(file))
-                                        if (ss != null) {
-                                            ss.rna.source = source
-                                            ss.source = source
-                                            secondaryStructureDrawings.add(SecondaryStructureDrawing(ss,
-                                                WorkingSession()))
+                                        val drawing = rnartist {
+                                            ss {
+                                                vienna {
+                                                    file = f.absolutePath
+                                                }
+                                            }
                                         }
-                                    } else if (file.name.endsWith(".xml") || file.name.endsWith(".rnaml")) {
-                                        for (structure in parseRnaml(file)) {
+                                        drawing?.let {
+                                            it.secondaryStructure.source = source
+                                            it.secondaryStructure.rna.source = source
+                                            secondaryStructureDrawings.add(drawing)
+                                        }
+                                    } else if (f.name.endsWith(".xml") || f.name.endsWith(".rnaml")) {
+                                        for (structure in parseRnaml(f)) {
                                             if (!structure.helices.isEmpty()) {
                                                 structure.rna.source = source
                                                 structure.source = source
@@ -149,19 +165,19 @@ class RNArtist: Application() {
                                                     WorkingSession()))
                                             }
                                         }
-                                    } else if (file.name.matches(Regex(".+\\.pdb[0-9]?"))) {
+                                    } else if (f.name.matches(Regex(".+\\.pdb[0-9]?"))) {
                                         if (!(isDockerInstalled() && isAssemble2DockerImageInstalled())) {
                                             throw Exception("You cannot use PDB loadFiles, it seems that RNArtist cannot find the RNAVIEW algorithm on your computer.\n Possible causes:\n- the tool Docker is not installed\n- the tool Docker is not running\n- the docker image fjossinet/assemble2 is not installed")
                                         }
-                                        for (structure in Rnaview().annotate(file)) {
+                                        for (structure in Rnaview().annotate(f)) {
                                             if (!structure.helices.isEmpty()) {
                                                 structure.rna.source = source
                                                 secondaryStructureDrawings.add(SecondaryStructureDrawing(structure,
                                                     WorkingSession()))
                                             }
                                         }
-                                    } else if (file.name.endsWith(".stk") || file.name.endsWith(".stockholm")) {
-                                        for (structure in parseStockholm(FileReader(file), false)) {
+                                    } else if (f.name.endsWith(".stk") || f.name.endsWith(".stockholm")) {
+                                        for (structure in parseStockholm(FileReader(f), false)) {
                                             structure.rna.source = source
                                             structure.source = source
                                             secondaryStructureDrawings.add(SecondaryStructureDrawing(structure,
@@ -169,9 +185,9 @@ class RNArtist: Application() {
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    return Pair.of(Pair.of(secondaryStructureDrawings, file), e)
+                                    return Pair.of(Pair.of(secondaryStructureDrawings, f), e)
                                 }
-                                return Pair.of(Pair.of(secondaryStructureDrawings, file), null)
+                                return Pair.of(Pair.of(secondaryStructureDrawings, f), null)
                             }
                         }
                     loadData.onSucceeded = EventHandler {
@@ -206,7 +222,7 @@ class RNArtist: Application() {
                                     DrawingLoadedFromFile(mediator,
                                         drawing, result.right))
                                 //we load and fit (only if not a drawing from a JSON file) on the last 2D loaded
-                                mediator.drawingDisplayed.set(mediator.drawingsLoaded.get(mediator.drawingsLoaded.size - 1))
+                                mediator.drawingDisplayed.set(mediator.drawingsLoaded[mediator.drawingsLoaded.size - 1])
                                 if (mediator.viewX == 0.0 && mediator.viewY == 0.0 && mediator.zoomLevel == 1.0) //this test allows to detect JSON loadFiles exported from RNArtist with a focus on a region
                                     mediator.canvas2D.fitStructure(null)
                             }
@@ -226,8 +242,8 @@ class RNArtist: Application() {
 
         val loadProject = Button(null, FontIcon("fas-grip-horizontal:15"))
         loadProject.onMouseClicked = EventHandler {
-            mediator.projectsPanel.getStage().show()
-            mediator.projectsPanel.getStage().toFront()
+            mediator.projectsPanel.stage.show()
+            mediator.projectsPanel.stage.toFront()
         }
         loadProject.tooltip = Tooltip("Load Project")
         GridPane.setConstraints(loadProject, 1, 1)
@@ -263,14 +279,19 @@ class RNArtist: Application() {
                 val projectName = dialog.showAndWait()
                 if (projectName.isPresent) {
                     try {
-                        val id: NitriteId = mediator.projectsPanel.saveProjectAs(projectName.get().trim { it <= ' ' },
-                            mediator.canvas2D.screenCapture(null))
-                        drawing.workingSession.is_screen_capture = false
-                        drawing.workingSession.screen_capture_area = null
-                        mediator.embeddedDB.getProject(id)?.let { newDrawing -> //we reload it from the DB to have a copy of the drawing and not the same object
-                            mediator.drawingsLoaded.add(0,
-                                DrawingLoadedFromRNArtistDB(mediator, newDrawing, id, projectName.get().trim { it <= ' ' }))
-                            mediator.drawingDisplayed.set(mediator.drawingsLoaded.get(0))
+                        mediator.projectsPanel.saveProjectAs(projectName.get().trim { it <= ' ' },
+                            mediator.canvas2D.screenCapture()!!)?.let { id ->
+                            drawing.workingSession.is_screen_capture = false
+                            drawing.workingSession.screen_capture_area = null
+                            mediator.embeddedDB.getProject(id)
+                                ?.let { newDrawing -> //we reload it from the DB to have a copy of the drawing and not the same object
+                                    mediator.drawingsLoaded.add(0,
+                                        DrawingLoadedFromRNArtistDB(mediator,
+                                            newDrawing,
+                                            id,
+                                            projectName.get().trim { it <= ' ' }))
+                                    mediator.drawingDisplayed.set(mediator.drawingsLoaded[0])
+                                }
                         }
 
                     } catch (e: Exception) {
@@ -927,10 +948,8 @@ class RNArtist: Application() {
         GridPane.setHalignment(paintResidues, HPos.CENTER)
 
         ALabel.onAction = EventHandler {
-            var c: Color? = null
             if (ALabel.userData == "black") {
                 ALabel.userData = "white"
-                c = Color.WHITE
                 ALabel.textFill = Color.WHITE
                 if ("lock" == syncColors.userData) {
                     ULabel.userData = "white"
@@ -942,7 +961,6 @@ class RNArtist: Application() {
                 }
             } else {
                 ALabel.userData = "black"
-                c = Color.BLACK
                 ALabel.textFill = Color.BLACK
                 if ("lock" == syncColors.userData) {
                     ULabel.userData = "black"
@@ -1061,10 +1079,8 @@ class RNArtist: Application() {
         }
 
         ULabel.onAction = EventHandler {
-            var c: Color? = null
             if (ULabel.userData == "black") {
                 ULabel.userData = "white"
-                c = Color.WHITE
                 ULabel.textFill = Color.WHITE
                 if ("lock" == syncColors.userData) {
                     ALabel.userData = "white"
@@ -1076,7 +1092,6 @@ class RNArtist: Application() {
                 }
             } else {
                 ULabel.userData = "black"
-                c = Color.BLACK
                 ULabel.textFill = Color.BLACK
                 if ("lock" == syncColors.userData) {
                     ALabel.userData = "black"
@@ -1193,10 +1208,8 @@ class RNArtist: Application() {
         }
 
         GLabel.onAction = EventHandler {
-            var c: Color? = null
             if (GLabel.userData == "black") {
                 GLabel.userData = "white"
-                c = Color.WHITE
                 GLabel.textFill = Color.WHITE
                 if ("lock" == syncColors.userData) {
                     ULabel.userData = "white"
@@ -1208,7 +1221,6 @@ class RNArtist: Application() {
                 }
             } else {
                 GLabel.userData = "black"
-                c = Color.BLACK
                 GLabel.textFill = Color.BLACK
                 if ("lock" == syncColors.userData) {
                     ULabel.userData = "black"
@@ -1324,10 +1336,8 @@ class RNArtist: Application() {
         }
 
         CLabel.onAction = EventHandler {
-            var c: Color? = null
             if (CLabel.userData == "black") {
                 CLabel.userData = "white"
-                c = Color.WHITE
                 CLabel.textFill = Color.WHITE
                 if ("lock" == syncColors.userData) {
                     ULabel.userData = "white"
@@ -1339,7 +1349,6 @@ class RNArtist: Application() {
                 }
             } else {
                 CLabel.userData = "black"
-                c = Color.BLACK
                 CLabel.textFill = Color.BLACK
                 if ("lock" == syncColors.userData) {
                     ULabel.userData = "black"
@@ -2397,8 +2406,8 @@ class RNArtist: Application() {
 
         val settings = Button(null, FontIcon("fas-cog:15"))
         settings.onAction = EventHandler { actionEvent: ActionEvent? ->
-            mediator.settings.getStage().show()
-            mediator.settings.getStage().toFront()
+            mediator.settings.stage.show()
+            mediator.settings.stage.toFront()
         }
         windowsBar.children.add(settings)
 
@@ -2426,13 +2435,10 @@ class RNArtist: Application() {
         GridPane.setHalignment(windowsBar, HPos.LEFT)
         bar.add(this.statusBar, 1, 0)
         GridPane.setHalignment(this.statusBar, HPos.RIGHT)
-
         root.bottom = bar
     }
 
     override fun start(stage: Stage) {
-        System.setProperty("prism.lcdtext", "false") // to avoid to have the font "scratched"
-
         this.stage = stage
         this.stage.setOnCloseRequest(EventHandler { windowEvent: WindowEvent ->
             val alert =

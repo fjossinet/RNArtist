@@ -93,7 +93,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
         g.drawImage(this.offScreenBuffer, 0, 0, this)
     }
 
-    fun screenCapture(secondaryStructureDrawing: SecondaryStructureDrawing?): BufferedImage? {
+    fun screenCapture(): BufferedImage? {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
             var bufferedImage: BufferedImage?
             drawingDisplayed.drawing.workingSession.viewX -= drawingDisplayed.drawing.workingSession.screen_capture_area!!.minX
@@ -118,15 +118,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
             val at = AffineTransform()
             at.translate(drawingDisplayed.drawing.viewX, drawingDisplayed.drawing.viewY)
             at.scale(drawingDisplayed.drawing.zoomLevel, drawingDisplayed.drawing.zoomLevel)
-            if (secondaryStructureDrawing != null)
-                secondaryStructureDrawing.draw(
-                    g2,
-                    at,
-                    Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight())
-                );
-            else
-                drawingDisplayed.drawing
-                    .draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()));
+            drawingDisplayed.drawing.draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()));
             g2.dispose()
             drawingDisplayed.drawing.workingSession.viewX += drawingDisplayed.drawing.workingSession.screen_capture_area!!.minX
             drawingDisplayed.drawing.workingSession.viewY += drawingDisplayed.drawing.workingSession.screen_capture_area!!.minY

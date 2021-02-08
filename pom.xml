@@ -308,6 +308,7 @@
                         <argument>javafx.graphics/com.sun.javafx.css=ALL-UNNAMED</argument>
                         <argument>--add-opens</argument>
                         <argument>javafx.controls/javafx.scene.control.skin=ALL-UNNAMED</argument>
+                        <argument>-Dprism.lcdtext=false</argument> <!--anti-aliasing to avoid to have scratched fonts-->
                         <argument>-jar</argument>
                         <argument>${project.basedir}/target/RNArtist/lib/rnartist-1.0.jar</argument>
                     </arguments>
