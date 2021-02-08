@@ -3,10 +3,10 @@ package io.github.fjossinet.rnartist
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Explorer
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.ProjectsPanel
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Settings
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.model.DrawingLoaded
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromFile
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNAGallery

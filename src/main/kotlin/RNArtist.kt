@@ -11,10 +11,9 @@ import io.github.fjossinet.rnartist.core.model.io.*
 import io.github.fjossinet.rnartist.core.rnartist
 import io.github.fjossinet.rnartist.gui.Canvas2D
 import io.github.fjossinet.rnartist.gui.SplashWindow
-import io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Explorer
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Explorer.DrawingElementFilter
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import io.github.fjossinet.rnartist.model.DrawingLoaded
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromFile
@@ -43,7 +42,6 @@ import javafx.scene.shape.Line
 import javafx.stage.*
 import javafx.util.Duration
 import org.apache.commons.lang3.tuple.Pair
-import org.dizitart.no2.NitriteId
 import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
@@ -1940,7 +1938,7 @@ class RNArtist: Application() {
         this.paintSelectionAsCartoon = Button("SC", null)
         this.paintSelectionAsCartoon.setDisable(true)
         this.paintSelectionAsCartoon.setOnMouseClicked(EventHandler<MouseEvent?> {
-            mediator.chimeraDriver.represent(ChimeraDriver.CARTOON,
+            mediator.chimeraDriver.represent(ChimeraDriver.RENDERING.CARTOON,
                 mediator.canvas2D.getSelectedPositions())
         })
         this.paintSelectionAsCartoon.setTooltip(Tooltip("Selection as Cartoon"))
@@ -1948,7 +1946,7 @@ class RNArtist: Application() {
         this.paintSelectionAsStick = Button("SS", null)
         this.paintSelectionAsStick.setDisable(true)
         this.paintSelectionAsStick.setOnMouseClicked(EventHandler<MouseEvent?> {
-            mediator.chimeraDriver.represent(ChimeraDriver.STICK,
+            mediator.chimeraDriver.represent(ChimeraDriver.RENDERING.STICK,
                 mediator.canvas2D.getSelectedPositions())
         })
         this.paintSelectionAsStick.setTooltip(Tooltip("Selection as Stick"))
@@ -1961,7 +1959,7 @@ class RNArtist: Application() {
         this.showRibbon = Button("SR", null)
         this.showRibbon.setDisable(true)
         this.showRibbon.setOnMouseClicked(EventHandler<MouseEvent?> {
-            mediator.chimeraDriver.represent(ChimeraDriver.RIBBON_SHOW,
+            mediator.chimeraDriver.represent(ChimeraDriver.RENDERING.SHOW_RIBBON,
                 mediator.canvas2D.getSelectedPositions())
         })
         this.showRibbon.setTooltip(Tooltip("Show Ribbon"))
@@ -1969,7 +1967,7 @@ class RNArtist: Application() {
         this.hideRibbon = Button("HR", null)
         this.hideRibbon.setDisable(true)
         this.hideRibbon.setOnMouseClicked(EventHandler<MouseEvent?> {
-            mediator.chimeraDriver.represent(ChimeraDriver.RIBBON_HIDE,
+            mediator.chimeraDriver.represent(ChimeraDriver.RENDERING.HIDE_RIBBON,
                 mediator.canvas2D.getSelectedPositions())
         })
         this.hideRibbon.setTooltip(Tooltip("Hide Ribbon"))
