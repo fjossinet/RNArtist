@@ -4,6 +4,7 @@ import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.io.ChimeraDriver
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Explorer
 import io.github.fjossinet.rnartist.model.DrawingLoaded
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromFile
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNAGallery
@@ -20,7 +21,7 @@ class Mediator(val rnartist: RNArtist) {
     val drawingsLoaded = FXCollections.observableArrayList<DrawingLoaded>()
     var drawingDisplayed: SimpleObjectProperty<DrawingLoaded?> = SimpleObjectProperty<DrawingLoaded?>(null)
 
-    var scope = RNArtist.BRANCH_SCOPE
+    var scope = RNArtist.SCOPE.BRANCH
     var ignoreTertiaries = false
 
     val embeddedDB = EmbeddedDB()
@@ -68,14 +69,13 @@ class Mediator(val rnartist: RNArtist) {
         this.drawingDisplayed.addListener(ChangeListener<DrawingLoaded?> {
                 observableValue, oldValue, newValue ->
 
-            this.rnartist.focus3DButton.isDisable = true
+            this.rnartist.focus3D.isDisable = true
             this.rnartist.reload3D.isDisable = true
-            this.rnartist.paintSelectionin3DButton.isDisable = true
+            this.rnartist.paintSelectionin3D.isDisable = true
             this.rnartist.paintSelectionAsCartoon.isDisable = true
             this.rnartist.paintSelectionAsStick.isDisable = true
             this.rnartist.showRibbon.isDisable = true
             this.rnartist.hideRibbon.isDisable = true
-            this.rnartist.stage.title = "RNArtist"
 
             if (newValue == null) { //this means that the menu of 2Ds loaded has been cleared
                 this.chimeraDriver.closeSession()
@@ -113,7 +113,7 @@ class Mediator(val rnartist: RNArtist) {
                                 newValue.tmpChimeraSession!!.first,
                                 newValue.tmpChimeraSession!!.second
                             )
-                            this.rnartist.focus3DButton.isDisable = false
+                            this.rnartist.focus3D.isDisable = false
                             this.rnartist.reload3D.isDisable = false
                             this.rnartist.paintSelectionAsCartoon.isDisable = false
                             this.rnartist.showRibbon.isDisable = false
@@ -123,7 +123,7 @@ class Mediator(val rnartist: RNArtist) {
                                 this.chimeraDriver.closeSession()
                                 Thread.sleep(1000)
                                 this.chimeraDriver.loadTertiaryStructure(newValue.file)
-                                this.rnartist.focus3DButton.isDisable = false
+                                this.rnartist.focus3D.isDisable = false
                                 this.rnartist.reload3D.isDisable = false
                                 this.rnartist.paintSelectionAsCartoon.isDisable = false
                                 this.rnartist.showRibbon.isDisable = false
@@ -137,7 +137,7 @@ class Mediator(val rnartist: RNArtist) {
                                     this.chimeraDriver.restoreSession(chimeraSession, pdbFile)
                                 } else if (pdbFile.exists()) {
                                     this.chimeraDriver.loadTertiaryStructure(pdbFile)
-                                    this.rnartist.focus3DButton.isDisable = false
+                                    this.rnartist.focus3D.isDisable = false
                                     this.rnartist.reload3D.isDisable = false
                                     this.rnartist.paintSelectionAsCartoon.isDisable = false
                                     this.rnartist.showRibbon.isDisable = false
@@ -149,7 +149,7 @@ class Mediator(val rnartist: RNArtist) {
                                 Thread.sleep(1000)
                             }
                         }
-                        rnartist.saveProjectButton.isDisable = true
+                        rnartist.saveProject.isDisable = true
                     }
                     is DrawingLoadedFromRNArtistDB -> {
                         //println("new 2D loaded from DB")
@@ -160,7 +160,7 @@ class Mediator(val rnartist: RNArtist) {
                                 newValue.tmpChimeraSession!!.first,
                                 newValue.tmpChimeraSession!!.second
                             )
-                            this.rnartist.focus3DButton.isDisable = false
+                            this.rnartist.focus3D.isDisable = false
                             this.rnartist.reload3D.isDisable = false
                             this.rnartist.paintSelectionAsCartoon.isDisable = false
                             this.rnartist.showRibbon.isDisable = false
@@ -172,14 +172,14 @@ class Mediator(val rnartist: RNArtist) {
                                 this.chimeraDriver.closeSession()
                                 Thread.sleep(1000)
                                 this.chimeraDriver.restoreSession(sessionFile, pdbFile)
-                                this.rnartist.focus3DButton.isDisable = false
+                                this.rnartist.focus3D.isDisable = false
                                 this.rnartist.reload3D.isDisable = false
                                 this.rnartist.paintSelectionAsCartoon.isDisable = false
                                 this.rnartist.showRibbon.isDisable = false
                                 this.rnartist.hideRibbon.isDisable = false
                             }
                         }
-                        rnartist.saveProjectButton.isDisable = false
+                        rnartist.saveProject.isDisable = false
                     }
                     is DrawingLoadedFromRNAGallery -> {
                         if (newValue.tmpChimeraSession != null) {
@@ -189,7 +189,7 @@ class Mediator(val rnartist: RNArtist) {
                                 newValue.tmpChimeraSession!!.first,
                                 newValue.tmpChimeraSession!!.second
                             )
-                            this.rnartist.focus3DButton.isDisable = false
+                            this.rnartist.focus3D.isDisable = false
                             this.rnartist.reload3D.isDisable = false
                             this.rnartist.paintSelectionAsCartoon.isDisable = false
                             this.rnartist.showRibbon.isDisable = false
@@ -201,14 +201,14 @@ class Mediator(val rnartist: RNArtist) {
                                 this.chimeraDriver.closeSession()
                                 Thread.sleep(1000)
                                 this.chimeraDriver.loadTertiaryStructure(pdbFile)
-                                this.rnartist.focus3DButton.isDisable = false
+                                this.rnartist.focus3D.isDisable = false
                                 this.rnartist.reload3D.isDisable = false
                                 this.rnartist.paintSelectionAsCartoon.isDisable = false
                                 this.rnartist.showRibbon.isDisable = false
                                 this.rnartist.hideRibbon.isDisable = false
                             }
                         }
-                        rnartist.saveProjectButton.isDisable = true
+                        rnartist.saveProject.isDisable = true
                     }
                 }
                 this.canvas2D.repaint();
@@ -229,18 +229,18 @@ class Mediator(val rnartist: RNArtist) {
                                 canvas2D.fitStructure(null)
                             }
                         }
-                        rnartist.allStructuresAvailableMenu.items.add(0, item)
+                        rnartist.allStructuresAvailable.items.add(0, item)
                     }
                 } else if (change.wasRemoved()) {
                     val toDelete = mutableListOf<MenuItem>()
-                    for (menuItem in rnartist.allStructuresAvailableMenu.items.toList()) {
+                    for (menuItem in rnartist.allStructuresAvailable.items.toList()) {
                         for (drawingLoaded in change.removed) {
                             if (menuItem.userData == drawingLoaded) {
                                 toDelete.add(menuItem)
                             }
                         }
                     }
-                    rnartist.allStructuresAvailableMenu.items.removeAll(toDelete)
+                    rnartist.allStructuresAvailable.items.removeAll(toDelete)
                 }
             }
             if (!this.drawingsLoaded.isEmpty()) {

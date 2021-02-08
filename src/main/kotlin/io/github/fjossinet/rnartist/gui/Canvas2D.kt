@@ -188,30 +188,32 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
 
     }
 
-    fun isSelected(el: DrawingElement): Boolean {
+    fun isSelected(el: DrawingElement?): Boolean {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
             return drawingDisplayed.selectionShapes.any { it.element == el }
         }
         return false
     }
 
-    fun addToSelection(el: DrawingElement) {
+    fun addToSelection(el: DrawingElement?) {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            if (el is JunctionDrawing)
-                drawingDisplayed.knobs.add(JunctionKnob(mediator, el))
-            drawingDisplayed.selectionShapes.add(SelectionShape(mediator, el))
-            repaint()
-            mediator.chimeraDriver.selectResidues(
-                getSelectedPositions()
-            )
-            if (mediator.rnartist.isCenterDisplayOnSelection)
-                mediator.chimeraDriver.setFocus(
+            el?.let { el ->
+                if (el is JunctionDrawing)
+                    drawingDisplayed.knobs.add(JunctionKnob(mediator, el))
+                drawingDisplayed.selectionShapes.add(SelectionShape(mediator, el))
+                repaint()
+                mediator.chimeraDriver.selectResidues(
                     getSelectedPositions()
                 )
+                if (mediator.rnartist.centerDisplayOnSelection)
+                    mediator.chimeraDriver.setFocus(
+                        getSelectedPositions()
+                    )
+            }
         }
     }
 
-    fun removeFromSelection(el: DrawingElement) {
+    fun removeFromSelection(el: DrawingElement?) {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
             drawingDisplayed.knobs.removeIf { it.junction == el }
             drawingDisplayed.selectionShapes.removeIf { it.element == el }

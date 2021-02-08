@@ -50,7 +50,7 @@
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
 
-        <main.class>io.github.fjossinet.rnartist.Main</main.class>
+        <main.class>io.github.fjossinet.rnartist.RNArtist</main.class>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
     </properties>
 
@@ -148,7 +148,7 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist.core</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.2.4-SNAPSHOT</version>
+            <version>0.2.5-SNAPSHOT</version>
         </dependency>
 
     </dependencies>

@@ -1,10 +1,8 @@
 package io.github.fjossinet.rnartist.gui;
 
 import io.github.fjossinet.rnartist.Mediator;
-import io.github.fjossinet.rnartist.RNArtist;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNArtistDB;
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.WorkerStateEvent;

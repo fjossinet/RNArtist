@@ -1,10 +1,8 @@
 package io.github.fjossinet.rnartist.gui;
 
 import io.github.fjossinet.rnartist.Mediator;
-import io.github.fjossinet.rnartist.RNArtist;
 import io.github.fjossinet.rnartist.core.model.*;
 import io.github.fjossinet.rnartist.io.Backend;
-import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -25,7 +23,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Font;
-import javafx.scene.web.WebView;
 import javafx.stage.*;
 import javafx.util.Callback;
 import org.controlsfx.control.GridCell;

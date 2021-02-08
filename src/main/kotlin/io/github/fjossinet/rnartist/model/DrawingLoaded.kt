@@ -29,10 +29,10 @@ abstract class AbstractDrawingLoaded(protected val mediator: Mediator, override 
     init {
         this.selectionShapes.addListener(ListChangeListener { change ->
             if (!this.selectionShapes.isEmpty()) {
-                mediator.rnartist.paintSelectionin3DButton.isDisable = false
+                mediator.rnartist.paintSelectionin3D.isDisable = false
                 mediator.rnartist.paintSelectionAsStick.isDisable = false
             } else {
-                mediator.rnartist.paintSelectionin3DButton.isDisable = true
+                mediator.rnartist.paintSelectionin3D.isDisable = true
                 mediator.rnartist.paintSelectionAsStick.isDisable = true
             }
         })

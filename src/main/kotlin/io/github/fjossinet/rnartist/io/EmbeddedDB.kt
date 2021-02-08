@@ -19,7 +19,7 @@ class EmbeddedDB() {
                 .openOrCreate()
     }
 
-    fun getProject(id: NitriteId): SecondaryStructureDrawing {
+    fun getProject(id: NitriteId): SecondaryStructureDrawing? {
         val doc = this.userDB.getCollection("Projects").getById(id) as Document
         val rna = doc.get("rna") as Map<String,String>
         val secondaryStructure = SecondaryStructure(
