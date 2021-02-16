@@ -20,6 +20,11 @@ RNArtist allows you to design your RNA 2D structures interactively. To help you 
 * [tRNA crystal structure](https://www.rcsb.org/structure/1EHZ) in RNArtist linked to UCSF chimera. 
 
 ![Screen Capture](media/Capture%20d’écran%202021-01-28%20à%2007.56.07.png)
+
+* RNArtist provides an interactive editor to load and paint your 2D using the [RNArtistCore language](https://github.com/fjossinet/RNArtistCore)
+
+![Screen Capture](media/Capture%20d’écran%202021-02-10%20à%2010.36.45.png)
+
 ## <a name="prerequesites"></a>Prerequisites
 
 You need the tool [maven](https://maven.apache.org) and a [Java distribution](https://www.oracle.com/java/technologies/javase-downloads.html) to be installed (type the commands ```mvn``` and ```java``` from a command line to check). 
