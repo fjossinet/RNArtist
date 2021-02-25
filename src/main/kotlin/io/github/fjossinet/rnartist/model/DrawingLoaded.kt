@@ -28,7 +28,7 @@ abstract class AbstractDrawingLoaded(protected val mediator: Mediator, override 
 
     init {
         this.selectionShapes.addListener(ListChangeListener { change ->
-            if (!this.selectionShapes.isEmpty()) {
+            if (!this.selectionShapes.isEmpty() && mediator.chimeraDriver.pdbFile != null) {
                 mediator.rnartist.paintSelectionin3D.isDisable = false
                 mediator.rnartist.paintSelectionAsStick.isDisable = false
             } else {
@@ -41,6 +41,13 @@ abstract class AbstractDrawingLoaded(protected val mediator: Mediator, override 
 }
 
 class DrawingLoadedFromFile( mediator: Mediator,drawing: SecondaryStructureDrawing, val file: File):AbstractDrawingLoaded(mediator, drawing) {
+
+    override fun toString(): String {
+        return "RNA ${drawing.secondaryStructure.rna.name} ${drawing.secondaryStructure.rna.length}nts from file ${file.name}"
+    }
+}
+
+class DrawingLoadedFromEditor( mediator: Mediator,drawing: SecondaryStructureDrawing, val file: File):AbstractDrawingLoaded(mediator, drawing) {
 
     override fun toString(): String {
         return "RNA ${drawing.secondaryStructure.rna.name} ${drawing.secondaryStructure.rna.length}nts from file ${file.name}"

@@ -92,7 +92,7 @@ class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
         return false
     }
 
-    fun getJunctionLayout(): Layout {
+    fun getJunctionLayout(): List<ConnectorId> {
         val layout = mutableListOf<ConnectorId>()
         //first we search the circle for the InId
         var startIndex:Int = 0
@@ -175,7 +175,7 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
         //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
         selectedCount = knob.connectors.count { it.selected }
         if (selectedCount == knob.junction.junctionType.value - 1) {
-            knob.junction.layout = knob.getJunctionLayout().toMutableList()
+            knob.junction.currentLayout = knob.getJunctionLayout().toMutableList()
             knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(knob.junction)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
@@ -250,7 +250,6 @@ class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     override fun mouseClicked() {
         this.knob.junction.radius = this.knob.junction.radius * 1.1
-        this.knob.junction.layout = this.knob.junction.layout //a trick to recompute the stuff
         this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
         this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
             it.update()
@@ -294,7 +293,6 @@ class Down(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     override fun mouseClicked() {
         this.knob.junction.radius = this.knob.junction.radius * 0.9
-        this.knob.junction.layout = this.knob.junction.layout //a trick to recompute the stuff
         this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
         this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
             it.update()
@@ -335,7 +333,7 @@ class Left(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 }
                 currentPos = (currentPos+1)%16
             }
-            this.knob.junction.layout = this.knob.getJunctionLayout().toMutableList()
+            this.knob.junction.currentLayout = this.knob.getJunctionLayout().toMutableList()
             this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
@@ -377,7 +375,7 @@ class Right(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 }
                 currentPos = if (currentPos-1 == -1) 15 else currentPos-1
             }
-            this.knob.junction.layout = this.knob.getJunctionLayout().toMutableList()
+            this.knob.junction.currentLayout = this.knob.getJunctionLayout().toMutableList()
             this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()

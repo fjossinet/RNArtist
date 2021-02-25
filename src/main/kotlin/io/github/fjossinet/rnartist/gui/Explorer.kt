@@ -270,7 +270,7 @@ class Explorer(val mediator:Mediator) {
                     for (junction in junctions) {
                         val path = junction.pathToRoot()
                         var interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate(Color.LIGHTGRAY,
-                            (path.size - 1).toDouble() / branch.branchLength.toDouble()))
+                            (path.size - 1).toDouble() / branch.maxBranchLength.toDouble()))
                         junction.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] =
                             getHTMLColorString(
                                 interpolatedColor)
@@ -278,7 +278,7 @@ class Explorer(val mediator:Mediator) {
                             getHTMLColorString(
                                 interpolatedColor)
                         interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate(Color.LIGHTGRAY,
-                            (path.size - 2).toDouble() / branch.branchLength.toDouble()))
+                            (path.size - 2).toDouble() / branch.maxBranchLength.toDouble()))
                         junction.parent!!.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] =
                             getHTMLColorString(interpolatedColor)
                         for (r in junction.parent!!.residues) r.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] =
@@ -635,6 +635,18 @@ class Explorer(val mediator:Mediator) {
         }
     }
 
+    fun applyAdvancedTheme(item: TreeItem<ExplorerItem>, theme: AdvancedTheme, scope: SCOPE) {
+        if (mediator.ignoreTertiaries && item.value.name == "Tertiaries") return
+        item.value.applyAdvancedTheme(theme)
+        if (scope === SCOPE.ELEMENT) return
+        for (c in item.children) {
+            if (!GroupOfStructuralElements::class.java.isInstance(item.value) && scope === SCOPE.STRUCTURAL_DOMAIN && StructuralDomainDrawing::class.java.isInstance(
+                    c.value.drawingElement)
+            ) continue
+            applyAdvancedTheme(c, theme, scope)
+        }
+    }
+
     /**
      * Return a list of TreeItem containing a DrawingElement. Can return several objects since a DrawingElement can be encapsulated at different places
      * (like an helix and its children in a pknot or residues in tertiary interactions
@@ -784,7 +796,7 @@ class Explorer(val mediator:Mediator) {
         //we fit the width of the Name column to have enough space to expand the nodes
         var max = 0
         for (b in drawing.branches) {
-            if (b.branchLength > max) max = b.branchLength
+            if (b.maxBranchLength > max) max = b.maxBranchLength
         }
         treeTableView.columns[treeTableView.columns.size - 1].minWidth = (50 * max).toDouble()
         treeTableView.columns[treeTableView.columns.size - 1].maxWidth = (60 * max).toDouble()

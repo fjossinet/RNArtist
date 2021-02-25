@@ -21,6 +21,12 @@ RNArtist allows you to design your RNA 2D structures interactively. To help you 
 
 ![Screen Capture](media/Capture%20d’écran%202021-01-28%20à%2007.56.07.png)
 
+* RNArtist embeds its own drawing algorihtm. Rough output for the yeast LSU RNA (more than 3200 nts, PDBID: 4V7R), with and without long-range tertiary interactions displayed.
+
+![Screen Capture](media/Capture%20d’écran%202021-02-24%20à%2014.18.16.png)
+
+![Screen Capture](media/Capture%20d’écran%202021-02-24%20à%2012.37.53.png)
+
 * RNArtist provides an interactive editor to load and paint your 2D using the [RNArtistCore language](https://github.com/fjossinet/RNArtistCore)
 
 ![Screen Capture](media/Capture%20d’écran%202021-02-10%20à%2010.36.45.png)

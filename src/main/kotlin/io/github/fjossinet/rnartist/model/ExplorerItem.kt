@@ -15,6 +15,7 @@ interface ExplorerItem {
     val residues:List<ResidueDrawing>
 
     fun applyTheme(theme: Theme)
+    fun applyAdvancedTheme(theme: AdvancedTheme)
 
 }
 
@@ -61,6 +62,10 @@ class SecondaryStructureItem(private val drawing:SecondaryStructureDrawing): Abs
                 }
             }
         }
+    }
+
+    override fun applyAdvancedTheme(theme: AdvancedTheme) {
+        //not a drawing element so....
     }
 
 }
@@ -117,6 +122,20 @@ abstract class StructuralItem(name:String, drawingElement:DrawingElement):Abstra
             }
         }
     }
+
+    override fun applyAdvancedTheme(theme: AdvancedTheme) {
+        theme.configurations.entries.forEach { entry ->
+            if (entry.key(this.drawingElement!!)) {
+                when(entry.value.first) {
+                    DrawingConfigurationParameter.color.toString() -> this.color = entry.value.second
+                    DrawingConfigurationParameter.linewidth.toString() -> this.lineWidth = entry.value.second
+                    DrawingConfigurationParameter.lineshift.toString() -> this.lineShift = entry.value.second
+                    DrawingConfigurationParameter.opacity.toString() -> this.opacity = entry.value.second
+                    DrawingConfigurationParameter.fulldetails.toString() -> this.fullDetails = entry.value.second
+                }
+            }
+        }
+    }
 }
 class GroupOfStructuralElements(name:String) : AbstractExplorerItem(name) {
 
@@ -153,6 +172,10 @@ class GroupOfStructuralElements(name:String) : AbstractExplorerItem(name) {
 
     override fun applyTheme(theme: Theme) {
         children.forEach { it.applyTheme(theme) }
+    }
+
+    override fun applyAdvancedTheme(theme: AdvancedTheme) {
+        children.forEach { it.applyAdvancedTheme(theme) }
     }
 }
 

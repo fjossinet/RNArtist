@@ -77,6 +77,12 @@
             <version>${kotlin_version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-scripting-jsr223</artifactId>
+            <version>${kotlin_version}</version>
+        </dependency>
+
         <!-- openjfx -->
         <dependency>
             <groupId>org.openjfx</groupId>

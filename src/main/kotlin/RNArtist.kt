@@ -7,7 +7,10 @@ import io.github.fjossinet.rnartist.core.model.RnartistConfig.isDockerInstalled
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.save
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.selectionWidth
-import io.github.fjossinet.rnartist.core.model.io.*
+import io.github.fjossinet.rnartist.core.model.io.parseJSON
+import io.github.fjossinet.rnartist.core.model.io.parseRnaml
+import io.github.fjossinet.rnartist.core.model.io.toJSON
+import io.github.fjossinet.rnartist.core.model.io.toSVG
 import io.github.fjossinet.rnartist.core.rnartist
 import io.github.fjossinet.rnartist.gui.Canvas2D
 import io.github.fjossinet.rnartist.gui.SplashWindow
@@ -25,11 +28,13 @@ import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.concurrent.Task
+import javafx.concurrent.Worker
 import javafx.embed.swing.SwingNode
 import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import javafx.geometry.HPos
 import javafx.geometry.Insets
+import javafx.geometry.Orientation
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.*
@@ -39,6 +44,7 @@ import javafx.scene.input.ScrollEvent
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.shape.Line
+import javafx.scene.web.WebView
 import javafx.stage.*
 import javafx.util.Duration
 import org.apache.commons.lang3.tuple.Pair
@@ -49,6 +55,7 @@ import java.awt.geom.Rectangle2D
 import java.io.*
 import java.util.*
 import java.util.concurrent.ExecutionException
+import javax.script.ScriptEngineManager
 import javax.swing.SwingUtilities
 
 class RNArtist: Application() {
@@ -70,8 +77,10 @@ class RNArtist: Application() {
     val paintSelectionAsStick:Button
     val showRibbon:Button
     val hideRibbon:Button
+    val canvasEditorSplitPane:SplitPane
     private val root:BorderPane
     var centerDisplayOnSelection = false
+    var lastSplitpanePos = 0.7
 
     init {
         load()
@@ -99,9 +108,8 @@ class RNArtist: Application() {
                 for (f in files) {
                     fileChooser.initialDirectory = f.parentFile
                     val loadData =
-                        object : Task<Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?>?>() {
-                            override fun call(): Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?>? {
-                                var ss: SecondaryStructure?
+                        object : Task<Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?>>() {
+                            override fun call(): Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?> {
                                 val secondaryStructureDrawings: MutableList<SecondaryStructureDrawing> = ArrayList()
                                 try {
                                     val source = "file:" + f.absolutePath
@@ -114,45 +122,42 @@ class RNArtist: Application() {
                                         }
                                     }
                                     if (f.name.endsWith(".ct")) {
-                                        val drawing = rnartist {
+                                        rnartist {
                                             ss {
                                                 ct {
                                                     file = f.absolutePath
                                                 }
                                             }
-                                        }
-                                        drawing?.let {
+                                        }.forEach {
                                             it.secondaryStructure.source = source
                                             it.secondaryStructure.rna.source = source
-                                            secondaryStructureDrawings.add(drawing)
+                                            secondaryStructureDrawings.add(it)
                                         }
                                     } else if (f.name.endsWith(".bpseq")) {
-                                        val drawing = rnartist {
+                                        rnartist {
                                             ss {
                                                 bpseq {
                                                     file = f.absolutePath
                                                 }
                                             }
-                                        }
-                                        drawing?.let {
+                                        }.forEach {
                                             it.secondaryStructure.source = source
                                             it.secondaryStructure.rna.source = source
-                                            secondaryStructureDrawings.add(drawing)
+                                            secondaryStructureDrawings.add(it)
                                         }
                                     } else if (f.name.endsWith(".fasta") || f.name.endsWith(".fas") || f.name.endsWith(
                                             ".fa") || f.name.endsWith(".vienna")
                                     ) {
-                                        val drawing = rnartist {
+                                        rnartist {
                                             ss {
                                                 vienna {
                                                     file = f.absolutePath
                                                 }
                                             }
-                                        }
-                                        drawing?.let {
+                                        }.forEach {
                                             it.secondaryStructure.source = source
                                             it.secondaryStructure.rna.source = source
-                                            secondaryStructureDrawings.add(drawing)
+                                            secondaryStructureDrawings.add(it)
                                         }
                                     } else if (f.name.endsWith(".xml") || f.name.endsWith(".rnaml")) {
                                         for (structure in parseRnaml(f)) {
@@ -165,21 +170,32 @@ class RNArtist: Application() {
                                         }
                                     } else if (f.name.matches(Regex(".+\\.pdb[0-9]?"))) {
                                         if (!(isDockerInstalled() && isAssemble2DockerImageInstalled())) {
-                                            throw Exception("You cannot use PDB loadFiles, it seems that RNArtist cannot find the RNAVIEW algorithm on your computer.\n Possible causes:\n- the tool Docker is not installed\n- the tool Docker is not running\n- the docker image fjossinet/assemble2 is not installed")
+                                            throw Exception("You cannot use PDB files, it seems that RNArtist cannot find the RNAVIEW algorithm on your computer.\n Possible causes:\n- the tool Docker is not installed\n- the tool Docker is not running\n- the docker image fjossinet/assemble2 is not installed")
                                         }
-                                        for (structure in Rnaview().annotate(f)) {
-                                            if (!structure.helices.isEmpty()) {
-                                                structure.rna.source = source
-                                                secondaryStructureDrawings.add(SecondaryStructureDrawing(structure,
-                                                    WorkingSession()))
+                                        rnartist {
+                                            ss {
+                                                pdb {
+                                                    file = f.absolutePath
+                                                }
+                                            }
+                                        }.forEach {
+                                            if (!it.secondaryStructure.helices.isEmpty()) {
+                                                it.secondaryStructure.rna.source = source
+                                                //the source for the 2D is rnaview, we don't overwrite it
+                                                secondaryStructureDrawings.add(it)
                                             }
                                         }
                                     } else if (f.name.endsWith(".stk") || f.name.endsWith(".stockholm")) {
-                                        for (structure in parseStockholm(FileReader(f), false)) {
-                                            structure.rna.source = source
-                                            structure.source = source
-                                            secondaryStructureDrawings.add(SecondaryStructureDrawing(structure,
-                                                WorkingSession()))
+                                        rnartist {
+                                            ss {
+                                                stockholm {
+                                                    file = f.absolutePath
+                                                }
+                                            }
+                                        }.forEach {
+                                            it.secondaryStructure.source = source
+                                            it.secondaryStructure.rna.source = source
+                                            secondaryStructureDrawings.add(it)
                                         }
                                     }
                                 } catch (e: Exception) {
@@ -2082,6 +2098,7 @@ class RNArtist: Application() {
                                     }
                                 }
                                 if (!mediator.canvas2D.isSelected(h)) {
+                                    println(h.helix.maxBranchLength)
                                     mediator.canvas2D.addToSelection(h)
                                     mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
                                         override fun isOK(el: DrawingElement?): Boolean {
@@ -2159,6 +2176,7 @@ class RNArtist: Application() {
                                     }
                                 }
                                 if (!mediator.canvas2D.isSelected(j)) {
+                                    println(j.junction.maxBranchLength)
                                     mediator.canvas2D.addToSelection(j)
                                     mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
                                         override fun isOK(el: DrawingElement?): Boolean {
@@ -2336,7 +2354,10 @@ class RNArtist: Application() {
             }
         }
         createSwingContent(swingNode)
-        root.center = swingNode
+        this.canvasEditorSplitPane = SplitPane()
+        this.canvasEditorSplitPane.items.addAll(swingNode)
+        this.canvasEditorSplitPane.orientation = Orientation.VERTICAL
+        root.center = this.canvasEditorSplitPane
 
         //### Status Bar
         this.statusBar = FlowPane()
@@ -2423,6 +2444,19 @@ class RNArtist: Application() {
         }
         windowsBar.children.add(browser)
 
+        val showEditor = Button(null, FontIcon("fas-terminal:15"))
+        showEditor.onAction = EventHandler { actionEvent: ActionEvent? ->
+            if (canvasEditorSplitPane.items.size == 2) {
+                this.lastSplitpanePos = canvasEditorSplitPane.dividerPositions[0]
+                canvasEditorSplitPane.items.remove(mediator.editor)
+            } else {
+                canvasEditorSplitPane.items.add(mediator.editor)
+                SplitPane.setResizableWithParent(mediator.editor, false)
+                canvasEditorSplitPane.setDividerPositions(this.lastSplitpanePos)
+            }
+        }
+        windowsBar.children.add(showEditor)
+
         val bar = GridPane()
         val cc = ColumnConstraints()
         cc.hgrow = Priority.ALWAYS
@@ -2491,5 +2525,7 @@ class RNArtist: Application() {
     fun main() {
         launch();
     }
+
+
 
 }

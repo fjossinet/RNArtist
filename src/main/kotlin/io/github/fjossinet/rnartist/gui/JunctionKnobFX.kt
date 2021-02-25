@@ -34,7 +34,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
             //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
             selectedCount = connectors.count { it.selected }
             if (selectedCount == this.junctionCircle.junctionType.value - 1) {
-                junctionCircle.layout = this.getJunctionLayout().toMutableList()
+                junctionCircle.currentLayout = this.getJunctionLayout().toMutableList()
                 this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                 mediator.explorer.refresh()
@@ -62,7 +62,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
                 //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
                 selectedCount = connectors.count { it.selected }
                 if (selectedCount == this.junctionCircle.junctionType.value - 1) {
-                    junctionCircle.layout = this.getJunctionLayout().toMutableList()
+                    junctionCircle.currentLayout = this.getJunctionLayout().toMutableList()
                     this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                     //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
                     mediator.explorer.refresh()
@@ -90,7 +90,6 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
         up.setOnMousePressed {
             up.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 1.1
-            junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
             this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
             this.mediator.canvas2D.repaint()
         }
@@ -110,7 +109,6 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
         bottom.setOnMousePressed {
             bottom.fill = Color.BLACK
             junctionCircle.radius = junctionCircle.radius * 0.9
-            junctionCircle.layout = junctionCircle.layout //a trick to recompute the stuff
             this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
             this.mediator.canvas2D.repaint()
         }
@@ -152,7 +150,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
                     }
                     currentPos = (currentPos+1)%16
                 }
-                junctionCircle.layout = this.getJunctionLayout().toMutableList()
+                junctionCircle.currentLayout = this.getJunctionLayout().toMutableList()
                 this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                 this.mediator.canvas2D.repaint()
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
@@ -198,7 +196,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
                     }
                     currentPos = if (currentPos-1 == -1) 15 else currentPos-1
                 }
-                junctionCircle.layout = this.getJunctionLayout().toMutableList()
+                junctionCircle.currentLayout = this.getJunctionLayout().toMutableList()
                 this.mediator.drawingDisplayed.get()!!.drawing.computeResidues(junctionCircle)
                 this.mediator.canvas2D.repaint()
                 //we need to update the other knobs since the modification of this layout could have produced impacts on other junctions
@@ -214,7 +212,7 @@ class JunctionKnobFX(val junctionCircle: JunctionDrawing, val mediator: Mediator
         this.loadJunctionLayout()
     }
 
-    private fun getJunctionLayout(): Layout {
+    private fun getJunctionLayout(): List<ConnectorId> {
         val layout = mutableListOf<ConnectorId>()
         //first we search the circle for the InId
         var startIndex:Int = 0

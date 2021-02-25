@@ -3,14 +3,12 @@ package io.github.fjossinet.rnartist
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Editor
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Explorer
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.ProjectsPanel
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Settings
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraDriver
-import io.github.fjossinet.rnartist.model.DrawingLoaded
-import io.github.fjossinet.rnartist.model.DrawingLoadedFromFile
-import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNAGallery
-import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNArtistDB
+import io.github.fjossinet.rnartist.model.*
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
@@ -29,6 +27,7 @@ class Mediator(val rnartist: RNArtist) {
     val embeddedDB = EmbeddedDB()
     var webBrowser = WebBrowser(this)
     var chimeraDriver = ChimeraDriver(this)
+    var editor = Editor(this)
     val settings = Settings(this)
     val explorer = Explorer(this)
     val projectsPanel = ProjectsPanel(this)
@@ -152,6 +151,7 @@ class Mediator(val rnartist: RNArtist) {
                             }
                         }
                         rnartist.saveProject.isDisable = true
+                        this.editor.pasteDrawing(newValue.drawing)
                     }
                     is DrawingLoadedFromRNArtistDB -> {
                         //println("new 2D loaded from DB")
@@ -182,6 +182,7 @@ class Mediator(val rnartist: RNArtist) {
                             }
                         }
                         rnartist.saveProject.isDisable = false
+                        this.editor.pasteDrawing(newValue.drawing)
                     }
                     is DrawingLoadedFromRNAGallery -> {
                         if (newValue.tmpChimeraSession != null) {
@@ -211,6 +212,10 @@ class Mediator(val rnartist: RNArtist) {
                             }
                         }
                         rnartist.saveProject.isDisable = true
+                        this.editor.pasteDrawing(newValue.drawing)
+                    }
+                    is DrawingLoadedFromEditor -> {
+
                     }
                 }
                 this.canvas2D.repaint();
