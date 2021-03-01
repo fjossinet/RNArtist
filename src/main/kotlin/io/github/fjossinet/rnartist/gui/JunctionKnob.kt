@@ -1,6 +1,7 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
+import io.github.fjossinet.rnartist.core.layout
 import io.github.fjossinet.rnartist.core.model.*
 import java.awt.Color
 import java.awt.Graphics2D
@@ -175,8 +176,12 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
         //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
         selectedCount = knob.connectors.count { it.selected }
         if (selectedCount == knob.junction.junctionType.value - 1) {
-            knob.junction.currentLayout = knob.getJunctionLayout().toMutableList()
-            knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(knob.junction)
+            this.knob.junction.applyLayout(layout {
+                junction {
+                    name =  knob.junction.name
+                    out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
+                }
+            })
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
@@ -249,8 +254,13 @@ class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
     }
 
     override fun mouseClicked() {
-        this.knob.junction.radius = this.knob.junction.radius * 1.1
-        this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
+        this.knob.junction.applyLayout(layout {
+            junction {
+                name =  knob.junction.name
+                radius = knob.junction.radius * 1.1
+            }
+        })
+
         this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
             it.update()
         }
@@ -292,8 +302,12 @@ class Down(private val knob:JunctionKnob):AbstractJunctionArrow() {
     }
 
     override fun mouseClicked() {
-        this.knob.junction.radius = this.knob.junction.radius * 0.9
-        this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
+        this.knob.junction.applyLayout(layout {
+            junction {
+                name =  knob.junction.name
+                radius = knob.junction.radius * 0.9
+            }
+        })
         this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
             it.update()
         }
@@ -333,8 +347,12 @@ class Left(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 }
                 currentPos = (currentPos+1)%16
             }
-            this.knob.junction.currentLayout = this.knob.getJunctionLayout().toMutableList()
-            this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
+            this.knob.junction.applyLayout(layout {
+                junction {
+                    name =  knob.junction.name
+                    out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
+                }
+            })
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
@@ -375,8 +393,12 @@ class Right(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 }
                 currentPos = if (currentPos-1 == -1) 15 else currentPos-1
             }
-            this.knob.junction.currentLayout = this.knob.getJunctionLayout().toMutableList()
-            this.knob.mediator.drawingDisplayed.get()!!.drawing.computeResidues(this.knob.junction)
+            this.knob.junction.applyLayout(layout {
+                junction {
+                    name =  knob.junction.name
+                    out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
+                }
+            })
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }

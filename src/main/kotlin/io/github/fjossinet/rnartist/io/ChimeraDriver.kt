@@ -153,8 +153,15 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
     }
 
     fun reloadTertiaryStructure() {
-        if (sessionFile!!.exists()) postCommand("open " + sessionFile!!.absolutePath) else if (pdbFile!!.exists()) postCommand(
-            "open " + pdbFile!!.absolutePath)
+        sessionFile?.let {
+            if (it.exists())
+                postCommand("open " + it.absolutePath)
+        } ?: run {
+            pdbFile?.let {
+                if (it.exists())
+                    postCommand("open " + it.absolutePath)
+            }
+        }
     }
 
     override fun close() {

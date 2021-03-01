@@ -2,7 +2,6 @@ package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.RNArtist
-import io.github.fjossinet.rnartist.core.SecondaryStructureLayout
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromEditor
 import javafx.application.Platform
@@ -71,22 +70,11 @@ class Editor(val mediator: Mediator): VBox() {
                             mediator.canvas2D.repaint()
                         }
 
-                        is SecondaryStructureLayout -> {
-                            result.junctionLayouts.forEach { junctionLayout ->
-                                junctionsBehaviors[junctionLayout.junctionType] = { junctionDrawing: JunctionDrawing, helixRank: Int ->
-                                    val defaultLayout = junctionLayout.connectors
-                                    ConnectorId.values()
-                                        .first { it.value == (junctionDrawing.inId.value + defaultLayout[helixRank - 1].value) % ConnectorId.values().size }
-                                }
-                                mediator.drawingDisplayed.get()?.drawing?.let {
-                                    val drawing =
-                                        SecondaryStructureDrawing(it.secondaryStructure,
-                                            it.workingSession)
-                                    mediator.drawingDisplayed.set(DrawingLoadedFromEditor(mediator, drawing, File("editor.kts")))
-                                    mediator.explorer.refresh()
-                                    mediator.canvas2D.repaint()
-                                }
-                            }
+                        is Layout -> {
+                           mediator.drawingDisplayed.get()?.let {
+                               it.drawing.applyLayout(result)
+                               mediator.canvas2D.repaint()
+                           }
                         }
                     }
                 } catch (e: Exception) {
@@ -118,7 +106,7 @@ class Editor(val mediator: Mediator): VBox() {
                 """
             junction {
                name ="${junction.name}"
-               to = "${junction.currentLayout.joinToString(separator = " ")}"
+               out_ids = "${junction.currentLayout.joinToString(separator = " ")}"
             }    
             """
             } else 

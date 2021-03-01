@@ -1,6 +1,7 @@
 package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
+import io.github.fjossinet.rnartist.RNArtist
 import io.github.fjossinet.rnartist.RNArtist.SCOPE
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.gui.*
@@ -65,7 +66,7 @@ class Explorer(val mediator:Mediator) {
         colorColumn.maxWidth = 80.0
         colorColumn.isSortable = false
         val lineWidthColumn = TreeTableColumn<ExplorerItem, String>("Width")
-        lineWidthColumn.userData = DrawingConfigurationParameter.linewidth
+        lineWidthColumn.userData = ThemeParameter.linewidth
         lineWidthColumn.isEditable = true
         lineWidthColumn.setCellValueFactory(TreeItemPropertyValueFactory("lineWidth"))
         lineWidthColumn.setCellFactory(LineWidthTableTreeCell.forTreeTableColumn(mediator))
@@ -73,7 +74,7 @@ class Explorer(val mediator:Mediator) {
         lineWidthColumn.maxWidth = 80.0
         lineWidthColumn.isSortable = false
         val lineShiftColumn = TreeTableColumn<ExplorerItem, String>("Shift")
-        lineShiftColumn.userData = DrawingConfigurationParameter.lineshift
+        lineShiftColumn.userData = ThemeParameter.lineshift
         lineShiftColumn.isEditable = true
         lineShiftColumn.setCellValueFactory(TreeItemPropertyValueFactory("lineShift"))
         lineShiftColumn.setCellFactory(LineShiftTableTreeCell.forTreeTableColumn(mediator))
@@ -81,7 +82,7 @@ class Explorer(val mediator:Mediator) {
         lineShiftColumn.maxWidth = 60.0
         lineShiftColumn.isSortable = false
         val opacityColumn = TreeTableColumn<ExplorerItem, String>("Opacity")
-        opacityColumn.userData = DrawingConfigurationParameter.opacity
+        opacityColumn.userData = ThemeParameter.opacity
         opacityColumn.isEditable = true
         opacityColumn.setCellValueFactory(TreeItemPropertyValueFactory("opacity"))
         opacityColumn.setCellFactory(OpacityTableTreeCell.forTreeTableColumn(mediator))
@@ -235,9 +236,9 @@ class Explorer(val mediator:Mediator) {
                     val c = java.awt.Color(r, g, b)
                     val configuration: MutableMap<String, Map<String, String>> = HashMap()
                     val colorConfig: MutableMap<String, String> = HashMap()
-                    colorConfig[DrawingConfigurationParameter.color.toString()] = getHTMLColorString(c)
+                    colorConfig[ThemeParameter.color.toString()] = getHTMLColorString(c)
                     val letterColorConfig: MutableMap<String, String> = HashMap()
-                    letterColorConfig[DrawingConfigurationParameter.color.toString()] =
+                    letterColorConfig[ThemeParameter.color.toString()] =
                         getHTMLColorString(java.awt.Color.BLACK)
                     configuration[SecondaryStructureType.Helix.toString()] = colorConfig
                     configuration[SecondaryStructureType.SecondaryInteraction.toString()] = colorConfig
@@ -271,24 +272,24 @@ class Explorer(val mediator:Mediator) {
                         val path = junction.pathToRoot()
                         var interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate(Color.LIGHTGRAY,
                             (path.size - 1).toDouble() / branch.maxBranchLength.toDouble()))
-                        junction.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] =
+                        junction.drawingConfiguration.params[ThemeParameter.color.toString()] =
                             getHTMLColorString(
                                 interpolatedColor)
-                        for (r in junction.residues) r.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] =
+                        for (r in junction.residues) r.drawingConfiguration.params[ThemeParameter.color.toString()] =
                             getHTMLColorString(
                                 interpolatedColor)
                         interpolatedColor = javaFXToAwt(awtColorToJavaFX(c).interpolate(Color.LIGHTGRAY,
                             (path.size - 2).toDouble() / branch.maxBranchLength.toDouble()))
-                        junction.parent!!.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] =
+                        junction.parent!!.drawingConfiguration.params[ThemeParameter.color.toString()] =
                             getHTMLColorString(interpolatedColor)
-                        for (r in junction.parent!!.residues) r.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] =
+                        for (r in junction.parent!!.residues) r.drawingConfiguration.params[ThemeParameter.color.toString()] =
                             getHTMLColorString(interpolatedColor)
                     }
                 }
                 drawing.singleStrands.forEach { ss ->
-                    ss.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] =
+                    ss.drawingConfiguration.params[ThemeParameter.color.toString()] =
                         getHTMLColorString(java.awt.Color.BLACK)
-                    for (r in ss.residues) r.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] =
+                    for (r in ss.residues) r.drawingConfiguration.params[ThemeParameter.color.toString()] =
                         getHTMLColorString(java.awt.Color.BLACK)
                 }
                 mediator.canvas2D.repaint()
@@ -509,82 +510,82 @@ class Explorer(val mediator:Mediator) {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return  HelixDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "SingleStrands" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return  SingleStrandDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Junctions" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return  JunctionDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Apical Loops" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return JunctionDrawing::class.java.isInstance(el) && (el as? JunctionDrawing)?.junctionType === JunctionType.ApicalLoop
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Inner Loops" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return JunctionDrawing::class.java.isInstance(el) && (el as? JunctionDrawing)?.junctionType === JunctionType.InnerLoop
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "PseudoKnots" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return PKnotDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Secondary Interactions" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return SecondaryInteractionDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Tertiary Interactions" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return TertiaryInteractionDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Interaction Symbols" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return InteractionSymbolDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Phosphodiester Bonds" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return PhosphodiesterBondDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Residues" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return ResidueDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "As" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return AShapeDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Us" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return UShapeDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Gs" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return GShapeDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Cs" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return CShapeDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
                 "Residue Letters" -> mediator.explorer.selectAllTreeViewItems( object : DrawingElementFilter {
                     override fun isOK(el: DrawingElement?): Boolean {
                         return ResidueLetterDrawing::class.java.isInstance(el)
                     }
-                }, starts, true, mediator.scope)
+                }, starts, true, RNArtist.SCOPE.BRANCH)
             }
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
@@ -594,8 +595,8 @@ class Explorer(val mediator:Mediator) {
         val l = Label("Search from Selection")
         l.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull).then(true).otherwise(false))
         pane.add(l, 1, 1)
-        stackedTitledPanes.children.add(scope)
         stackedTitledPanes.children.add(selection)
+        stackedTitledPanes.children.add(scope)
         stackedTitledPanes.children.add(details)
         stackedTitledPanes.children.add(colors)
         stackedTitledPanes.children.add(linesWidth)

@@ -12,6 +12,7 @@ import io.github.fjossinet.rnartist.core.model.io.parseRnaml
 import io.github.fjossinet.rnartist.core.model.io.toJSON
 import io.github.fjossinet.rnartist.core.model.io.toSVG
 import io.github.fjossinet.rnartist.core.rnartist
+import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.Canvas2D
 import io.github.fjossinet.rnartist.gui.SplashWindow
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
@@ -28,7 +29,6 @@ import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.concurrent.Task
-import javafx.concurrent.Worker
 import javafx.embed.swing.SwingNode
 import javafx.event.ActionEvent
 import javafx.event.EventHandler
@@ -44,7 +44,6 @@ import javafx.scene.input.ScrollEvent
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.shape.Line
-import javafx.scene.web.WebView
 import javafx.stage.*
 import javafx.util.Duration
 import org.apache.commons.lang3.tuple.Pair
@@ -55,7 +54,6 @@ import java.awt.geom.Rectangle2D
 import java.io.*
 import java.util.*
 import java.util.concurrent.ExecutionException
-import javax.script.ScriptEngineManager
 import javax.swing.SwingUtilities
 
 class RNArtist: Application() {
@@ -206,7 +204,7 @@ class RNArtist: Application() {
                         }
                     loadData.onSucceeded = EventHandler {
                         try {
-                            loadData.get()?.right?.let {  exception ->
+                            loadData.get()?.right?.let { exception ->
                                 val alert = Alert(Alert.AlertType.ERROR)
                                 alert.title = "File Parsing error"
                                 alert.headerText = exception.message
@@ -231,7 +229,7 @@ class RNArtist: Application() {
                                 alert.dialogPane.expandableContent = expContent
                                 alert.showAndWait()
                             }
-                            loadData.get()?.left?.let {  result ->
+                            loadData.get()?.left?.let { result ->
                                 for (drawing in result.left) mediator.drawingsLoaded.add(
                                     DrawingLoadedFromFile(mediator,
                                         drawing, result.right))
@@ -556,10 +554,12 @@ class RNArtist: Application() {
         showTertiaries.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         showTertiaries.onMouseClicked = EventHandler {
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.TertiaryInteraction,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
+            val t = theme {
+                details {
+                    type = "tertiary_interaction"
+                    value = "full"
+                }
+            }
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
             var scope = RNArtist.SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
@@ -576,7 +576,7 @@ class RNArtist: Application() {
                 }
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
         }
@@ -587,10 +587,12 @@ class RNArtist: Application() {
         hideTertiaries.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         hideTertiaries.onMouseClicked = EventHandler {
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.TertiaryInteraction,
-                DrawingConfigurationParameter.fulldetails,
-                "false")
+            val t = theme {
+                details {
+                    type = "tertiary_interaction"
+                    value = "none"
+                }
+            }
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
             var scope = RNArtist.SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
@@ -603,7 +605,7 @@ class RNArtist: Application() {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
         }
@@ -637,32 +639,10 @@ class RNArtist: Application() {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.fulldetails,
-                "false")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand,
-                DrawingConfigurationParameter.fulldetails,
-                "false")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.fulldetails,
-                "false")
-            t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.fulldetails,
-                "false")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            val t = theme {
+                details_lvl = 1
+            }
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
         }
@@ -684,32 +664,10 @@ class RNArtist: Application() {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.fulldetails,
-                "false")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            val t = theme {
+                details_lvl = 2
+            }
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
         }
@@ -736,32 +694,10 @@ class RNArtist: Application() {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.fulldetails, "false")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.fulldetails,
-                "false")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            val t = theme {
+                details_lvl = 3
+            }
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
         }
@@ -783,32 +719,10 @@ class RNArtist: Application() {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.fulldetails,
-                "false")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            val t = theme {
+                details_lvl = 4
+            }
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
         }
@@ -834,32 +748,10 @@ class RNArtist: Application() {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.A, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.U, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.G, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.C, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.X, DrawingConfigurationParameter.fulldetails, "true")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.fulldetails,
-                "true")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            val t = theme {
+                details_lvl = 5
+            }
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
         }
@@ -872,8 +764,6 @@ class RNArtist: Application() {
         leftToolBar.add(s, 0, row++, 2, 1)
         GridPane.setHalignment(s, HPos.CENTER)
 
-        val syncColors = Button(null, FontIcon("fas-unlock:12"))
-
         val AColorPicker = ColorPicker()
         AColorPicker.maxWidth = Double.MAX_VALUE
         val UColorPicker = ColorPicker()
@@ -882,6 +772,15 @@ class RNArtist: Application() {
         GColorPicker.maxWidth = Double.MAX_VALUE
         val CColorPicker = ColorPicker()
         CColorPicker.maxWidth = Double.MAX_VALUE
+        val RColorPicker = ColorPicker()
+        RColorPicker.value = Color.BLACK
+        RColorPicker.maxWidth = Double.MAX_VALUE
+        val YColorPicker = ColorPicker()
+        YColorPicker.value = Color.BLACK
+        YColorPicker.maxWidth = Double.MAX_VALUE
+        val NColorPicker = ColorPicker()
+        NColorPicker.value = Color.BLACK
+        NColorPicker.maxWidth = Double.MAX_VALUE
 
         val ALabel = Button("A")
         ALabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
@@ -903,6 +802,24 @@ class RNArtist: Application() {
         CLabel.maxWidth = Double.MAX_VALUE
         CLabel.userData = "white"
         CLabel.textFill = Color.WHITE
+        val RLabel = Button("R")
+        RLabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+        RLabel.maxWidth = Double.MAX_VALUE
+        RLabel.userData = "white"
+        RLabel.textFill = Color.WHITE
+        RLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(Color.BLACK))
+        val YLabel = Button("Y")
+        YLabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+        YLabel.maxWidth = Double.MAX_VALUE
+        YLabel.userData = "white"
+        YLabel.textFill = Color.WHITE
+        YLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(Color.BLACK))
+        val NLabel = Button("N")
+        NLabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+        NLabel.maxWidth = Double.MAX_VALUE
+        NLabel.userData = "white"
+        NLabel.textFill = Color.WHITE
+        NLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(Color.BLACK))
 
         val pickColorScheme = Button(null, FontIcon("fas-swatchbook:15"))
         pickColorScheme.maxWidth = Double.MAX_VALUE
@@ -926,32 +843,42 @@ class RNArtist: Application() {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.A,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.AShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-            t.setConfigurationFor(SecondaryStructureType.U,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.UShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-            t.setConfigurationFor(SecondaryStructureType.G,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.GShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-            t.setConfigurationFor(SecondaryStructureType.C,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.CShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            val t = theme {
+                color {
+                    type = "A"
+                    value = getHTMLColorString(javaFXToAwt(AColorPicker.value))
+                }
+                color {
+                    type = "a"
+                    value = getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE))
+                }
+                color {
+                    type = "U"
+                    value = getHTMLColorString(javaFXToAwt(UColorPicker.value))
+                }
+                color {
+                    type = "u"
+                    value = getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE))
+                }
+                color {
+                    type = "G"
+                    value = getHTMLColorString(javaFXToAwt(GColorPicker.value))
+                }
+                color {
+                    type = "g"
+                    value = getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE))
+                }
+                color {
+                    type = "C"
+                    value = getHTMLColorString(javaFXToAwt(CColorPicker.value))
+                }
+                color {
+                    type = "c"
+                    value = getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE))
+                }
+            }
+
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
         }
@@ -965,68 +892,10 @@ class RNArtist: Application() {
             if (ALabel.userData == "black") {
                 ALabel.userData = "white"
                 ALabel.textFill = Color.WHITE
-                if ("lock" == syncColors.userData) {
-                    ULabel.userData = "white"
-                    ULabel.textFill = Color.WHITE
-                    GLabel.userData = "white"
-                    GLabel.textFill = Color.WHITE
-                    CLabel.userData = "white"
-                    CLabel.textFill = Color.WHITE
-                }
             } else {
                 ALabel.userData = "black"
                 ALabel.textFill = Color.BLACK
-                if ("lock" == syncColors.userData) {
-                    ULabel.userData = "black"
-                    ULabel.textFill = Color.BLACK
-                    GLabel.userData = "black"
-                    GLabel.textFill = Color.BLACK
-                    CLabel.userData = "black"
-                    CLabel.textFill = Color.BLACK
-                }
             }
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.A,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.AShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-            if ("lock" == syncColors.userData) {
-                t.setConfigurationFor(SecondaryStructureType.U,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.UShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.G,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.GShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.C,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.CShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
         }
 
         leftToolBar.add(ALabel, 0, row)
@@ -1040,124 +909,16 @@ class RNArtist: Application() {
         AColorPicker.style = "-fx-color-label-visible: false ;"
         AColorPicker.onAction = EventHandler {
             ALabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(AColorPicker.value))
-            if ("lock" == syncColors.userData) {
-                GColorPicker.value = AColorPicker.value
-                GLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(AColorPicker.value))
-                UColorPicker.value = AColorPicker.value
-                ULabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(AColorPicker.value))
-                CColorPicker.value = AColorPicker.value
-                CLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(AColorPicker.value))
-            }
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.A,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.AShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-            if ("lock" == syncColors.userData) {
-                t.setConfigurationFor(SecondaryStructureType.G,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.GShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.U,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.UShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.C,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.CShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
         }
 
         ULabel.onAction = EventHandler {
             if (ULabel.userData == "black") {
                 ULabel.userData = "white"
                 ULabel.textFill = Color.WHITE
-                if ("lock" == syncColors.userData) {
-                    ALabel.userData = "white"
-                    ALabel.textFill = Color.WHITE
-                    GLabel.userData = "white"
-                    GLabel.textFill = Color.WHITE
-                    CLabel.userData = "white"
-                    CLabel.textFill = Color.WHITE
-                }
             } else {
                 ULabel.userData = "black"
                 ULabel.textFill = Color.BLACK
-                if ("lock" == syncColors.userData) {
-                    ALabel.userData = "black"
-                    ALabel.textFill = Color.BLACK
-                    GLabel.userData = "black"
-                    GLabel.textFill = Color.BLACK
-                    CLabel.userData = "black"
-                    CLabel.textFill = Color.BLACK
-                }
             }
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.U,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.UShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-            if ("lock" == syncColors.userData) {
-                t.setConfigurationFor(SecondaryStructureType.A,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.AShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.G,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.GShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.C,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.CShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
         }
 
         leftToolBar.add(ULabel, 0, row)
@@ -1169,124 +930,16 @@ class RNArtist: Application() {
         UColorPicker.style = "-fx-color-label-visible: false ;"
         UColorPicker.onAction = EventHandler {
             ULabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(UColorPicker.value))
-            if ("lock" == syncColors.userData) {
-                AColorPicker.value = UColorPicker.value
-                ALabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(UColorPicker.value))
-                GColorPicker.value = UColorPicker.value
-                GLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(UColorPicker.value))
-                CColorPicker.value = UColorPicker.value
-                CLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(UColorPicker.value))
-            }
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.U,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.UShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-            if ("lock" == syncColors.userData) {
-                t.setConfigurationFor(SecondaryStructureType.A,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.AShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.G,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.GShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.C,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.CShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
         }
 
         GLabel.onAction = EventHandler {
             if (GLabel.userData == "black") {
                 GLabel.userData = "white"
                 GLabel.textFill = Color.WHITE
-                if ("lock" == syncColors.userData) {
-                    ULabel.userData = "white"
-                    ULabel.textFill = Color.WHITE
-                    ALabel.userData = "white"
-                    ALabel.textFill = Color.WHITE
-                    CLabel.userData = "white"
-                    CLabel.textFill = Color.WHITE
-                }
             } else {
                 GLabel.userData = "black"
                 GLabel.textFill = Color.BLACK
-                if ("lock" == syncColors.userData) {
-                    ULabel.userData = "black"
-                    ULabel.textFill = Color.BLACK
-                    ALabel.userData = "black"
-                    ALabel.textFill = Color.BLACK
-                    CLabel.userData = "black"
-                    CLabel.textFill = Color.BLACK
-                }
             }
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.G,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.GShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-            if ("lock" == syncColors.userData) {
-                t.setConfigurationFor(SecondaryStructureType.U,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.UShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.A,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.AShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.C,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.CShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
         }
         leftToolBar.add(GLabel, 0, row)
         GridPane.setHalignment(GLabel, HPos.CENTER)
@@ -1297,124 +950,16 @@ class RNArtist: Application() {
         GColorPicker.style = "-fx-color-label-visible: false ;"
         GColorPicker.onAction = EventHandler {
             GLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(GColorPicker.value))
-            if ("lock" == syncColors.userData) {
-                AColorPicker.value = GColorPicker.value
-                ALabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(GColorPicker.value))
-                UColorPicker.value = GColorPicker.value
-                ULabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(GColorPicker.value))
-                CColorPicker.value = GColorPicker.value
-                CLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(GColorPicker.value))
-            }
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.G,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.GShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-            if ("lock" == syncColors.userData) {
-                t.setConfigurationFor(SecondaryStructureType.A,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.AShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.U,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.UShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.C,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.CShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
         }
 
         CLabel.onAction = EventHandler {
             if (CLabel.userData == "black") {
                 CLabel.userData = "white"
                 CLabel.textFill = Color.WHITE
-                if ("lock" == syncColors.userData) {
-                    ULabel.userData = "white"
-                    ULabel.textFill = Color.WHITE
-                    GLabel.userData = "white"
-                    GLabel.textFill = Color.WHITE
-                    ALabel.userData = "white"
-                    ALabel.textFill = Color.WHITE
-                }
             } else {
                 CLabel.userData = "black"
                 CLabel.textFill = Color.BLACK
-                if ("lock" == syncColors.userData) {
-                    ULabel.userData = "black"
-                    ULabel.textFill = Color.BLACK
-                    GLabel.userData = "black"
-                    GLabel.textFill = Color.BLACK
-                    ALabel.userData = "black"
-                    ALabel.textFill = Color.BLACK
-                }
             }
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.C,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.CShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            if ("lock" == syncColors.userData) {
-                t.setConfigurationFor(SecondaryStructureType.U,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.UShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.G,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.GShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.A,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.AShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-            }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
         }
         leftToolBar.add(CLabel, 0, row)
         GridPane.setHalignment(CLabel, HPos.CENTER)
@@ -1425,56 +970,114 @@ class RNArtist: Application() {
         CColorPicker.style = "-fx-color-label-visible: false ;"
         CColorPicker.onAction = EventHandler {
             CLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(CColorPicker.value))
-            if ("lock" == syncColors.userData) {
-                AColorPicker.value = CColorPicker.value
-                ALabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(CColorPicker.value))
-                UColorPicker.value = CColorPicker.value
-                ULabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(CColorPicker.value))
-                GColorPicker.value = CColorPicker.value
-                GLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(CColorPicker.value))
-            }
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
+        }
+
+        RLabel.onAction = EventHandler {
+            if (RLabel.userData == "black") {
+                RLabel.userData = "white"
+                RLabel.textFill = Color.WHITE
+                ALabel.userData = "white"
+                ALabel.textFill = Color.WHITE
+                GLabel.userData = "white"
+                GLabel.textFill = Color.WHITE
             } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
+                RLabel.userData = "black"
+                RLabel.textFill = Color.BLACK
+                ALabel.userData = "black"
+                ALabel.textFill = Color.BLACK
+                GLabel.userData = "black"
+                GLabel.textFill = Color.BLACK
             }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.C,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
-            t.setConfigurationFor(SecondaryStructureType.CShape,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            if ("lock" == syncColors.userData) {
-                t.setConfigurationFor(SecondaryStructureType.A,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.AShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.U,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.UShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-                t.setConfigurationFor(SecondaryStructureType.G,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
-                t.setConfigurationFor(SecondaryStructureType.GShape,
-                    DrawingConfigurationParameter.color,
-                    getHTMLColorString(javaFXToAwt(GColorPicker.value)))
+        }
+        leftToolBar.add(RLabel, 0, row)
+        GridPane.setHalignment(RLabel, HPos.CENTER)
+        leftToolBar.add(RColorPicker, 1, row++)
+        GridPane.setHalignment(RColorPicker, HPos.CENTER)
+
+        RColorPicker.styleClass.add("button")
+        RColorPicker.style = "-fx-color-label-visible: false ;"
+        RColorPicker.onAction = EventHandler {
+            RLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(RColorPicker.value))
+            AColorPicker.value = RColorPicker.value
+            ALabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(RColorPicker.value))
+            GColorPicker.value = RColorPicker.value
+            GLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(RColorPicker.value))
+        }
+
+        YLabel.onAction = EventHandler {
+            if (YLabel.userData == "black") {
+                YLabel.userData = "white"
+                YLabel.textFill = Color.WHITE
+                ULabel.userData = "white"
+                ULabel.textFill = Color.WHITE
+                CLabel.userData = "white"
+                CLabel.textFill = Color.WHITE
+            } else {
+                YLabel.userData = "black"
+                YLabel.textFill = Color.BLACK
+                ULabel.userData = "black"
+                ULabel.textFill = Color.BLACK
+                CLabel.userData = "black"
+                CLabel.textFill = Color.BLACK
             }
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
+        }
+        leftToolBar.add(YLabel, 0, row)
+        GridPane.setHalignment(YLabel, HPos.CENTER)
+        leftToolBar.add(YColorPicker, 1, row++)
+        GridPane.setHalignment(YColorPicker, HPos.CENTER)
+
+        YColorPicker.styleClass.add("button")
+        YColorPicker.style = "-fx-color-label-visible: false ;"
+        YColorPicker.onAction = EventHandler {
+            YLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(YColorPicker.value))
+            UColorPicker.value = YColorPicker.value
+            ULabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(YColorPicker.value))
+            CColorPicker.value = YColorPicker.value
+            CLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(YColorPicker.value))
+        }
+
+        NLabel.onAction = EventHandler {
+            if (NLabel.userData == "black") {
+                NLabel.userData = "white"
+                NLabel.textFill = Color.WHITE
+                ALabel.userData = "white"
+                ALabel.textFill = Color.WHITE
+                GLabel.userData = "white"
+                GLabel.textFill = Color.WHITE
+                ULabel.userData = "white"
+                ULabel.textFill = Color.WHITE
+                CLabel.userData = "white"
+                CLabel.textFill = Color.WHITE
+            } else {
+                NLabel.userData = "black"
+                NLabel.textFill = Color.BLACK
+                ALabel.userData = "black"
+                ALabel.textFill = Color.BLACK
+                GLabel.userData = "black"
+                GLabel.textFill = Color.BLACK
+                ULabel.userData = "black"
+                ULabel.textFill = Color.BLACK
+                CLabel.userData = "black"
+                CLabel.textFill = Color.BLACK
+            }
+        }
+        leftToolBar.add(NLabel, 0, row)
+        GridPane.setHalignment(NLabel, HPos.CENTER)
+        leftToolBar.add(NColorPicker, 1, row++)
+        GridPane.setHalignment(NColorPicker, HPos.CENTER)
+
+        NColorPicker.styleClass.add("button")
+        NColorPicker.style = "-fx-color-label-visible: false ;"
+        NColorPicker.onAction = EventHandler {
+            NLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
+            AColorPicker.value = NColorPicker.value
+            ALabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
+            GColorPicker.value = NColorPicker.value
+            GLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
+            UColorPicker.value = NColorPicker.value
+            ULabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
+            CColorPicker.value = NColorPicker.value
+            CLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
         }
 
         //++++++++++ we init the color buttons with a random scheme
@@ -1482,11 +1085,11 @@ class RNArtist: Application() {
             .toArray()[Random().nextInt(RnartistConfig.colorSchemes.size)] as Map<String, Map<String, String>>
 
         AColorPicker.value =
-            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.AShape.toString()]!![DrawingConfigurationParameter.color.toString()]!!,
+            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]!!,
                 255))
         ALabel.style =
-            "-fx-background-color: " + scheme[SecondaryStructureType.AShape.toString()]!![DrawingConfigurationParameter.color.toString()]
-        if (scheme[SecondaryStructureType.A.toString()]!![DrawingConfigurationParameter.color.toString()] == getHTMLColorString(
+            "-fx-background-color: " + scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]
+        if (scheme[SecondaryStructureType.A.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
                 java.awt.Color.WHITE)
         ) {
             ALabel.userData = "white"
@@ -1497,11 +1100,11 @@ class RNArtist: Application() {
         }
 
         UColorPicker.value =
-            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.UShape.toString()]!![DrawingConfigurationParameter.color.toString()]!!,
+            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]!!,
                 255))
         ULabel.style =
-            "-fx-background-color: " + scheme[SecondaryStructureType.UShape.toString()]!![DrawingConfigurationParameter.color.toString()]
-        if (scheme[SecondaryStructureType.U.toString()]!![DrawingConfigurationParameter.color.toString()] == getHTMLColorString(
+            "-fx-background-color: " + scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]
+        if (scheme[SecondaryStructureType.U.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
                 java.awt.Color.WHITE)
         ) {
             ULabel.userData = "white"
@@ -1512,11 +1115,11 @@ class RNArtist: Application() {
         }
 
         GColorPicker.value =
-            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.GShape.toString()]!![DrawingConfigurationParameter.color.toString()]!!,
+            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]!!,
                 255))
         GLabel.style =
-            "-fx-background-color: " + scheme[SecondaryStructureType.GShape.toString()]!![DrawingConfigurationParameter.color.toString()]
-        if (scheme[SecondaryStructureType.G.toString()]!![DrawingConfigurationParameter.color.toString()] == getHTMLColorString(
+            "-fx-background-color: " + scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]
+        if (scheme[SecondaryStructureType.G.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
                 java.awt.Color.WHITE)
         ) {
             GLabel.userData = "white"
@@ -1527,11 +1130,11 @@ class RNArtist: Application() {
         }
 
         CColorPicker.value =
-            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.CShape.toString()]!![DrawingConfigurationParameter.color.toString()]!!,
+            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]!!,
                 255))
         CLabel.style =
-            "-fx-background-color: " + scheme[SecondaryStructureType.CShape.toString()]!![DrawingConfigurationParameter.color.toString()]
-        if (scheme[SecondaryStructureType.C.toString()]!![DrawingConfigurationParameter.color.toString()] == getHTMLColorString(
+            "-fx-background-color: " + scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]
+        if (scheme[SecondaryStructureType.C.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
                 java.awt.Color.WHITE)
         ) {
             CLabel.userData = "white"
@@ -1545,11 +1148,11 @@ class RNArtist: Application() {
             val scheme = RnartistConfig.colorSchemes.values.stream()
                 .toArray()[Random().nextInt(RnartistConfig.colorSchemes.size)] as Map<String, Map<String, String>>
             AColorPicker.value =
-                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.AShape.toString()]!![DrawingConfigurationParameter.color.toString()]!!,
+                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]!!,
                     255))
             ALabel.style =
-                "-fx-background-color: " + scheme[SecondaryStructureType.AShape.toString()]!![DrawingConfigurationParameter.color.toString()]
-            if (scheme[SecondaryStructureType.A.toString()]!![DrawingConfigurationParameter.color.toString()] == getHTMLColorString(
+                "-fx-background-color: " + scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]
+            if (scheme[SecondaryStructureType.A.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
                     java.awt.Color.WHITE)
             ) {
                 ALabel.userData = "white"
@@ -1559,11 +1162,11 @@ class RNArtist: Application() {
                 ALabel.textFill = Color.BLACK
             }
             UColorPicker.value =
-                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.UShape.toString()]!![DrawingConfigurationParameter.color.toString()]!!,
+                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]!!,
                     255))
             ULabel.style =
-                "-fx-background-color: " + scheme[SecondaryStructureType.UShape.toString()]!![DrawingConfigurationParameter.color.toString()]
-            if (scheme[SecondaryStructureType.U.toString()]!![DrawingConfigurationParameter.color.toString()] == getHTMLColorString(
+                "-fx-background-color: " + scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]
+            if (scheme[SecondaryStructureType.U.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
                     java.awt.Color.WHITE)
             ) {
                 ULabel.userData = "white"
@@ -1573,11 +1176,11 @@ class RNArtist: Application() {
                 ULabel.textFill = Color.BLACK
             }
             GColorPicker.value =
-                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.GShape.toString()]!![DrawingConfigurationParameter.color.toString()]!!,
+                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]!!,
                     255))
             GLabel.style =
-                "-fx-background-color: " + scheme[SecondaryStructureType.GShape.toString()]!![DrawingConfigurationParameter.color.toString()]
-            if (scheme[SecondaryStructureType.G.toString()]!![DrawingConfigurationParameter.color.toString()] == getHTMLColorString(
+                "-fx-background-color: " + scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]
+            if (scheme[SecondaryStructureType.G.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
                     java.awt.Color.WHITE)
             ) {
                 GLabel.userData = "white"
@@ -1587,11 +1190,11 @@ class RNArtist: Application() {
                 GLabel.textFill = Color.BLACK
             }
             CColorPicker.value =
-                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.CShape.toString()]!![DrawingConfigurationParameter.color.toString()]!!,
+                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]!!,
                     255))
             CLabel.style =
-                "-fx-background-color: " + scheme[SecondaryStructureType.CShape.toString()]!![DrawingConfigurationParameter.color.toString()]
-            if (scheme[SecondaryStructureType.C.toString()]!![DrawingConfigurationParameter.color.toString()] == getHTMLColorString(
+                "-fx-background-color: " + scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]
+            if (scheme[SecondaryStructureType.C.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
                     java.awt.Color.WHITE)
             ) {
                 CLabel.userData = "white"
@@ -1602,36 +1205,12 @@ class RNArtist: Application() {
             }
         }
 
-        //syncColors.setMaxWidth(Double.MAX_VALUE);
-        syncColors.userData = "unlock"
-        syncColors.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        syncColors.onAction = EventHandler {
-            if ("unlock" == syncColors.userData) {
-                syncColors.graphic = FontIcon("fas-lock:12")
-                syncColors.userData = "lock"
-            } else {
-                syncColors.graphic = FontIcon("fas-unlock:12")
-                syncColors.userData = "unlock"
-            }
-        }
-
-        leftToolBar.add(syncColors, 0, row++, 2, 1)
-        GridPane.setHalignment(syncColors, HPos.CENTER)
-
         s = Separator()
         s.padding = Insets(5.0, 0.0, 5.0, 0.0)
         leftToolBar.add(s, 0, row++, 2, 1)
         GridPane.setHalignment(s, HPos.CENTER)
 
-        val lineWidth1 = Button(null, null)
-        lineWidth1.maxWidth = Double.MAX_VALUE
-        var line = Line(0.0, 10.0, 10.0, 10.0)
-        line.strokeWidth = 0.25
-        lineWidth1.graphic = line
-        lineWidth1.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        lineWidth1.onAction = EventHandler {
+        val applyLineWidth = { lineWidth:Double ->
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
             var scope = RNArtist.SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
@@ -1644,30 +1223,26 @@ class RNArtist: Application() {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.linewidth, "0.25")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.linewidth, "0.25")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand, DrawingConfigurationParameter.linewidth, "0.25")
-            t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.linewidth, "0.25")
-            t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.linewidth, "0.25")
-            t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.linewidth, "0.25")
-            t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.linewidth, "0.25")
-            t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.linewidth, "0.25")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "0.25")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.linewidth,
-                "0.25")
-            t.setConfigurationFor(SecondaryStructureType.TertiaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "0.25")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.linewidth,
-                "0.25")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            val t = theme {
+                line {
+                    type = "helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol"
+                    value = lineWidth
+                }
+            }
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
+        }
+
+        val lineWidth1 = Button(null, null)
+        lineWidth1.maxWidth = Double.MAX_VALUE
+        var line = Line(0.0, 10.0, 10.0, 10.0)
+        line.strokeWidth = 0.25
+        lineWidth1.graphic = line
+        lineWidth1.disableProperty()
+            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+        lineWidth1.onAction = EventHandler {
+            applyLineWidth(0.25)
         }
 
         val lineWidth2 = Button(null, null)
@@ -1678,42 +1253,7 @@ class RNArtist: Application() {
         lineWidth2.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         lineWidth2.onAction = EventHandler {
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.linewidth, "0.5")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.linewidth, "0.5")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand, DrawingConfigurationParameter.linewidth, "0.5")
-            t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.linewidth, "0.5")
-            t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.linewidth, "0.5")
-            t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.linewidth, "0.5")
-            t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.linewidth, "0.5")
-            t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.linewidth, "0.5")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "0.5")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.linewidth,
-                "0.5")
-            t.setConfigurationFor(SecondaryStructureType.TertiaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "0.5")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.linewidth,
-                "0.5")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
+            applyLineWidth(0.5)
         }
         leftToolBar.add(lineWidth1, 0, row)
         GridPane.setHalignment(lineWidth1, HPos.CENTER)
@@ -1728,42 +1268,7 @@ class RNArtist: Application() {
         lineWidth3.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         lineWidth3.onAction = EventHandler {
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.linewidth, "0.75")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.linewidth, "0.75")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand, DrawingConfigurationParameter.linewidth, "0.75")
-            t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.linewidth, "0.75")
-            t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.linewidth, "0.75")
-            t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.linewidth, "0.75")
-            t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.linewidth, "0.75")
-            t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.linewidth, "0.75")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "0.75")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.linewidth,
-                "0.75")
-            t.setConfigurationFor(SecondaryStructureType.TertiaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "0.75")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.linewidth,
-                "0.75")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
+            applyLineWidth(0.75)
         }
 
         val lineWidth4 = Button(null, null)
@@ -1774,42 +1279,7 @@ class RNArtist: Application() {
         lineWidth4.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         lineWidth4.onAction = EventHandler {
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.linewidth, "1.0")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.linewidth, "1.0")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand, DrawingConfigurationParameter.linewidth, "1.0")
-            t.setConfigurationFor(SecondaryStructureType.AShape, DrawingConfigurationParameter.linewidth, "1.0")
-            t.setConfigurationFor(SecondaryStructureType.UShape, DrawingConfigurationParameter.linewidth, "1.0")
-            t.setConfigurationFor(SecondaryStructureType.GShape, DrawingConfigurationParameter.linewidth, "1.0")
-            t.setConfigurationFor(SecondaryStructureType.CShape, DrawingConfigurationParameter.linewidth, "1.0")
-            t.setConfigurationFor(SecondaryStructureType.XShape, DrawingConfigurationParameter.linewidth, "1.0")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "1.0")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.linewidth,
-                "1.0")
-            t.setConfigurationFor(SecondaryStructureType.TertiaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "1.0")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.linewidth,
-                "1.0")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
+            applyLineWidth(1.0)
         }
         leftToolBar.add(lineWidth3, 0, row)
         GridPane.setHalignment(lineWidth3, HPos.CENTER)
@@ -1824,37 +1294,7 @@ class RNArtist: Application() {
         lineWidth5.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         lineWidth5.onAction = EventHandler {
-            val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
-            if (mediator.explorer.treeTableView.selectionModel
-                    .isEmpty() || mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
-                    .getSelectedItem() === mediator.explorer.treeTableView.root
-            ) {
-                starts.add(mediator.explorer.treeTableView.root)
-            } else {
-                starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
-            }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix, DrawingConfigurationParameter.linewidth, "2.0")
-            t.setConfigurationFor(SecondaryStructureType.Junction, DrawingConfigurationParameter.linewidth, "2.0")
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand, DrawingConfigurationParameter.linewidth, "2.0")
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "2.0")
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.linewidth,
-                "2.0")
-            t.setConfigurationFor(SecondaryStructureType.TertiaryInteraction,
-                DrawingConfigurationParameter.linewidth,
-                "2.0")
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.linewidth,
-                "2.0")
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
-            mediator.explorer.refresh()
-            mediator.canvas2D.repaint()
+            applyLineWidth(2.0)
         }
 
         val lineColorPicker = ColorPicker(Color.BLACK)
@@ -1876,29 +1316,14 @@ class RNArtist: Application() {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
-            val t = Theme()
-            t.setConfigurationFor(SecondaryStructureType.Helix,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(lineColorPicker.value)))
-            t.setConfigurationFor(SecondaryStructureType.Junction,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(lineColorPicker.value)))
-            t.setConfigurationFor(SecondaryStructureType.SingleStrand,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(lineColorPicker.value)))
-            t.setConfigurationFor(SecondaryStructureType.SecondaryInteraction,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(lineColorPicker.value)))
-            t.setConfigurationFor(SecondaryStructureType.PhosphodiesterBond,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(lineColorPicker.value)))
-            t.setConfigurationFor(SecondaryStructureType.TertiaryInteraction,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(lineColorPicker.value)))
-            t.setConfigurationFor(SecondaryStructureType.InteractionSymbol,
-                DrawingConfigurationParameter.color,
-                getHTMLColorString(javaFXToAwt(lineColorPicker.value)))
-            for (start in starts) mediator.explorer.applyTheme(start, t, scope)
+            val t = theme {
+                color {
+                    type = "helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction"
+                    value = getHTMLColorString(javaFXToAwt(lineColorPicker.value))
+                }
+            }
+
+            for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
         }
@@ -2098,7 +1523,6 @@ class RNArtist: Application() {
                                     }
                                 }
                                 if (!mediator.canvas2D.isSelected(h)) {
-                                    println(h.helix.maxBranchLength)
                                     mediator.canvas2D.addToSelection(h)
                                     mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
                                         override fun isOK(el: DrawingElement?): Boolean {

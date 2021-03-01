@@ -54,11 +54,11 @@ class SecondaryStructureItem(private val drawing:SecondaryStructureDrawing): Abs
         theme.configurations[SecondaryStructureType.Full2D.toString()]?.let { configuration ->
             configuration.keys.forEach {
                 when(it) {
-                    DrawingConfigurationParameter.color.toString() -> this.color = configuration[it]!!
-                    DrawingConfigurationParameter.linewidth.toString() -> this.lineWidth = configuration[it]!!
-                    DrawingConfigurationParameter.lineshift.toString() -> this.lineShift = configuration[it]!!
-                    DrawingConfigurationParameter.opacity.toString() -> this.opacity = configuration[it]!!
-                    DrawingConfigurationParameter.fulldetails.toString() -> this.fullDetails = configuration[it]!!
+                    ThemeParameter.color.toString() -> this.color = configuration[it]!!
+                    ThemeParameter.linewidth.toString() -> this.lineWidth = configuration[it]!!
+                    ThemeParameter.lineshift.toString() -> this.lineShift = configuration[it]!!
+                    ThemeParameter.opacity.toString() -> this.opacity = configuration[it]!!
+                    ThemeParameter.fulldetails.toString() -> this.fullDetails = configuration[it]!!
                 }
             }
         }
@@ -78,32 +78,32 @@ abstract class StructuralItem(name:String, drawingElement:DrawingElement):Abstra
     override var color:String = getHTMLColorString(drawingElement.drawingConfiguration.color)
         set(value) {
             field = value
-            this.drawingElement!!.drawingConfiguration.params[DrawingConfigurationParameter.color.toString()] = value
+            this.drawingElement!!.drawingConfiguration.params[ThemeParameter.color.toString()] = value
         }
 
     override var lineWidth:String = drawingElement.drawingConfiguration.lineWidth.toString()
         set(value) {
             field = value
-            this.drawingElement!!.drawingConfiguration.params[DrawingConfigurationParameter.linewidth.toString()] =  value
+            this.drawingElement!!.drawingConfiguration.params[ThemeParameter.linewidth.toString()] =  value
         }
 
     override var fullDetails:String = drawingElement.drawingConfiguration.fullDetails.toString()
         set(value) {
             field = value
-            this.drawingElement!!.drawingConfiguration.params[DrawingConfigurationParameter.fulldetails.toString()] =  value
+            this.drawingElement!!.drawingConfiguration.params[ThemeParameter.fulldetails.toString()] =  value
         }
 
     override var lineShift:String = drawingElement.drawingConfiguration.lineShift.toString()
         set(value) {
             field = value
-            this.drawingElement!!.drawingConfiguration.params[DrawingConfigurationParameter.lineshift.toString()] =  value
+            this.drawingElement!!.drawingConfiguration.params[ThemeParameter.lineshift.toString()] =  value
         }
 
     override var opacity: String = drawingElement.drawingConfiguration.opacity.toString()
 
         set(value) {
             field = value
-            this.drawingElement!!.drawingConfiguration.params[DrawingConfigurationParameter.opacity.toString()] =  value
+            this.drawingElement!!.drawingConfiguration.params[ThemeParameter.opacity.toString()] =  value
         }
 
     override val residues:List<ResidueDrawing>
@@ -113,11 +113,11 @@ abstract class StructuralItem(name:String, drawingElement:DrawingElement):Abstra
         theme.configurations[this.drawingElement!!.type.toString()]?.let { configuration ->
             configuration.keys.forEach {
                 when(it) {
-                    DrawingConfigurationParameter.color.toString() -> this.color = configuration[it]!!
-                    DrawingConfigurationParameter.linewidth.toString() -> this.lineWidth = configuration[it]!!
-                    DrawingConfigurationParameter.lineshift.toString() -> this.lineShift = configuration[it]!!
-                    DrawingConfigurationParameter.opacity.toString() -> this.opacity = configuration[it]!!
-                    DrawingConfigurationParameter.fulldetails.toString() -> this.fullDetails = configuration[it]!!
+                    ThemeParameter.color.toString() -> this.color = configuration[it]!!
+                    ThemeParameter.linewidth.toString() -> this.lineWidth = configuration[it]!!
+                    ThemeParameter.lineshift.toString() -> this.lineShift = configuration[it]!!
+                    ThemeParameter.opacity.toString() -> this.opacity = configuration[it]!!
+                    ThemeParameter.fulldetails.toString() -> this.fullDetails = configuration[it]!!
                 }
             }
         }
@@ -127,11 +127,11 @@ abstract class StructuralItem(name:String, drawingElement:DrawingElement):Abstra
         theme.configurations.entries.forEach { entry ->
             if (entry.key(this.drawingElement!!)) {
                 when(entry.value.first) {
-                    DrawingConfigurationParameter.color.toString() -> this.color = entry.value.second
-                    DrawingConfigurationParameter.linewidth.toString() -> this.lineWidth = entry.value.second
-                    DrawingConfigurationParameter.lineshift.toString() -> this.lineShift = entry.value.second
-                    DrawingConfigurationParameter.opacity.toString() -> this.opacity = entry.value.second
-                    DrawingConfigurationParameter.fulldetails.toString() -> this.fullDetails = entry.value.second
+                    ThemeParameter.color.toString() -> this.color = entry.value.second
+                    ThemeParameter.linewidth.toString() -> this.lineWidth = entry.value.second
+                    ThemeParameter.lineshift.toString() -> this.lineShift = entry.value.second
+                    ThemeParameter.opacity.toString() -> this.opacity = entry.value.second
+                    ThemeParameter.fulldetails.toString() -> this.fullDetails = entry.value.second
                 }
             }
         }
