@@ -5,7 +5,6 @@ import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.core.model.Residue3D
 import io.github.fjossinet.rnartist.core.model.ResidueDrawing
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraHost
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraPath
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraPort
 import io.github.fjossinet.rnartist.core.model.TertiaryStructure
 import io.github.fjossinet.rnartist.core.model.io.copyFile
@@ -14,26 +13,27 @@ import io.github.fjossinet.rnartist.core.model.io.parsePDB
 import io.github.fjossinet.rnartist.io.*
 import javafx.scene.control.Alert
 import java.io.*
+import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
 import java.net.URLEncoder
 import javax.swing.SwingWorker
 
 
-class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, chimeraPath) {
+open class ChimeraDriver(val mediator:Mediator) {
 
     enum class RENDERING {
         STICK, CARTOON, SHOW_RIBBON, HIDE_RIBBON
     }
 
     //the URL constructed from the host and port defined in the RNArtist settings
-    var url: URL? = null
+    var baseURL: String? = null
 
     //the pdbFile is given to Chimera to load and display the 3D structure
     var pdbFile: File? = null
 
     //the pdbFile is given to Chimera to load and display the 3D structure
-    private var sessionFile: File? = null
+    var sessionFile: File? = null
 
     //the tertiary structures are constructed from the parsing of the PDB file. They're mainly used to get the numbering system for each molecular chain when some residues are selected in the Canvas2D.
     var tertiaryStructures: MutableList<TertiaryStructure>
@@ -42,52 +42,31 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
     init {
         tertiaryStructures = ArrayList()
         try {
-            url = URL("http://" + chimeraHost + ":" + chimeraPort + "/run")
+            baseURL = "http://" + chimeraHost + ":" + chimeraPort + "/run"
         } catch (e: MalformedURLException) {
             e.printStackTrace()
         }
     }
 
-    fun connectToExecutable() {
-        try {
-            this.run(arrayOf("--start", "ReadStdin"), null, null)
-            url = null
-        } catch (e: IOException) {
-            if (e.message!!.startsWith("Cannot run program")) {
-                val alert = Alert(Alert.AlertType.WARNING)
-                alert.title = "Problem with Chimera"
-                alert.headerText = "Cannot Run the Chimera Program!"
-                alert.contentText = "Check your Chimera Path in Settings"
-                alert.showAndWait()
-            }
-        }
-    }
-
     @Throws(MalformedURLException::class)
     fun connectToRestServer() {
-        url = URL("http://" + chimeraHost + ":" + chimeraPort + "/run")
+        baseURL = "http://" + chimeraHost + ":" + chimeraPort + "/run"
         showVersion()
-        this.process = null
     }
 
     fun showVersion() {
         postCommand("version")
     }
 
-    /**
-     * The command is either sent to the process or to the REST server
-     * @param command
-     * @return
-     */
-    private fun postCommand(command: String): String? {
-        if (url == null && this.process == null) return null
+    open fun postCommand(command: String): String? {
+        if (baseURL == null) return null
         try {
             object : SwingWorker<Any?, Any?>() {
                 @Throws(Exception::class)
                 override fun doInBackground(): Any? {
-                    if (url != null) {
+                    if (baseURL != null) {
                         val data = URLEncoder.encode("command", "UTF-8") + "=" + URLEncoder.encode(command, "UTF-8")
-                        val conn = url!!.openConnection()
+                        val conn = URL(baseURL).openConnection()
                         conn.doOutput = true
                         val wr = OutputStreamWriter(conn.getOutputStream())
                         wr.write(data)
@@ -103,7 +82,7 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
                         wr.close()
                         rd.close()
                         //return result.toString();
-                    } else evaluate(command)
+                    }
                     return null
                 }
             }.execute()
@@ -113,14 +92,14 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         return null
     }
 
-    override fun closeSession() {
+    fun closeSession() {
         pdbFile = null
         sessionFile = null
         tertiaryStructures!!.clear()
         postCommand("close session")
     }
 
-    override fun restoreSession(sessionFile: File, pdbFile: File) {
+    fun restoreSession(sessionFile: File, pdbFile: File) {
         try {
             postCommand("open " + sessionFile.absolutePath)
             this.sessionFile = sessionFile
@@ -131,20 +110,20 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         }
     }
 
-    override fun loadTertiaryStructure(f: File) {
+    open fun loadTertiaryStructure(f: File) {
         try {
             pdbFile = f
-            tertiaryStructures!!.addAll(parsePDB(FileReader(f)))
+            tertiaryStructures.addAll(parsePDB(FileReader(f)))
             postCommand("open " + f.absolutePath)
         } catch (e: FileNotFoundException) {
             e.printStackTrace()
         }
     }
 
-    fun loadTertiaryStructure(f: File, layer: Int) {
+    open fun loadTertiaryStructure(f: File, layer: Int) {
         try {
             pdbFile = f
-            tertiaryStructures!!.addAll(parsePDB(FileReader(f)))
+            tertiaryStructures.addAll(parsePDB(FileReader(f)))
             postCommand("close $layer")
             postCommand("open " + layer + " " + f.absolutePath)
         } catch (e: FileNotFoundException) {
@@ -152,7 +131,7 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         }
     }
 
-    fun reloadTertiaryStructure() {
+    open fun reloadTertiaryStructure() {
         sessionFile?.let {
             if (it.exists())
                 postCommand("open " + it.absolutePath)
@@ -164,12 +143,12 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         }
     }
 
-    override fun close() {
+    fun close() {
         postCommand("stop noask")
     }
 
     @Throws(IOException::class)
-    override fun saveSession(sessionFile: File, pdbFile: File) {
+    fun saveSession(sessionFile: File, pdbFile: File) {
         if (!tertiaryStructures!!.isEmpty() && this.pdbFile != null) {
             postCommand("save " + sessionFile.absolutePath)
             if (this.pdbFile!!.absolutePath != pdbFile.absolutePath) //to avoid to clash with the same fiel id the project is updated (then no need to copy the file, it is already there
@@ -219,7 +198,7 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         }
     }
 
-    fun selectResidues(positions: List<Int>) {
+    open fun selectResidues(positions: List<Int>) {
         mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? = null
@@ -260,11 +239,11 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         postCommand(command.substring(0, command.length - 1))
     }
 
-    override fun selectionCleared() {
+    fun selectionCleared() {
         postCommand("~select")
     }
 
-    fun color3D(residues: List<ResidueDrawing>) {
+    open fun color3D(residues: List<ResidueDrawing>) {
         mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? = null
@@ -296,7 +275,7 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         }
     }
 
-    fun setFocus(positions: List<Int>) {
+    open fun setFocus(positions: List<Int>) {
         mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? = null
@@ -350,7 +329,7 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         postCommand("open 2 " + f.absolutePath)
     }
 
-    override fun removeSelection(positions: List<Int>) {
+    fun removeSelection(positions: List<Int>) {
         for (pos in positions) postCommand("delete #0:$pos")
     }
 
@@ -363,11 +342,11 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         postCommand("combine #0,1 modelId 0 name model close true")
     }
 
-    override fun eraseModel() {
+    fun eraseModel() {
         postCommand("close 0")
     }
 
-    override fun addResidue(f: File, position: Int, anchorResidue: Int) {
+    fun addResidue(f: File, position: Int, anchorResidue: Int) {
         postCommand("open " + f.absolutePath)
         postCommand("match #1:$anchorResidue #0:$anchorResidue")
         postCommand("delete #1:$anchorResidue")
@@ -375,7 +354,7 @@ class ChimeraDriver(mediator:Mediator): AbstractTertiaryViewerDriver(mediator, c
         //this.synchronizeFrom(false); //we need to to that since Chimera has oved atoms to do the match
     }
 
-   override fun addInteraction(f: File, interaction: Location) {
+   fun addInteraction(f: File, interaction: Location) {
         postCommand("open " + f.absolutePath)
         postCommand("match #1:" + interaction.start + "," + interaction.end + " #0:" + interaction.start + "," + interaction.end)
         postCommand("delete #0:" + interaction.start) //the old interaction is removed
@@ -500,7 +479,7 @@ interface Driver {
 abstract class AbstractDriver protected constructor(
     protected var mediator: Mediator,
     /**
-     * The external program's fuall path+name+some options
+     * The external program's full path+name+some options
      */
     protected var program: String,
 ) : Driver {

@@ -5,11 +5,14 @@ import io.github.fjossinet.rnartist.core.model.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraHost
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraPort
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.exportSVGWithBrowserCompatibility
+import io.github.fjossinet.rnartist.core.model.RnartistConfig.isChimeraX
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.rnaGalleryPath
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.save
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.useOnlineRNAGallery
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.website
 import io.github.fjossinet.rnartist.io.Backend.getAllThemes
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraDriver
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraXDriver
 import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -73,48 +76,36 @@ class Settings(mediator: Mediator) {
         chimeraPane.hgap = 5.0
         chimeraPane.vgap = 5.0
         vbox.children.add(chimeraPane)
-        val chimeraPath = TextField()
-        chimeraPath.isEditable = false
-        chimeraPath.text = RnartistConfig.chimeraPath
-        chimeraPane.children.add(chimeraPath)
-        GridPane.setConstraints(chimeraPath, 0, 0, 4, 1)
-        val chimeraSearch = Button("Browse")
-        chimeraPane.children.add(chimeraSearch)
-        GridPane.setConstraints(chimeraSearch, 4, 0)
-        chimeraSearch.onMouseClicked = EventHandler {
-            val fileChooser = FileChooser()
-            val f = fileChooser.showOpenDialog(mediator!!.rnartist.stage)
-            if (f != null) {
-                if (f.name.endsWith(".app")) //MacOSX
-                    chimeraPath.text = f.absolutePath + "/Contents/MacOS/chimera" else chimeraPath.text = f.absolutePath
-                RnartistConfig.chimeraPath = chimeraPath.text
-            }
-        }
-        val chimeraRun = Button("Run")
-        chimeraPane.children.add(chimeraRun)
-        GridPane.setConstraints(chimeraRun, 5, 0)
-        chimeraRun.onMouseClicked = EventHandler { mediator!!.chimeraDriver.connectToExecutable() }
-        val hostLabel = Label("Host")
+        var hostLabel = Label("Host")
         chimeraPane.children.add(hostLabel)
-        GridPane.setConstraints(hostLabel, 0, 1)
-        val hostValue = TextField(chimeraHost)
+        GridPane.setConstraints(hostLabel, 0, 0)
+        var hostValue = TextField(chimeraHost)
         chimeraPane.children.add(hostValue)
-        GridPane.setConstraints(hostValue, 1, 1)
-        val portLabel = Label("Port")
+        GridPane.setConstraints(hostValue, 1, 0)
+        var portLabel = Label("Port")
         chimeraPane.children.add(portLabel)
-        GridPane.setConstraints(portLabel, 2, 1)
-        val portValue = TextField("" + chimeraPort)
+        GridPane.setConstraints(portLabel, 2, 0)
+        var portValue = TextField("" + chimeraPort)
         chimeraPane.children.add(portValue)
-        GridPane.setConstraints(portValue, 3, 1)
-        val connect2ChimeraRest = Button("Connect")
+        GridPane.setConstraints(portValue, 3, 0)
+        var isX = CheckBox("Chimera X")
+        isX.isSelected = isChimeraX
+        chimeraPane.children.add(isX)
+        GridPane.setConstraints(isX, 4, 0)
+        var connect2ChimeraRest = Button("Connect")
         connect2ChimeraRest.maxWidth = Double.MAX_VALUE
         chimeraPane.children.add(connect2ChimeraRest)
-        GridPane.setConstraints(connect2ChimeraRest, 4, 1, 2, 1)
+        GridPane.setConstraints(connect2ChimeraRest, 5, 0)
         connect2ChimeraRest.onMouseClicked = EventHandler {
             try {
                 chimeraHost = hostValue.text.trim { it <= ' ' }
                 chimeraPort = portValue.text.trim { it <= ' ' }.toInt()
-                mediator!!.chimeraDriver.connectToRestServer()
+                isChimeraX = isX.isSelected
+                if (isChimeraX)
+                    mediator.chimeraDriver = ChimeraXDriver(mediator)
+                else
+                    mediator.chimeraDriver = ChimeraDriver(mediator)
+                mediator.chimeraDriver.connectToRestServer()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -142,7 +133,7 @@ class Settings(mediator: Mediator) {
         GridPane.setConstraints(gallerySearch, 1, 1)
         gallerySearch.onMouseClicked = EventHandler {
             val directoryChooser = DirectoryChooser()
-            val f = directoryChooser.showDialog(mediator!!.rnartist.stage)
+            val f = directoryChooser.showDialog(mediator.rnartist.stage)
             if (f != null) {
                 if (f.isDirectory && File(f, "PDB").exists()) {
                     galleryPath.text = f.absolutePath

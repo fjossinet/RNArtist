@@ -71,10 +71,6 @@ class RNArtist: Application() {
     val focus3D:Button
     val reload3D:Button
     val paintSelectionin3D:Button
-    val paintSelectionAsCartoon:Button
-    val paintSelectionAsStick:Button
-    val showRibbon:Button
-    val hideRibbon:Button
     val canvasEditorSplitPane:SplitPane
     private val root:BorderPane
     var centerDisplayOnSelection = false
@@ -1370,53 +1366,6 @@ class RNArtist: Application() {
 
         leftToolBar.add(this.paintSelectionin3D, 0, row++)
         GridPane.setHalignment(this.paintSelectionin3D, HPos.CENTER)
-
-        s = Separator()
-        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
-        leftToolBar.add(s, 0, row++, 2, 1)
-        GridPane.setHalignment(s, HPos.CENTER)
-
-        this.paintSelectionAsCartoon = Button("SC", null)
-        this.paintSelectionAsCartoon.setDisable(true)
-        this.paintSelectionAsCartoon.setOnMouseClicked(EventHandler<MouseEvent?> {
-            mediator.chimeraDriver.represent(ChimeraDriver.RENDERING.CARTOON,
-                mediator.canvas2D.getSelectedPositions())
-        })
-        this.paintSelectionAsCartoon.setTooltip(Tooltip("Selection as Cartoon"))
-
-        this.paintSelectionAsStick = Button("SS", null)
-        this.paintSelectionAsStick.setDisable(true)
-        this.paintSelectionAsStick.setOnMouseClicked(EventHandler<MouseEvent?> {
-            mediator.chimeraDriver.represent(ChimeraDriver.RENDERING.STICK,
-                mediator.canvas2D.getSelectedPositions())
-        })
-        this.paintSelectionAsStick.setTooltip(Tooltip("Selection as Stick"))
-
-        leftToolBar.add(this.paintSelectionAsCartoon, 0, row)
-        GridPane.setHalignment(this.paintSelectionAsCartoon, HPos.CENTER)
-        leftToolBar.add(this.paintSelectionAsStick, 1, row++)
-        GridPane.setHalignment(this.paintSelectionAsStick, HPos.CENTER)
-
-        this.showRibbon = Button("SR", null)
-        this.showRibbon.setDisable(true)
-        this.showRibbon.setOnMouseClicked(EventHandler<MouseEvent?> {
-            mediator.chimeraDriver.represent(ChimeraDriver.RENDERING.SHOW_RIBBON,
-                mediator.canvas2D.getSelectedPositions())
-        })
-        this.showRibbon.setTooltip(Tooltip("Show Ribbon"))
-
-        this.hideRibbon = Button("HR", null)
-        this.hideRibbon.setDisable(true)
-        this.hideRibbon.setOnMouseClicked(EventHandler<MouseEvent?> {
-            mediator.chimeraDriver.represent(ChimeraDriver.RENDERING.HIDE_RIBBON,
-                mediator.canvas2D.getSelectedPositions())
-        })
-        this.hideRibbon.setTooltip(Tooltip("Hide Ribbon"))
-
-        leftToolBar.add(this.showRibbon, 0, row)
-        GridPane.setHalignment(this.showRibbon, HPos.CENTER)
-        leftToolBar.add(this.hideRibbon, 1, row++)
-        GridPane.setHalignment(this.hideRibbon, HPos.CENTER)
 
         root.left = leftToolBar
 

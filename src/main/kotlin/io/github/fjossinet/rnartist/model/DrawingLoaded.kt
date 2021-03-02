@@ -30,10 +30,8 @@ abstract class AbstractDrawingLoaded(protected val mediator: Mediator, override 
         this.selectionShapes.addListener(ListChangeListener { change ->
             if (!this.selectionShapes.isEmpty() && mediator.chimeraDriver.pdbFile != null) {
                 mediator.rnartist.paintSelectionin3D.isDisable = false
-                mediator.rnartist.paintSelectionAsStick.isDisable = false
             } else {
                 mediator.rnartist.paintSelectionin3D.isDisable = true
-                mediator.rnartist.paintSelectionAsStick.isDisable = true
             }
         })
     }
