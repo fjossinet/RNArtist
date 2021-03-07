@@ -2,7 +2,7 @@ package io.github.fjossinet.rnartist
 
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.getRnartistRelease
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.isAssemble2DockerImageInstalled
+import io.github.fjossinet.rnartist.core.model.RnartistConfig.isDockerImageInstalled
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.isDockerInstalled
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.save
@@ -17,7 +17,6 @@ import io.github.fjossinet.rnartist.gui.Canvas2D
 import io.github.fjossinet.rnartist.gui.SplashWindow
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Explorer.DrawingElementFilter
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import io.github.fjossinet.rnartist.model.DrawingLoaded
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromFile
@@ -163,8 +162,8 @@ class RNArtist: Application() {
                                             }
                                         }
                                     } else if (f.name.matches(Regex(".+\\.pdb[0-9]?"))) {
-                                        if (!(isDockerInstalled() && isAssemble2DockerImageInstalled())) {
-                                            throw Exception("You cannot use PDB files, it seems that RNArtist cannot find the RNAVIEW algorithm on your computer.\n Possible causes:\n- the tool Docker is not installed\n- the tool Docker is not running\n- the docker image fjossinet/assemble2 is not installed")
+                                        if (!(isDockerInstalled() && isDockerImageInstalled())) {
+                                            throw Exception("You cannot use PDB files, it seems that RNArtist cannot find the RNAVIEW algorithm on your computer.\n Possible causes:\n- the tool Docker is not installed\n- the tool Docker is not running\n- the docker image fjossinet/rnartistcore is not installed")
                                         }
                                         rnartist {
                                             ss {
@@ -1549,7 +1548,6 @@ class RNArtist: Application() {
                                     }
                                 }
                                 if (!mediator.canvas2D.isSelected(j)) {
-                                    println(j.junction.maxBranchLength)
                                     mediator.canvas2D.addToSelection(j)
                                     mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
                                         override fun isOK(el: DrawingElement?): Boolean {
@@ -1741,7 +1739,7 @@ class RNArtist: Application() {
         val release = Label(getRnartistRelease())
         statusBar.getChildren().add(release)
 
-        val status = isDockerInstalled() && isAssemble2DockerImageInstalled()
+        val status = isDockerInstalled() && isDockerImageInstalled()
         val dockerStatus =
             Label(null, if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15"))
         dockerStatus.tooltip =
@@ -1750,7 +1748,7 @@ class RNArtist: Application() {
             Color.RED
         val checkDockerStatus = Timeline(KeyFrame(Duration.seconds(30.0),
             {
-                val status = isDockerInstalled() && isAssemble2DockerImageInstalled()
+                val status = isDockerInstalled() && isDockerImageInstalled()
                 dockerStatus.graphic =
                     if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
                 dockerStatus.tooltip =

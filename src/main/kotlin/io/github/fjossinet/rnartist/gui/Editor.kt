@@ -20,7 +20,6 @@ import org.kordamp.ikonli.javafx.FontIcon
 import java.io.File
 import javax.script.ScriptEngineManager
 
-
 class Editor(val mediator: Mediator): VBox() {
 
     val webView = WebView()

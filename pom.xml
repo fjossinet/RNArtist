@@ -39,14 +39,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <java.version>15</java.version>
+        <javafx.version>16-ea+6</javafx.version>
 
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
         <kotlin_version>1.4.10</kotlin_version>
-
-        <slf4j.version>2.0.0-alpha1</slf4j.version>
-
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
 
@@ -83,38 +81,33 @@
             <version>${kotlin_version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-script-runtime</artifactId>
+            <version>${kotlin_version}</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!-- openjfx -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-base</artifactId>
-            <version>16-ea+6</version>
+            <version>${javafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>16-ea+6</version>
+            <version>${javafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-web</artifactId>
-            <version>16-ea+6</version>
+            <version>${javafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
-            <version>16-ea+6</version>
-        </dependency>
-
-        <!-- slf4j for logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
+            <version>${javafx.version}</version>
         </dependency>
 
         <!-- NitriteDB -->
@@ -160,6 +153,7 @@
     </dependencies>
 
     <build>
+        <sourceDirectory>src/main/kotlin</sourceDirectory>
         <plugins>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -179,7 +173,6 @@
                         </goals>
                         <configuration>
                             <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/java/</sourceDir>
                                 <sourceDir>${project.basedir}/src/main/kotlin/</sourceDir>
                             </sourceDirs>
                         </configuration>
@@ -190,46 +183,21 @@
                         <configuration>
                             <sourceDirs>
                                 <sourceDir>${project.basedir}/test/kotlin</sourceDir>
-                                <sourceDir>${project.basedir}/test/java</sourceDir>
                             </sourceDirs>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
 
-            <!-- java compiler -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
-                <configuration>
+                 <configuration>
                     <release>${java.version}</release>
                     <showDeprecation>true</showDeprecation>
                     <showWarnings>true</showWarnings>
                     <verbose>false</verbose>
                 </configuration>
-                <executions>
-                    <!-- Replacing default-compile as it is treated specially by maven -->
-                    <execution>
-                        <id>default-compile</id>
-                        <phase>none</phase>
-                    </execution>
-                    <!-- Replacing default-testCompile as it is treated specially by maven -->
-                    <execution>
-                        <id>default-testCompile</id>
-                        <phase>none</phase>
-                    </execution>
-                    <execution>
-                        <id>java-compile</id>
-                        <phase>compile</phase>
-                        <goals> <goal>compile</goal> </goals>
-                    </execution>
-                    <execution>
-                        <id>java-test-compile</id>
-                        <phase>test-compile</phase>
-                        <goals> <goal>testCompile</goal> </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <!--final jar in /target/distribution -->

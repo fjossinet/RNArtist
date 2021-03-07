@@ -1,7 +1,6 @@
 package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.model.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraHost
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraPort
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.exportSVGWithBrowserCompatibility
@@ -9,16 +8,11 @@ import io.github.fjossinet.rnartist.core.model.RnartistConfig.isChimeraX
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.rnaGalleryPath
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.save
 import io.github.fjossinet.rnartist.core.model.RnartistConfig.useOnlineRNAGallery
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.website
-import io.github.fjossinet.rnartist.io.Backend.getAllThemes
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraXDriver
 import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
-import javafx.collections.ObservableList
-import javafx.concurrent.Task
 import javafx.event.ActionEvent
-import javafx.event.Event
 import javafx.event.EventHandler
 import javafx.geometry.HPos
 import javafx.geometry.Insets
@@ -26,21 +20,14 @@ import javafx.geometry.Orientation
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.*
-import javafx.scene.image.Image
-import javafx.scene.image.ImageView
 import javafx.scene.layout.*
-import javafx.scene.shape.Line
-import javafx.scene.shape.Shape
 import javafx.scene.text.Font
 import javafx.stage.*
-import javafx.util.Callback
-import org.controlsfx.control.GridCell
 import org.controlsfx.glyphfont.FontAwesome
 import org.controlsfx.glyphfont.Glyph
 import org.kordamp.ikonli.javafx.FontIcon
 import java.io.File
 import java.util.stream.Collectors
-import javax.swing.SwingWorker
 
 class Settings(mediator: Mediator) {
 
@@ -101,10 +88,16 @@ class Settings(mediator: Mediator) {
                 chimeraHost = hostValue.text.trim { it <= ' ' }
                 chimeraPort = portValue.text.trim { it <= ' ' }.toInt()
                 isChimeraX = isX.isSelected
+                val structures = mediator.chimeraDriver.tertiaryStructures
+                val pdbFile = mediator.chimeraDriver.pdbFile
+                val sessionFile = mediator.chimeraDriver.sessionFile
                 if (isChimeraX)
                     mediator.chimeraDriver = ChimeraXDriver(mediator)
                 else
                     mediator.chimeraDriver = ChimeraDriver(mediator)
+                mediator.chimeraDriver.tertiaryStructures = structures
+                mediator.chimeraDriver.pdbFile = pdbFile
+                mediator.chimeraDriver.sessionFile = sessionFile
                 mediator.chimeraDriver.connectToRestServer()
             } catch (e: Exception) {
                 e.printStackTrace()

@@ -181,17 +181,14 @@ open class ChimeraDriver(val mediator:Mediator) {
                     RENDERING.STICK -> {
                         val command = StringBuffer("nucleotides sidechain atoms $atomsSpec")
                         postCommand(command.toString())
-                        println(command.toString())
                     }
                     RENDERING.SHOW_RIBBON -> {
                         val command = StringBuffer("ribbon $atomsSpec")
                         postCommand(command.toString())
-                        println(command.toString())
                     }
                     RENDERING.HIDE_RIBBON -> {
                         val command = StringBuffer("~ribbon $atomsSpec")
                         postCommand(command.toString())
-                        println(command.toString())
                     }
                 }
             }
