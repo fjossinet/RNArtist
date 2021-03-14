@@ -36,9 +36,9 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
     fun fitStructure(selectionFrame:Rectangle2D?) {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
             selectionFrame?.let {
-                drawingDisplayed.drawing.fitTo(this.bounds, it)
+                drawingDisplayed.drawing.fitViewTo(this.bounds, it)
             } ?: run {
-                drawingDisplayed.drawing.fitTo(this.bounds)
+                drawingDisplayed.drawing.fitViewTo(this.bounds)
             }
             this.repaint()
         }
