@@ -259,6 +259,96 @@
                 </executions>
             </plugin>
 
+            <!-- to package app -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>package-osx</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${java.home}/bin/jpackage</executable>
+                            <arguments>
+                                <argument>--type</argument>
+                                <argument>dmg</argument>
+                                <argument>--name</argument>
+                                <argument>RNArtist</argument>
+                                <argument>--main-jar</argument>
+                                <argument>rnartist-1.0.jar</argument>
+                                <argument>--input</argument>
+                                <argument>${project.basedir}/target/RNArtist/lib/</argument>
+                                <argument>--module-path</argument>
+                                <argument>${project.basedir}/target/RNArtist/lib/</argument>
+                                <argument>--add-modules</argument>
+                                <argument>javafx.controls,javafx.swing,javafx.web,java.scripting,java.logging</argument>
+                                <argument>--java-options</argument>
+                                <argument>--add-exports javafx.graphics/com.sun.javafx.css=ALL-UNNAMED</argument>
+                                <argument>--java-options</argument>
+                                <argument>--add-opens javafx.controls/javafx.scene.control.skin=ALL-UNNAMED</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>package-windows</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${java.home}/bin/jpackage</executable>
+                            <arguments>
+                                <argument>--type</argument>
+                                <argument>msi</argument>
+                                <argument>--name</argument>
+                                <argument>RNArtist</argument>
+                                <argument>--main-jar</argument>
+                                <argument>rnartist-1.0.jar</argument>
+                                <argument>--input</argument>
+                                <argument>${project.basedir}/target/RNArtist/lib/</argument>
+                                <argument>--module-path</argument>
+                                <argument>${project.basedir}/target/RNArtist/lib/</argument>
+                                <argument>--add-modules</argument>
+                                <argument>javafx.controls,javafx.swing,javafx.web,java.scripting,java.logging</argument>
+                                <argument>--java-options</argument>
+                                <argument>--add-exports javafx.graphics/com.sun.javafx.css=ALL-UNNAMED</argument>
+                                <argument>--java-options</argument>
+                                <argument>--add-opens javafx.controls/javafx.scene.control.skin=ALL-UNNAMED</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>package-linux</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${java.home}/bin/jpackage</executable>
+                            <arguments>
+                                <argument>--type</argument>
+                                <argument>rpm</argument>
+                                <argument>--name</argument>
+                                <argument>RNArtist</argument>
+                                <argument>--main-jar</argument>
+                                <argument>rnartist-1.0.jar</argument>
+                                <argument>--input</argument>
+                                <argument>${project.basedir}/target/RNArtist/lib/</argument>
+                                <argument>--module-path</argument>
+                                <argument>${project.basedir}/target/RNArtist/lib/</argument>
+                                <argument>--add-modules</argument>
+                                <argument>javafx.controls,javafx.swing,javafx.web,java.scripting,java.logging</argument>
+                                <argument>--java-options</argument>
+                                <argument>--add-exports javafx.graphics/com.sun.javafx.css=ALL-UNNAMED</argument>
+                                <argument>--java-options</argument>
+                                <argument>--add-opens javafx.controls/javafx.scene.control.skin=ALL-UNNAMED</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- to run RNArtist -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
