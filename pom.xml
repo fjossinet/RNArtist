@@ -44,7 +44,7 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
-        <kotlin_version>1.5.0-M1</kotlin_version>
+        <kotlin_version>1.4.30</kotlin_version>
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
 
@@ -275,6 +275,8 @@
                             <arguments>
                                 <argument>--type</argument>
                                 <argument>dmg</argument>
+                                <argument>--icon</argument>
+                                <argument>${project.basedir}/src/main/resources/io/github/fjossinet/rnartist/io/images/icon.icns</argument>
                                 <argument>--name</argument>
                                 <argument>RNArtist</argument>
                                 <argument>--main-jar</argument>
@@ -331,6 +333,8 @@
                             <arguments>
                                 <argument>--type</argument>
                                 <argument>rpm</argument>
+                                <argument>--icon</argument>
+                                <argument>${project.basedir}/src/main/resources/io/github/fjossinet/rnartist/io/images/icon.png</argument>
                                 <argument>--name</argument>
                                 <argument>RNArtist</argument>
                                 <argument>--main-jar</argument>
