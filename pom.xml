@@ -332,7 +332,7 @@
                             <executable>${java.home}/bin/jpackage</executable>
                             <arguments>
                                 <argument>--type</argument>
-                                <argument>rpm</argument>
+                                <argument>deb</argument>
                                 <argument>--icon</argument>
                                 <argument>${project.basedir}/src/main/resources/io/github/fjossinet/rnartist/io/images/icon.png</argument>
                                 <argument>--name</argument>
