@@ -38,13 +38,13 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <java.version>15</java.version>
-        <javafx.version>16</javafx.version>
+        <java.version>17</java.version>
+        <javafx.version>17.0.1</javafx.version>
 
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
-        <kotlin_version>1.5.20</kotlin_version>
+        <kotlin_version>1.5.31</kotlin_version>
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
 
@@ -147,7 +147,7 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.2.8-SNAPSHOT</version>
+            <version>0.2.9-SNAPSHOT</version>
         </dependency>
 
     </dependencies>
@@ -376,6 +376,14 @@
                         <argument>-jar</argument>
                         <argument>${project.basedir}/target/RNArtist/lib/rnartist-1.0.jar</argument>
                     </arguments>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>16</source>
+                    <target>16</target>
                 </configuration>
             </plugin>
 
