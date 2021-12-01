@@ -35,7 +35,6 @@ import java.io.File
 import java.io.IOException
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.net.MalformedURLException
 import java.util.concurrent.ExecutionException
 import javax.imageio.ImageIO
 
@@ -50,15 +49,12 @@ class ProjectsPanel(val mediator:Mediator) {
         stage.onCloseRequest = EventHandler { windowEvent: WindowEvent? ->
             if (mediator.drawingDisplayed.isNotNull
                     .get()
-            ) { //the user has decided to cancel its idea to open an other project
+            ) { //the user has decided to cancel its idea to open another project
                 mediator.rnartist.stage.show()
                 mediator.rnartist.stage.toFront()
             }
         }
         projectPanels = FXCollections.observableArrayList()
-        for (project in this.mediator.embeddedDB.getProjects().find()) {
-            projectPanels.add(ProjectPanel(project.id, project["name"] as String))
-        }
         gridview = GridView(projectPanels)
         gridview.padding = Insets(20.0, 20.0, 20.0, 20.0)
         gridview.horizontalCellSpacing = 20.0
@@ -79,6 +75,13 @@ class ProjectsPanel(val mediator:Mediator) {
         stage.y = newY
     }
 
+    fun loadProjects() {
+        projectPanels.clear()
+        for (project in this.mediator.embeddedDB.getProjects().find()) {
+            projectPanels.add(ProjectPanel(project.id, project["name"] as String))
+        }
+    }
+
     @Throws(IOException::class)
     fun saveProjectAs(name: String, image: BufferedImage): NitriteId? {
         mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
@@ -88,18 +91,19 @@ class ProjectsPanel(val mediator:Mediator) {
             val chimera_sessions = File(mediator.embeddedDB.rootDir, "chimera_sessions")
             if (!chimera_sessions.exists()) chimera_sessions.mkdir()
             mediator.chimeraDriver.saveSession(File(chimera_sessions, id.toString()), File(chimera_sessions, "$id.pdb"))
-            projectPanels.add(ProjectPanel(id, name))
             return id
         }
         return null
     }
 
     @Throws(IOException::class)
-    fun saveProject() {
+    fun updateProject(name: String, image: BufferedImage) {
         mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
             (drawingDisplayed as? DrawingLoadedFromRNArtistDB)?.let { drawingDisplayed ->
-                mediator.embeddedDB.saveProject(drawingDisplayed.id,
+                mediator.embeddedDB.updateProject(name, drawingDisplayed.id,
                     drawingDisplayed.drawing)
+                val pngFile = File(File(File(mediator.embeddedDB.rootDir, "images"), "user"), "${drawingDisplayed.id}.png")
+                ImageIO.write(image, "PNG", pngFile)
                 val chimera_sessions = File(mediator.embeddedDB.rootDir, "chimera_sessions")
                 mediator.chimeraDriver.saveSession(File(chimera_sessions,
                     drawingDisplayed.id.toString()),
@@ -193,10 +197,7 @@ class ProjectsPanel(val mediator:Mediator) {
                                 alert.dialogPane.expandableContent = expContent
                                 alert.showAndWait()
                             } else {
-                                projectPanels.clear()
-                                for (project in mediator.embeddedDB.getProjects().find()) {
-                                    projectPanels.add(ProjectPanel(project.id, project["name"] as String))
-                                }
+                                loadProjects()
                             }
                         } catch (e: InterruptedException) {
                             e.printStackTrace()
@@ -257,9 +258,7 @@ class ProjectsPanel(val mediator:Mediator) {
                                 item!!.id!!, item!!.name!!))
                             mediator.drawingDisplayed.set(mediator.drawingsLoaded[mediator.drawingsLoaded.size - 1])
                         }
-                    } catch (e: InterruptedException) {
-                        e.printStackTrace()
-                    } catch (e: ExecutionException) {
+                    } catch (e: Exception) {
                         e.printStackTrace()
                     }
                 }
@@ -274,7 +273,6 @@ class ProjectsPanel(val mediator:Mediator) {
         var id: NitriteId? = null
         var name: String? = null
 
-        constructor() {}
         constructor(id: NitriteId?, name: String?) {
             this.id = id
             this.name = name
@@ -285,7 +283,7 @@ class ProjectsPanel(val mediator:Mediator) {
                 try {
                     return Image(File(File(File(mediator.embeddedDB.rootDir, "images"), "user"),
                         id.toString() + ".png").toURI().toURL().toString())
-                } catch (e: MalformedURLException) {
+                } catch (e: Exception) {
                     e.printStackTrace()
                 }
                 return null

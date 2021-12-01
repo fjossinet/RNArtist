@@ -121,7 +121,7 @@
         <dependency>
             <groupId>org.controlsfx</groupId>
             <artifactId>controlsfx</artifactId>
-            <version>11.0.3</version>
+            <version>11.1.0</version>
         </dependency>
 
         <dependency>
@@ -147,7 +147,7 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.2.9-SNAPSHOT</version>
+            <version>0.2.13-SNAPSHOT</version>
         </dependency>
 
     </dependencies>

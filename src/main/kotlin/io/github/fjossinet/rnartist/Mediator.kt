@@ -71,7 +71,7 @@ class Mediator(val rnartist: RNArtist) {
 
     init {
 
-        this.drawingDisplayed.addListener(ChangeListener<DrawingLoaded?> {
+        this.drawingDisplayed.addListener {
                 observableValue, oldValue, newValue ->
 
             this.rnartist.focus3D.isDisable = true
@@ -141,7 +141,7 @@ class Mediator(val rnartist: RNArtist) {
                                 Thread.sleep(1000)
                             }
                         }
-                        rnartist.saveProject.isDisable = true
+                        rnartist.updateProject.isDisable = true
                         this.editor.pasteDrawing(newValue.drawing)
                     }
                     is DrawingLoadedFromRNArtistDB -> {
@@ -166,7 +166,7 @@ class Mediator(val rnartist: RNArtist) {
                                 this.rnartist.reload3D.isDisable = false
                             }
                         }
-                        rnartist.saveProject.isDisable = false
+                        rnartist.updateProject.isDisable = false
                         this.editor.pasteDrawing(newValue.drawing)
                     }
                     is DrawingLoadedFromRNAGallery -> {
@@ -190,7 +190,7 @@ class Mediator(val rnartist: RNArtist) {
                                 this.rnartist.reload3D.isDisable = false
                             }
                         }
-                        rnartist.saveProject.isDisable = true
+                        rnartist.updateProject.isDisable = true
                         this.editor.pasteDrawing(newValue.drawing)
                     }
                     is DrawingLoadedFromEditor -> {
@@ -199,7 +199,7 @@ class Mediator(val rnartist: RNArtist) {
                 }
                 this.canvas2D.repaint();
             }
-        })
+        }
 
         this.drawingsLoaded.addListener(ListChangeListener { change ->
             while (change.next()) {

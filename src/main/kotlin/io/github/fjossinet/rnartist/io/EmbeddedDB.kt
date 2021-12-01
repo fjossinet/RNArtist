@@ -55,10 +55,11 @@ class EmbeddedDB() {
         return r.first()
     }
 
-    fun saveProject(id:NitriteId, secondaryStructureDrawing: SecondaryStructureDrawing) {
+    fun updateProject(name: String, id:NitriteId, secondaryStructureDrawing: SecondaryStructureDrawing) {
         val doc = this.userDB.getCollection("Projects").getById(id) as Document
 
         with (doc) {
+            doc.put("name", name)
             put(
                 "rna", mutableMapOf<String, String>(
                     "name" to secondaryStructureDrawing.secondaryStructure.rna.name,

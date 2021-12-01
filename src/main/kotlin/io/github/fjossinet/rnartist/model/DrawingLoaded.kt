@@ -52,7 +52,7 @@ class DrawingLoadedFromEditor( mediator: Mediator,drawing: SecondaryStructureDra
     }
 }
 
-class DrawingLoadedFromRNArtistDB( mediator: Mediator,drawing: SecondaryStructureDrawing, val id: NitriteId, val projectName:String):AbstractDrawingLoaded(mediator, drawing) {
+class DrawingLoadedFromRNArtistDB( mediator: Mediator,drawing: SecondaryStructureDrawing, val id: NitriteId, var projectName:String):AbstractDrawingLoaded(mediator, drawing) {
 
     fun getChimeraSession(): File? {
         val f = File(File(mediator.embeddedDB.rootDir, "chimera_sessions"), "$id.py")
@@ -69,6 +69,7 @@ class DrawingLoadedFromRNArtistDB( mediator: Mediator,drawing: SecondaryStructur
             false -> null
         }
     }
+
     override fun toString(): String {
         return "RNA ${drawing.secondaryStructure.rna.name} ${drawing.secondaryStructure.rna.length}nts from project ${projectName}"
     }
