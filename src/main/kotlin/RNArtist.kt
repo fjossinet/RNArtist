@@ -63,10 +63,10 @@ class RNArtist: Application() {
     lateinit var stage: Stage
     private var scrollCounter = 0
     private val statusBar: FlowPane
-    val allStructuresAvailable: MenuButton
+    val allStructuresAvailable = MenuButton("Choose a 2D")
     val clearAll2DsItem:MenuItem
     val clearAll2DsExceptCurrentItem:MenuItem
-    val saveProject: Button
+    val updateProject: Button
     val focus3D:Button
     val reload3D:Button
     val paintSelectionin3D:Button
@@ -251,6 +251,7 @@ class RNArtist: Application() {
         loadProject.onMouseClicked = EventHandler {
             mediator.projectsPanel.stage.show()
             mediator.projectsPanel.stage.toFront()
+            mediator.projectsPanel.loadProjects()
         }
         loadProject.tooltip = Tooltip("Load Project")
         GridPane.setConstraints(loadProject, 1, 1)
@@ -315,18 +316,52 @@ class RNArtist: Application() {
         GridPane.setConstraints(saveProjectAs, 0, 1)
         saveFiles.children.add(saveProjectAs)
 
-        this.saveProject = Button(null, FontIcon("fas-sync:15"))
-        this.saveProject.setDisable(true)
-        this.saveProject.setOnMouseClicked(EventHandler<MouseEvent?> {
+        this.updateProject = Button(null, FontIcon("fas-sync:15"))
+
+        this.updateProject.setOnMouseClicked(EventHandler<MouseEvent?> {
             try {
-                mediator.projectsPanel.saveProject()
+                mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+                    drawing.workingSession.is_screen_capture = true
+                    drawing.workingSession.screen_capture_area =
+                        Rectangle2D.Double(
+                            mediator.canvas2D.getBounds().getCenterX() - 200,
+                            mediator.canvas2D.getBounds().getCenterY() - 100,
+                            400.0,
+                            200.0
+                        )
+                    mediator.canvas2D.repaint()
+                    val dialog = TextInputDialog((mediator.drawingDisplayed.get() as? DrawingLoadedFromRNArtistDB)?.projectName)
+                    dialog.initModality(Modality.NONE)
+                    dialog.title = "Project Saving"
+                    dialog.headerText =
+                        "Keep right mouse button pressed and drag the rectangle to define your project icon."
+                    dialog.contentText = "Project name:"
+                    val projectName = dialog.showAndWait()
+                    if (projectName.isPresent) {
+                        (mediator.drawingDisplayed.get() as? DrawingLoadedFromRNArtistDB)?.projectName = projectName.get().trim { it <= ' ' }
+                        mediator.projectsPanel.updateProject(projectName.get().trim { it <= ' ' }, mediator.canvas2D.screenCapture()!!)
+                        allStructuresAvailable.items.forEach {
+                           if (it.userData == mediator.drawingDisplayed.get()) {
+                               it.text = it.userData.toString()
+                           }
+                        }
+                        drawing.workingSession.is_screen_capture = false
+                        drawing.workingSession.screen_capture_area = null
+                        mediator.canvas2D.repaint()
+                    } else {
+                        drawing.workingSession.is_screen_capture = false
+                        drawing.workingSession.screen_capture_area = null
+                        mediator.canvas2D.repaint()
+                    }
+                }
+
             } catch (e: IOException) {
                 e.printStackTrace()
             }
         })
-        this.saveProject.setTooltip(Tooltip("Update Project in DB"))
-        GridPane.setConstraints(saveProject, 1, 1)
-        saveFiles.children.add(saveProject)
+        this.updateProject.setTooltip(Tooltip("Update Project in DB"))
+        GridPane.setConstraints(updateProject, 1, 1)
+        saveFiles.children.add(updateProject)
 
         val export2D = Button(null, FontIcon("fas-sign-out-alt:15"))
         export2D.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
@@ -423,12 +458,10 @@ class RNArtist: Application() {
         structureSelection.vgap = 5.0
         structureSelection.hgap = 5.0
 
-        l = Label("2Ds Available")
+        l = Label("2Ds Loaded")
         GridPane.setHalignment(l, HPos.CENTER)
         GridPane.setConstraints(l, 0, 0)
         structureSelection.children.add(l)
-
-        this.allStructuresAvailable = MenuButton("Choose a 2D")
 
         this.clearAll2DsItem = MenuItem("Clear All")
         this.clearAll2DsItem.setDisable(true)
