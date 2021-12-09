@@ -70,10 +70,8 @@ class RNArtist: Application() {
     val focus3D:Button
     val reload3D:Button
     val paintSelectionin3D:Button
-    val canvasEditorSplitPane:SplitPane
     private val root:BorderPane
     var centerDisplayOnSelection = false
-    var lastSplitpanePos = 0.7
 
     init {
         load()
@@ -282,7 +280,7 @@ class RNArtist: Application() {
                 dialog.initModality(Modality.NONE)
                 dialog.title = "Project Saving"
                 dialog.headerText =
-                    "Keep right mouse button pressed and drag the rectangle to define your project icon."
+                    "Keep right mouse button pressed and drag the rectangle to define your project miniature."
                 dialog.contentText = "Project name:"
                 val projectName = dialog.showAndWait()
                 if (projectName.isPresent) {
@@ -334,7 +332,7 @@ class RNArtist: Application() {
                     dialog.initModality(Modality.NONE)
                     dialog.title = "Project Saving"
                     dialog.headerText =
-                        "Keep right mouse button pressed and drag the rectangle to define your project icon."
+                        "Keep right mouse button pressed and drag the rectangle to define your project miniature."
                     dialog.contentText = "Project name:"
                     val projectName = dialog.showAndWait()
                     if (projectName.isPresent) {
@@ -1758,10 +1756,7 @@ class RNArtist: Application() {
             }
         }
         createSwingContent(swingNode)
-        this.canvasEditorSplitPane = SplitPane()
-        this.canvasEditorSplitPane.items.addAll(swingNode)
-        this.canvasEditorSplitPane.orientation = Orientation.VERTICAL
-        root.center = this.canvasEditorSplitPane
+        root.center = swingNode
 
         //### Status Bar
         this.statusBar = FlowPane()
@@ -1850,14 +1845,8 @@ class RNArtist: Application() {
 
         val showEditor = Button(null, FontIcon("fas-terminal:15"))
         showEditor.onAction = EventHandler { actionEvent: ActionEvent? ->
-            if (canvasEditorSplitPane.items.size == 2) {
-                this.lastSplitpanePos = canvasEditorSplitPane.dividerPositions[0]
-                canvasEditorSplitPane.items.remove(mediator.editor)
-            } else {
-                canvasEditorSplitPane.items.add(mediator.editor)
-                SplitPane.setResizableWithParent(mediator.editor, false)
-                canvasEditorSplitPane.setDividerPositions(this.lastSplitpanePos)
-            }
+            mediator.editor.stage.show()
+            mediator.editor.stage.toFront()
         }
         windowsBar.children.add(showEditor)
 

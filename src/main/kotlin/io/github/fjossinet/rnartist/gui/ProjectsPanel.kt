@@ -251,7 +251,7 @@ class ProjectsPanel(val mediator:Mediator) {
                         }
                         loadData.get().left?.let { result ->
                             stage.hide()
-                            mediator.explorer.stage.show()
+                            mediator.editor.stage.show()
                             mediator.rnartist.stage.show()
                             mediator.rnartist.stage.toFront()
                             mediator.drawingsLoaded.add(DrawingLoadedFromRNArtistDB(mediator, result,

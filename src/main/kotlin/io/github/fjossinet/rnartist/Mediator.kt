@@ -3,15 +3,12 @@ package io.github.fjossinet.rnartist
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Editor
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Explorer
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.ProjectsPanel
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Settings
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.*
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraXDriver
 import io.github.fjossinet.rnartist.model.*
 import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.scene.control.MenuItem
@@ -31,7 +28,7 @@ class Mediator(val rnartist: RNArtist) {
                             ChimeraXDriver(this)
                         else
                             ChimeraDriver(this)
-    var editor = Editor(this)
+    var editor = ScriptEditor(this)
     val settings = Settings(this)
     val explorer = Explorer(this)
     val projectsPanel = ProjectsPanel(this)

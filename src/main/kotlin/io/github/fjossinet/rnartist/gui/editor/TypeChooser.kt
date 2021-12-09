@@ -1,0 +1,131 @@
+package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor
+
+import javafx.beans.property.*
+import javafx.collections.FXCollections
+import javafx.event.ActionEvent
+import javafx.event.EventHandler
+import javafx.scene.control.*
+import javafx.scene.control.skin.ComboBoxListViewSkin
+import javafx.scene.text.Text
+import javafx.util.Callback
+import java.util.stream.Collectors
+
+class TypeChooser(val editor:ScriptEditor,  text: Text): ComboBox<TypeChooser.TypeItem>() {
+
+    private val types = listOf(
+        "A", "U", "G", "C", "R", "Y", "N", "X",
+        "a", "u", "g", "c", "r", "y", "n", "x",
+        "helix", "single_strand", "junction",
+        "secondary_interaction", "tertiary_interaction",
+        "phosphodiester_bond", "interaction_symbol", "pknot")
+
+    init {
+        this.minHeight = 30.0
+        this.prefHeight = 30.0
+        val items = FXCollections.observableArrayList<TypeItem>()
+        val previousTypes = text.text.replace("\"", "").split(" ")
+        for (type in types) {
+            val item = TypeItem(type)
+            if (type in previousTypes)
+                item.setSelected(true)
+            items.add(item)
+        }
+        this.items = items
+
+        setCellFactory(object : Callback<ListView<TypeItem>, ListCell<TypeItem>> {
+            override fun call(param: ListView<TypeItem>): ListCell<TypeItem> {
+                return object : ListCell<TypeItem>() {
+                    private val cb = CheckBox()
+                    private var booleanProperty: BooleanProperty? = null
+                    override fun updateItem(item: TypeItem?, empty: Boolean) {
+                        super.updateItem(item, empty)
+                        if (!empty && item != null) {
+                            if (booleanProperty != null) {
+                                cb.selectedProperty().unbindBidirectional(booleanProperty)
+                            }
+                            booleanProperty = item.selectedProperty()
+                            cb.selectedProperty().bindBidirectional(booleanProperty)
+                            graphic = cb
+                            setText(item.getType() + "");
+                        } else {
+                            graphic = null
+                            setText(null)
+                        }
+                    }
+
+                    init {
+                        cb.onAction = EventHandler { e: ActionEvent? ->
+                            listView.getSelectionModel().select(item)
+                        }
+                    }
+                }
+            }
+        })
+
+        setButtonCell(object : ListCell<TypeItem>() {
+            override fun updateItem(item: TypeItem?, empty: Boolean) {
+                super.updateItem(item, empty)
+                val selected: String = getItems().stream().filter { i -> i.isSelected() }
+                    .map { i -> i.toString() + "" }.collect(Collectors.joining(" "))
+                setText(selected)
+            }
+        })
+
+    }
+
+    fun getSelection():String {
+        return getItems().stream().filter { i -> i.isSelected() }
+            .map { i -> i.toString() + "" }.collect(Collectors.joining(" "))
+    }
+
+    override fun createDefaultSkin(): Skin<*>? {
+        return object : ComboBoxListViewSkin<TypeItem>(this) {
+
+            init {
+                this.isHideOnClick = false
+            }
+
+        }
+    }
+
+    class TypeItem(type:String) {
+        private val type = SimpleStringProperty()
+        private val selected = SimpleBooleanProperty()
+
+       init {
+           setType(type)
+       }
+
+        fun getType(): String {
+            return type.get()
+        }
+
+        fun typeProperty(): StringProperty? {
+            return type
+        }
+
+        fun setType(type: String) {
+            this.type.set(type)
+        }
+
+        fun isSelected(): Boolean {
+            return selected.get()
+        }
+
+        fun selectedProperty(): BooleanProperty? {
+            return selected
+        }
+
+        fun setSelected(selected: Boolean) {
+            this.selected.set(selected)
+        }
+
+        override fun toString(): String {
+            return getType()
+        }
+    }
+
+    override fun getBaselineOffset(): Double {
+        return 20.0
+    }
+}
