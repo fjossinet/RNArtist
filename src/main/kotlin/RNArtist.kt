@@ -33,8 +33,8 @@ import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import javafx.geometry.HPos
 import javafx.geometry.Insets
-import javafx.geometry.Orientation
 import javafx.geometry.Pos
+import javafx.scene.CacheHint
 import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.input.MouseButton
@@ -53,7 +53,6 @@ import java.awt.geom.Rectangle2D
 import java.io.*
 import java.util.*
 import java.util.concurrent.ExecutionException
-import javax.swing.SwingUtilities
 
 class RNArtist: Application() {
     enum class SCOPE {
@@ -581,9 +580,8 @@ class RNArtist: Application() {
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         showTertiaries.onMouseClicked = EventHandler {
             val t = theme {
-                details {
+                show {
                     type = "tertiary_interaction"
-                    value = "full"
                 }
             }
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
@@ -614,9 +612,8 @@ class RNArtist: Application() {
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         hideTertiaries.onMouseClicked = EventHandler {
             val t = theme {
-                details {
+                hide {
                     type = "tertiary_interaction"
-                    value = "none"
                 }
             }
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
@@ -1897,7 +1894,7 @@ class RNArtist: Application() {
         stage.title = "RNArtist"
 
         val screenSize = Screen.getPrimary().bounds
-        val width = (screenSize.width * 4.0 / 10.0).toInt()
+        val width = (screenSize.width * 0.5).toInt()
         scene.window.width = screenSize.width - width
         scene.window.height = screenSize.height
         scene.window.x = 0.0
@@ -1909,9 +1906,11 @@ class RNArtist: Application() {
     }
 
     private fun createSwingContent(swingNode: SwingNode) {
-        SwingUtilities.invokeLater {
+        Platform.runLater {
             val canvas = Canvas2D(mediator)
             swingNode.content = canvas
+            swingNode.isCache = true
+            swingNode.cacheHint = CacheHint.SPEED
         }
     }
 

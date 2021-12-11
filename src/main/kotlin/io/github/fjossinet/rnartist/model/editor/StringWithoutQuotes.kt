@@ -5,7 +5,7 @@ import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.Text
 import javafx.event.EventHandler
 import javafx.scene.input.KeyCode
 
-class StringWithoutQuotes(editor: ScriptEditor, key:String, editable: Boolean = false): ParameterField(editor, key, editable) {
+open class StringWithoutQuotes(editor: ScriptEditor, value:String, editable: Boolean = false): ParameterField(editor, value, editable) {
 
     init {
         if (editable) {
@@ -24,5 +24,7 @@ class StringWithoutQuotes(editor: ScriptEditor, key:String, editable: Boolean = 
             }
         }
     }
+
+    override fun clone():StringWithoutQuotes = StringWithoutQuotes(editor, this.text.text, this.editable)
 
 }

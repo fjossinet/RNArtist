@@ -1,15 +1,35 @@
 package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
 
+import io.github.fjossinet.rnartist.core.model.RnartistConfig
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.Button
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import javafx.event.EventHandler
 import javafx.scene.Node
+import javafx.scene.text.Font
 import org.kordamp.ikonli.javafx.FontIcon
 
-open class OptionalDSLParameter(editor: ScriptEditor, var buttonName:String? = null, key:ParameterField, operator:ParameterField = StringWithQuotes(editor, "= "), value:ParameterField, indentLevel:Int, var inFinalScript:Boolean = false, var canBeMultiple:Boolean = false):
+open class OptionalDSLParameter(editor: ScriptEditor, var buttonName:String? = null, key:ParameterField, operator:Operator, value:ParameterField, indentLevel:Int, var inFinalScript:Boolean = false, var canBeMultiple:Boolean = false):
     DSLParameter(editor, key, operator, value,indentLevel) {
     val addButton = Button(editor, "+ ${buttonName ?: key.text.text}", null)
     val removeButton = Button(editor, null, FontIcon("fas-trash:15"))
+
+    override var fontSize:Int = RnartistConfig.editorFontSize
+        set(value) {
+            field = value
+            this.text.font = Font.font(RnartistConfig.editorFontName, value.toDouble())
+            this.key.fontSize = value
+            this.operator.fontSize = value
+            this.value.fontSize = value
+        }
+
+    override var fontName:String = RnartistConfig.editorFontName
+        set(value) {
+            field = value
+            this.text.font = Font.font(value, RnartistConfig.editorFontSize.toDouble())
+            this.key.fontName = value
+            this.operator.fontName = value
+            this.value.fontName = value
+        }
 
     init {
         this.addToFinalScript(inFinalScript)
@@ -34,15 +54,15 @@ open class OptionalDSLParameter(editor: ScriptEditor, var buttonName:String? = n
         this.children.clear()
         if (add) {
             inFinalScript = true
-            this.children.add(field)
+            this.children.add(key)
             this.children.add(operator)
             this.children.add(value)
-            this.children.add(DSLElement(editor,  "\n" ,  0))
+            this.children.add(NewLine(editor))
             if (this.canBeMultiple)
-                this.children.add(OptionalDSLParameter(editor, buttonName, field, operator, cloneValue(value), indentLevel, false, canBeMultiple))
+                this.children.add(OptionalDSLParameter(editor, buttonName, key.clone(), operator.clone(), value.clone(), indentLevel, false, canBeMultiple))
         } else {
             inFinalScript = false
-            this.children.add(DSLElement(editor, "\n",0))
+            this.children.add(NewLine(editor))
         }
     }
 
@@ -53,6 +73,7 @@ open class OptionalDSLParameter(editor: ScriptEditor, var buttonName:String? = n
             }
         if (inFinalScript) {
             nodes.add(this.removeButton)
+            nodes.add(this.text)
         }
         else {
             nodes.add(this.addButton)
@@ -61,17 +82,6 @@ open class OptionalDSLParameter(editor: ScriptEditor, var buttonName:String? = n
             it.dumpNodes(nodes)
         }
 
-    }
-
-    private fun cloneValue(value:ParameterField):ParameterField {
-        return when (value) {
-            is ColorField -> ColorField(editor, text.text.replace("\"", ""))
-            is IntegerField -> IntegerField(editor, value.text.text.toInt(), value.min, value.max)
-            is FloatField -> FloatField(editor, value.text.text)
-            is FileField -> FileField(editor)
-            is StringWithQuotes -> StringWithQuotes(editor, value.text.text.replace("\"", ""))
-            else -> throw Exception()
-        }
     }
 
 }

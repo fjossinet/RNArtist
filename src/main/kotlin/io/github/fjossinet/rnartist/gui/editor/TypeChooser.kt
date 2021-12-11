@@ -13,15 +13,22 @@ import java.util.stream.Collectors
 class TypeChooser(val editor:ScriptEditor,  text: Text): ComboBox<TypeChooser.TypeItem>() {
 
     private val types = listOf(
-        "A", "U", "G", "C", "R", "Y", "N", "X",
-        "a", "u", "g", "c", "r", "y", "n", "x",
-        "helix", "single_strand", "junction",
+        "A", "a", "U", "u", "G", "g", "C", "c", "R", "r", "Y", "y", "N", "n", "X", "x",
+        "helix", "single_strand", "junction", "pknot",
         "secondary_interaction", "tertiary_interaction",
-        "phosphodiester_bond", "interaction_symbol", "pknot")
+        "phosphodiester_bond", "interaction_symbol")
 
     init {
         this.minHeight = 30.0
         this.prefHeight = 30.0
+
+        buttonCell = object : ListCell<TypeItem>() {
+
+            override fun updateItem(item: TypeItem?, empty: Boolean) {
+                super.updateItem(item, empty)
+            }
+        }
+
         val items = FXCollections.observableArrayList<TypeItem>()
         val previousTypes = text.text.replace("\"", "").split(" ")
         for (type in types) {
@@ -32,7 +39,9 @@ class TypeChooser(val editor:ScriptEditor,  text: Text): ComboBox<TypeChooser.Ty
         }
         this.items = items
 
-        setCellFactory(object : Callback<ListView<TypeItem>, ListCell<TypeItem>> {
+        this.value = TypeItem(getSelection())
+
+        cellFactory = object : Callback<ListView<TypeItem>, ListCell<TypeItem>> {
             override fun call(param: ListView<TypeItem>): ListCell<TypeItem> {
                 return object : ListCell<TypeItem>() {
                     private val cb = CheckBox()
@@ -56,20 +65,16 @@ class TypeChooser(val editor:ScriptEditor,  text: Text): ComboBox<TypeChooser.Ty
                     init {
                         cb.onAction = EventHandler { e: ActionEvent? ->
                             listView.getSelectionModel().select(item)
+                            buttonCell.setText(getSelection())
                         }
                     }
                 }
             }
-        })
+        }
 
-        setButtonCell(object : ListCell<TypeItem>() {
-            override fun updateItem(item: TypeItem?, empty: Boolean) {
-                super.updateItem(item, empty)
-                val selected: String = getItems().stream().filter { i -> i.isSelected() }
-                    .map { i -> i.toString() + "" }.collect(Collectors.joining(" "))
-                setText(selected)
-            }
-        })
+        this.onShowing = EventHandler {
+            buttonCell.setText(getSelection())
+        }
 
     }
 

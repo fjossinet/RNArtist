@@ -1,8 +1,11 @@
 package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
 
+import io.github.fjossinet.rnartist.core.model.RnartistConfig
+import io.github.fjossinet.rnartist.io.awtColorToJavaFX
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.Button
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import javafx.event.EventHandler
+import javafx.geometry.Insets
 import javafx.scene.Node
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
@@ -11,13 +14,18 @@ import javafx.scene.text.FontWeight
 import org.kordamp.ikonli.javafx.FontIcon
 
 open class OptionalDSLKeyword(editor: ScriptEditor, text:String, indentLevel:Int, var inFinalScript:Boolean = false):
-    DSLElement(editor,text,indentLevel) {
+    DSLKeyword(editor,text,indentLevel) {
     val addButton = Button(editor,  "+ $text", null)
     val removeButton = Button(editor, null, FontIcon("fas-trash:15"))
 
+    override var fontSize:Int = RnartistConfig.editorFontSize
+        set(value) {
+            field = value
+            this.text.font = Font.font(RnartistConfig.editorFontName, value.toDouble())
+        }
+
     init {
-        this.text.fill = Color.MEDIUMAQUAMARINE
-        this.text.font = Font.font("Helvetica", FontWeight.BOLD, FontPosture.REGULAR, 20.0)
+        this.text.fill = awtColorToJavaFX(RnartistConfig.keywordEditorColor)
         this.children.add(OpenedCurly(editor))
         this.children.add(ClosedCurly(editor, indentLevel))
 

@@ -2,6 +2,7 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.*
+import javafx.scene.layout.Background
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
@@ -46,14 +47,14 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
 
     override fun paintComponent(g: Graphics?) {
         super.paintComponent(g)
+        val g2 = g as Graphics2D
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
+        g2.color = Color.white;
+        g2.fillRect(0, 0, getWidth(), getHeight());
+        g2.color = Color.BLACK
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            val g2 = g as Graphics2D
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
-            g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
-            g2.color = Color.white;
-            g2.fillRect(0, 0, getWidth(), getHeight());
-            g2.color = Color.BLACK
             if (drawingDisplayed.drawing.workingSession.is_screen_capture) {
                 g.stroke = BasicStroke(drawingDisplayed.drawing.zoomLevel.toFloat() * RnartistConfig.selectionWidth)
                 g2.draw(drawingDisplayed.drawing.workingSession.screen_capture_area)
