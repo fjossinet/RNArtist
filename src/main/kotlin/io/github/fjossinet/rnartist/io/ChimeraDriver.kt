@@ -1,19 +1,17 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io
+package io.github.fjossinet.rnartist.io
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.core.model.Residue3D
 import io.github.fjossinet.rnartist.core.model.ResidueDrawing
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraHost
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraPort
+import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraHost
+import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraPort
 import io.github.fjossinet.rnartist.core.model.TertiaryStructure
-import io.github.fjossinet.rnartist.core.model.io.copyFile
-import io.github.fjossinet.rnartist.core.model.io.createTemporaryFile
-import io.github.fjossinet.rnartist.core.model.io.parsePDB
+import io.github.fjossinet.rnartist.core.io.copyFile
+import io.github.fjossinet.rnartist.core.io.createTemporaryFile
+import io.github.fjossinet.rnartist.core.io.parsePDB
 import io.github.fjossinet.rnartist.io.*
-import javafx.scene.control.Alert
 import java.io.*
-import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
 import java.net.URLEncoder

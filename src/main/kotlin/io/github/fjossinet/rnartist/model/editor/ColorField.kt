@@ -1,8 +1,8 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.core.model.getHTMLColorString
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ColorPicker
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.ColorPicker
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import javafx.event.EventHandler
 import javafx.scene.paint.Color

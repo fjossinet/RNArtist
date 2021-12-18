@@ -1,8 +1,8 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.core.model.RnartistConfig
+import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 
 open class DSLParameter(editor: ScriptEditor, var key:ParameterField, var operator:Operator, var value:ParameterField, indentLevel:Int): DSLElement(editor, " ", indentLevel) {
 

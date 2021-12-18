@@ -1,6 +1,6 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 
 class SecondaryStructureKw(editor: ScriptEditor, indentLevel:Int): DSLKeyword(editor, "ss", indentLevel) {
 

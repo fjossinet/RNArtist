@@ -1,10 +1,9 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.TextField
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.TextField
 import javafx.event.EventHandler
 import javafx.scene.input.KeyCode
-import javafx.scene.paint.Color
 
 abstract open class ParameterField(editor: ScriptEditor, value:String, var editable:Boolean = false): DSLElement(editor, value, 0) {
 

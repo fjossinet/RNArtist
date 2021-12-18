@@ -1,4 +1,4 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui
+package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing

@@ -1,4 +1,4 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor
+package io.github.fjossinet.rnartist.gui.editor
 
 import javafx.beans.property.*
 import javafx.collections.FXCollections

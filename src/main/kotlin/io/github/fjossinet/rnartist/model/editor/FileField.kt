@@ -1,6 +1,6 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import javafx.event.EventHandler
 import javafx.scene.paint.Color
 import javafx.stage.FileChooser

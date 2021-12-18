@@ -1,11 +1,9 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.core.model.RnartistConfig
+import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
-import javafx.scene.paint.Color
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import javafx.scene.text.Font
-import javafx.scene.text.FontPosture
 import javafx.scene.text.FontWeight
 
 class OpenedCurly(editor: ScriptEditor): DSLElement(editor, " {\n", 0) {

@@ -1,5 +1,6 @@
 package io.github.fjossinet.rnartist.io
 
+import io.github.fjossinet.rnartist.core.io.*
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.model.io.*
 import org.dizitart.no2.*

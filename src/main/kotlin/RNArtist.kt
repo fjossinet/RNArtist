@@ -1,23 +1,23 @@
 package io.github.fjossinet.rnartist
 
+import io.github.fjossinet.rnartist.core.RnartistConfig
+import io.github.fjossinet.rnartist.core.io.*
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.getRnartistRelease
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.isDockerImageInstalled
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.isDockerInstalled
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.load
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.save
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.selectionWidth
-import io.github.fjossinet.rnartist.core.model.io.parseJSON
-import io.github.fjossinet.rnartist.core.model.io.parseRnaml
-import io.github.fjossinet.rnartist.core.model.io.toJSON
-import io.github.fjossinet.rnartist.core.model.io.toSVG
+import io.github.fjossinet.rnartist.core.RnartistConfig.getRnartistRelease
+import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerImageInstalled
+import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerInstalled
+import io.github.fjossinet.rnartist.core.RnartistConfig.load
+import io.github.fjossinet.rnartist.core.RnartistConfig.save
+import io.github.fjossinet.rnartist.core.RnartistConfig.selectionWidth
 import io.github.fjossinet.rnartist.core.rnartist
 import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.Canvas2D
+import io.github.fjossinet.rnartist.gui.Explorer
 import io.github.fjossinet.rnartist.gui.SplashWindow
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Explorer.DrawingElementFilter
 import io.github.fjossinet.rnartist.io.javaFXToAwt
+import io.github.fjossinet.rnartist.io.sendField
+import io.github.fjossinet.rnartist.io.sendFile
 import io.github.fjossinet.rnartist.model.DrawingLoaded
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromFile
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNArtistDB
@@ -51,8 +51,12 @@ import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
 import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.concurrent.ExecutionException
+import javax.imageio.ImageIO
 
 class RNArtist: Application() {
     enum class SCOPE {
@@ -371,16 +375,8 @@ class RNArtist: Application() {
                 if (file != null) {
                     if (file.name.endsWith(".svg")) {
                         fileChooser.initialDirectory = file.parentFile
-                        val writer: PrintWriter
-                        try {
-                            writer = PrintWriter(file)
-                            writer.println(toSVG(drawing,
-                                mediator.canvas2D.getBounds().width.toDouble(),
-                                mediator.canvas2D.getBounds().height.toDouble()))
-                            writer.close()
-                        } catch (e: FileNotFoundException) {
-                            e.printStackTrace()
-                        }
+                        drawing.asSVG( frame = Rectangle2D.Double(0.0, 0.0, mediator.canvas2D.getBounds().width.toDouble(), mediator.canvas2D.getBounds().height.toDouble()), outputFile = file)
+
                     } else if (file.name.endsWith(".json")) {
                         fileChooser.initialDirectory = file.parentFile
                         val writer: PrintWriter
@@ -401,6 +397,93 @@ class RNArtist: Application() {
         export2D.tooltip = Tooltip("Export 2D to file")
         GridPane.setConstraints(export2D, 2, 1)
         saveFiles.children.add(export2D)
+
+        val submitProject = Button(null, FontIcon("fas-database:15"))
+        submitProject.disableProperty()
+            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+        submitProject.onMouseClicked = EventHandler {
+            mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+                drawing.workingSession.is_screen_capture = true
+                drawing.workingSession.screen_capture_area =
+                    Rectangle2D.Double(mediator.canvas2D.getBounds().getCenterX() - 200,
+                        mediator.canvas2D.getBounds().getCenterY() - 100,
+                        400.0,
+                        200.0)
+                mediator.canvas2D.repaint()
+                val dialog = TextInputDialog("My Project")
+                dialog.initModality(Modality.NONE)
+                dialog.title = "Project Saving"
+                dialog.headerText =
+                    "Keep right mouse button pressed and drag the rectangle to define your project miniature."
+                dialog.contentText = "Project name:"
+                val projectName = dialog.showAndWait()
+                if (projectName.isPresent) {
+                    try {
+                        val pictureFile = createTemporaryFile( "test.svg")
+                        //ImageIO.write(mediator.canvas2D.screenCapture()!!, "PNG", pictureFile)
+                        drawing.asSVG( frame = Rectangle2D.Double(0.0, 0.0, mediator.canvas2D.getBounds().width.toDouble(), mediator.canvas2D.getBounds().height.toDouble()), outputFile = pictureFile)
+
+                        val url = URL("http://localhost:8080/api/submit")
+                        val con = url.openConnection()
+                        val http = con as HttpURLConnection
+                        http.setRequestMethod("POST")
+                        http.setDoOutput(true)
+                        val boundary = UUID.randomUUID().toString()
+                        val boundaryBytes = "--$boundary\r\n".toByteArray(StandardCharsets.UTF_8)
+                        val finishBoundaryBytes = "--$boundary--".toByteArray(StandardCharsets.UTF_8)
+                        http.setRequestProperty(
+                            "Content-Type",
+                            "multipart/form-data; charset=UTF-8; boundary=$boundary"
+                        )
+
+                        // Enable streaming mode with default settings
+                        http.setChunkedStreamingMode(0)
+
+                        // Send our fields:
+                        http.outputStream.use { out ->
+                            // Send our header (thx Algoman)
+                            out.write(boundaryBytes)
+
+                            // Send our first field
+                            sendField(out, "script", mediator.editor.getScriptAsText())
+
+                            // Send a separator
+                            out.write(boundaryBytes)
+
+                            // Send our second field
+                            sendField(out, "password", "toor")
+
+                            //Send another separator
+                            out.write(boundaryBytes)
+                            FileInputStream(pictureFile).use { file ->
+                                sendFile(
+                                    out,
+                                    "capture",
+                                    file,
+                                    pictureFile.name
+                                )
+                            }
+
+                            // Finish the request
+                            out.write(finishBoundaryBytes)
+                        }
+
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    drawing.workingSession.is_screen_capture = false
+                    drawing.workingSession.screen_capture_area = null
+                    mediator.canvas2D.repaint()
+                } else {
+                    drawing.workingSession.is_screen_capture = false
+                    drawing.workingSession.screen_capture_area = null
+                    mediator.canvas2D.repaint()
+                }
+            }
+        }
+        submitProject.tooltip = Tooltip("Submit project to RNArtist Gallery")
+        GridPane.setConstraints(submitProject, 3, 1)
+        //saveFiles.children.add(submitProject)
 
         val tertiaryStructureButtons = GridPane()
         tertiaryStructureButtons.vgap = 5.0
@@ -1427,7 +1510,8 @@ class RNArtist: Application() {
                                                 r.parent!!.parent)
                                         ) {
                                             mediator.canvas2D.addToSelection(r)
-                                            mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                            mediator.explorer.selectAllTreeViewItems(object :
+                                                Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
                                                     return mediator.canvas2D.isSelected(el)
                                                 }
@@ -1441,7 +1525,8 @@ class RNArtist: Application() {
                                         ) {
                                             mediator.canvas2D.removeFromSelection(r)
                                             mediator.canvas2D.addToSelection(r.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                            mediator.explorer.selectAllTreeViewItems(object :
+                                                Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
                                                     return mediator.canvas2D.isSelected(el)
                                                 }
@@ -1453,7 +1538,7 @@ class RNArtist: Application() {
                                         } else if (!mediator.canvas2D.isSelected(r.parent!!.parent)) {
                                             mediator.canvas2D.removeFromSelection(r.parent)
                                             mediator.canvas2D.addToSelection(r.parent!!.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
                                                     return mediator.canvas2D.isSelected(el)
                                                 }
@@ -1474,7 +1559,8 @@ class RNArtist: Application() {
                                                 interaction.parent)
                                         ) {
                                             mediator.canvas2D.addToSelection(interaction)
-                                            mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                            mediator.explorer.selectAllTreeViewItems(object :
+                                                Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
                                                     return mediator.canvas2D.isSelected(el)
                                                 }
@@ -1486,7 +1572,7 @@ class RNArtist: Application() {
                                         } else if (!mediator.canvas2D.isSelected(interaction.parent)) {
                                             mediator.canvas2D.removeFromSelection(interaction)
                                             mediator.canvas2D.addToSelection(interaction.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
                                                     return mediator.canvas2D.isSelected(el)
                                                 }
@@ -1500,7 +1586,7 @@ class RNArtist: Application() {
                                 }
                                 if (!mediator.canvas2D.isSelected(h)) {
                                     mediator.canvas2D.addToSelection(h)
-                                    mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                    mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                         override fun isOK(el: DrawingElement?): Boolean {
                                             return mediator.canvas2D.isSelected(el)
                                         }
@@ -1516,7 +1602,7 @@ class RNArtist: Application() {
                                     }
                                     if (p == null) {
                                         mediator.canvas2D.addToSelection(h)
-                                        mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                        mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                             override fun isOK(el: DrawingElement?): Boolean {
                                                 return mediator.canvas2D.isSelected(el)
                                             }
@@ -1526,7 +1612,7 @@ class RNArtist: Application() {
                                             RNArtist.SCOPE.BRANCH)
                                     } else {
                                         mediator.canvas2D.addToSelection(p)
-                                        mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                        mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                             override fun isOK(el: DrawingElement?): Boolean {
                                                 return mediator.canvas2D.isSelected(el)
                                             }
@@ -1551,7 +1637,7 @@ class RNArtist: Application() {
                                     ) {
                                         if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
                                             mediator.canvas2D.addToSelection(r)
-                                            mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
                                                     return mediator.canvas2D.isSelected(el)
                                                 }
@@ -1563,7 +1649,8 @@ class RNArtist: Application() {
                                         } else if (!mediator.canvas2D.isSelected(r.parent)) {
                                             mediator.canvas2D.removeFromSelection(r)
                                             mediator.canvas2D.addToSelection(r.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                            mediator.explorer.selectAllTreeViewItems(object :
+                                                Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
                                                     return mediator.canvas2D.isSelected(el)
                                                 }
@@ -1577,7 +1664,7 @@ class RNArtist: Application() {
                                 }
                                 if (!mediator.canvas2D.isSelected(j)) {
                                     mediator.canvas2D.addToSelection(j)
-                                    mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                    mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                         override fun isOK(el: DrawingElement?): Boolean {
                                             return mediator.canvas2D.isSelected(el)
                                         }
@@ -1593,7 +1680,7 @@ class RNArtist: Application() {
                                     }
                                     if (p == null) {
                                         mediator.canvas2D.addToSelection(j)
-                                        mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                        mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                             override fun isOK(el: DrawingElement?): Boolean {
                                                 return mediator.canvas2D.isSelected(el)
                                             }
@@ -1603,7 +1690,7 @@ class RNArtist: Application() {
                                             RNArtist.SCOPE.BRANCH)
                                     } else {
                                         mediator.canvas2D.addToSelection(p)
-                                        mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                        mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                             override fun isOK(el: DrawingElement?): Boolean {
                                                 return mediator.canvas2D.isSelected(el)
                                             }
@@ -1628,7 +1715,7 @@ class RNArtist: Application() {
                                     ) {
                                         if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
                                             mediator.canvas2D.addToSelection(r)
-                                            mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
                                                     return mediator.canvas2D.isSelected(el)
                                                 }
@@ -1640,7 +1727,7 @@ class RNArtist: Application() {
                                         } else if (!mediator.canvas2D.isSelected(r.parent)) {
                                             mediator.canvas2D.removeFromSelection(r)
                                             mediator.canvas2D.addToSelection(r.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object : DrawingElementFilter {
+                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
                                                     return mediator.canvas2D.isSelected(el)
                                                 }
@@ -1788,6 +1875,7 @@ class RNArtist: Application() {
         statusBar.getChildren().add(dockerStatus)
 
         val shutdown = Button(null, FontIcon("fas-power-off:15"))
+        shutdown.tooltip = Tooltip("Exit RNArtist")
         shutdown.onAction = EventHandler { actionEvent: ActionEvent ->
             val alert =
                 Alert(Alert.AlertType.CONFIRMATION)
@@ -1820,6 +1908,7 @@ class RNArtist: Application() {
         windowsBar.hgap = 10.0
 
         val settings = Button(null, FontIcon("fas-cog:15"))
+        settings.tooltip = Tooltip("Show RNArtist Settings")
         settings.onAction = EventHandler { actionEvent: ActionEvent? ->
             mediator.settings.stage.show()
             mediator.settings.stage.toFront()
@@ -1827,20 +1916,15 @@ class RNArtist: Application() {
         windowsBar.children.add(settings)
 
         val explorer = Button(null, FontIcon("fas-th-list:15"))
+        explorer.tooltip = Tooltip("Show Objects Explorer")
         explorer.onAction = EventHandler { actionEvent: ActionEvent? ->
             mediator.explorer.stage.show()
             mediator.explorer.stage.toFront()
         }
         windowsBar.children.add(explorer)
 
-        val browser = Button(null, FontIcon("fas-globe-europe:15"))
-        browser.onAction = EventHandler { actionEvent: ActionEvent? ->
-            mediator.webBrowser.stage.show()
-            mediator.webBrowser.stage.toFront()
-        }
-        windowsBar.children.add(browser)
-
-        val showEditor = Button(null, FontIcon("fas-terminal:15"))
+        val showEditor = Button(null, FontIcon("fas-play:15"))
+        showEditor.tooltip = Tooltip("Show Script Editor")
         showEditor.onAction = EventHandler { actionEvent: ActionEvent? ->
             mediator.editor.stage.show()
             mediator.editor.stage.toFront()

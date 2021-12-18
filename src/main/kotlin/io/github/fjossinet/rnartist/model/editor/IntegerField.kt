@@ -1,10 +1,8 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.TextField
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.TextField
 import javafx.event.EventHandler
-import javafx.scene.control.Spinner
-import javafx.scene.input.KeyCode
 import javafx.scene.paint.Color
 
 class IntegerField(editor: ScriptEditor, value:Int, val min:Int = 1, val max:Int = Integer.MAX_VALUE): ParameterField(editor, "${value}", true) {

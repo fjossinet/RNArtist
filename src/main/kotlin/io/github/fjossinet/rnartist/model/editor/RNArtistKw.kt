@@ -1,8 +1,9 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import java.util.*
 
-class RNArtistKw(editor: ScriptEditor, indentLevel:Int): DSLKeyword(editor, "rnartist", indentLevel) {
+class RNArtistKw(editor: ScriptEditor, indentLevel:Int = 0, val id:String= UUID.randomUUID().toString()): DSLKeyword(editor, "rnartist", indentLevel) {
 
     init {
         this.children.add(1, DataKw(editor, this.indentLevel+1))

@@ -1,12 +1,12 @@
 package io.github.fjossinet.rnartist
 
+import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraDriver
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraXDriver
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.io.ChimeraDriver
+import io.github.fjossinet.rnartist.io.ChimeraXDriver
 import io.github.fjossinet.rnartist.model.*
 import javafx.beans.property.SimpleObjectProperty
 import javafx.collections.FXCollections
@@ -83,15 +83,12 @@ class Mediator(val rnartist: RNArtist) {
                 var previousPDBId: String? = null
                 when (oldValue) {
                     is DrawingLoadedFromFile -> {
-                        //println("Previous drawing been loaded from file "+currentDrawingLoaded.file.absolutePath)
                         previousFile =
                             oldValue.file.absolutePath //if the upcoming previous 2D was loaded from a file, we keep its path to avoid to reload twice a PDB file
                     }
                     is DrawingLoadedFromRNArtistDB -> {
-                        //println("Previous drawing been loaded from RNArtist DB ")
                     }
                     is DrawingLoadedFromRNAGallery -> {
-                        //println("Previous drawing been loaded from RNA Gallery "+currentDrawingLoaded.pdbId)
                         previousPDBId = oldValue.pdbId
                     }
                 }
@@ -123,8 +120,8 @@ class Mediator(val rnartist: RNArtist) {
                             } else if (newValue.file.absolutePath.matches(Regex(".+\\.json"))) {
                                 this.chimeraDriver.closeSession()
                                 Thread.sleep(1000)
-                                var pdbFile = File(newValue.file.parentFile, "${newValue.file.name.split(".").first()}.pdb")
-                                var chimeraSession = File(newValue.file.parentFile, "${newValue.file.name.split(".").first()}.py")
+                                val pdbFile = File(newValue.file.parentFile, "${newValue.file.name.split(".").first()}.pdb")
+                                val chimeraSession = File(newValue.file.parentFile, "${newValue.file.name.split(".").first()}.py")
                                 if (chimeraSession.exists() && pdbFile.exists()) {
                                     this.chimeraDriver.restoreSession(chimeraSession, pdbFile)
                                 } else if (pdbFile.exists()) {
@@ -190,7 +187,7 @@ class Mediator(val rnartist: RNArtist) {
                         rnartist.updateProject.isDisable = true
                         this.editor.pasteDrawing(newValue.drawing)
                     }
-                    is DrawingLoadedFromEditor -> {
+                    is DrawingLoadedFromScriptEditor -> {
 
                     }
                 }

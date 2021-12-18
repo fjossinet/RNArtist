@@ -4,7 +4,6 @@ import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import io.github.fjossinet.rnartist.gui.JunctionKnob
 import io.github.fjossinet.rnartist.gui.SelectionShape
-import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
@@ -45,10 +44,10 @@ class DrawingLoadedFromFile( mediator: Mediator,drawing: SecondaryStructureDrawi
     }
 }
 
-class DrawingLoadedFromEditor( mediator: Mediator,drawing: SecondaryStructureDrawing, val file: File):AbstractDrawingLoaded(mediator, drawing) {
+class DrawingLoadedFromScriptEditor(mediator: Mediator, drawing: SecondaryStructureDrawing, val id:String):AbstractDrawingLoaded(mediator, drawing) {
 
     override fun toString(): String {
-        return "RNA ${drawing.secondaryStructure.rna.name} ${drawing.secondaryStructure.rna.length}nts from file ${file.name}"
+        return "RNA ${drawing.secondaryStructure.rna.name} ${drawing.secondaryStructure.rna.length}nts loaded from script editor"
     }
 }
 

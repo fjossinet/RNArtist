@@ -1,11 +1,10 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.model.PDB
 import io.github.fjossinet.rnartist.core.model.RNAGallery
-import io.github.fjossinet.rnartist.core.model.RnartistConfig
+import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
-import io.github.fjossinet.rnartist.core.model.io.parseJSON
+import io.github.fjossinet.rnartist.core.io.parseJSON
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNAGallery
 import javafx.concurrent.Task
 import javafx.concurrent.Worker
@@ -77,9 +76,6 @@ class WebBrowser(val mediator: Mediator) {
         buttons.alignment = Pos.CENTER
         buttons.spacing = 10.0
         val home = Button("Home", Glyph("FontAwesome", FontAwesome.Glyph.HOME))
-        home.onAction = EventHandler {
-            webEngine.load(if (RnartistConfig.useOnlineRNAGallery) "https://github.com/fjossinet/RNAGallery/blob/main/PDB/status.md" else File("${RnartistConfig.rnaGalleryPath}/PDB/status.md").toURI().toURL().toExternalForm())
-        }
         val pdbID = TextField()
         pdbID.isEditable = false
         pdbID.isDisable = true
@@ -120,7 +116,6 @@ class WebBrowser(val mediator: Mediator) {
         }
         buttons.children.addAll(home, Label("PDB ID"), pdbID, Label("Chain ID"), chainIds, loadInRNArtist)
 
-        webEngine.load(if (RnartistConfig.useOnlineRNAGallery) "https://github.com/fjossinet/RNAGallery/blob/main/PDB/status.md" else File("${RnartistConfig.rnaGalleryPath}/PDB/status.md").toURI().toURL().toExternalForm())
         webEngine.loadWorker.stateProperty().addListener { _, _, newState ->
             if (webEngine.location.matches(Regex("https://www\\.rcsb\\.org/structure/...."))) {
                 pdbID.text = webEngine.location.split("/").last()

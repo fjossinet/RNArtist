@@ -1,15 +1,15 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui
+package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraHost
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.chimeraPort
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.exportSVGWithBrowserCompatibility
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.isChimeraX
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.rnaGalleryPath
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.save
-import io.github.fjossinet.rnartist.core.model.RnartistConfig.useOnlineRNAGallery
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraDriver
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.ChimeraXDriver
+import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraHost
+import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraPort
+import io.github.fjossinet.rnartist.core.RnartistConfig.exportSVGWithBrowserCompatibility
+import io.github.fjossinet.rnartist.core.RnartistConfig.isChimeraX
+import io.github.fjossinet.rnartist.core.RnartistConfig.rnaGalleryPath
+import io.github.fjossinet.rnartist.core.RnartistConfig.save
+import io.github.fjossinet.rnartist.core.RnartistConfig.useOnlineRNAGallery
+import io.github.fjossinet.rnartist.io.ChimeraDriver
+import io.github.fjossinet.rnartist.io.ChimeraXDriver
 import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
 import javafx.event.ActionEvent

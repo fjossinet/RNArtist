@@ -1,13 +1,13 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io
+package io.github.fjossinet.rnartist.io
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.core.model.ResidueDrawing
 import io.github.fjossinet.rnartist.core.model.TertiaryStructure
 import io.github.fjossinet.rnartist.core.model.getHTMLColorString
-import io.github.fjossinet.rnartist.core.model.io.copyFile
-import io.github.fjossinet.rnartist.core.model.io.createTemporaryFile
-import io.github.fjossinet.rnartist.core.model.io.parsePDB
+import io.github.fjossinet.rnartist.core.io.copyFile
+import io.github.fjossinet.rnartist.core.io.createTemporaryFile
+import io.github.fjossinet.rnartist.core.io.parsePDB
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import javafx.scene.control.Alert
 import java.io.*

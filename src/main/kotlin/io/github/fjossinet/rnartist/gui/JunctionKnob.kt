@@ -181,7 +181,7 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
                     name =  knob.junction.name
                     out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
                 }
-            })
+            }!!)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
@@ -259,7 +259,7 @@ class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 name =  knob.junction.name
                 radius = knob.junction.radius * 1.1
             }
-        })
+        }!!)
 
         this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
             it.update()
@@ -307,7 +307,7 @@ class Down(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 name =  knob.junction.name
                 radius = knob.junction.radius * 0.9
             }
-        })
+        }!!)
         this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
             it.update()
         }
@@ -352,7 +352,7 @@ class Left(private val knob:JunctionKnob):AbstractJunctionArrow() {
                     name =  knob.junction.name
                     out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
                 }
-            })
+            }!!)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
@@ -398,7 +398,7 @@ class Right(private val knob:JunctionKnob):AbstractJunctionArrow() {
                     name =  knob.junction.name
                     out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
                 }
-            })
+            }!!)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }

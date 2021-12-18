@@ -1,4 +1,4 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor
+package io.github.fjossinet.rnartist.gui.editor
 
 import javafx.geometry.Insets
 import javafx.scene.layout.HBox

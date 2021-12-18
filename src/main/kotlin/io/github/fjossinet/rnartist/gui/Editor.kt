@@ -1,9 +1,8 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui
-
+package io.github.fjossinet.rnartist.gui
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.RNArtist
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.model.DrawingLoadedFromEditor
+import io.github.fjossinet.rnartist.model.DrawingLoadedFromScriptEditor
 import javafx.application.Platform
 import javafx.concurrent.Worker
 import javafx.event.EventHandler
@@ -18,6 +17,7 @@ import javafx.scene.web.WebView
 import netscape.javascript.JSObject
 import org.kordamp.ikonli.javafx.FontIcon
 import java.io.File
+import java.util.*
 import javax.script.ScriptEngineManager
 
 class Editor(val mediator: Mediator): VBox() {
@@ -55,8 +55,8 @@ class Editor(val mediator: Mediator): VBox() {
 
                             (result as? List<SecondaryStructureDrawing>)?.forEach {
                                 mediator.drawingsLoaded.add(
-                                    DrawingLoadedFromEditor(mediator,
-                                        it, File("script.kts")))
+                                    DrawingLoadedFromScriptEditor(mediator,
+                                        it, UUID.randomUUID().toString()))
                                 mediator.drawingDisplayed.set(mediator.drawingsLoaded[mediator.drawingsLoaded.size - 1])
                                 mediator.canvas2D.fitStructure(null)
                             }

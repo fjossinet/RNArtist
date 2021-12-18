@@ -1,7 +1,6 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.model.RnartistConfig
 import javafx.concurrent.Task
 import javafx.geometry.Insets
 import javafx.scene.Scene
@@ -11,10 +10,8 @@ import javafx.scene.image.ImageView
 import javafx.scene.layout.*
 import javafx.stage.Stage
 import javafx.stage.StageStyle
-import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.net.URL
 
 class SplashWindow(val mediator: Mediator) {
 
@@ -45,7 +42,7 @@ class SplashWindow(val mediator: Mediator) {
         stage.show()
         stage.toFront()
 
-        val task = CheckRNAGallery()
+        val task = WarmUp()
         task.setOnSucceeded { event ->
             val result = task.get()
             result.first?.let {
@@ -96,34 +93,17 @@ class SplashWindow(val mediator: Mediator) {
         Thread(task).start();
     }
 
-    class CheckRNAGallery : Task<Pair<Map<String, List<String>>?, Exception?>>() {
+    class WarmUp : Task<Pair<Map<String, List<String>>?, Exception?>>() {
         override fun call(): Pair<Map<String, List<String>>?, Exception?> {
             try {
-                updateMessage("RNA Gallery Connection...")
+                updateMessage("Checking configuration..")
+                Thread.sleep(2000)
                 val projects = mutableMapOf<String, MutableList<String>>()
-                    val text =
-                        (if (RnartistConfig.useOnlineRNAGallery) URL("https://raw.githubusercontent.com/fjossinet/RNAGallery/main/PDB/status.md") else File(
-                            "${RnartistConfig.rnaGalleryPath}/PDB/status.md"
-                        ).toURI().toURL()).readText()
-                    val lines = text.split(Regex("\\|\\[[^V]"))
-                    var step = 0
-                    updateProgress(step.toDouble(), lines.size.toDouble())
-                    lines.forEach { line ->
-                        val tokens = line.split('|')
-                        if (tokens.size == 6) {
-                            Thread.sleep(1)
-                            step++
-                            val pdbId = tokens.first().substring(tokens.first().length - 5, tokens.first().length - 1)
-                                .toString()
-                            if (projects.containsKey(pdbId))
-                                projects[pdbId]!!.add(tokens[1])
-                            else {
-                                projects[pdbId] = mutableListOf(tokens[1])
-                            }
-                            updateMessage("RNA Gallery: found pre-computed drawing for chain ${tokens[1]} in entry ${pdbId} ")
-                            updateProgress(step.toDouble(), lines.size.toDouble())
-                        }
-                    }
+                var step = 0.0
+                    do {
+                        updateProgress(step++, 100.0)
+                        Thread.sleep(5)
+                    } while (step < 100.0)
                     return Pair(projects, null)
                 } catch (e: Exception) {
                     return Pair(null, e)

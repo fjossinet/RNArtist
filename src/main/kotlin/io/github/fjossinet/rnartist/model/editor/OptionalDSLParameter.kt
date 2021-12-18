@@ -1,8 +1,8 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.core.model.RnartistConfig
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.Button
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.core.RnartistConfig
+import io.github.fjossinet.rnartist.gui.editor.Button
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import javafx.event.EventHandler
 import javafx.scene.Node
 import javafx.scene.text.Font

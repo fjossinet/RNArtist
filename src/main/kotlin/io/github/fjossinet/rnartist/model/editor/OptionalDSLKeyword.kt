@@ -1,16 +1,12 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.core.model.RnartistConfig
+import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.Button
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.Button
+import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import javafx.event.EventHandler
-import javafx.geometry.Insets
 import javafx.scene.Node
-import javafx.scene.paint.Color
 import javafx.scene.text.Font
-import javafx.scene.text.FontPosture
-import javafx.scene.text.FontWeight
 import org.kordamp.ikonli.javafx.FontIcon
 
 open class OptionalDSLKeyword(editor: ScriptEditor, text:String, indentLevel:Int, var inFinalScript:Boolean = false):
