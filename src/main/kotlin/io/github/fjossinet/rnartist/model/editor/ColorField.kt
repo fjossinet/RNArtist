@@ -10,7 +10,12 @@ import javafx.scene.paint.Color
 class ColorField(editor: ScriptEditor, value:String = "click me to choose your color"): StringWithQuotes(editor, value, true) {
 
     init {
-        this.text.fill =  Color.web("#4d4d4d")
+        if (value.startsWith("#")) {
+            this.text.text = "\"$value\""
+            this.text.fill = Color.web(value)
+        }
+        else
+            this.text.fill =  Color.web("#4d4d4d")
         if (editable) {
             this.text.onMouseClicked = EventHandler {
                 val index = editor.editorPane.children.indexOf(this.text)

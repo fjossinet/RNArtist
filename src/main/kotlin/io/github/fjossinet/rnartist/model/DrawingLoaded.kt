@@ -73,9 +73,3 @@ class DrawingLoadedFromRNArtistDB( mediator: Mediator,drawing: SecondaryStructur
         return "RNA ${drawing.secondaryStructure.rna.name} ${drawing.secondaryStructure.rna.length}nts from project ${projectName}"
     }
 }
-
-class DrawingLoadedFromRNAGallery( mediator: Mediator, drawing: SecondaryStructureDrawing, val pdbId:String):AbstractDrawingLoaded(mediator, drawing) {
-    override fun toString(): String {
-        return "RNA ${drawing.secondaryStructure.rna.name} ${drawing.secondaryStructure.rna.length}nts from RNA Gallery for ${pdbId}"
-    }
-}

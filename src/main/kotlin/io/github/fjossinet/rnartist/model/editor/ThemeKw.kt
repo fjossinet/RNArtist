@@ -11,7 +11,10 @@ class ThemeKw(editor: ScriptEditor, indentLevel:Int, inFinalScript:Boolean = fal
             this.children.add(1, HideKw(editor, this.indentLevel+1))
             this.children.add(1, ShowKw(editor, this.indentLevel+1))
             this.children.add(1, ColorKw(editor, this.indentLevel+1))
-            this.children.add(1, OptionalDSLParameter(editor, null, StringWithoutQuotes(editor,"details_lvl"), Operator(editor,"="), IntegerField(editor,5, 1, 5), this.indentLevel + 1, inFinalScript = true))
+            this.children.add(1, DetailsKw(editor, this.indentLevel+1))
         }
     }
+
+    fun getDetailsKw():DetailsKw? = this.searchFirst { it is DetailsKw } as DetailsKw?
+
 }

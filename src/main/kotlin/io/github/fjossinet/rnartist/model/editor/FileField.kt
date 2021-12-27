@@ -4,6 +4,7 @@ import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import javafx.event.EventHandler
 import javafx.scene.paint.Color
 import javafx.stage.FileChooser
+import java.io.File
 
 class FileField(editor: ScriptEditor, value:String = "Click me to choose your file"): StringWithQuotes(editor, value, true) {
 
@@ -12,6 +13,7 @@ class FileField(editor: ScriptEditor, value:String = "Click me to choose your fi
         if (editable) {
             this.text.onMouseClicked = EventHandler {
                 val fileChooser = FileChooser()
+                fileChooser.initialDirectory = File(editor.mediator.rnartist.getInstallDir(),"samples")
                 val file = fileChooser.showOpenDialog(editor.stage)
                 file?.let {
                     text.text = "\"${file.absolutePath.replace("\\", "/")}\""

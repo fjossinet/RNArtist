@@ -187,6 +187,7 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
             }
         }
         knob.mediator.canvas2D.repaint()
+        knob.mediator.editor.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
     }
 }
 
@@ -357,6 +358,7 @@ class Left(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 it.update()
             }
             this.knob.mediator.canvas2D.repaint()
+            knob.mediator.editor.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
         }
     }
 
@@ -403,6 +405,7 @@ class Right(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 it.update()
             }
             this.knob.mediator.canvas2D.repaint()
+            knob.mediator.editor.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
         }
     }
 

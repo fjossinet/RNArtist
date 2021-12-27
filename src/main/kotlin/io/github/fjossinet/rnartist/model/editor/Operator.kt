@@ -5,7 +5,7 @@ import io.github.fjossinet.rnartist.gui.editor.TextField
 import javafx.event.EventHandler
 import javafx.scene.input.KeyCode
 
-class Operator(editor: ScriptEditor, operator:String, editable: Boolean = false): StringWithoutQuotes(editor, " ${operator.trim()} ", editable) {
+open class Operator(editor: ScriptEditor, operator:String, editable: Boolean = false): StringWithoutQuotes(editor, " ${operator.trim()} ", editable) {
 
     init {
         if (editable) {

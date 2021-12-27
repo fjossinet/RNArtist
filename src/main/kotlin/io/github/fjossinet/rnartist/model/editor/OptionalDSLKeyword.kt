@@ -27,12 +27,12 @@ open class OptionalDSLKeyword(editor: ScriptEditor, text:String, indentLevel:Int
 
         this.addToFinalScript(inFinalScript)
 
-        addButton.onMouseClicked = EventHandler {
+        addButton.onAction = EventHandler {
             this.addToFinalScript(true)
             editor.keywordAddedToScript(this)
         }
 
-        removeButton.onMouseClicked = EventHandler {
+        removeButton.onAction = EventHandler {
             var nodes = mutableListOf<Node>()
             dumpNodes(nodes, false)
             this.addToFinalScript(false)

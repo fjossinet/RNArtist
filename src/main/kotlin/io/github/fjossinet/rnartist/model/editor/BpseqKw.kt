@@ -8,10 +8,11 @@ class BpseqKw(val parent:SecondaryStructureKw?, editor: ScriptEditor, indentLeve
     override fun addToFinalScript(add:Boolean) {
         super.addToFinalScript(add)
         if (add) {
-            this.parent?.disableAddbuttons(true)
+            //this.parent?.disableAddbuttons(true)
             this.children.add(1, DSLParameter(editor, StringWithoutQuotes(editor,"file"), Operator(editor, "="), FileField(editor), this.indentLevel+1))
+            this.children.add(BpseqKw(parent, editor, indentLevel))
         } else {
-            this.parent?.disableAddbuttons(false)
+            //this.parent?.disableAddbuttons(false)
         }
     }
 

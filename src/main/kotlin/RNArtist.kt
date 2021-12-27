@@ -13,6 +13,7 @@ import io.github.fjossinet.rnartist.core.rnartist
 import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.Canvas2D
 import io.github.fjossinet.rnartist.gui.Explorer
+import io.github.fjossinet.rnartist.gui.RNAGallery
 import io.github.fjossinet.rnartist.gui.SplashWindow
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
 import io.github.fjossinet.rnartist.io.javaFXToAwt
@@ -56,7 +57,6 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.concurrent.ExecutionException
-import javax.imageio.ImageIO
 
 class RNArtist: Application() {
     enum class SCOPE {
@@ -75,6 +75,11 @@ class RNArtist: Application() {
     val paintSelectionin3D:Button
     private val root:BorderPane
     var centerDisplayOnSelection = false
+
+    fun getInstallDir():String {
+        return File(this::class.java.getProtectionDomain().getCodeSource().getLocation()
+            .toURI()).parentFile.parent
+    }
 
     init {
         load()
@@ -97,16 +102,16 @@ class RNArtist: Application() {
         val loadData = Button(null, FontIcon("fas-sign-in-alt:15"))
         loadData.onMouseClicked = EventHandler {
             val fileChooser = FileChooser()
+            fileChooser.initialDirectory = File(mediator.rnartist.getInstallDir(),"samples")
             val files = fileChooser.showOpenMultipleDialog(stage)
             if (files != null) {
                 for (f in files) {
-                    fileChooser.initialDirectory = f.parentFile
                     val loadData =
                         object : Task<Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?>>() {
                             override fun call(): Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?> {
                                 val secondaryStructureDrawings: MutableList<SecondaryStructureDrawing> = ArrayList()
                                 try {
-                                    val source = "file:" + f.absolutePath
+                                    val source = FileSource(f.absolutePath)
                                     if (f.name.endsWith(".json")) {
                                         val drawing = parseJSON(FileReader(f))
                                         if (drawing != null) {
@@ -286,7 +291,7 @@ class RNArtist: Application() {
                     "Keep right mouse button pressed and drag the rectangle to define your project miniature."
                 dialog.contentText = "Project name:"
                 val projectName = dialog.showAndWait()
-                if (projectName.isPresent) {
+                if (projectName.isPresent && !projectName.isEmpty) {
                     try {
                         mediator.projectsPanel.saveProjectAs(projectName.get().trim { it <= ' ' },
                             mediator.canvas2D.screenCapture()!!)?.let { id ->
@@ -417,7 +422,7 @@ class RNArtist: Application() {
                     "Keep right mouse button pressed and drag the rectangle to define your project miniature."
                 dialog.contentText = "Project name:"
                 val projectName = dialog.showAndWait()
-                if (projectName.isPresent) {
+                if (projectName.isPresent && !projectName.isEmpty) {
                     try {
                         val pictureFile = createTemporaryFile( "test.svg")
                         //ImageIO.write(mediator.canvas2D.screenCapture()!!, "PNG", pictureFile)
@@ -734,7 +739,7 @@ class RNArtist: Application() {
         levelDetails1.maxWidth = Double.MAX_VALUE
         levelDetails1.onAction = EventHandler {
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
+            var scope = SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
                     .isEmpty() || mediator.explorer.treeTableView.selectionModel
                     .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
@@ -743,14 +748,17 @@ class RNArtist: Application() {
                 starts.add(mediator.explorer.treeTableView.root)
             } else {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
+                scope = SCOPE.STRUCTURAL_DOMAIN
             }
             val t = theme {
-                details_lvl = 1
+                details {
+                    value = 1
+                }
             }
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
+            mediator.editor.setDetailsLevel("1")
         }
 
         val levelDetails2 = Button("2")
@@ -771,11 +779,14 @@ class RNArtist: Application() {
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
             }
             val t = theme {
-                details_lvl = 2
+                details {
+                    value = 2
+                }
             }
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
+            mediator.editor.setDetailsLevel("2")
         }
 
         leftToolBar.add(levelDetails1, 0, row)
@@ -789,7 +800,7 @@ class RNArtist: Application() {
         levelDetails3.maxWidth = Double.MAX_VALUE
         levelDetails3.onAction = EventHandler {
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
+            var scope = SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
                     .isEmpty() || mediator.explorer.treeTableView.selectionModel
                     .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
@@ -798,14 +809,17 @@ class RNArtist: Application() {
                 starts.add(mediator.explorer.treeTableView.root)
             } else {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
+                scope = SCOPE.STRUCTURAL_DOMAIN
             }
             val t = theme {
-                details_lvl = 3
+                details {
+                    value = 3
+                }
             }
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
+            mediator.editor.setDetailsLevel("3")
         }
 
         val levelDetails4 = Button("4")
@@ -814,7 +828,7 @@ class RNArtist: Application() {
         levelDetails4.maxWidth = Double.MAX_VALUE
         levelDetails4.onAction = EventHandler {
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
+            var scope = SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
                     .isEmpty() || mediator.explorer.treeTableView.selectionModel
                     .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
@@ -823,14 +837,17 @@ class RNArtist: Application() {
                 starts.add(mediator.explorer.treeTableView.root)
             } else {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
+                scope = SCOPE.STRUCTURAL_DOMAIN
             }
             val t = theme {
-                details_lvl = 4
+                details {
+                    value = 4
+                }
             }
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
+            mediator.editor.setDetailsLevel("4")
         }
         leftToolBar.add(levelDetails3, 0, row)
         GridPane.setHalignment(levelDetails1, HPos.CENTER)
@@ -843,7 +860,7 @@ class RNArtist: Application() {
         levelDetails5.maxWidth = Double.MAX_VALUE
         levelDetails5.onAction = EventHandler {
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
+            var scope = SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
                     .isEmpty() || mediator.explorer.treeTableView.selectionModel
                     .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
@@ -852,14 +869,17 @@ class RNArtist: Application() {
                 starts.add(mediator.explorer.treeTableView.root)
             } else {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
+                scope = SCOPE.STRUCTURAL_DOMAIN
             }
             val t = theme {
-                details_lvl = 5
+                details {
+                    value = 5
+                }
             }
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
+            mediator.editor.setDetailsLevel("5")
         }
 
         leftToolBar.add(levelDetails5, 0, row++)
@@ -938,7 +958,7 @@ class RNArtist: Application() {
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         paintResidues.onAction = EventHandler {
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
+            var scope = SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
                     .isEmpty() || mediator.explorer.treeTableView.selectionModel
                     .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
@@ -947,7 +967,7 @@ class RNArtist: Application() {
                 starts.add(mediator.explorer.treeTableView.root)
             } else {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
+                scope = SCOPE.STRUCTURAL_DOMAIN
             }
             val t = theme {
                 color {
@@ -987,6 +1007,14 @@ class RNArtist: Application() {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
+            mediator.editor.setColor("A", getHTMLColorString(javaFXToAwt(AColorPicker.value)))
+            mediator.editor.setColor("a", getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
+            mediator.editor.setColor("U", getHTMLColorString(javaFXToAwt(UColorPicker.value)))
+            mediator.editor.setColor("u", getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
+            mediator.editor.setColor("G", getHTMLColorString(javaFXToAwt(GColorPicker.value)))
+            mediator.editor.setColor("g", getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
+            mediator.editor.setColor("C", getHTMLColorString(javaFXToAwt(CColorPicker.value)))
+            mediator.editor.setColor("c", getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
         }
 
         leftToolBar.add(pickColorScheme, 0, row)
@@ -1318,7 +1346,7 @@ class RNArtist: Application() {
 
         val applyLineWidth = { lineWidth:Double ->
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope = RNArtist.SCOPE.BRANCH
+            var scope = SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
                     .isEmpty() || mediator.explorer.treeTableView.selectionModel
                     .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
@@ -1327,7 +1355,7 @@ class RNArtist: Application() {
                 starts.add(mediator.explorer.treeTableView.root)
             } else {
                 starts.addAll(mediator.explorer.treeTableView.selectionModel.selectedItems)
-                scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
+                scope = SCOPE.STRUCTURAL_DOMAIN
             }
             val t = theme {
                 line {
@@ -1338,6 +1366,7 @@ class RNArtist: Application() {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
+            mediator.editor.setLineWidth("helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol","${lineWidth}")
         }
 
         val lineWidth1 = Button(null, null)
@@ -1432,6 +1461,8 @@ class RNArtist: Application() {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
+            mediator.editor.setColor("helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction", getHTMLColorString(javaFXToAwt(lineColorPicker.value)))
+
         }
         leftToolBar.add(lineWidth5, 0, row)
         GridPane.setHalignment(lineWidth5, HPos.CENTER)
@@ -1942,6 +1973,8 @@ class RNArtist: Application() {
         bar.add(this.statusBar, 1, 0)
         GridPane.setHalignment(this.statusBar, HPos.RIGHT)
         root.bottom = bar
+
+        root.right = RNAGallery(mediator)
     }
 
     override fun start(stage: Stage) {

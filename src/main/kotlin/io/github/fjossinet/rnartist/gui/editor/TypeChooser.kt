@@ -10,15 +10,18 @@ import javafx.scene.text.Text
 import javafx.util.Callback
 import java.util.stream.Collectors
 
-class TypeChooser(val editor:ScriptEditor,  text: Text): ComboBox<TypeChooser.TypeItem>() {
+class TypeChooser(val editor:ScriptEditor,  text: Text, types:List<String>? = null): ComboBox<TypeChooser.TypeItem>() {
 
-    private val types = listOf(
+    private var types = listOf(
         "A", "a", "U", "u", "G", "g", "C", "c", "R", "r", "Y", "y", "N", "n", "X", "x",
         "helix", "single_strand", "junction", "pknot",
         "secondary_interaction", "tertiary_interaction",
         "phosphodiester_bond", "interaction_symbol")
 
     init {
+        types?.let {
+            this.types = types.toList()
+        }
         this.minHeight = 30.0
         this.prefHeight = 30.0
 
@@ -31,7 +34,7 @@ class TypeChooser(val editor:ScriptEditor,  text: Text): ComboBox<TypeChooser.Ty
 
         val items = FXCollections.observableArrayList<TypeItem>()
         val previousTypes = text.text.replace("\"", "").split(" ")
-        for (type in types) {
+        for (type in this.types) {
             val item = TypeItem(type)
             if (type in previousTypes)
                 item.setSelected(true)

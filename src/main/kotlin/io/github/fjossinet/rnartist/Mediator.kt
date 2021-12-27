@@ -23,7 +23,6 @@ class Mediator(val rnartist: RNArtist) {
     var ignoreTertiaries = false
 
     val embeddedDB = EmbeddedDB()
-    var webBrowser = WebBrowser(this)
     var chimeraDriver = if (RnartistConfig.isChimeraX)
                             ChimeraXDriver(this)
                         else
@@ -87,9 +86,6 @@ class Mediator(val rnartist: RNArtist) {
                             oldValue.file.absolutePath //if the upcoming previous 2D was loaded from a file, we keep its path to avoid to reload twice a PDB file
                     }
                     is DrawingLoadedFromRNArtistDB -> {
-                    }
-                    is DrawingLoadedFromRNAGallery -> {
-                        previousPDBId = oldValue.pdbId
                     }
                 }
                 if (oldValue != null && !this.chimeraDriver.tertiaryStructures.isEmpty() && this.chimeraDriver.pdbFile != null) { //we store a temporary chimera session to restore it when the user come back to this 2D loaded
@@ -162,33 +158,6 @@ class Mediator(val rnartist: RNArtist) {
                         }
                         rnartist.updateProject.isDisable = false
                         this.editor.pasteDrawing(newValue.drawing)
-                    }
-                    is DrawingLoadedFromRNAGallery -> {
-                        if (newValue.tmpChimeraSession != null) {
-                            this.chimeraDriver.closeSession()
-                            Thread.sleep(1000)
-                            this.chimeraDriver.restoreSession(
-                                newValue.tmpChimeraSession!!.first,
-                                newValue.tmpChimeraSession!!.second
-                            )
-                            this.rnartist.focus3D.isDisable = false
-                            this.rnartist.reload3D.isDisable = false
-                        } else {
-                            if (!newValue.pdbId.equals(previousPDBId)) {
-                                val pdbFile = createTempFile(suffix = ".pdb")
-                                pdbFile.writeText(PDB().getEntry(newValue.pdbId).readText())
-                                this.chimeraDriver.closeSession()
-                                Thread.sleep(1000)
-                                this.chimeraDriver.loadTertiaryStructure(pdbFile)
-                                this.rnartist.focus3D.isDisable = false
-                                this.rnartist.reload3D.isDisable = false
-                            }
-                        }
-                        rnartist.updateProject.isDisable = true
-                        this.editor.pasteDrawing(newValue.drawing)
-                    }
-                    is DrawingLoadedFromScriptEditor -> {
-
                     }
                 }
                 this.canvas2D.repaint();

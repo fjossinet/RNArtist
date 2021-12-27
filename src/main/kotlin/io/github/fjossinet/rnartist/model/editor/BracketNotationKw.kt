@@ -7,13 +7,14 @@ class BracketNotationKw(val parent:SecondaryStructureKw?, editor: ScriptEditor, 
     override fun addToFinalScript(add:Boolean) {
         super.addToFinalScript(add)
         if (add) {
-            this.parent?.disableAddbuttons(true)
+            //this.parent?.disableAddbuttons(true)
             val bnParameter = DSLParameter(editor, StringWithoutQuotes(editor,"value"), Operator(editor,"="), StringValueWithQuotes(editor,"click me to set your structure", true), this.indentLevel+1)
             this.children.add(1, bnParameter)
             this.children.add(1, SequenceBnParameter(editor, bnParameter, this.indentLevel+1))
             this.children.add(1, OptionalDSLParameter(editor, null, StringWithoutQuotes(editor,"name"), Operator(editor,"="), StringValueWithQuotes(editor,"A", true), this.indentLevel+1))
+            this.children.add(BracketNotationKw(parent, editor, indentLevel))
         } else {
-            this.parent?.disableAddbuttons(false)
+            //this.parent?.disableAddbuttons(false)
         }
     }
 

@@ -3,7 +3,6 @@ package io.github.fjossinet.rnartist.model.editor
 import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import io.github.fjossinet.rnartist.gui.editor.TextField
 import javafx.event.EventHandler
-import javafx.scene.input.KeyCode
 
 open class StringWithoutQuotes(editor: ScriptEditor, value:String, editable: Boolean = false): ParameterField(editor, value, editable) {
 
@@ -12,8 +11,8 @@ open class StringWithoutQuotes(editor: ScriptEditor, value:String, editable: Boo
             this.text.onMouseClicked = EventHandler {
                 val index = editor.editorPane.children.indexOf(this.text)
                 val textField = TextField(editor, this.text)
-                textField.onKeyPressed = EventHandler {
-                    if (it.code == KeyCode.ENTER) {
+                textField.focusedProperty().addListener { observableValue, oldValue, newValue ->
+                    if (!newValue) {
                         this.text.text = "${textField.text.trim()}"
                         editor.editorPane.children.removeAt(index)
                         editor.editorPane.children.add(index, this.text)

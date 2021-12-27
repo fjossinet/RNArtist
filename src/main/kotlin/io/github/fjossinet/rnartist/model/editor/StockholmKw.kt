@@ -7,11 +7,12 @@ class StockholmKw(val parent:SecondaryStructureKw?, editor: ScriptEditor, indent
     override fun addToFinalScript(add:Boolean) {
         super.addToFinalScript(add)
         if (add) {
-            this.parent?.disableAddbuttons(true)
+            //this.parent?.disableAddbuttons(true)
             this.children.add(1, OptionalDSLParameter(editor, null, StringWithoutQuotes(editor,"name"), Operator(editor,"="), StringValueWithQuotes(editor,"consensus", editable = true), this.indentLevel+1))
             this.children.add(1, DSLParameter(editor, StringWithoutQuotes(editor,"file"), Operator(editor,"="), FileField(editor), this.indentLevel+1))
+            this.children.add(StockholmKw(parent, editor, indentLevel))
         } else {
-            this.parent?.disableAddbuttons(false)
+            //this.parent?.disableAddbuttons(false)
         }
     }
 

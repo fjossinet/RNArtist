@@ -5,9 +5,7 @@ import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraHost
 import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraPort
 import io.github.fjossinet.rnartist.core.RnartistConfig.exportSVGWithBrowserCompatibility
 import io.github.fjossinet.rnartist.core.RnartistConfig.isChimeraX
-import io.github.fjossinet.rnartist.core.RnartistConfig.rnaGalleryPath
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
-import io.github.fjossinet.rnartist.core.RnartistConfig.useOnlineRNAGallery
 import io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.ChimeraXDriver
 import javafx.beans.value.ChangeListener
@@ -25,8 +23,6 @@ import javafx.scene.text.Font
 import javafx.stage.*
 import org.controlsfx.glyphfont.FontAwesome
 import org.controlsfx.glyphfont.Glyph
-import org.kordamp.ikonli.javafx.FontIcon
-import java.io.File
 import java.util.stream.Collectors
 
 class Settings(mediator: Mediator) {
@@ -104,62 +100,6 @@ class Settings(mediator: Mediator) {
             }
         }
 
-        //---- RNA GAllery
-        title = Label("RNA Gallery")
-        title.style = "-fx-font-size: 20"
-        vbox.children.add(VBox(title, Separator(Orientation.HORIZONTAL)))
-        val rnaGalleryPane = GridPane()
-        var cc = ColumnConstraints()
-        cc.hgrow = Priority.ALWAYS
-        rnaGalleryPane.columnConstraints.addAll(cc, ColumnConstraints())
-        rnaGalleryPane.padding = Insets(10.0, 5.0, 15.0, 5.0)
-        rnaGalleryPane.hgap = 5.0
-        rnaGalleryPane.vgap = 5.0
-        vbox.children.add(rnaGalleryPane)
-        val galleryPath = TextField()
-        galleryPath.isEditable = false
-        galleryPath.text = rnaGalleryPath
-        rnaGalleryPane.children.add(galleryPath)
-        GridPane.setConstraints(galleryPath, 0, 1)
-        val gallerySearch = Button("Browse")
-        rnaGalleryPane.children.add(gallerySearch)
-        GridPane.setConstraints(gallerySearch, 1, 1)
-        gallerySearch.onMouseClicked = EventHandler {
-            val directoryChooser = DirectoryChooser()
-            val f = directoryChooser.showDialog(mediator.rnartist.stage)
-            if (f != null) {
-                if (f.isDirectory && File(f, "PDB").exists()) {
-                    galleryPath.text = f.absolutePath
-                    rnaGalleryPath = galleryPath.text
-                } else {
-                    val alert = Alert(Alert.AlertType.ERROR)
-                    alert.title = "Problem with your RNA Gallery"
-                    alert.headerText = "The directory selected doesn't look like an RNA Gallery"
-                    val box = HBox()
-                    box.alignment = Pos.CENTER
-                    box.spacing = 10.0
-                    box.children.add(Label("You need to download and select a copy of the RNA Gallery project."))
-                    val button = Button(null, FontIcon("fas-download:15"))
-                    button.onAction =
-                        EventHandler { mediator!!.rnartist.hostServices.showDocument("https://github.com/fjossinet/RNAGallery") }
-                    box.children.add(button)
-                    alert.dialogPane.content = box
-                    alert.showAndWait()
-                }
-            }
-        }
-        val useOnlineGallery = CheckBox("Use online gallery")
-        useOnlineGallery.isSelected = useOnlineRNAGallery
-        galleryPath.isDisable = useOnlineRNAGallery
-        gallerySearch.isDisable = useOnlineRNAGallery
-        useOnlineGallery.onAction = EventHandler {
-            useOnlineRNAGallery = useOnlineGallery.isSelected
-            galleryPath.isDisable = useOnlineRNAGallery
-            gallerySearch.isDisable = useOnlineRNAGallery
-        }
-        rnaGalleryPane.children.add(useOnlineGallery)
-        GridPane.setConstraints(useOnlineGallery, 0, 2, 2, 1)
-
         //++++++ pane for the fonts
         title = Label("Font")
         title.style = "-fx-font-size: 20"
@@ -170,7 +110,7 @@ class Settings(mediator: Mediator) {
         fontsPane.hgap = 5.0
         fontsPane.vgap = 5.0
         vbox.children.add(fontsPane)
-        cc = ColumnConstraints()
+        var cc = ColumnConstraints()
         cc.hgrow = Priority.ALWAYS
         fontsPane.columnConstraints.addAll(ColumnConstraints(),
             ColumnConstraints(),

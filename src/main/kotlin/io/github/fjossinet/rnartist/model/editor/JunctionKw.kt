@@ -1,5 +1,6 @@
 package io.github.fjossinet.rnartist.model.editor
 
+import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 
 class JunctionKw(editor: ScriptEditor, indentLevel:Int, inFinalScript:Boolean = false): OptionalDSLKeyword(editor, " junction", indentLevel, inFinalScript) {
@@ -13,4 +14,36 @@ class JunctionKw(editor: ScriptEditor, indentLevel:Int, inFinalScript:Boolean = 
             this.children.add(JunctionKw(editor, indentLevel))
         }
     }
+
+    fun setOutIds(outIds:String) {
+        if (!this.inFinalScript)
+            this.addButton.fire()
+        val parameter = this.searchFirst { it is OptionalDSLParameter && "out_ids".equals(it.key.text.text.trim())} as OptionalDSLParameter
+        if (!parameter.inFinalScript)
+            parameter.addButton.fire()
+        parameter.value.text.text = outIds
+        if (!this.inFinalScript)
+            this.addButton.fire()
+    }
+
+    fun getLocation():Location? = (this.searchFirst { it is LocationKw } as LocationKw?)?.location
+
+    fun setLocation(location: Location) {
+        if (!this.inFinalScript)
+            this.addButton.fire()
+        val l = (this.searchFirst { it is LocationKw } as LocationKw?)!!
+        l.location = location
+        if (!l.inFinalScript)
+            l.addButton.fire()
+    }
+
+    fun setType(type: String) {
+        if (!this.inFinalScript)
+            this.addButton.fire()
+        val parameter = this.searchFirst { it is OptionalDSLParameter && "type".equals(it.key.text.text.trim())} as OptionalDSLParameter
+        if (!parameter.inFinalScript)
+            parameter.addButton.fire()
+        parameter.value.text.text = type
+    }
+
 }
