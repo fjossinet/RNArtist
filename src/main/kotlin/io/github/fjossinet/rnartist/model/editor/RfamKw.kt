@@ -9,7 +9,7 @@ class RfamKw(val parent:SecondaryStructureKw?, editor: ScriptEditor, indentLevel
         if (add) {
             //this.parent?.disableAddbuttons(true)
             this.children.add(1, OptionalDSLParameter(editor, null, StringWithoutQuotes(editor,"name"), Operator(editor,"="), StringValueWithQuotes(editor,"AJ009730.1/1-133", editable = true), this.indentLevel+1, inFinalScript = true))
-            this.children.add(1, DSLParameter(editor, StringWithoutQuotes(editor,"id"), Operator(editor,"="), StringValueWithQuotes(editor,"RF00072"), this.indentLevel+1))
+            this.children.add(1, DSLParameter(editor, StringWithoutQuotes(editor,"id"), Operator(editor,"="), StringValueWithQuotes(editor,"RF00072", editable = true), this.indentLevel+1))
             this.children.add(RfamKw(parent, editor, indentLevel))
         } else {
             //this.parent?.disableAddbuttons(false)

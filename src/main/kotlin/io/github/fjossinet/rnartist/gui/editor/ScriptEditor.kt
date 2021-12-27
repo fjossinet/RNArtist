@@ -39,6 +39,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.Desktop
+import java.awt.geom.Rectangle2D
 import java.io.*
 import java.net.URL
 import javax.script.ScriptEngineManager
@@ -322,7 +323,9 @@ class ScriptEditor(val mediator: Mediator) {
                             description.get().trim()
                         }", "files":{"rnartist.kts":{"content":"${
                             getScriptAsText().replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t")
-                        }"}}, "public":true}"""
+                        }"},
+                        "rnartist.svg":{"content":"${drawing.asSVG(Rectangle2D.Double(0.0, 0.0, 800.0, 800.0)).replace("\"", "\\\"")}"}}, "public":true}"""
+                        println(body)
                         val request = Request.Builder()
                             .url("https://api.github.com/gists")
                             .header("User-Agent", "OkHttp Headers.java")
