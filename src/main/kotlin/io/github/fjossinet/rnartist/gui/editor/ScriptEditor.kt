@@ -50,8 +50,9 @@ class ScriptEditor(val mediator: Mediator) {
     var scriptRoot: RNArtistKw? = null
     val stage = Stage()
     val scrollpane = ScrollPane(editorPane)
+    private val run = Button(null, FontIcon("fas-play:15"))
 
-    init {
+        init {
         stage.title = "Script Editor"
         createScene(stage)
     }
@@ -86,29 +87,8 @@ class ScriptEditor(val mediator: Mediator) {
             fileChooser.initialDirectory = File(mediator.rnartist.getInstallDir(), "samples")
             val file = fileChooser.showOpenDialog(stage)
             file?.let {
-
-                val (root, issues) = parseScript(FileReader(file), this)
-                when (root) {
-                    is RNArtistKw -> {
-                        scriptRoot = root
-                        initScript()
-                    }
-                }
-                if (issues.isNotEmpty()) {
-                    val alert = Alert(Alert.AlertType.WARNING)
-                    alert.headerText = "I fixed issues in your script."
-                    alert.contentText = issues.joinToString(separator = "\n")
-                    alert.buttonTypes.clear()
-                    alert.buttonTypes.add(ButtonType.OK)
-                    alert.buttonTypes.add(ButtonType("Go to Documentation", ButtonData.HELP))
-                    var result = alert.showAndWait()
-                    if (result.isPresent && result.get() != ButtonType.OK) { //show documentation
-                        Desktop.getDesktop()
-                            .browse(URL("https://github.com/fjossinet/RNArtistCore/blob/master/Changelog.md").toURI())
-                    }
-                }
+                loadScript(FileReader(file))
             }
-
         }
 
         val loadGist = MenuItem("Load Gist..")
@@ -127,26 +107,7 @@ class ScriptEditor(val mediator: Mediator) {
                 val scriptContent =
                     "${match?.groupValues?.get(1)}".replace("\\n", "").replace("\\t", "").replace("\\", "")
 
-                val (root, issues) = parseScript(StringReader(scriptContent), this)
-                when (root) {
-                    is RNArtistKw -> {
-                        scriptRoot = root
-                        initScript()
-                    }
-                }
-                if (issues.isNotEmpty()) {
-                    val alert = Alert(Alert.AlertType.WARNING)
-                    alert.headerText = "I fixed issues in your script."
-                    alert.contentText = issues.joinToString(separator = "\n")
-                    alert.buttonTypes.clear()
-                    alert.buttonTypes.add(ButtonType.OK)
-                    alert.buttonTypes.add(ButtonType("Go to Documentation", ButtonData.HELP))
-                    var result = alert.showAndWait()
-                    if (result.isPresent && result.get() != ButtonType.OK) { //show documentation
-                        Desktop.getDesktop()
-                            .browse(URL("https://github.com/fjossinet/RNArtistCore/blob/master/Changelog.md").toURI())
-                    }
-                }
+                loadScript(StringReader(scriptContent))
             }
         }
 
@@ -159,13 +120,7 @@ class ScriptEditor(val mediator: Mediator) {
         var menuItem = MenuItem("...from scratch")
         menuItem.setOnAction {
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/scratch.kts")
-            val root = parseScript(FileReader(file), this).first
-            when (root) {
-                is RNArtistKw -> {
-                    scriptRoot = root
-                    initScript()
-                }
-            }
+            loadScript(FileReader(file))
         }
 
         load2D.items.add(menuItem)
@@ -173,13 +128,7 @@ class ScriptEditor(val mediator: Mediator) {
         menuItem = MenuItem("...from scratch with data")
         menuItem.setOnAction {
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/scratch_with_data.kts")
-            val root = parseScript(FileReader(file), this).first
-            when (root) {
-                is RNArtistKw -> {
-                    scriptRoot = root
-                    initScript()
-                }
-            }
+            loadScript(FileReader(file))
         }
 
         load2D.items.add(menuItem)
@@ -191,65 +140,35 @@ class ScriptEditor(val mediator: Mediator) {
         menuItem = MenuItem("Vienna Format")
         menuItem.setOnAction {
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_vienna_file.kts")
-            val root = parseScript(FileReader(file), this).first
-            when (root) {
-                is RNArtistKw -> {
-                    scriptRoot = root
-                    initScript()
-                }
-            }
+            loadScript(FileReader(file))
         }
         fromLocalFilesMenu.items.add(menuItem)
 
         menuItem = MenuItem("CT Format")
         menuItem.setOnAction {
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_ct_file.kts")
-            val root = parseScript(FileReader(file), this).first
-            when (root) {
-                is RNArtistKw -> {
-                    scriptRoot = root
-                    initScript()
-                }
-            }
+            loadScript(FileReader(file))
         }
         fromLocalFilesMenu.items.add(menuItem)
 
         menuItem = MenuItem("BPSeq Format")
         menuItem.setOnAction {
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_bpseq_file.kts")
-            val root = parseScript(FileReader(file), this).first
-            when (root) {
-                is RNArtistKw -> {
-                    scriptRoot = root
-                    initScript()
-                }
-            }
+            loadScript(FileReader(file))
         }
         fromLocalFilesMenu.items.add(menuItem)
 
         menuItem = MenuItem("Stockholm Format")
         menuItem.setOnAction {
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_stockholm_file.kts")
-            val root = parseScript(FileReader(file), this).first
-            when (root) {
-                is RNArtistKw -> {
-                    scriptRoot = root
-                    initScript()
-                }
-            }
+            loadScript(FileReader(file))
         }
         fromLocalFilesMenu.items.add(menuItem)
 
         menuItem = MenuItem("Rfam DB")
         menuItem.setOnAction {
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_rfam_entry.kts")
-            val root = parseScript(FileReader(file), this).first
-            when (root) {
-                is RNArtistKw -> {
-                    scriptRoot = root
-                    initScript()
-                }
-            }
+            loadScript(FileReader(file))
         }
         fromDatabasesMenu.items.add(menuItem)
 
@@ -300,67 +219,77 @@ class ScriptEditor(val mediator: Mediator) {
 
         val saveAsGist = MenuItem("Publish as GitHub Gist..")
         saveAsGist.setOnAction(EventHandler<ActionEvent?> {
-            mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                val dialog = Dialog<String>()
-                dialog.headerText = "Description of your Plot"
-                dialog.initModality(Modality.NONE)
-                dialog.title = "Publish Plot as a GitHub Gist"
-                dialog.contentText = null
-                dialog.dialogPane.content = TextArea()
-                val publish = ButtonType("Publish", ButtonData.OK_DONE)
-                dialog.dialogPane.buttonTypes.add(publish)
-                dialog.setResultConverter { b ->
-                    if (b == publish) {
-                        (dialog.dialogPane.content as TextArea).text.trim()
-                    } else null
-                }
-                val description = dialog.showAndWait()
-                if (description.isPresent && !description.isEmpty) {
-                    try {
-                        val token = ""
-                        val client = OkHttpClient()
-                        val body = """{"description":"${
-                            description.get().trim()
-                        }", "files":{"rnartist.kts":{"content":"${
-                            getScriptAsText().replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t")
-                        }"},
-                        "rnartist.svg":{"content":"${drawing.asSVG(Rectangle2D.Double(0.0, 0.0, 800.0, 800.0)).replace("\"", "\\\"")}"}}, "public":true}"""
-                        println(body)
-                        val request = Request.Builder()
-                            .url("https://api.github.com/gists")
-                            .header("User-Agent", "OkHttp Headers.java")
-                            .addHeader("Authorization", "bearer $token")
-                            .post(
-                                body.toRequestBody("application/json".toMediaTypeOrNull())
-                            )
-                            .build()
+            val token = ""
+            if (token.trim().isNotEmpty()) {
+                mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+                    val dialog = Dialog<String>()
+                    dialog.headerText = "Description of your Plot"
+                    dialog.initModality(Modality.NONE)
+                    dialog.title = "Publish Plot as a GitHub Gist"
+                    dialog.contentText = null
+                    dialog.dialogPane.content = TextArea()
+                    val publish = ButtonType("Publish", ButtonData.OK_DONE)
+                    dialog.dialogPane.buttonTypes.add(publish)
+                    dialog.setResultConverter { b ->
+                        if (b == publish) {
+                            (dialog.dialogPane.content as TextArea).text.trim()
+                        } else null
+                    }
+                    val description = dialog.showAndWait()
+                    if (description.isPresent && !description.isEmpty) {
+                        try {
+                            val client = OkHttpClient()
+                            val body = """{"description":"${
+                                description.get().trim()
+                            }", "files":{"rnartist.kts":{"content":"${
+                                getScriptAsText().replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t")
+                            }"},
+                        "rnartist.svg":{"content":"${
+                                drawing.asSVG(Rectangle2D.Double(0.0, 0.0, 800.0, 800.0)).replace("\"", "\\\"")
+                            }"}}, "public":true}"""
+                            println(body)
+                            val request = Request.Builder()
+                                .url("https://api.github.com/gists")
+                                .header("User-Agent", "OkHttp Headers.java")
+                                .addHeader("Authorization", "bearer $token")
+                                .post(
+                                    body.toRequestBody("application/json".toMediaTypeOrNull())
+                                )
+                                .build()
 
-                        client.newCall(request).execute().use { response ->
-                            if (!response.isSuccessful) {
-                                println("Problem!")
-                                println(response.body?.charStream()?.readText())
-                            } else {
-                                val root =
-                                    JsonParser.parseString(response.body?.charStream()?.readText()).getAsJsonObject()
-                                val alert = Alert(Alert.AlertType.INFORMATION)
-                                alert.headerText = "Script published Successfully."
-                                alert.graphic = FontIcon("fab-github:15")
-                                alert.buttonTypes.clear()
-                                alert.buttonTypes.add(ButtonType.OK)
-                                alert.buttonTypes.add(ButtonType("Show me", ButtonData.HELP))
-                                var result = alert.showAndWait()
-                                if (result.isPresent && result.get() != ButtonType.OK) { //show me
-                                    Desktop.getDesktop().browse(URL(root.get("html_url").asString).toURI())
+                            client.newCall(request).execute().use { response ->
+                                if (!response.isSuccessful) {
+                                    println("Problem!")
+                                    println(response.body?.charStream()?.readText())
+                                } else {
+                                    val root =
+                                        JsonParser.parseString(response.body?.charStream()?.readText())
+                                            .getAsJsonObject()
+                                    val alert = Alert(Alert.AlertType.INFORMATION)
+                                    alert.headerText = "Script published Successfully."
+                                    alert.graphic = FontIcon("fab-github:15")
+                                    alert.buttonTypes.clear()
+                                    alert.buttonTypes.add(ButtonType.OK)
+                                    alert.buttonTypes.add(ButtonType("Show me", ButtonData.HELP))
+                                    var result = alert.showAndWait()
+                                    if (result.isPresent && result.get() != ButtonType.OK) { //show me
+                                        Desktop.getDesktop().browse(URL(root.get("html_url").asString).toURI())
+                                    }
                                 }
+
                             }
 
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                         }
 
-                    } catch (e: Exception) {
-                        e.printStackTrace()
                     }
-
                 }
+            } else {
+                val alert = Alert(Alert.AlertType.WARNING)
+                alert.headerText = "Gist publication not available."
+                alert.contentText = "This feature will be activated soon"
+                alert.show()
             }
         })
 
@@ -422,7 +351,6 @@ class ScriptEditor(val mediator: Mediator) {
         GridPane.setConstraints(l, 0, 0)
         runPane.children.add(l)
 
-        val run = Button(null, FontIcon("fas-play:15"))
         run.onAction = EventHandler {
             Platform.runLater {
                 try {
@@ -633,6 +561,8 @@ class ScriptEditor(val mediator: Mediator) {
 
     fun initScript() {
         scriptRoot?.let {
+            currentJunctionBehaviors.clear() //we clear the current junction behaviors that can have been tweaked by the user
+            currentJunctionBehaviors.putAll(defaultJunctionBehaviors)
             editorPane.children.clear()
             var nodes = mutableListOf<Node>()
             it.dumpNodes(nodes)
@@ -640,21 +570,48 @@ class ScriptEditor(val mediator: Mediator) {
         }
     }
 
+    fun loadScript(scriptContent:Reader) {
+        val (root, issues) = parseScript(scriptContent, this)
+        when (root) {
+            is RNArtistKw -> {
+                scriptRoot = root
+                initScript()
+            }
+        }
+        if (issues.isNotEmpty()) {
+            val alert = Alert(Alert.AlertType.WARNING)
+            alert.headerText = "I fixed issues in your script."
+            alert.contentText = issues.joinToString(separator = "\n")
+            alert.buttonTypes.clear()
+            alert.buttonTypes.add(ButtonType.OK)
+            alert.buttonTypes.add(ButtonType("Go to Documentation", ButtonData.HELP))
+            var result = alert.showAndWait()
+            if (result.isPresent && result.get() != ButtonType.OK) { //show documentation
+                Desktop.getDesktop()
+                    .browse(URL("https://github.com/fjossinet/RNArtistCore/blob/master/Changelog.md").toURI())
+            }
+        }
+    }
+
+    fun runScript() {
+        this.run.fire()
+    }
+
     fun setJunctionLayout(outIds: String, type: String, junctionLocation: Location) {
         scriptRoot?.getLayoutKw()?.let { layoutKw ->
             if (!layoutKw.inFinalScript)
                 layoutKw.addButton.fire()
             val junctionKw =
-                layoutKw.searchFirst { it is JunctionKw && it.getLocation()?.start == junctionLocation.start } as JunctionKw?
+                layoutKw.searchFirst { it is JunctionKw && junctionLocation == it.getLocation() } as JunctionKw?
             //We have found a junctionKw with the same location, we update it
             junctionKw?.let {
                 it.setOutIds(outIds) //We just need to change the outIds (type and location should be the same)
             } ?: run { //we create a new one
                 val junctionKw = layoutKw.searchFirst { it is JunctionKw && !it.inFinalScript } as JunctionKw
                 junctionKw.addButton.fire()
-                junctionKw.setLocation(junctionLocation)
                 junctionKw.setOutIds(outIds)
                 junctionKw.setType(type)
+                junctionKw.setLocation()
             }
         }
     }
@@ -667,16 +624,11 @@ class ScriptEditor(val mediator: Mediator) {
                     .isEmpty()
             ) null else Location(mediator.canvas2D.getSelectedPositions().toIntArray())
             val toUpdates = mutableListOf<DSLElement>()
-            themeKw.searchAll(toUpdates) { it is DetailsKw && (if (selection != null) selection.start == it.getLocation()?.start else true) }
+            themeKw.searchAll(toUpdates) { it is DetailsKw && it.getLocation() == selection  }
             //If we found at least one DetailsKw with the same location if any, we update it
             if (toUpdates.isNotEmpty()) {
                 with(toUpdates.first()) {
                     (this as DetailsKw).setlevel(level)
-                    selection?.let { s ->
-                        setLocation(s)
-                    } ?: run {
-                        removeLocation()
-                    }
                 }
 
                 if (toUpdates.size > 1) {
@@ -691,9 +643,7 @@ class ScriptEditor(val mediator: Mediator) {
                 val detailsKw = themeKw.searchFirst { it is DetailsKw && !it.inFinalScript } as DetailsKw
                 detailsKw.addButton.fire()
                 detailsKw.setlevel(level)
-                selection?.let { s ->
-                    detailsKw.setLocation(s)
-                }
+                detailsKw.setLocation()
             }
         }
     }
@@ -706,18 +656,12 @@ class ScriptEditor(val mediator: Mediator) {
                     .isEmpty()
             ) null else Location(mediator.canvas2D.getSelectedPositions().toIntArray())
             val toUpdates = mutableListOf<DSLElement>()
-            themeKw.searchAll(toUpdates) { it is ColorKw && types.equals(it.getTypes()) && (if (selection != null) selection.start == it.getLocation()?.start else true) }
+            themeKw.searchAll(toUpdates) { it is ColorKw && types.equals(it.getTypes()) && it.getLocation() == selection }
             //If we found at least one colorKW with the same types (and location if any), we update it
             if (toUpdates.isNotEmpty()) {
 
                 with(toUpdates.first()) {
                     (this as ColorKw).setColor(color)
-                    setTypes(types)
-                    selection?.let { s ->
-                        setLocation(s)
-                    } ?: run {
-                        removeLocation()
-                    }
                 }
 
                 if (toUpdates.size > 1) {
@@ -733,9 +677,7 @@ class ScriptEditor(val mediator: Mediator) {
                 colorKw.addButton.fire()
                 colorKw.setColor(color)
                 colorKw.setTypes(types)
-                selection?.let { s ->
-                    colorKw.setLocation(s)
-                }
+                colorKw.setLocation()
             }
 
         }
@@ -749,18 +691,12 @@ class ScriptEditor(val mediator: Mediator) {
                     .isEmpty()
             ) null else Location(mediator.canvas2D.getSelectedPositions().toIntArray())
             val toUpdates = mutableListOf<DSLElement>()
-            themeKw.searchAll(toUpdates) { it is LineKw && types.equals(it.getTypes()) && (if (selection != null) selection.start == it.getLocation()?.start else true) }
+            themeKw.searchAll(toUpdates) { it is LineKw && types.equals(it.getTypes()) && it.getLocation() == selection  }
             //If we found at least one lineKW with the same types (and location if any), we update it
             if (toUpdates.isNotEmpty()) {
 
                 with(toUpdates.first()) {
                     (this as LineKw).setWidth(width)
-                    setTypes(types)
-                    selection?.let { s ->
-                        setLocation(s)
-                    } ?: run {
-                        removeLocation()
-                    }
                 }
 
                 if (toUpdates.size > 1) {
@@ -776,9 +712,7 @@ class ScriptEditor(val mediator: Mediator) {
                 lineKw.addButton.fire()
                 lineKw.setWidth(width)
                 lineKw.setTypes(types)
-                selection?.let { s ->
-                    lineKw.setLocation(s)
-                }
+                lineKw.setLocation()
             }
 
         }

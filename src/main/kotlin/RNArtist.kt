@@ -56,29 +56,31 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.*
-import java.util.concurrent.ExecutionException
 
-class RNArtist: Application() {
+class RNArtist : Application() {
     enum class SCOPE {
-        ELEMENT,  STRUCTURAL_DOMAIN, BRANCH
+        ELEMENT, STRUCTURAL_DOMAIN, BRANCH
     }
+
     val mediator: Mediator
     lateinit var stage: Stage
     private var scrollCounter = 0
     private val statusBar: FlowPane
     val allStructuresAvailable = MenuButton("Choose a 2D")
-    val clearAll2DsItem:MenuItem
-    val clearAll2DsExceptCurrentItem:MenuItem
+    val clearAll2DsItem: MenuItem
+    val clearAll2DsExceptCurrentItem: MenuItem
     val updateProject: Button
-    val focus3D:Button
-    val reload3D:Button
-    val paintSelectionin3D:Button
-    private val root:BorderPane
+    val focus3D: Button
+    val reload3D: Button
+    val paintSelectionin3D: Button
+    private val root: BorderPane
     var centerDisplayOnSelection = false
 
-    fun getInstallDir():String {
-        return File(this::class.java.getProtectionDomain().getCodeSource().getLocation()
-            .toURI()).parentFile.parent
+    fun getInstallDir(): String {
+        return File(
+            this::class.java.getProtectionDomain().getCodeSource().getLocation()
+                .toURI()
+        ).parentFile.parent
     }
 
     init {
@@ -102,150 +104,97 @@ class RNArtist: Application() {
         val loadData = Button(null, FontIcon("fas-sign-in-alt:15"))
         loadData.onMouseClicked = EventHandler {
             val fileChooser = FileChooser()
-            fileChooser.initialDirectory = File(mediator.rnartist.getInstallDir(),"samples")
-            val files = fileChooser.showOpenMultipleDialog(stage)
-            if (files != null) {
-                for (f in files) {
-                    val loadData =
-                        object : Task<Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?>>() {
-                            override fun call(): Pair<Pair<List<SecondaryStructureDrawing>, File>?, Exception?> {
-                                val secondaryStructureDrawings: MutableList<SecondaryStructureDrawing> = ArrayList()
-                                try {
-                                    val source = FileSource(f.absolutePath)
-                                    if (f.name.endsWith(".json")) {
-                                        val drawing = parseJSON(FileReader(f))
-                                        if (drawing != null) {
-                                            drawing.secondaryStructure.rna.source = source
-                                            drawing.secondaryStructure.source = source
-                                            secondaryStructureDrawings.add(drawing)
-                                        }
-                                    }
-                                    if (f.name.endsWith(".ct")) {
-                                        rnartist {
-                                            ss {
-                                                ct {
-                                                    file = f.absolutePath
-                                                }
-                                            }
-                                        }.forEach {
-                                            it.secondaryStructure.source = source
-                                            it.secondaryStructure.rna.source = source
-                                            secondaryStructureDrawings.add(it)
-                                        }
-                                    } else if (f.name.endsWith(".bpseq")) {
-                                        rnartist {
-                                            ss {
-                                                bpseq {
-                                                    file = f.absolutePath
-                                                }
-                                            }
-                                        }.forEach {
-                                            it.secondaryStructure.source = source
-                                            it.secondaryStructure.rna.source = source
-                                            secondaryStructureDrawings.add(it)
-                                        }
-                                    } else if (f.name.endsWith(".fasta") || f.name.endsWith(".fas") || f.name.endsWith(
-                                            ".fa") || f.name.endsWith(".vienna")
-                                    ) {
-                                        rnartist {
-                                            ss {
-                                                vienna {
-                                                    file = f.absolutePath
-                                                }
-                                            }
-                                        }.forEach {
-                                            it.secondaryStructure.source = source
-                                            it.secondaryStructure.rna.source = source
-                                            secondaryStructureDrawings.add(it)
-                                        }
-                                    } else if (f.name.endsWith(".xml") || f.name.endsWith(".rnaml")) {
-                                        for (structure in parseRnaml(f)) {
-                                            if (!structure.helices.isEmpty()) {
-                                                structure.rna.source = source
-                                                structure.source = source
-                                                secondaryStructureDrawings.add(SecondaryStructureDrawing(structure,
-                                                    WorkingSession()))
-                                            }
-                                        }
-                                    } else if (f.name.matches(Regex(".+\\.pdb[0-9]?"))) {
-                                        if (!(isDockerInstalled() && isDockerImageInstalled())) {
-                                            throw Exception("You cannot use PDB files, it seems that RNArtist cannot find the RNAVIEW algorithm on your computer.\n Possible causes:\n- the tool Docker is not installed\n- the tool Docker is not running\n- the docker image fjossinet/rnartistcore is not installed")
-                                        }
-                                        rnartist {
-                                            ss {
-                                                pdb {
-                                                    file = f.absolutePath
-                                                }
-                                            }
-                                        }.forEach {
-                                            if (!it.secondaryStructure.helices.isEmpty()) {
-                                                it.secondaryStructure.rna.source = source
-                                                //the source for the 2D is rnaview, we don't overwrite it
-                                                secondaryStructureDrawings.add(it)
-                                            }
-                                        }
-                                    } else if (f.name.endsWith(".stk") || f.name.endsWith(".stockholm")) {
-                                        rnartist {
-                                            ss {
-                                                stockholm {
-                                                    file = f.absolutePath
-                                                }
-                                            }
-                                        }.forEach {
-                                            it.secondaryStructure.source = source
-                                            it.secondaryStructure.rna.source = source
-                                            secondaryStructureDrawings.add(it)
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    return Pair.of(Pair.of(secondaryStructureDrawings, f), e)
-                                }
-                                return Pair.of(Pair.of(secondaryStructureDrawings, f), null)
-                            }
-                        }
-                    loadData.onSucceeded = EventHandler {
-                        try {
-                            loadData.get()?.right?.let { exception ->
-                                val alert = Alert(Alert.AlertType.ERROR)
-                                alert.title = "File Parsing error"
-                                alert.headerText = exception.message
-                                alert.contentText =
-                                    "If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com"
-                                val sw = StringWriter()
-                                val pw = PrintWriter(sw)
-                                exception.printStackTrace(pw)
-                                val exceptionText = sw.toString()
-                                val label = Label("The exception stacktrace was:")
-                                val textArea = TextArea(exceptionText)
-                                textArea.isEditable = false
-                                textArea.isWrapText = true
-                                textArea.maxWidth = Double.MAX_VALUE
-                                textArea.maxHeight = Double.MAX_VALUE
-                                GridPane.setVgrow(textArea, Priority.ALWAYS)
-                                GridPane.setHgrow(textArea, Priority.ALWAYS)
-                                val expContent = GridPane()
-                                expContent.maxWidth = Double.MAX_VALUE
-                                expContent.add(label, 0, 0)
-                                expContent.add(textArea, 0, 1)
-                                alert.dialogPane.expandableContent = expContent
-                                alert.showAndWait()
-                            }
-                            loadData.get()?.left?.let { result ->
-                                for (drawing in result.left) mediator.drawingsLoaded.add(
-                                    DrawingLoadedFromFile(mediator,
-                                        drawing, result.right))
-                                //we load and fit (only if not a drawing from a JSON file) on the last 2D loaded
-                                mediator.drawingDisplayed.set(mediator.drawingsLoaded[mediator.drawingsLoaded.size - 1])
-                                if (mediator.viewX == 0.0 && mediator.viewY == 0.0 && mediator.zoomLevel == 1.0) //this test allows to detect JSON loadFiles exported from RNArtist with a focus on a region
-                                    mediator.canvas2D.fitStructure(null)
-                            }
-                        } catch (e: InterruptedException) {
-                            e.printStackTrace()
-                        } catch (e: ExecutionException) {
-                            e.printStackTrace()
-                        }
+            fileChooser.initialDirectory = File(mediator.rnartist.getInstallDir(), "samples")
+            val file = fileChooser.showOpenDialog(stage)
+            file?.let { f ->
+                if (f.name.endsWith(".ct")) {
+                    Platform.runLater {
+                        mediator.editor.loadScript(
+                            StringReader(
+                                """
+rnartist {
+    ss {
+        ct {
+            file = "${f.absolutePath.replace("\\", "/")}"
+        }
+    }
+}
+"""
+                            )
+                        )
+                        mediator.editor.runScript()
                     }
-                    Thread(loadData).start()
+                } else if (f.name.endsWith(".bpseq")) {
+                    Platform.runLater {
+                        mediator.editor.loadScript(
+                            StringReader(
+                                """
+rnartist {
+    ss {
+        bpseq {
+            file = "${f.absolutePath.replace("\\", "/")}"
+        }
+    }
+}
+"""
+                            )
+                        )
+                        mediator.editor.runScript()
+                    }
+                } else if (f.name.endsWith(".fasta") || f.name.endsWith(".fas") || f.name.endsWith(
+                        ".fa"
+                    ) || f.name.endsWith(".vienna")
+                ) {
+                    Platform.runLater {
+                        mediator.editor.loadScript(
+                            StringReader(
+                                """
+rnartist {
+    ss {
+        vienna {
+            file = "${f.absolutePath.replace("\\", "/")}"
+        }
+    }
+}
+"""
+                            )
+                        )
+                        mediator.editor.runScript()
+                    }
+                } else if (f.name.matches(Regex(".+\\.pdb[0-9]?"))) {
+                    Platform.runLater {
+                        mediator.editor.loadScript(
+                            StringReader(
+                                """
+rnartist {
+    ss {
+        pdb {
+            file = "${f.absolutePath.replace("\\", "/")}"
+        }
+    }
+}
+"""
+                            )
+                        )
+                        mediator.editor.runScript()
+                    }
+                } else if (f.name.endsWith(".stk") || f.name.endsWith(".stockholm")) {
+                    Platform.runLater {
+                        mediator.editor.loadScript(
+                            StringReader(
+                                """
+rnartist {
+    ss {
+        stockholm {
+            file = "${f.absolutePath.replace("\\", "/")}"
+        }
+    }
+}
+"""
+                            )
+                        )
+                        mediator.editor.runScript()
+                    }
                 }
             }
         }
@@ -279,10 +228,12 @@ class RNArtist: Application() {
             mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
                 drawing.workingSession.is_screen_capture = true
                 drawing.workingSession.screen_capture_area =
-                    Rectangle2D.Double(mediator.canvas2D.getBounds().getCenterX() - 200,
+                    Rectangle2D.Double(
+                        mediator.canvas2D.getBounds().getCenterX() - 200,
                         mediator.canvas2D.getBounds().getCenterY() - 100,
                         400.0,
-                        200.0)
+                        200.0
+                    )
                 mediator.canvas2D.repaint()
                 val dialog = TextInputDialog("My Project")
                 dialog.initModality(Modality.NONE)
@@ -293,17 +244,21 @@ class RNArtist: Application() {
                 val projectName = dialog.showAndWait()
                 if (projectName.isPresent && !projectName.isEmpty) {
                     try {
-                        mediator.projectsPanel.saveProjectAs(projectName.get().trim { it <= ' ' },
-                            mediator.canvas2D.screenCapture()!!)?.let { id ->
+                        mediator.projectsPanel.saveProjectAs(
+                            projectName.get().trim { it <= ' ' },
+                            mediator.canvas2D.screenCapture()!!
+                        )?.let { id ->
                             drawing.workingSession.is_screen_capture = false
                             drawing.workingSession.screen_capture_area = null
                             mediator.embeddedDB.getProject(id)
                                 ?.let { newDrawing -> //we reload it from the DB to have a copy of the drawing and not the same object
-                                    mediator.drawingsLoaded.add(0,
+                                    mediator.drawingsLoaded.add(
+                                        0,
                                         DrawingLoadedFromRNArtistDB(mediator,
                                             newDrawing,
                                             id,
-                                            projectName.get().trim { it <= ' ' }))
+                                            projectName.get().trim { it <= ' ' })
+                                    )
                                     mediator.drawingDisplayed.set(mediator.drawingsLoaded[0])
                                 }
                         }
@@ -336,7 +291,8 @@ class RNArtist: Application() {
                             200.0
                         )
                     mediator.canvas2D.repaint()
-                    val dialog = TextInputDialog((mediator.drawingDisplayed.get() as? DrawingLoadedFromRNArtistDB)?.projectName)
+                    val dialog =
+                        TextInputDialog((mediator.drawingDisplayed.get() as? DrawingLoadedFromRNArtistDB)?.projectName)
                     dialog.initModality(Modality.NONE)
                     dialog.title = "Project Saving"
                     dialog.headerText =
@@ -344,12 +300,16 @@ class RNArtist: Application() {
                     dialog.contentText = "Project name:"
                     val projectName = dialog.showAndWait()
                     if (projectName.isPresent) {
-                        (mediator.drawingDisplayed.get() as? DrawingLoadedFromRNArtistDB)?.projectName = projectName.get().trim { it <= ' ' }
-                        mediator.projectsPanel.updateProject(projectName.get().trim { it <= ' ' }, mediator.canvas2D.screenCapture()!!)
+                        (mediator.drawingDisplayed.get() as? DrawingLoadedFromRNArtistDB)?.projectName =
+                            projectName.get().trim { it <= ' ' }
+                        mediator.projectsPanel.updateProject(
+                            projectName.get().trim { it <= ' ' },
+                            mediator.canvas2D.screenCapture()!!
+                        )
                         allStructuresAvailable.items.forEach {
-                           if (it.userData == mediator.drawingDisplayed.get()) {
-                               it.text = it.userData.toString()
-                           }
+                            if (it.userData == mediator.drawingDisplayed.get()) {
+                                it.text = it.userData.toString()
+                            }
                         }
                         drawing.workingSession.is_screen_capture = false
                         drawing.workingSession.screen_capture_area = null
@@ -380,7 +340,14 @@ class RNArtist: Application() {
                 if (file != null) {
                     if (file.name.endsWith(".svg")) {
                         fileChooser.initialDirectory = file.parentFile
-                        drawing.asSVG( frame = Rectangle2D.Double(0.0, 0.0, mediator.canvas2D.getBounds().width.toDouble(), mediator.canvas2D.getBounds().height.toDouble()), outputFile = file)
+                        drawing.asSVG(
+                            frame = Rectangle2D.Double(
+                                0.0,
+                                0.0,
+                                mediator.canvas2D.getBounds().width.toDouble(),
+                                mediator.canvas2D.getBounds().height.toDouble()
+                            ), outputFile = file
+                        )
 
                     } else if (file.name.endsWith(".json")) {
                         fileChooser.initialDirectory = file.parentFile
@@ -389,9 +356,13 @@ class RNArtist: Application() {
                             writer = PrintWriter(file)
                             writer.println(toJSON(drawing))
                             writer.close()
-                            mediator.chimeraDriver.saveSession(File(file.parentFile,
-                                file.name.split(".".toRegex()).toTypedArray()[0] + ".py"),
-                                File(file.parentFile, file.name.split(".".toRegex()).toTypedArray()[0] + ".pdb"))
+                            mediator.chimeraDriver.saveSession(
+                                File(
+                                    file.parentFile,
+                                    file.name.split(".".toRegex()).toTypedArray()[0] + ".py"
+                                ),
+                                File(file.parentFile, file.name.split(".".toRegex()).toTypedArray()[0] + ".pdb")
+                            )
                         } catch (e: IOException) {
                             e.printStackTrace()
                         }
@@ -410,10 +381,12 @@ class RNArtist: Application() {
             mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
                 drawing.workingSession.is_screen_capture = true
                 drawing.workingSession.screen_capture_area =
-                    Rectangle2D.Double(mediator.canvas2D.getBounds().getCenterX() - 200,
+                    Rectangle2D.Double(
+                        mediator.canvas2D.getBounds().getCenterX() - 200,
                         mediator.canvas2D.getBounds().getCenterY() - 100,
                         400.0,
-                        200.0)
+                        200.0
+                    )
                 mediator.canvas2D.repaint()
                 val dialog = TextInputDialog("My Project")
                 dialog.initModality(Modality.NONE)
@@ -424,9 +397,16 @@ class RNArtist: Application() {
                 val projectName = dialog.showAndWait()
                 if (projectName.isPresent && !projectName.isEmpty) {
                     try {
-                        val pictureFile = createTemporaryFile( "test.svg")
+                        val pictureFile = createTemporaryFile("test.svg")
                         //ImageIO.write(mediator.canvas2D.screenCapture()!!, "PNG", pictureFile)
-                        drawing.asSVG( frame = Rectangle2D.Double(0.0, 0.0, mediator.canvas2D.getBounds().width.toDouble(), mediator.canvas2D.getBounds().height.toDouble()), outputFile = pictureFile)
+                        drawing.asSVG(
+                            frame = Rectangle2D.Double(
+                                0.0,
+                                0.0,
+                                mediator.canvas2D.getBounds().width.toDouble(),
+                                mediator.canvas2D.getBounds().height.toDouble()
+                            ), outputFile = pictureFile
+                        )
 
                         val url = URL("http://localhost:8080/api/submit")
                         val con = url.openConnection()
@@ -573,7 +553,8 @@ class RNArtist: Application() {
             if (result.get() == ButtonType.OK) {
                 val toDelete: MutableList<DrawingLoaded> = ArrayList()
                 for (drawingLoaded in mediator.drawingsLoaded) if (drawingLoaded.drawing != mediator.drawingDisplayed.get()?.drawing) toDelete.add(
-                    drawingLoaded)
+                    drawingLoaded
+                )
                 mediator.drawingsLoaded.removeAll(toDelete)
             }
         })
@@ -596,7 +577,8 @@ class RNArtist: Application() {
         val s4 = Separator()
         s2.padding = Insets(0.0, 5.0, 0.0, 5.0)
 
-        toolbar.items.addAll(loadFiles,
+        toolbar.items.addAll(
+            loadFiles,
             s1,
             saveFiles,
             s2,
@@ -605,7 +587,8 @@ class RNArtist: Application() {
             tertiaryStructureButtons,
             s4,
             selectionSize,
-            selectionColor)
+            selectionColor
+        )
 
         root.top = toolbar
 
@@ -683,7 +666,8 @@ class RNArtist: Application() {
             } else {
                 for (selectedItem in mediator.explorer.treeTableView.selectionModel.selectedItems) {
                     if (ResidueDrawing::class.java.isInstance(selectedItem.value.drawingElement)) starts.add(
-                        selectedItem.parent) //if the user has selected single residues, this allows to display its tertiary interactions, since a tertiary can be a parent of a residue in the explorer
+                        selectedItem.parent
+                    ) //if the user has selected single residues, this allows to display its tertiary interactions, since a tertiary can be a parent of a residue in the explorer
                     starts.add(selectedItem)
                 }
                 scope = RNArtist.SCOPE.STRUCTURAL_DOMAIN
@@ -976,7 +960,8 @@ class RNArtist: Application() {
                 }
                 color {
                     type = "a"
-                    value = getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE))
+                    value =
+                        getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE))
                 }
                 color {
                     type = "U"
@@ -984,7 +969,8 @@ class RNArtist: Application() {
                 }
                 color {
                     type = "u"
-                    value = getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE))
+                    value =
+                        getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE))
                 }
                 color {
                     type = "G"
@@ -992,7 +978,8 @@ class RNArtist: Application() {
                 }
                 color {
                     type = "g"
-                    value = getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE))
+                    value =
+                        getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE))
                 }
                 color {
                     type = "C"
@@ -1000,7 +987,8 @@ class RNArtist: Application() {
                 }
                 color {
                     type = "c"
-                    value = getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE))
+                    value =
+                        getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE))
                 }
             }
 
@@ -1008,13 +996,25 @@ class RNArtist: Application() {
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
             mediator.editor.setColor("A", getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-            mediator.editor.setColor("a", getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE)))
+            mediator.editor.setColor(
+                "a",
+                getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE))
+            )
             mediator.editor.setColor("U", getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-            mediator.editor.setColor("u", getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE)))
+            mediator.editor.setColor(
+                "u",
+                getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE))
+            )
             mediator.editor.setColor("G", getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-            mediator.editor.setColor("g", getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE)))
+            mediator.editor.setColor(
+                "g",
+                getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE))
+            )
             mediator.editor.setColor("C", getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            mediator.editor.setColor("c", getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE)))
+            mediator.editor.setColor(
+                "c",
+                getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE))
+            )
         }
 
         leftToolBar.add(pickColorScheme, 0, row)
@@ -1219,12 +1219,17 @@ class RNArtist: Application() {
             .toArray()[Random().nextInt(RnartistConfig.colorSchemes.size)] as Map<String, Map<String, String>>
 
         AColorPicker.value =
-            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]!!,
-                255))
+            awtColorToJavaFX(
+                getAWTColor(
+                    scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]!!,
+                    255
+                )
+            )
         ALabel.style =
             "-fx-background-color: " + scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]
         if (scheme[SecondaryStructureType.A.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                java.awt.Color.WHITE)
+                java.awt.Color.WHITE
+            )
         ) {
             ALabel.userData = "white"
             ALabel.textFill = Color.WHITE
@@ -1234,12 +1239,17 @@ class RNArtist: Application() {
         }
 
         UColorPicker.value =
-            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]!!,
-                255))
+            awtColorToJavaFX(
+                getAWTColor(
+                    scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]!!,
+                    255
+                )
+            )
         ULabel.style =
             "-fx-background-color: " + scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]
         if (scheme[SecondaryStructureType.U.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                java.awt.Color.WHITE)
+                java.awt.Color.WHITE
+            )
         ) {
             ULabel.userData = "white"
             ULabel.textFill = Color.WHITE
@@ -1249,12 +1259,17 @@ class RNArtist: Application() {
         }
 
         GColorPicker.value =
-            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]!!,
-                255))
+            awtColorToJavaFX(
+                getAWTColor(
+                    scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]!!,
+                    255
+                )
+            )
         GLabel.style =
             "-fx-background-color: " + scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]
         if (scheme[SecondaryStructureType.G.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                java.awt.Color.WHITE)
+                java.awt.Color.WHITE
+            )
         ) {
             GLabel.userData = "white"
             GLabel.textFill = Color.WHITE
@@ -1264,12 +1279,17 @@ class RNArtist: Application() {
         }
 
         CColorPicker.value =
-            awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]!!,
-                255))
+            awtColorToJavaFX(
+                getAWTColor(
+                    scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]!!,
+                    255
+                )
+            )
         CLabel.style =
             "-fx-background-color: " + scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]
         if (scheme[SecondaryStructureType.C.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                java.awt.Color.WHITE)
+                java.awt.Color.WHITE
+            )
         ) {
             CLabel.userData = "white"
             CLabel.textFill = Color.WHITE
@@ -1282,12 +1302,17 @@ class RNArtist: Application() {
             val scheme = RnartistConfig.colorSchemes.values.stream()
                 .toArray()[Random().nextInt(RnartistConfig.colorSchemes.size)] as Map<String, Map<String, String>>
             AColorPicker.value =
-                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]!!,
-                    255))
+                awtColorToJavaFX(
+                    getAWTColor(
+                        scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]!!,
+                        255
+                    )
+                )
             ALabel.style =
                 "-fx-background-color: " + scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]
             if (scheme[SecondaryStructureType.A.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                    java.awt.Color.WHITE)
+                    java.awt.Color.WHITE
+                )
             ) {
                 ALabel.userData = "white"
                 ALabel.textFill = Color.WHITE
@@ -1296,12 +1321,17 @@ class RNArtist: Application() {
                 ALabel.textFill = Color.BLACK
             }
             UColorPicker.value =
-                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]!!,
-                    255))
+                awtColorToJavaFX(
+                    getAWTColor(
+                        scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]!!,
+                        255
+                    )
+                )
             ULabel.style =
                 "-fx-background-color: " + scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]
             if (scheme[SecondaryStructureType.U.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                    java.awt.Color.WHITE)
+                    java.awt.Color.WHITE
+                )
             ) {
                 ULabel.userData = "white"
                 ULabel.textFill = Color.WHITE
@@ -1310,12 +1340,17 @@ class RNArtist: Application() {
                 ULabel.textFill = Color.BLACK
             }
             GColorPicker.value =
-                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]!!,
-                    255))
+                awtColorToJavaFX(
+                    getAWTColor(
+                        scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]!!,
+                        255
+                    )
+                )
             GLabel.style =
                 "-fx-background-color: " + scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]
             if (scheme[SecondaryStructureType.G.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                    java.awt.Color.WHITE)
+                    java.awt.Color.WHITE
+                )
             ) {
                 GLabel.userData = "white"
                 GLabel.textFill = Color.WHITE
@@ -1324,12 +1359,17 @@ class RNArtist: Application() {
                 GLabel.textFill = Color.BLACK
             }
             CColorPicker.value =
-                awtColorToJavaFX(getAWTColor(scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]!!,
-                    255))
+                awtColorToJavaFX(
+                    getAWTColor(
+                        scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]!!,
+                        255
+                    )
+                )
             CLabel.style =
                 "-fx-background-color: " + scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]
             if (scheme[SecondaryStructureType.C.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                    java.awt.Color.WHITE)
+                    java.awt.Color.WHITE
+                )
             ) {
                 CLabel.userData = "white"
                 CLabel.textFill = Color.WHITE
@@ -1344,7 +1384,7 @@ class RNArtist: Application() {
         leftToolBar.add(s, 0, row++, 2, 1)
         GridPane.setHalignment(s, HPos.CENTER)
 
-        val applyLineWidth = { lineWidth:Double ->
+        val applyLineWidth = { lineWidth: Double ->
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
             var scope = SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
@@ -1359,14 +1399,18 @@ class RNArtist: Application() {
             }
             val t = theme {
                 line {
-                    type = "helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol"
+                    type =
+                        "helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol"
                     value = lineWidth
                 }
             }
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setLineWidth("helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol","${lineWidth}")
+            mediator.editor.setLineWidth(
+                "helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol",
+                "${lineWidth}"
+            )
         }
 
         val lineWidth1 = Button(null, null)
@@ -1440,7 +1484,7 @@ class RNArtist: Application() {
         lineColorPicker.style = "-fx-color-label-visible: false ;"
         lineColorPicker.onAction = EventHandler {
             val starts: MutableList<TreeItem<ExplorerItem>> = ArrayList()
-            var scope= RNArtist.SCOPE.BRANCH
+            var scope = RNArtist.SCOPE.BRANCH
             if (mediator.explorer.treeTableView.selectionModel
                     .isEmpty() || mediator.explorer.treeTableView.selectionModel
                     .getSelectedItems().size == 1 && mediator.explorer.treeTableView.selectionModel
@@ -1453,7 +1497,8 @@ class RNArtist: Application() {
             }
             val t = theme {
                 color {
-                    type = "helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction"
+                    type =
+                        "helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction"
                     value = getHTMLColorString(javaFXToAwt(lineColorPicker.value))
                 }
             }
@@ -1461,7 +1506,10 @@ class RNArtist: Application() {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setColor("helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction", getHTMLColorString(javaFXToAwt(lineColorPicker.value)))
+            mediator.editor.setColor(
+                "helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction",
+                getHTMLColorString(javaFXToAwt(lineColorPicker.value))
+            )
 
         }
         leftToolBar.add(lineWidth5, 0, row)
@@ -1522,8 +1570,14 @@ class RNArtist: Application() {
                 mediator.drawingDisplayed.get()?.let mouseClicked@{ drawingLoaded ->
                     if (!drawingLoaded.drawing.workingSession.is_screen_capture) {
                         val at = AffineTransform()
-                        at.translate(drawingLoaded.drawing.workingSession.viewX, drawingLoaded.drawing.workingSession.viewY)
-                        at.scale(drawingLoaded.drawing.workingSession.zoomLevel, drawingLoaded.drawing.workingSession.zoomLevel)
+                        at.translate(
+                            drawingLoaded.drawing.workingSession.viewX,
+                            drawingLoaded.drawing.workingSession.viewY
+                        )
+                        at.scale(
+                            drawingLoaded.drawing.workingSession.zoomLevel,
+                            drawingLoaded.drawing.workingSession.zoomLevel
+                        )
                         for (knob in drawingLoaded.knobs)
                             if (knob.contains(mouseEvent.x, mouseEvent.y, at))
                                 return@mouseClicked
@@ -1538,45 +1592,53 @@ class RNArtist: Application() {
                                             .contains(mouseEvent.x, mouseEvent.y)
                                     ) {
                                         if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent) && !mediator.canvas2D.isSelected(
-                                                r.parent!!.parent)
+                                                r.parent!!.parent
+                                            )
                                         ) {
                                             mediator.canvas2D.addToSelection(r)
-                                            mediator.explorer.selectAllTreeViewItems(object :
-                                                Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
+                                            mediator.explorer.selectAllTreeViewItems(
+                                                object :
+                                                    Explorer.DrawingElementFilter {
+                                                    override fun isOK(el: DrawingElement?): Boolean {
+                                                        return mediator.canvas2D.isSelected(el)
+                                                    }
+                                                },
                                                 Arrays.asList(mediator.explorer.treeTableView.root),
                                                 false,
-                                                RNArtist.SCOPE.BRANCH)
+                                                RNArtist.SCOPE.BRANCH
+                                            )
                                             return@mouseClicked
                                         } else if (!mediator.canvas2D.isSelected(r.parent) && !mediator.canvas2D.isSelected(
-                                                r.parent!!.parent)
+                                                r.parent!!.parent
+                                            )
                                         ) {
                                             mediator.canvas2D.removeFromSelection(r)
                                             mediator.canvas2D.addToSelection(r.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object :
-                                                Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
+                                            mediator.explorer.selectAllTreeViewItems(
+                                                object :
+                                                    Explorer.DrawingElementFilter {
+                                                    override fun isOK(el: DrawingElement?): Boolean {
+                                                        return mediator.canvas2D.isSelected(el)
+                                                    }
+                                                },
                                                 Arrays.asList(mediator.explorer.treeTableView.root),
                                                 false,
-                                                RNArtist.SCOPE.BRANCH)
+                                                RNArtist.SCOPE.BRANCH
+                                            )
                                             return@mouseClicked
                                         } else if (!mediator.canvas2D.isSelected(r.parent!!.parent)) {
                                             mediator.canvas2D.removeFromSelection(r.parent)
                                             mediator.canvas2D.addToSelection(r.parent!!.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
+                                            mediator.explorer.selectAllTreeViewItems(
+                                                object : Explorer.DrawingElementFilter {
+                                                    override fun isOK(el: DrawingElement?): Boolean {
+                                                        return mediator.canvas2D.isSelected(el)
+                                                    }
+                                                },
                                                 Arrays.asList(mediator.explorer.treeTableView.root),
                                                 false,
-                                                RNArtist.SCOPE.BRANCH)
+                                                RNArtist.SCOPE.BRANCH
+                                            )
                                             return@mouseClicked
                                         }
                                     }
@@ -1587,44 +1649,51 @@ class RNArtist: Application() {
                                             .contains(mouseEvent.x, mouseEvent.y)
                                     ) {
                                         if (!mediator.canvas2D.isSelected(interaction) && !mediator.canvas2D.isSelected(
-                                                interaction.parent)
+                                                interaction.parent
+                                            )
                                         ) {
                                             mediator.canvas2D.addToSelection(interaction)
-                                            mediator.explorer.selectAllTreeViewItems(object :
-                                                Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
+                                            mediator.explorer.selectAllTreeViewItems(
+                                                object :
+                                                    Explorer.DrawingElementFilter {
+                                                    override fun isOK(el: DrawingElement?): Boolean {
+                                                        return mediator.canvas2D.isSelected(el)
+                                                    }
+                                                },
                                                 Arrays.asList(mediator.explorer.treeTableView.root),
                                                 false,
-                                                RNArtist.SCOPE.BRANCH)
+                                                RNArtist.SCOPE.BRANCH
+                                            )
                                             return@mouseClicked
                                         } else if (!mediator.canvas2D.isSelected(interaction.parent)) {
                                             mediator.canvas2D.removeFromSelection(interaction)
                                             mediator.canvas2D.addToSelection(interaction.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
+                                            mediator.explorer.selectAllTreeViewItems(
+                                                object : Explorer.DrawingElementFilter {
+                                                    override fun isOK(el: DrawingElement?): Boolean {
+                                                        return mediator.canvas2D.isSelected(el)
+                                                    }
+                                                },
                                                 Arrays.asList(mediator.explorer.treeTableView.root),
                                                 false,
-                                                RNArtist.SCOPE.BRANCH)
+                                                RNArtist.SCOPE.BRANCH
+                                            )
                                             return@mouseClicked
                                         }
                                     }
                                 }
                                 if (!mediator.canvas2D.isSelected(h)) {
                                     mediator.canvas2D.addToSelection(h)
-                                    mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                        override fun isOK(el: DrawingElement?): Boolean {
-                                            return mediator.canvas2D.isSelected(el)
-                                        }
-                                    },
+                                    mediator.explorer.selectAllTreeViewItems(
+                                        object : Explorer.DrawingElementFilter {
+                                            override fun isOK(el: DrawingElement?): Boolean {
+                                                return mediator.canvas2D.isSelected(el)
+                                            }
+                                        },
                                         Arrays.asList(mediator.explorer.treeTableView.root),
                                         false,
-                                        RNArtist.SCOPE.BRANCH)
+                                        RNArtist.SCOPE.BRANCH
+                                    )
                                     return@mouseClicked
                                 } else {
                                     var p = h.parent
@@ -1633,24 +1702,28 @@ class RNArtist: Application() {
                                     }
                                     if (p == null) {
                                         mediator.canvas2D.addToSelection(h)
-                                        mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                            override fun isOK(el: DrawingElement?): Boolean {
-                                                return mediator.canvas2D.isSelected(el)
-                                            }
-                                        },
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object : Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
                                             Arrays.asList(mediator.explorer.treeTableView.root),
                                             false,
-                                            RNArtist.SCOPE.BRANCH)
+                                            RNArtist.SCOPE.BRANCH
+                                        )
                                     } else {
                                         mediator.canvas2D.addToSelection(p)
-                                        mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                            override fun isOK(el: DrawingElement?): Boolean {
-                                                return mediator.canvas2D.isSelected(el)
-                                            }
-                                        },
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object : Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
                                             Arrays.asList(mediator.explorer.treeTableView.root),
                                             false,
-                                            RNArtist.SCOPE.BRANCH)
+                                            RNArtist.SCOPE.BRANCH
+                                        )
                                     }
                                     return@mouseClicked
                                 }
@@ -1668,41 +1741,47 @@ class RNArtist: Application() {
                                     ) {
                                         if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
                                             mediator.canvas2D.addToSelection(r)
-                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
+                                            mediator.explorer.selectAllTreeViewItems(
+                                                object : Explorer.DrawingElementFilter {
+                                                    override fun isOK(el: DrawingElement?): Boolean {
+                                                        return mediator.canvas2D.isSelected(el)
+                                                    }
+                                                },
                                                 Arrays.asList(mediator.explorer.treeTableView.root),
                                                 false,
-                                                RNArtist.SCOPE.BRANCH)
+                                                RNArtist.SCOPE.BRANCH
+                                            )
                                             return@mouseClicked
                                         } else if (!mediator.canvas2D.isSelected(r.parent)) {
                                             mediator.canvas2D.removeFromSelection(r)
                                             mediator.canvas2D.addToSelection(r.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object :
-                                                Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
+                                            mediator.explorer.selectAllTreeViewItems(
+                                                object :
+                                                    Explorer.DrawingElementFilter {
+                                                    override fun isOK(el: DrawingElement?): Boolean {
+                                                        return mediator.canvas2D.isSelected(el)
+                                                    }
+                                                },
                                                 Arrays.asList(mediator.explorer.treeTableView.root),
                                                 false,
-                                                RNArtist.SCOPE.BRANCH)
+                                                RNArtist.SCOPE.BRANCH
+                                            )
                                             return@mouseClicked
                                         }
                                     }
                                 }
                                 if (!mediator.canvas2D.isSelected(j)) {
                                     mediator.canvas2D.addToSelection(j)
-                                    mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                        override fun isOK(el: DrawingElement?): Boolean {
-                                            return mediator.canvas2D.isSelected(el)
-                                        }
-                                    },
+                                    mediator.explorer.selectAllTreeViewItems(
+                                        object : Explorer.DrawingElementFilter {
+                                            override fun isOK(el: DrawingElement?): Boolean {
+                                                return mediator.canvas2D.isSelected(el)
+                                            }
+                                        },
                                         Arrays.asList(mediator.explorer.treeTableView.root),
                                         false,
-                                        RNArtist.SCOPE.BRANCH)
+                                        RNArtist.SCOPE.BRANCH
+                                    )
                                     return@mouseClicked
                                 } else {
                                     var p = j.parent
@@ -1711,24 +1790,28 @@ class RNArtist: Application() {
                                     }
                                     if (p == null) {
                                         mediator.canvas2D.addToSelection(j)
-                                        mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                            override fun isOK(el: DrawingElement?): Boolean {
-                                                return mediator.canvas2D.isSelected(el)
-                                            }
-                                        },
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object : Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
                                             Arrays.asList(mediator.explorer.treeTableView.root),
                                             false,
-                                            RNArtist.SCOPE.BRANCH)
+                                            RNArtist.SCOPE.BRANCH
+                                        )
                                     } else {
                                         mediator.canvas2D.addToSelection(p)
-                                        mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                            override fun isOK(el: DrawingElement?): Boolean {
-                                                return mediator.canvas2D.isSelected(el)
-                                            }
-                                        },
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object : Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
                                             Arrays.asList(mediator.explorer.treeTableView.root),
                                             false,
-                                            RNArtist.SCOPE.BRANCH)
+                                            RNArtist.SCOPE.BRANCH
+                                        )
                                     }
                                     return@mouseClicked
                                 }
@@ -1746,26 +1829,30 @@ class RNArtist: Application() {
                                     ) {
                                         if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
                                             mediator.canvas2D.addToSelection(r)
-                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
+                                            mediator.explorer.selectAllTreeViewItems(
+                                                object : Explorer.DrawingElementFilter {
+                                                    override fun isOK(el: DrawingElement?): Boolean {
+                                                        return mediator.canvas2D.isSelected(el)
+                                                    }
+                                                },
                                                 Arrays.asList(mediator.explorer.treeTableView.root),
                                                 false,
-                                                RNArtist.SCOPE.BRANCH)
+                                                RNArtist.SCOPE.BRANCH
+                                            )
                                             return@mouseClicked
                                         } else if (!mediator.canvas2D.isSelected(r.parent)) {
                                             mediator.canvas2D.removeFromSelection(r)
                                             mediator.canvas2D.addToSelection(r.parent)
-                                            mediator.explorer.selectAllTreeViewItems(object : Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
+                                            mediator.explorer.selectAllTreeViewItems(
+                                                object : Explorer.DrawingElementFilter {
+                                                    override fun isOK(el: DrawingElement?): Boolean {
+                                                        return mediator.canvas2D.isSelected(el)
+                                                    }
+                                                },
                                                 Arrays.asList(mediator.explorer.treeTableView.root),
                                                 false,
-                                                RNArtist.SCOPE.BRANCH)
+                                                RNArtist.SCOPE.BRANCH
+                                            )
                                             return@mouseClicked
                                         }
                                     }
@@ -1856,16 +1943,22 @@ class RNArtist: Application() {
                     th.isDaemon = true
                     th.start()
                     val realMouse =
-                        Point2D.Double((scrollEvent.x - drawingLoaded.drawing.workingSession.viewX) / drawingLoaded.drawing.workingSession.zoomLevel,
-                            (scrollEvent.y - drawingLoaded.drawing.workingSession.viewY) / drawingLoaded.drawing.workingSession.zoomLevel)
+                        Point2D.Double(
+                            (scrollEvent.x - drawingLoaded.drawing.workingSession.viewX) / drawingLoaded.drawing.workingSession.zoomLevel,
+                            (scrollEvent.y - drawingLoaded.drawing.workingSession.viewY) / drawingLoaded.drawing.workingSession.zoomLevel
+                        )
                     val notches = scrollEvent.deltaY
                     if (notches < 0) drawingLoaded.drawing.workingSession.setZoom(1.25)
                     if (notches > 0) drawingLoaded.drawing.workingSession.setZoom(1.0 / 1.25)
                     val newRealMouse =
-                        Point2D.Double((scrollEvent.x - drawingLoaded.drawing.workingSession.viewX) / drawingLoaded.drawing.workingSession.zoomLevel,
-                            (scrollEvent.y - drawingLoaded.drawing.workingSession.viewY) / drawingLoaded.drawing.workingSession.zoomLevel)
-                    drawingLoaded.drawing.workingSession.moveView((newRealMouse.getX() - realMouse.getX()) * drawingLoaded.drawing.workingSession.zoomLevel,
-                        (newRealMouse.getY() - realMouse.getY()) * drawingLoaded.drawing.workingSession.zoomLevel)
+                        Point2D.Double(
+                            (scrollEvent.x - drawingLoaded.drawing.workingSession.viewX) / drawingLoaded.drawing.workingSession.zoomLevel,
+                            (scrollEvent.y - drawingLoaded.drawing.workingSession.viewY) / drawingLoaded.drawing.workingSession.zoomLevel
+                        )
+                    drawingLoaded.drawing.workingSession.moveView(
+                        (newRealMouse.getX() - realMouse.getX()) * drawingLoaded.drawing.workingSession.zoomLevel,
+                        (newRealMouse.getY() - realMouse.getY()) * drawingLoaded.drawing.workingSession.zoomLevel
+                    )
                     mediator.canvas2D.repaint()
                 }
             }
@@ -1889,17 +1982,19 @@ class RNArtist: Application() {
             Tooltip(if (status) "I found RNAVIEW! You can open PDB files" else "RNAVIEW not found! You cannot open PDB files!")
         if (status) (dockerStatus.graphic as FontIcon).fill = Color.GREEN else (dockerStatus.graphic as FontIcon).fill =
             Color.RED
-        val checkDockerStatus = Timeline(KeyFrame(Duration.seconds(30.0),
-            {
-                val status = isDockerInstalled() && isDockerImageInstalled()
-                dockerStatus.graphic =
-                    if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
-                dockerStatus.tooltip =
-                    Tooltip(if (status) "I found RNAVIEW! You can open PDB files" else "RNAVIEW not found! You cannot open PDB files!")
-                if (status) (dockerStatus.graphic as FontIcon).fill =
-                    Color.GREEN else (dockerStatus.graphic as FontIcon).fill =
-                    Color.RED
-            }))
+        val checkDockerStatus = Timeline(
+            KeyFrame(Duration.seconds(30.0),
+                {
+                    val status = isDockerInstalled() && isDockerImageInstalled()
+                    dockerStatus.graphic =
+                        if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
+                    dockerStatus.tooltip =
+                        Tooltip(if (status) "I found RNAVIEW! You can open PDB files" else "RNAVIEW not found! You cannot open PDB files!")
+                    if (status) (dockerStatus.graphic as FontIcon).fill =
+                        Color.GREEN else (dockerStatus.graphic as FontIcon).fill =
+                        Color.RED
+                })
+        )
         checkDockerStatus.cycleCount = Timeline.INDEFINITE
         checkDockerStatus.play()
 
@@ -2034,7 +2129,6 @@ class RNArtist: Application() {
     fun main() {
         launch();
     }
-
 
 
 }

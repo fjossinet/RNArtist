@@ -37,12 +37,14 @@ class LineKw(editor: ScriptEditor, indentLevel:Int, inFinalScript:Boolean = fals
 
     fun getLocation(): Location? = (this.searchFirst { it is LocationKw } as LocationKw?)?.location
 
-    fun setLocation(location: Location) {
+    /**
+     * No argument needed. The function addToFinalScript (fired with the button) uses the current selection
+     */
+    fun setLocation() {
         if (!this.inFinalScript)
             this.addButton.fire()
         val l = (this.searchFirst { it is LocationKw } as LocationKw?)!!
-        l.location = location
-        if (!l.inFinalScript)
+        if (editor.mediator.canvas2D.getSelection().isNotEmpty() && !l.inFinalScript) //if there is a selection, the location needs to be added to the script
             l.addButton.fire()
     }
 

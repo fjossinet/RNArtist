@@ -191,7 +191,11 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
     fun addToSelection(el: DrawingElement?) {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
             el?.let { el ->
-                if (el is JunctionDrawing)
+                //we want to show only one knob and only if the junction is the only element selected (this is needed for the script editor to add a junction keyword that get precisely the junction location and not a location composed of several elements selected
+                if(mediator.canvas2D.getSelection().size != 0) {
+                    drawingDisplayed.knobs.clear()
+                }
+                else if (el is JunctionDrawing && drawingDisplayed.knobs.isEmpty())
                     drawingDisplayed.knobs.add(JunctionKnob(mediator, el))
                 drawingDisplayed.selectionShapes.add(SelectionShape(mediator, el))
                 repaint()
