@@ -2069,7 +2069,7 @@ rnartist {
         GridPane.setHalignment(this.statusBar, HPos.RIGHT)
         root.bottom = bar
 
-        root.right = RNAGallery(mediator)
+        //root.right = RNAGallery(mediator)
     }
 
     override fun start(stage: Stage) {

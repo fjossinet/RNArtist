@@ -4,7 +4,7 @@ rnartist {
     ss {
         rfam {
             id = "RF00072"
-            name = "AJ009730.1/1-133"
+            name = "consensus"
         }
     }
     theme {

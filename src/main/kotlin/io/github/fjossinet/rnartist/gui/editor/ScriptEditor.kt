@@ -561,8 +561,8 @@ class ScriptEditor(val mediator: Mediator) {
 
     fun initScript() {
         scriptRoot?.let {
-            currentJunctionBehaviors.clear() //we clear the current junction behaviors that can have been tweaked by the user
-            currentJunctionBehaviors.putAll(defaultJunctionBehaviors)
+            //currentJunctionBehaviors.clear() //we clear the current junction behaviors that can have been tweaked by the user
+            //currentJunctionBehaviors.putAll(defaultJunctionBehaviors)
             editorPane.children.clear()
             var nodes = mutableListOf<Node>()
             it.dumpNodes(nodes)
