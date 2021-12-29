@@ -172,6 +172,13 @@ class ScriptEditor(val mediator: Mediator) {
         }
         fromDatabasesMenu.items.add(menuItem)
 
+        menuItem = MenuItem("PDB")
+        menuItem.setOnAction {
+            val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_pdb.kts")
+            loadScript(FileReader(file))
+        }
+        fromDatabasesMenu.items.add(menuItem)
+
         val themes = Menu("Create Theme..")
         scriptsLibraryMenu.items.add(themes)
 
@@ -219,7 +226,7 @@ class ScriptEditor(val mediator: Mediator) {
 
         val saveAsGist = MenuItem("Publish as GitHub Gist..")
         saveAsGist.setOnAction(EventHandler<ActionEvent?> {
-            val token = ""
+            val token = "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"
             if (token.trim().isNotEmpty()) {
                 mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
                     val dialog = Dialog<String>()
@@ -803,7 +810,6 @@ class ScriptEditor(val mediator: Mediator) {
         val root = RNArtistKw(editor)
 
         elements.first().children.forEach { element ->
-            println(element.name)
             when (element.name) {
                 "ss" -> {
                     val secondaryStructureKw = root.searchFirst { it is SecondaryStructureKw } as SecondaryStructureKw
@@ -886,19 +892,52 @@ class ScriptEditor(val mediator: Mediator) {
                             }
 
                             "rfam" -> {
-                                val stockholmKw =
+                                val rfamKw =
                                     (secondaryStructureKw.searchFirst { themeChild -> themeChild is RfamKw && !themeChild.inFinalScript } as RfamKw)
-                                stockholmKw.addToFinalScript(true)
+                                rfamKw.addToFinalScript(true)
                                 elementChild.attributes.forEach { attribute ->
+                                    if (attribute.startsWith("use alignment numbering")) {
+                                        val parameter =
+                                            (rfamKw.searchFirst { it is OptionalDSLParameter && "use".equals(it.key.text.text) && "alignment".equals(it.operator.text.text.trim()) && "numbering".equals(it.value.text.text) } as OptionalDSLParameter)
+                                        parameter.addToFinalScript(true)
+                                    }
                                     val tokens = attribute.split("=")
                                     if ("id".equals(tokens.first().trim())) {
                                         val parameter =
-                                            (stockholmKw.searchFirst { it is DSLParameter && "id".equals(it.key.text.text) } as DSLParameter)
+                                            (rfamKw.searchFirst { it is DSLParameter && "id".equals(it.key.text.text) } as DSLParameter)
                                         parameter.value.text.text = tokens.last().trim()
                                     }
                                     if ("name".equals(tokens.first().trim())) {
                                         val parameter =
-                                            (stockholmKw.searchFirst { it is OptionalDSLParameter && "name".equals(it.key.text.text) } as OptionalDSLParameter)
+                                            (rfamKw.searchFirst { it is OptionalDSLParameter && "name".equals(it.key.text.text) } as OptionalDSLParameter)
+                                        parameter.addToFinalScript(true)
+                                        parameter.value.text.text = tokens.last().trim()
+                                    }
+                                }
+                            }
+
+                            "pdb" -> {
+                                val pdbKW =
+                                    (secondaryStructureKw.searchFirst { themeChild -> themeChild is PDBKw && !themeChild.inFinalScript } as PDBKw)
+                                pdbKW.addToFinalScript(true)
+                                elementChild.attributes.forEach { attribute ->
+                                    val tokens = attribute.split("=")
+                                    if ("file".equals(tokens.first().trim())) {
+                                        val parameter =
+                                            (pdbKW.searchFirst { it is OptionalDSLParameter && "file".equals(it.key.text.text) } as OptionalDSLParameter)
+                                        parameter.addToFinalScript(true)
+                                        parameter.value.text.text = tokens.last().trim()
+                                    }
+                                    if ("id".equals(tokens.first().trim())) {
+                                        val parameter =
+                                            (pdbKW.searchFirst { it is OptionalDSLParameter && "id".equals(it.key.text.text) } as OptionalDSLParameter)
+                                        parameter.addToFinalScript(true)
+                                        parameter.value.text.text = tokens.last().trim()
+                                    }
+                                    if ("name".equals(tokens.first().trim())) {
+                                        val parameter =
+                                            (pdbKW.searchFirst { it is OptionalDSLParameter && "name".equals(it.key.text.text) } as OptionalDSLParameter)
+                                        parameter.addToFinalScript(true)
                                         parameter.value.text.text = tokens.last().trim()
                                     }
                                 }

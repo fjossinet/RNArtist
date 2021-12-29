@@ -9,6 +9,7 @@ class SecondaryStructureKw(editor: ScriptEditor, indentLevel:Int): DSLKeyword(ed
         this.children.add(this.children.size-1, CtKw(this, editor, this.indentLevel+1))
         this.children.add(this.children.size-1, BpseqKw(this, editor, this.indentLevel+1))
         this.children.add(this.children.size-1, ViennaKw(this, editor, this.indentLevel+1))
+        this.children.add(this.children.size-1, PDBKw(this, editor, this.indentLevel+1))
         this.children.add(this.children.size-1, StockholmKw(this, editor, this.indentLevel+1))
         this.children.add(this.children.size-1, RfamKw(this, editor, this.indentLevel+1))
     }
