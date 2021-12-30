@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.RNArtist
 import io.github.fjossinet.rnartist.core.RnartistConfig
+import io.github.fjossinet.rnartist.core.io.copyFile
 import io.github.fjossinet.rnartist.core.io.parseDSLScript
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
@@ -52,7 +53,7 @@ class ScriptEditor(val mediator: Mediator) {
     val scrollpane = ScrollPane(editorPane)
     private val run = Button(null, FontIcon("fas-play:15"))
 
-        init {
+    init {
         stage.title = "Script Editor"
         createScene(stage)
     }
@@ -207,6 +208,21 @@ class ScriptEditor(val mediator: Mediator) {
             if (file != null) {
                 if (file.name.endsWith(".kts")) {
                     fileChooser.initialDirectory = file.parentFile
+
+                    //we copy the input files in the target directory and we update the script
+                    scriptRoot?.getSecondaryStructureKw()?.let { ssKw ->
+                        val inputFiles = mutableListOf<DSLElement>()
+                        ssKw.searchAll(inputFiles) { it is OptionalDSLKeyword && it.inFinalScript && it.text.text.trim() in listOf("pdb", "vienna", "stockholm", "ct", "bpseq") }
+                        inputFiles.forEach {
+                            val fileAttribute = it.searchFirst { it is DSLParameter && it.key.text.text.trim().equals("file") } as DSLParameter?
+                            fileAttribute?.let { fileAttribute ->
+                                val newFile = File(file.parentFile, fileAttribute.value.text.text.replace("\"","").split("/").last())
+                                copyFile(File(fileAttribute.value.text.text.replace("\"","")), newFile)
+                                fileAttribute.value.text.text = "\"${newFile.absolutePath.replace("\\", "/")}\""
+                            }
+                        }
+                    }
+                    //now we save the script...
                     val writer: PrintWriter
                     try {
                         writer = PrintWriter(file)
@@ -219,6 +235,14 @@ class ScriptEditor(val mediator: Mediator) {
                     } catch (e: IOException) {
                         e.printStackTrace()
                     }
+                    //and we create a preview as a png file...
+                    (mediator.drawingDisplayed.get() as? DrawingLoadedFromScriptEditor)?.let {
+                        println(it.id)
+                        println(scriptRoot!!.id)
+                        if (it.id.equals(scriptRoot!!.id)) {
+                            it.drawing.asPNG(Rectangle2D.Double(0.0,0.0,500.0,500.0), null, File(file.parentFile, "preview.png"))
+                        }
+                    }
                 }
             }
 
@@ -226,7 +250,7 @@ class ScriptEditor(val mediator: Mediator) {
 
         val saveAsGist = MenuItem("Publish as GitHub Gist..")
         saveAsGist.setOnAction(EventHandler<ActionEvent?> {
-            val token = "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"
+            val token = ""
             if (token.trim().isNotEmpty()) {
                 mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
                     val dialog = Dialog<String>()

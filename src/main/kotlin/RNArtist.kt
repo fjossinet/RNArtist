@@ -118,6 +118,12 @@ rnartist {
             file = "${f.absolutePath.replace("\\", "/")}"
         }
     }
+    
+    theme {
+       details {
+           value = 1
+       }
+    }
 }
 """
                             )
@@ -134,6 +140,11 @@ rnartist {
         bpseq {
             file = "${f.absolutePath.replace("\\", "/")}"
         }
+    }    
+    theme {
+       details {
+           value = 1
+       }
     }
 }
 """
@@ -154,6 +165,11 @@ rnartist {
         vienna {
             file = "${f.absolutePath.replace("\\", "/")}"
         }
+    }    
+    theme {
+       details {
+           value = 1
+       }
     }
 }
 """
@@ -171,6 +187,11 @@ rnartist {
         pdb {
             file = "${f.absolutePath.replace("\\", "/")}"
         }
+    }    
+    theme {
+       details {
+           value = 1
+       }
     }
 }
 """
@@ -188,6 +209,11 @@ rnartist {
         stockholm {
             file = "${f.absolutePath.replace("\\", "/")}"
         }
+    }    
+    theme {
+       details {
+           value = 1
+       }
     }
 }
 """
