@@ -4,9 +4,9 @@ import io.github.fjossinet.rnartist.core.model.Block
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
 
-open class LocationKw(script: Script, indentLevel:Int, inFinalScript:Boolean = false, var l:Location? = null): OptionalDSLKeyword(script, " location", indentLevel, inFinalScript) {
+class HelixLocationKw(script: Script, indentLevel:Int, inFinalScript:Boolean = false, var l: Location? = null): OptionalDSLKeyword(script, " location", indentLevel, inFinalScript) {
 
-    var location:Location?
+    var location: Location?
         get() {
             var blocks = mutableListOf<Block>()
             this.children.filter {it is OptionalDSLParameter && it.inFinalScript && "to".equals(it.operator.text.text.trim()) }.forEach { range ->
@@ -45,8 +45,13 @@ open class LocationKw(script: Script, indentLevel:Int, inFinalScript:Boolean = f
             this.l?.let { location ->
                 this.location = Location(location.positions.toIntArray())
             } ?: run {
-                if (script.mediator.canvas2D.getSelectedPositions().isNotEmpty())
-                    this.location = Location(script.mediator.canvas2D.getSelectedPositions().toIntArray())
+                if (script.mediator.canvas2D.getSelectedPositions().size == 4) {
+                    val positions = script.mediator.canvas2D.getSelectedPositions().sorted()
+                    val b1 = Block(positions[0], positions[1])
+                    val b2 = Block(positions[2], positions[3])
+                    if (b1.length == b2.length)
+                        this.location = Location(mutableListOf(b1,b2))
+                }
                 else
                     this.children.add(
                         this.children.size - 1,

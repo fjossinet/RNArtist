@@ -27,7 +27,7 @@ class Mediator(val rnartist: RNArtist) {
                             ChimeraXDriver(this)
                         else
                             ChimeraDriver(this)
-    var editor = ScriptEditor(this)
+    var scriptEditor = ScriptEditor(this)
     val settings = Settings(this)
     val explorer = Explorer(this)
     val projectsPanel = ProjectsPanel(this)
@@ -132,7 +132,6 @@ class Mediator(val rnartist: RNArtist) {
                             }
                         }
                         rnartist.updateProject.isDisable = true
-                        this.editor.pasteDrawing(newValue.drawing)
                     }
                     is DrawingLoadedFromRNArtistDB -> {
                         //println("new 2D loaded from DB")
@@ -157,7 +156,6 @@ class Mediator(val rnartist: RNArtist) {
                             }
                         }
                         rnartist.updateProject.isDisable = false
-                        this.editor.pasteDrawing(newValue.drawing)
                     }
                 }
                 this.canvas2D.repaint();

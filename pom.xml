@@ -154,7 +154,7 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.2.18-SNAPSHOT</version>
+            <version>0.2.19-SNAPSHOT</version>
         </dependency>
 
     </dependencies>

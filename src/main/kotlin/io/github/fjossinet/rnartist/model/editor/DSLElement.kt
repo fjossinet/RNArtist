@@ -1,13 +1,13 @@
 package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.scene.Node
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 
-open class DSLElement(val editor: ScriptEditor, text:String, val indentLevel:Int) {
+open class DSLElement(val script: Script, text:String, var indentLevel:Int) {
     val children = mutableListOf<DSLElement>()
     val text = Text()
 
@@ -34,17 +34,25 @@ open class DSLElement(val editor: ScriptEditor, text:String, val indentLevel:Int
         this.text.font = Font.font(RnartistConfig.editorFontName, RnartistConfig.editorFontSize.toDouble())
     }
 
+    open fun increaseIndentLevel() {
+        this.children.forEach { it.increaseIndentLevel() }
+    }
+
+    open fun decreaseIndentLevel() {
+        this.children.forEach { it.decreaseIndentLevel() }
+    }
+
     /**
      * Generates the JavaFX Nodes from the editor model
      */
     open fun dumpNodes(nodes:MutableList<Node>, withTabs:Boolean=true) {
         if (withTabs)
             (0 until indentLevel).forEach {
-                nodes.add(ScriptTab(editor).text)
+                nodes.add(ScriptTab(script).text)
             }
         nodes.add(this.text)
         this.children.forEach {
-            it.dumpNodes(nodes)
+            it.dumpNodes(nodes, withTabs)
         }
     }
 

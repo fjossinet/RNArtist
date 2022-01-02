@@ -4,7 +4,7 @@ import javafx.geometry.Insets
 import javafx.scene.control.TextField
 import javafx.scene.text.Text
 
-class TextField(var editor: ScriptEditor, text: Text):TextField(text.text.replace("\"", "")) {
+class TextField(var editor: Script, text: Text):TextField(text.text.replace("\"", "")) {
 
     init {
         font = text.font

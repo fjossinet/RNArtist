@@ -50,7 +50,7 @@ class SplashWindow(val mediator: Mediator) {
                 stage.hide()
                 mediator.rnartist.stage.show()
                 mediator.rnartist.stage.toFront()
-                mediator.editor.stage.show()
+                mediator.scriptEditor.stage.show()
             }
             result.second?.let {
                 val alert = Alert(Alert.AlertType.ERROR)
@@ -83,7 +83,7 @@ class SplashWindow(val mediator: Mediator) {
                 stage.hide()
                 mediator.rnartist.stage.show()
                 mediator.rnartist.stage.toFront()
-                mediator.editor.stage.show()
+                mediator.scriptEditor.stage.show()
             }
         }
         progressBar.progressProperty().unbind();

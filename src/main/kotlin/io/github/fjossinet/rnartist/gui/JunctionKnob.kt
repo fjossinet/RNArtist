@@ -5,44 +5,44 @@ import io.github.fjossinet.rnartist.core.layout
 import io.github.fjossinet.rnartist.core.model.*
 import java.awt.Color
 import java.awt.Graphics2D
-import java.awt.geom.AffineTransform
 import java.awt.geom.Ellipse2D
 import java.awt.geom.Path2D
 import java.awt.geom.Point2D
-
 
 class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
 
     val connectors = mutableListOf<JunctionConnector>()
     private val arrows = mutableListOf<JunctionArrow>()
-    var connectorRadius:Double = 0.0
+    var connectorRadius = 10.0
+    var centerX = 200.0
+    var centerY = 200.0
     //lateinit var detailsButton:DetailsButton
 
     init {
         this.update()
     }
 
-    fun getStructuralDomain(): StructuralDomainDrawing {
-        return this.junction
+    fun setCenter(center:Point2D) {
+        this.centerX = center.x
+        this.centerY = center.y
+        this.update()
     }
 
     fun update() {
-        this.connectorRadius = (if (junction.circle.width < 100.0)  junction.circle.width else 100.0)*Math.PI/(16.0*3.5)
         this.connectors.clear()
         this.arrows.clear()
-        if (this.junction.junctionType != JunctionType.ApicalLoop) {
             val connector = JunctionConnector(
                 ConnectorId.s,
                 false,
-                junction.center.x,
-                junction.center.y + (if (junction.circle.width < 100.0)  junction.circle.width else 100.0)  / 2.0 * 2.0 / 3.0,
+                centerX,
+                centerY + connectorRadius  * 6.0,
                 this
             )
             this.connectors.add(connector)
             for (i in 1 until 16) {
                 val p = rotatePoint(
                     connector.center,
-                    junction.center,
+                    Point2D.Double(this.centerX, this.centerY),
                     i * 360.0 / 16.0
                 )
                 val _connector = JunctionConnector(getConnectorId(i), false, p.x, p.y, this)
@@ -52,40 +52,35 @@ class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
             this.arrows.addAll(arrayListOf(Up(this), Down(this), Left(this), Right(this)));
             this.loadJunctionLayout()
             //this.detailsButton =  DetailsButton(this)
-        }
-        else {
-            this.arrows.addAll(arrayListOf(Up(this), Down(this)));
-            //this.detailsButton =  DetailsButton(this)
-        }
     }
 
-    fun draw(g: Graphics2D, at:AffineTransform) {
+    fun draw(g: Graphics2D) {
         val previousColor = g.color
 
         for (c in this.connectors)
-            c.draw(g, at)
+            c.draw(g)
 
         for (arrow in this.arrows)
-            arrow.draw(g, at)
+            arrow.draw(g)
 
         //this.detailsButton.draw(g, at)
 
         g.color = previousColor
     }
 
-    fun contains(x: Double, y: Double, at: AffineTransform): Boolean {
+    fun contains(x: Double, y: Double): Boolean {
         /*if (at.createTransformedShape(this.detailsButton.innerCircle).contains(x, y)) {
             this.detailsButton.mouseCliked()
             return true;
         }*/
         for (connector in this.connectors) {
-            if (!connector.isInId && at.createTransformedShape(connector.circle).contains(x, y)) {
+            if (!connector.isInId && connector.circle.contains(x, y)) {
                 connector.mouseClicked()
                 return true;
             }
         }
         for (arrow in this.arrows) {
-            if (arrow.contains(x, y, at)) {
+            if (arrow.contains(x, y)) {
                 arrow.mouseClicked()
                 return true;
             }
@@ -148,7 +143,7 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
         this.circle = Ellipse2D.Double(centerX- knob.connectorRadius, centerY-knob.connectorRadius,knob.connectorRadius*2,knob.connectorRadius*2)
     }
 
-    fun draw(g: Graphics2D, at: AffineTransform) {
+    fun draw(g: Graphics2D) {
         if (isInId)
             return;
         /*else if (selected && this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("true"))
@@ -161,9 +156,9 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
         else
             g.color = Color.LIGHT_GRAY
 
-        g.fill(at.createTransformedShape(this.circle))
+        g.fill(this.circle)
         g.color = g.color.darker()
-        g.draw(at.createTransformedShape(this.circle))
+        g.draw(this.circle)
     }
 
     fun mouseClicked() {
@@ -176,18 +171,19 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
         //after the click, if we have the selected circles corresponding to helixCount-1 (-1 since the inner helix in red doesn't count)
         selectedCount = knob.connectors.count { it.selected }
         if (selectedCount == knob.junction.junctionType.value - 1) {
-            this.knob.junction.applyLayout(layout {
-                junction {
-                    name =  knob.junction.name
-                    out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
-                }
-            }!!)
+            if (knob.junction.junctionType != JunctionType.ApicalLoop)
+                this.knob.junction.applyLayout(layout {
+                    junction {
+                        name =  knob.junction.name
+                        out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
+                    }
+                }!!)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
         }
         knob.mediator.canvas2D.repaint()
-        knob.mediator.editor.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
+        knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
     }
 }
 
@@ -197,9 +193,9 @@ interface JunctionArrow {
 
     fun mouseReleased()
 
-    fun contains(x:Double,y:Double,at: AffineTransform):Boolean
+    fun contains(x:Double,y:Double):Boolean
 
-    fun draw(g: Graphics2D, at: AffineTransform)
+    fun draw(g: Graphics2D)
 
 }
 
@@ -207,15 +203,15 @@ abstract class AbstractJunctionArrow:JunctionArrow {
     lateinit var shape: Path2D
     var color = Color.LIGHT_GRAY
 
-    override fun contains(x:Double,y:Double,at: AffineTransform):Boolean {
-        return at.createTransformedShape(this.shape).contains(x,y)
+    override fun contains(x:Double,y:Double):Boolean {
+        return this.shape.contains(x,y)
     }
 
-    override fun draw(g: Graphics2D, at: AffineTransform) {
+    override fun draw(g: Graphics2D) {
         g.color = this.color
-        g.fill(at.createTransformedShape(this.shape))
+        g.fill(this.shape)
         g.color = g.color.darker()
-        g.draw(at.createTransformedShape(this.shape))
+        g.draw(this.shape)
     }
 }
 
@@ -223,35 +219,23 @@ class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
-        if (knob.junction.junctionType == JunctionType.ApicalLoop) {
-            this.shape.moveTo(knob.junction.center.x, knob.junction.center.y - 8 * knob.connectorRadius)
-            this.shape.lineTo(
-                knob.junction.center.x - knob.connectorRadius * 3,
-                knob.junction.center.y - 3*knob.connectorRadius
-            )
-            this.shape.lineTo(
-                knob.junction.center.x + knob.connectorRadius * 3,
-                knob.junction.center.y - 3*knob.connectorRadius
-            )
-        } else {
-            this.shape.moveTo(knob.junction.center.x, knob.junction.center.y - 4 * knob.connectorRadius)
-            this.shape.lineTo(
-                knob.junction.center.x - knob.connectorRadius * 1.5,
-                knob.junction.center.y - 2 * knob.connectorRadius
-            )
-            this.shape.lineTo(
-                knob.junction.center.x + knob.connectorRadius * 1.5,
-                knob.junction.center.y - 2 * knob.connectorRadius
-            )
-        }
+        this.shape.moveTo(knob.centerX, knob.centerY - 4 * knob.connectorRadius)
+        this.shape.lineTo(
+            knob.centerX - knob.connectorRadius * 1.5,
+            knob.centerY - 2 * knob.connectorRadius
+        )
+        this.shape.lineTo(
+            knob.centerX + knob.connectorRadius * 1.5,
+            knob.centerY - 2 * knob.connectorRadius
+        )
         this.shape.closePath()
     }
 
-    override fun draw(g: Graphics2D, at: AffineTransform) {
+    override fun draw(g: Graphics2D) {
         g.color = this.color
-        g.fill(at.createTransformedShape(this.shape))
+        g.fill(this.shape)
         g.color = g.color.darker()
-        g.draw(at.createTransformedShape(this.shape))
+        g.draw(this.shape)
     }
 
     override fun mouseClicked() {
@@ -278,27 +262,15 @@ class Down(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
-        if (knob.junction.junctionType == JunctionType.ApicalLoop) {
-            this.shape.moveTo(knob.junction.center.x, knob.junction.center.y + 8 * knob.connectorRadius)
-            this.shape.lineTo(
-                knob.junction.center.x - knob.connectorRadius * 3,
-                knob.junction.center.y + 3*knob.connectorRadius
-            )
-            this.shape.lineTo(
-                knob.junction.center.x + knob.connectorRadius * 3,
-                knob.junction.center.y + 3*knob.connectorRadius
-            )
-        } else {
-            this.shape.moveTo(knob.junction.center.x, knob.junction.center.y + 4 * knob.connectorRadius)
-            this.shape.lineTo(
-                knob.junction.center.x - knob.connectorRadius * 1.5,
-                knob.junction.center.y + 2 * knob.connectorRadius
-            )
-            this.shape.lineTo(
-                knob.junction.center.x + knob.connectorRadius * 1.5,
-                knob.junction.center.y + 2 * knob.connectorRadius
-            )
-        }
+        this.shape.moveTo(knob.centerX, knob.centerY + 4 * knob.connectorRadius)
+        this.shape.lineTo(
+            knob.centerX - knob.connectorRadius * 1.5,
+            knob.centerY + 2 * knob.connectorRadius
+        )
+        this.shape.lineTo(
+            knob.centerX + knob.connectorRadius * 1.5,
+            knob.centerY + 2 * knob.connectorRadius
+        )
         this.shape.closePath()
     }
 
@@ -324,9 +296,9 @@ class Left(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
-        this.shape.moveTo(knob.junction.center.x-4*knob.connectorRadius, knob.junction.center.y)
-        this.shape.lineTo(knob.junction.center.x-2*knob.connectorRadius, knob.junction.center.y-1.5*knob.connectorRadius)
-        this.shape.lineTo(knob.junction.center.x-2*knob.connectorRadius, knob.junction.center.y+1.5*knob.connectorRadius)
+        this.shape.moveTo(knob.centerX-4*knob.connectorRadius, knob.centerY)
+        this.shape.lineTo(knob.centerX-2*knob.connectorRadius, knob.centerY-1.5*knob.connectorRadius)
+        this.shape.lineTo(knob.centerX-2*knob.connectorRadius, knob.centerY+1.5*knob.connectorRadius)
         this.shape.closePath()
     }
 
@@ -348,17 +320,18 @@ class Left(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 }
                 currentPos = (currentPos+1)%16
             }
-            this.knob.junction.applyLayout(layout {
-                junction {
-                    name =  knob.junction.name
-                    out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
-                }
-            }!!)
+            if (knob.junction.junctionType != JunctionType.ApicalLoop)
+                this.knob.junction.applyLayout(layout {
+                    junction {
+                        name =  knob.junction.name
+                        out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
+                    }
+                }!!)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
             this.knob.mediator.canvas2D.repaint()
-            knob.mediator.editor.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
+            knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
         }
     }
 
@@ -371,9 +344,9 @@ class Right(private val knob:JunctionKnob):AbstractJunctionArrow() {
 
     init {
         this.shape = Path2D.Double()
-        this.shape.moveTo(knob.junction.center.x+4*knob.connectorRadius, knob.junction.center.y)
-        this.shape.lineTo(knob.junction.center.x+2*knob.connectorRadius, knob.junction.center.y-1.5*knob.connectorRadius)
-        this.shape.lineTo(knob.junction.center.x+2*knob.connectorRadius, knob.junction.center.y+1.5*knob.connectorRadius)
+        this.shape.moveTo(knob.centerX+4*knob.connectorRadius, knob.centerY)
+        this.shape.lineTo(knob.centerX+2*knob.connectorRadius, knob.centerY-1.5*knob.connectorRadius)
+        this.shape.lineTo(knob.centerX+2*knob.connectorRadius, knob.centerY+1.5*knob.connectorRadius)
         this.shape.closePath()
     }
 
@@ -395,17 +368,18 @@ class Right(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 }
                 currentPos = if (currentPos-1 == -1) 15 else currentPos-1
             }
-            this.knob.junction.applyLayout(layout {
-                junction {
-                    name =  knob.junction.name
-                    out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
-                }
-            }!!)
+            if (knob.junction.junctionType != JunctionType.ApicalLoop)
+                this.knob.junction.applyLayout(layout {
+                    junction {
+                        name =  knob.junction.name
+                        out_ids = knob.getJunctionLayout().map { it.toString() }.joinToString(separator = " ")
+                    }
+                }!!)
             this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
                 it.update()
             }
             this.knob.mediator.canvas2D.repaint()
-            knob.mediator.editor.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
+            knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
         }
     }
 

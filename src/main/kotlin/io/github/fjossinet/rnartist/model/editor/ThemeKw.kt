@@ -1,17 +1,17 @@
 package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.Script
 
-class ThemeKw(editor: ScriptEditor, indentLevel:Int, inFinalScript:Boolean = false): OptionalDSLKeyword(editor, " theme", indentLevel, inFinalScript) {
+class ThemeKw(script: Script, indentLevel:Int, inFinalScript:Boolean = false): OptionalDSLKeyword(script, " theme", indentLevel, inFinalScript) {
 
     override fun addToFinalScript(add: Boolean) {
         super.addToFinalScript(add)
         if (add) {
-            this.children.add(1, LineKw(editor, this.indentLevel+1))
-            this.children.add(1, HideKw(editor, this.indentLevel+1))
-            this.children.add(1, ShowKw(editor, this.indentLevel+1))
-            this.children.add(1, ColorKw(editor, this.indentLevel+1))
-            this.children.add(1, DetailsKw(editor, this.indentLevel+1))
+            this.children.add(1, LineKw(script, this.indentLevel+1))
+            this.children.add(1, HideKw(script, this.indentLevel+1))
+            this.children.add(1, ShowKw(script, this.indentLevel+1))
+            this.children.add(1, ColorKw(script, this.indentLevel+1))
+            this.children.add(1, DetailsKw(script, this.indentLevel+1))
         }
     }
 

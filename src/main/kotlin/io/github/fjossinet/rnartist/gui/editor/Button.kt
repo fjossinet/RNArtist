@@ -5,7 +5,7 @@ import javafx.scene.control.Button
 import javafx.scene.text.Font
 import javafx.scene.text.FontPosture
 
-class Button(val editor: ScriptEditor, s:String?, n: Node?): Button(s,n) {
+class Button(val editor: Script, s:String?, n: Node?): Button(s,n) {
     init {
         this.minHeight = 30.0
         this.prefHeight = 30.0

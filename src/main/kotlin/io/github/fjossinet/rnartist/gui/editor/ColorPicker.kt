@@ -4,7 +4,7 @@ import javafx.geometry.Insets
 import javafx.scene.control.ColorPicker
 import javafx.scene.paint.Color
 
-class ColorPicker(val editor: ScriptEditor, c: Color): ColorPicker(c) {
+class ColorPicker(val editor: Script, c: Color): ColorPicker(c) {
 
     init {
         this.minHeight = 30.0

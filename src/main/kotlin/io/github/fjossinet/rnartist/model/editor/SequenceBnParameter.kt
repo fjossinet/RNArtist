@@ -2,9 +2,9 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.core.model.RNA
 import io.github.fjossinet.rnartist.core.model.SecondaryStructure
-import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.Script
 
-class SequenceBnParameter(editor: ScriptEditor, val bnValue:DSLParameter, indentLevel:Int, inFinalScript:Boolean = false): OptionalDSLParameter(editor, null, StringWithoutQuotes(editor,"seq"), Operator(editor,"="), StringValueWithQuotes(editor,"", true), indentLevel, inFinalScript, false) {
+class SequenceBnParameter(script: Script, val bnValue:DSLParameter, indentLevel:Int, inFinalScript:Boolean = false): OptionalDSLParameter(script, null, StringWithoutQuotes(script,"seq"), Operator(script,"="), StringValueWithQuotes(script,"", true), indentLevel, inFinalScript, false) {
 
     override fun addToFinalScript(add:Boolean) {
         super.addToFinalScript(add)

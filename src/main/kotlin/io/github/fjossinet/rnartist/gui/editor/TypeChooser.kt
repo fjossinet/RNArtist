@@ -10,7 +10,7 @@ import javafx.scene.text.Text
 import javafx.util.Callback
 import java.util.stream.Collectors
 
-class TypeChooser(val editor:ScriptEditor,  text: Text, types:List<String>? = null): ComboBox<TypeChooser.TypeItem>() {
+class TypeChooser(val editor:Script, text: Text, types:List<String>? = null): ComboBox<TypeChooser.TypeItem>() {
 
     private var types = listOf(
         "A", "a", "U", "u", "G", "g", "C", "c", "R", "r", "Y", "y", "N", "n", "X", "x",

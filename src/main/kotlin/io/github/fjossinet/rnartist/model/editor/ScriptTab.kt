@@ -1,5 +1,5 @@
 package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.Script
 
-class ScriptTab(editor: ScriptEditor): DSLElement(editor, "\t", 0)
+class ScriptTab(script: Script): DSLElement(script, "\t", 0)

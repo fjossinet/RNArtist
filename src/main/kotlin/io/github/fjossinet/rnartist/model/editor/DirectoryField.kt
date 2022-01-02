@@ -1,12 +1,12 @@
 package io.github.fjossinet.rnartist.model.editor
 
-import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
+import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
 import javafx.scene.paint.Color
 import javafx.stage.DirectoryChooser
 import java.io.File
 
-class DirectoryField(editor: ScriptEditor, value:String = "Click me to choose your directory"): StringWithQuotes(editor, value, true) {
+class DirectoryField(script: Script, value:String = "Click me to choose your directory"): StringWithQuotes(script, value, true) {
 
     init {
         this.text.fill = Color.web("#4d4d4d")
@@ -14,7 +14,7 @@ class DirectoryField(editor: ScriptEditor, value:String = "Click me to choose yo
             this.text.onMouseClicked = EventHandler {
                 val directoryChooser = DirectoryChooser()
                 directoryChooser.initialDirectory = File(System.getProperty("user.home"))
-                val dir = directoryChooser.showDialog(editor.stage)
+                val dir = directoryChooser.showDialog(script.mediator.scriptEditor.stage)
                 dir?.let {
                     text.text = "\"${dir.absolutePath.replace("\\", "/")}\""
                 }
@@ -22,6 +22,6 @@ class DirectoryField(editor: ScriptEditor, value:String = "Click me to choose yo
         }
     }
 
-    override fun clone():DirectoryField = DirectoryField(editor, this.text.text.replace("\"", ""))
+    override fun clone():DirectoryField = DirectoryField(script, this.text.text.replace("\"", ""))
 
 }

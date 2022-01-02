@@ -2,12 +2,20 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.core.model.*
+import io.github.fjossinet.rnartist.core.model.DrawingElement
+import io.github.fjossinet.rnartist.core.model.JunctionDrawing
+import io.github.fjossinet.rnartist.core.model.ResidueDrawing
+import io.github.fjossinet.rnartist.core.model.StructuralDomainDrawing
 import java.awt.*
+import java.awt.event.ActionEvent
+import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentListener
 import java.awt.geom.AffineTransform
+import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
+
 
 class Canvas2D(val mediator: Mediator) : JPanel() {
 
@@ -69,7 +77,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
 
             if (!drawingDisplayed.drawing.quickDraw) {
                 drawingDisplayed.knobs.forEach {
-                    it.draw(g, at)
+                    it.draw(g)
                 }
                 drawingDisplayed.selectionShapes.forEach {
                     it.draw(g, at)
@@ -195,8 +203,12 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
                 if(mediator.canvas2D.getSelection().size != 0) {
                     drawingDisplayed.knobs.clear()
                 }
-                else if (el is JunctionDrawing && drawingDisplayed.knobs.isEmpty())
-                    drawingDisplayed.knobs.add(JunctionKnob(mediator, el))
+                else if (el is JunctionDrawing && drawingDisplayed.knobs.isEmpty()) {
+                    val knob = JunctionKnob(
+                        mediator, el)
+                    knob.setCenter(Point2D.Double(knob.connectorRadius*8.0, knob.connectorRadius*8.0))
+                    drawingDisplayed.knobs.add(knob)
+                }
                 drawingDisplayed.selectionShapes.add(SelectionShape(mediator, el))
                 repaint()
                 mediator.chimeraDriver.selectResidues(
@@ -227,6 +239,15 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
         }
         return domains
     }
+
+    fun updateKnobs() {
+        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+            drawingDisplayed.knobs.forEach {
+                it.setCenter(Point2D.Double(this.width-it.connectorRadius*8.0, this.height-it.connectorRadius*8.0))
+            }
+        }
+    }
+
 
     //code to animate the 2D
     /*

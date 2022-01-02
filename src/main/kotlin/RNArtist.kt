@@ -1,26 +1,24 @@
 package io.github.fjossinet.rnartist
 
 import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.core.io.*
-import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.RnartistConfig.getRnartistRelease
 import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerImageInstalled
 import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerInstalled
 import io.github.fjossinet.rnartist.core.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
 import io.github.fjossinet.rnartist.core.RnartistConfig.selectionWidth
-import io.github.fjossinet.rnartist.core.rnartist
+import io.github.fjossinet.rnartist.core.io.createTemporaryFile
+import io.github.fjossinet.rnartist.core.io.toJSON
+import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.Canvas2D
 import io.github.fjossinet.rnartist.gui.Explorer
-import io.github.fjossinet.rnartist.gui.RNAGallery
 import io.github.fjossinet.rnartist.gui.SplashWindow
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import io.github.fjossinet.rnartist.io.sendField
 import io.github.fjossinet.rnartist.io.sendFile
 import io.github.fjossinet.rnartist.model.DrawingLoaded
-import io.github.fjossinet.rnartist.model.DrawingLoadedFromFile
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNArtistDB
 import io.github.fjossinet.rnartist.model.ExplorerItem
 import javafx.animation.KeyFrame
@@ -28,7 +26,7 @@ import javafx.animation.Timeline
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
-import javafx.concurrent.Task
+import javafx.beans.value.ObservableValue
 import javafx.embed.swing.SwingNode
 import javafx.event.ActionEvent
 import javafx.event.EventHandler
@@ -46,7 +44,6 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Line
 import javafx.stage.*
 import javafx.util.Duration
-import org.apache.commons.lang3.tuple.Pair
 import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
@@ -109,7 +106,7 @@ class RNArtist : Application() {
             file?.let { f ->
                 if (f.name.endsWith(".ct")) {
                     Platform.runLater {
-                        mediator.editor.loadScript(
+                        mediator.scriptEditor.loadScript(
                             StringReader(
                                 """
 rnartist {
@@ -128,11 +125,11 @@ rnartist {
 """
                             )
                         )
-                        mediator.editor.runScript()
+                        mediator.scriptEditor.runScript()
                     }
                 } else if (f.name.endsWith(".bpseq")) {
                     Platform.runLater {
-                        mediator.editor.loadScript(
+                        mediator.scriptEditor.loadScript(
                             StringReader(
                                 """
 rnartist {
@@ -150,14 +147,14 @@ rnartist {
 """
                             )
                         )
-                        mediator.editor.runScript()
+                        mediator.scriptEditor.runScript()
                     }
                 } else if (f.name.endsWith(".fasta") || f.name.endsWith(".fas") || f.name.endsWith(
                         ".fa"
                     ) || f.name.endsWith(".vienna")
                 ) {
                     Platform.runLater {
-                        mediator.editor.loadScript(
+                        mediator.scriptEditor.loadScript(
                             StringReader(
                                 """
 rnartist {
@@ -175,11 +172,11 @@ rnartist {
 """
                             )
                         )
-                        mediator.editor.runScript()
+                        mediator.scriptEditor.runScript()
                     }
                 } else if (f.name.matches(Regex(".+\\.pdb[0-9]?"))) {
                     Platform.runLater {
-                        mediator.editor.loadScript(
+                        mediator.scriptEditor.loadScript(
                             StringReader(
                                 """
 rnartist {
@@ -197,11 +194,11 @@ rnartist {
 """
                             )
                         )
-                        mediator.editor.runScript()
+                        mediator.scriptEditor.runScript()
                     }
                 } else if (f.name.endsWith(".stk") || f.name.endsWith(".stockholm")) {
                     Platform.runLater {
-                        mediator.editor.loadScript(
+                        mediator.scriptEditor.loadScript(
                             StringReader(
                                 """
 rnartist {
@@ -219,7 +216,7 @@ rnartist {
 """
                             )
                         )
-                        mediator.editor.runScript()
+                        mediator.scriptEditor.runScript()
                     }
                 }
             }
@@ -456,7 +453,7 @@ rnartist {
                             out.write(boundaryBytes)
 
                             // Send our first field
-                            sendField(out, "script", mediator.editor.getScriptAsText())
+                            sendField(out, "script", mediator.scriptEditor.getScriptAsText())
 
                             // Send a separator
                             out.write(boundaryBytes)
@@ -768,7 +765,7 @@ rnartist {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setDetailsLevel("1")
+            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("1")
         }
 
         val levelDetails2 = Button("2")
@@ -796,7 +793,7 @@ rnartist {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setDetailsLevel("2")
+            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("2")
         }
 
         leftToolBar.add(levelDetails1, 0, row)
@@ -829,7 +826,7 @@ rnartist {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setDetailsLevel("3")
+            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("3")
         }
 
         val levelDetails4 = Button("4")
@@ -857,7 +854,7 @@ rnartist {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setDetailsLevel("4")
+            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("4")
         }
         leftToolBar.add(levelDetails3, 0, row)
         GridPane.setHalignment(levelDetails1, HPos.CENTER)
@@ -889,7 +886,7 @@ rnartist {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setDetailsLevel("5")
+            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("5")
         }
 
         leftToolBar.add(levelDetails5, 0, row++)
@@ -1021,23 +1018,23 @@ rnartist {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setColor("A", getHTMLColorString(javaFXToAwt(AColorPicker.value)))
-            mediator.editor.setColor(
+            mediator.scriptEditor.themeAndLayoutScript.setColor("A", getHTMLColorString(javaFXToAwt(AColorPicker.value)))
+            mediator.scriptEditor.themeAndLayoutScript.setColor(
                 "a",
                 getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE))
             )
-            mediator.editor.setColor("U", getHTMLColorString(javaFXToAwt(UColorPicker.value)))
-            mediator.editor.setColor(
+            mediator.scriptEditor.themeAndLayoutScript.setColor("U", getHTMLColorString(javaFXToAwt(UColorPicker.value)))
+            mediator.scriptEditor.themeAndLayoutScript.setColor(
                 "u",
                 getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE))
             )
-            mediator.editor.setColor("G", getHTMLColorString(javaFXToAwt(GColorPicker.value)))
-            mediator.editor.setColor(
+            mediator.scriptEditor.themeAndLayoutScript.setColor("G", getHTMLColorString(javaFXToAwt(GColorPicker.value)))
+            mediator.scriptEditor.themeAndLayoutScript.setColor(
                 "g",
                 getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE))
             )
-            mediator.editor.setColor("C", getHTMLColorString(javaFXToAwt(CColorPicker.value)))
-            mediator.editor.setColor(
+            mediator.scriptEditor.themeAndLayoutScript.setColor("C", getHTMLColorString(javaFXToAwt(CColorPicker.value)))
+            mediator.scriptEditor.themeAndLayoutScript.setColor(
                 "c",
                 getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE))
             )
@@ -1433,7 +1430,7 @@ rnartist {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setLineWidth(
+            mediator.scriptEditor.themeAndLayoutScript.setLineWidth(
                 "helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol",
                 "${lineWidth}"
             )
@@ -1532,7 +1529,7 @@ rnartist {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.editor.setColor(
+            mediator.scriptEditor.themeAndLayoutScript.setColor(
                 "helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction",
                 getHTMLColorString(javaFXToAwt(lineColorPicker.value))
             )
@@ -1605,7 +1602,7 @@ rnartist {
                             drawingLoaded.drawing.workingSession.zoomLevel
                         )
                         for (knob in drawingLoaded.knobs)
-                            if (knob.contains(mouseEvent.x, mouseEvent.y, at))
+                            if (knob.contains(mouseEvent.x, mouseEvent.y))
                                 return@mouseClicked
                         for (h in drawingLoaded.drawing.workingSession.helicesDrawn) {
                             var shape = h.selectionFrame
@@ -2078,8 +2075,8 @@ rnartist {
         val showEditor = Button(null, FontIcon("fas-play:15"))
         showEditor.tooltip = Tooltip("Show Script Editor")
         showEditor.onAction = EventHandler { actionEvent: ActionEvent? ->
-            mediator.editor.stage.show()
-            mediator.editor.stage.toFront()
+            mediator.scriptEditor.stage.show()
+            mediator.scriptEditor.stage.toFront()
         }
         windowsBar.children.add(showEditor)
 
@@ -2124,6 +2121,29 @@ rnartist {
                 windowEvent.consume()
             }
         })
+
+        this.stage.widthProperty().addListener {
+                obs: ObservableValue<out Number?>?, oldVal: Number?, newVal: Number? ->
+            //mediator.canvas2D.updateKnobs()
+            mediator.canvas2D.repaint()
+        }
+
+        this.stage.heightProperty().addListener {
+                obs: ObservableValue<out Number?>?, oldVal: Number?, newVal: Number? ->
+            //mediator.canvas2D.updateKnobs()
+            mediator.canvas2D.repaint()
+        }
+
+        this.stage.fullScreenProperty().addListener { obs: ObservableValue<out Boolean?>?, oldVal: Boolean?, newVal: Boolean? ->
+                //mediator.canvas2D.updateKnobs()
+                mediator.canvas2D.repaint()
+        }
+
+        this.stage.maximizedProperty().addListener{ obs: ObservableValue<out Boolean?>?, oldVal: Boolean?, newVal: Boolean? ->
+                //mediator.canvas2D.updateKnobs()
+                mediator.canvas2D.repaint()
+        }
+
 
         val screen = Screen.getPrimary()
 
