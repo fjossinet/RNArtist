@@ -63,10 +63,6 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
         g2.fillRect(0, 0, getWidth(), getHeight());
         g2.color = Color.BLACK
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            if (drawingDisplayed.drawing.workingSession.is_screen_capture) {
-                g.stroke = BasicStroke(drawingDisplayed.drawing.zoomLevel.toFloat() * RnartistConfig.selectionWidth)
-                g2.draw(drawingDisplayed.drawing.workingSession.screen_capture_area)
-            }
             val start = System.currentTimeMillis()
             val at = AffineTransform()
             at.translate(drawingDisplayed.drawing.viewX, drawingDisplayed.drawing.viewY)
@@ -100,40 +96,6 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
         gr = this.offScreenBuffer.getGraphics() as Graphics2D
         paintComponent(gr)
         g.drawImage(this.offScreenBuffer, 0, 0, this)
-    }
-
-    fun screenCapture(): BufferedImage? {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            var bufferedImage: BufferedImage?
-            drawingDisplayed.drawing.workingSession.viewX -= drawingDisplayed.drawing.workingSession.screen_capture_area!!.minX
-            drawingDisplayed.drawing.workingSession.viewY -= drawingDisplayed.drawing.workingSession.screen_capture_area!!.minY
-            bufferedImage = BufferedImage(
-                drawingDisplayed.drawing.workingSession.screen_capture_area!!.width.toInt(),
-                drawingDisplayed.drawing.workingSession.screen_capture_area!!.height.toInt(),
-                BufferedImage.TYPE_INT_ARGB
-            )
-            val g2 = bufferedImage.createGraphics()
-            g2.color = Color.WHITE
-            g2.fill(
-                Rectangle2D.Double(
-                    0.0, 0.0, drawingDisplayed.drawing.workingSession.screen_capture_area!!.width,
-                    drawingDisplayed.drawing.workingSession.screen_capture_area!!.height
-                )
-            )
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
-            g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
-            g2.background = Color.white
-            val at = AffineTransform()
-            at.translate(drawingDisplayed.drawing.viewX, drawingDisplayed.drawing.viewY)
-            at.scale(drawingDisplayed.drawing.zoomLevel, drawingDisplayed.drawing.zoomLevel)
-            drawingDisplayed.drawing.draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()));
-            g2.dispose()
-            drawingDisplayed.drawing.workingSession.viewX += drawingDisplayed.drawing.workingSession.screen_capture_area!!.minX
-            drawingDisplayed.drawing.workingSession.viewY += drawingDisplayed.drawing.workingSession.screen_capture_area!!.minY
-            return bufferedImage
-        }
-        return null
     }
 
     //++++++ Selection ++++++++++++

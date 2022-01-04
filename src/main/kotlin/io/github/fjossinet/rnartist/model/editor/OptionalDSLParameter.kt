@@ -9,8 +9,13 @@ import javafx.scene.text.Font
 import javafx.scene.text.Text
 import org.kordamp.ikonli.javafx.FontIcon
 
-open class OptionalDSLParameter(script: Script, var buttonName:String? = null, key:ParameterField, operator:Operator, value:ParameterField, indentLevel:Int, var inFinalScript:Boolean = false, var canBeMultiple:Boolean = false):
+open class OptionalDSLParameter(var parent:DSLElement, script: Script, var buttonName:String? = null, key:ParameterField, operator:Operator, value:ParameterField, indentLevel:Int, var canBeMultiple:Boolean = false):
     DSLParameter(script, key, operator, value,indentLevel) {
+
+    var inFinalScript = false
+        protected set(value) {
+            field = value
+        }
     val addButton = Button(script, "+ ${buttonName ?: key.text.text}", null)
     val removeButton = Button(script, null, FontIcon("fas-trash:15"))
 
@@ -33,70 +38,53 @@ open class OptionalDSLParameter(script: Script, var buttonName:String? = null, k
         }
 
     init {
-        this.addToFinalScript(inFinalScript)
-
-        addButton.onAction = EventHandler {
-            this.addToFinalScript(true)
-            script.initScript()
-        }
-
-        removeButton.onAction = EventHandler {
-            this.addToFinalScript(false)
-            script.initScript()
-        }
-    }
-
-    /**
-     * Reorganizes the children elements when this element change its status concerning the final script
-     */
-    open fun addToFinalScript(add:Boolean) {
-        if (add) {
-            inFinalScript = true
-            if (!this.children.contains(key)) {
-                this.children.add(key)
-                this.children.add(operator)
-                this.children.add(value)
-                this.children.add(NewLine(script))
-                if (this.canBeMultiple)
-                    this.children.add(
-                        OptionalDSLParameter(
-                            script,
-                            buttonName,
-                            key.clone(),
-                            operator.clone(),
-                            value.clone(),
-                            indentLevel,
-                            false,
-                            canBeMultiple
-                        )
-                    )
+        if (this.canBeMultiple) {
+            addButton.onAction = EventHandler {
+                this.inFinalScript = true
+                this.parent.children.add(this.parent.children.indexOf(this)+1, OptionalDSLParameter(parent, script, buttonName, key.clone(), operator.clone(), value.clone(),indentLevel, canBeMultiple))
+                script.initScript()
             }
-        } else {
-            inFinalScript = false
-            this.children.remove(key)
-            this.children.remove(operator)
-            this.children.remove(value)
-            this.children.removeAt(0)
+
+            removeButton.onAction = EventHandler {
+                this.inFinalScript = false
+                val childAfter = this.parent.children.get(this.parent.children.indexOf(this)+1)
+                if (childAfter is OptionalDSLParameter)
+                    this.parent.children.remove(this)
+                else {
+                    val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
+                    if (childBefore is OptionalDSLParameter && !childBefore.inFinalScript)
+                        this.parent.children.remove(this)
+                }
+                script.initScript()
+            }
+        }
+        else {
+
+            addButton.onAction = EventHandler {
+                this.inFinalScript = true
+                script.initScript()
+            }
+
+            removeButton.onAction = EventHandler {
+                this.inFinalScript = false
+                script.initScript()
+            }
         }
     }
 
-    override fun dumpNodes(nodes:MutableList<Node>, withTabs:Boolean) {
-        if (inFinalScript || !inFinalScript && this.children.isEmpty()) {
-            if (withTabs)
-                (0 until indentLevel).forEach {
-                    nodes.add(ScriptTab(script).text)
-                }
+    override fun dumpNodes(nodes:MutableList<Node>) {
+        (0 until indentLevel).forEach {
+            nodes.add(ScriptTab(script).text)
         }
         if (inFinalScript) {
             nodes.add(this.removeButton)
             nodes.add(this.text)
-        }
-        if (this.children.isEmpty()) { //if not empty, we have a parameter that can be multiple. And there is a children allowing to add a new one
+            this.children.forEach {
+                it.dumpNodes(nodes)
+            }
+        } else {
             nodes.add(this.addButton)
             nodes.add(Text("\n"))
-        }
-        this.children.forEach {
-            it.dumpNodes(nodes, withTabs)
         }
 
     }

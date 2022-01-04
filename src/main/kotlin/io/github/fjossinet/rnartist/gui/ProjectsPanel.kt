@@ -1,8 +1,10 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
+import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNArtistDB
+import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.concurrent.Task
@@ -31,12 +33,10 @@ import org.controlsfx.control.GridView
 import org.dizitart.no2.NitriteId
 import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.image.BufferedImage
-import java.io.File
-import java.io.IOException
-import java.io.PrintWriter
-import java.io.StringWriter
+import java.io.*
 import java.util.concurrent.ExecutionException
 import javax.imageio.ImageIO
+import javax.script.ScriptEngineManager
 
 class ProjectsPanel(val mediator:Mediator) {
     private val projectPanels: ObservableList<ProjectPanel>
@@ -45,7 +45,7 @@ class ProjectsPanel(val mediator:Mediator) {
 
     init {
         stage = Stage()
-        stage.title = "Saved Projects"
+        stage.title = "Your Projects"
         stage.onCloseRequest = EventHandler { windowEvent: WindowEvent? ->
             if (mediator.drawingDisplayed.isNotNull
                     .get()
@@ -60,7 +60,7 @@ class ProjectsPanel(val mediator:Mediator) {
         gridview.horizontalCellSpacing = 20.0
         gridview.verticalCellSpacing = 20.0
         gridview.cellWidth = 400.0
-        gridview.cellHeight = 200.0
+        gridview.cellHeight = 400.0
         gridview.style = "-fx-background-color: lightgray;"
         gridview.setCellFactory { ProjectCell() }
         val scene = Scene(gridview)
@@ -77,8 +77,8 @@ class ProjectsPanel(val mediator:Mediator) {
 
     fun loadProjects() {
         projectPanels.clear()
-        for (project in this.mediator.embeddedDB.getProjects().find()) {
-            projectPanels.add(ProjectPanel(project.id, project["name"] as String))
+        for (project in File(RnartistConfig.projectsFolder).listFiles(FileFilter { it.isDirectory })) {
+            projectPanels.add(ProjectPanel(project))
         }
     }
 
@@ -119,12 +119,13 @@ class ProjectsPanel(val mediator:Mediator) {
         private val content: VBox
         private val border: HBox
         private val titleBar: HBox
-        protected override fun updateItem(projectPanel: ProjectPanel?, empty: Boolean) {
+
+        override fun updateItem(projectPanel: ProjectPanel?, empty: Boolean) {
             super.updateItem(projectPanel, empty)
             graphic = null
             text = null
             if (!empty && projectPanel != null) {
-                projectName.text = projectPanel.name
+                projectName.text = projectPanel.projectDir.name
                 icon.image = projectPanel.image
                 graphic = content
             }
@@ -163,7 +164,7 @@ class ProjectsPanel(val mediator:Mediator) {
                     val deleteProject: Task<Exception?> = object : Task<Exception?>() {
                         override fun call(): Exception? {
                             return try {
-                                mediator.embeddedDB.removeProject(item!!.id!!)
+                                item!!.projectDir!!.delete()
                                 null
                             } catch (e: Exception) {
                                 e
@@ -211,20 +212,30 @@ class ProjectsPanel(val mediator:Mediator) {
                 }
             }
             icon.onMouseClicked = EventHandler {
-                val loadData: Task<Pair<SecondaryStructureDrawing?, Exception?>> =
-                    object : Task<Pair<SecondaryStructureDrawing?, Exception?>>() {
-                        override fun call(): Pair<SecondaryStructureDrawing?, Exception?> {
+                val loadData: Task<Exception?> =
+                    object : Task<Exception?>() {
+                        override fun call(): Exception? {
                             return try {
-                                Pair.of(mediator.embeddedDB.getProject(
-                                    item!!.id!!), null)
+                                Platform.runLater {
+                                    mediator.scriptEditor.loadScript(
+                                        FileReader(
+                                            File(
+                                                item!!.projectDir,
+                                                "rnartist.kts"
+                                            )
+                                        )
+                                    )
+                                    mediator.scriptEditor.runScript()
+                                }
+                                null
                             } catch (e: Exception) {
-                                Pair.of(null, e)
+                                e
                             }
                         }
                     }
                 loadData.onSucceeded = EventHandler {
                     try {
-                        loadData.get().right?.let { exception ->
+                        loadData.get()?.let { exception ->
                             val alert = Alert(Alert.AlertType.ERROR)
                             alert.title = "Project loading error"
                             alert.headerText = exception.message
@@ -248,15 +259,11 @@ class ProjectsPanel(val mediator:Mediator) {
                             expContent.add(textArea, 0, 1)
                             alert.dialogPane.expandableContent = expContent
                             alert.showAndWait()
-                        }
-                        loadData.get().left?.let { result ->
+                        } ?: run {
                             stage.hide()
                             mediator.scriptEditor.stage.show()
                             mediator.rnartist.stage.show()
                             mediator.rnartist.stage.toFront()
-                            mediator.drawingsLoaded.add(DrawingLoadedFromRNArtistDB(mediator, result,
-                                item!!.id!!, item!!.name!!))
-                            mediator.drawingDisplayed.set(mediator.drawingsLoaded[mediator.drawingsLoaded.size - 1])
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -269,20 +276,13 @@ class ProjectsPanel(val mediator:Mediator) {
         }
     }
 
-    inner private class ProjectPanel {
-        var id: NitriteId? = null
-        var name: String? = null
-
-        constructor(id: NitriteId?, name: String?) {
-            this.id = id
-            this.name = name
-        }
+    inner private class ProjectPanel(val projectDir:File) {
 
         val image: Image?
             get() {
                 try {
-                    return Image(File(File(File(mediator.embeddedDB.rootDir, "images"), "user"),
-                        id.toString() + ".png").toURI().toURL().toString())
+                    return Image(File(projectDir,
+                        "preview.png").toURI().toURL().toString())
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

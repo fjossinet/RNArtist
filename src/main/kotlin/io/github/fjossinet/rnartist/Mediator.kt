@@ -31,9 +31,7 @@ class Mediator(val rnartist: RNArtist) {
     val settings = Settings(this)
     val explorer = Explorer(this)
     val projectsPanel = ProjectsPanel(this)
-
     lateinit var canvas2D: Canvas2D
-    var rnaGallery:Map<String, List<String>>? = null
 
     //++++++ some shortcuts
     private val secondaryStructure: SecondaryStructure?

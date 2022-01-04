@@ -14,9 +14,9 @@ class RNArtistKw(script: Script, indentLevel:Int = 0, val id:String= UUID.random
         this.children.add(1, PNGKw(script, this.indentLevel+1))
     }
 
-    fun getThemeKw():ThemeKw? = this.searchFirst { it is ThemeKw } as ThemeKw?
+    fun getThemeKw():ThemeKw = this.searchFirst { it is ThemeKw } as ThemeKw
 
-    fun getLayoutKw():LayoutKw? = this.searchFirst { it is LayoutKw } as LayoutKw?
+    fun getLayoutKw():LayoutKw = this.searchFirst { it is LayoutKw } as LayoutKw
 
     fun getSecondaryStructureKw():SecondaryStructureInputKw = this.searchFirst { it is SecondaryStructureInputKw } as SecondaryStructureInputKw
 

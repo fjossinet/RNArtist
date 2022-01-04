@@ -25,5 +25,9 @@ open class StringWithQuotes(script: Script, value:String, editable: Boolean = fa
         }
     }
 
+    fun setText(text:String) {
+        this.text.text = "\"${text}\""
+    }
+
     override fun clone(): StringWithQuotes = StringWithQuotes(script, this.text.text.replace("\"", ""), this.editable)
 }

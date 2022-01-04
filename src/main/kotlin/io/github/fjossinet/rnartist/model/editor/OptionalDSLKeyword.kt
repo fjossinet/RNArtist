@@ -10,8 +10,13 @@ import javafx.scene.text.Font
 import javafx.scene.text.Text
 import org.kordamp.ikonli.javafx.FontIcon
 
-open class OptionalDSLKeyword(script: Script, text:String, indentLevel:Int, var inFinalScript:Boolean = false):
+open class OptionalDSLKeyword(script: Script, text:String, indentLevel:Int):
     DSLKeyword(script,text,indentLevel) {
+
+    var inFinalScript = false
+        protected set(value) {
+            field = value
+        }
     val addButton = Button(script,  "+ $text", null)
     val removeButton = Button(script, null, FontIcon("fas-trash:15"))
 
@@ -23,59 +28,34 @@ open class OptionalDSLKeyword(script: Script, text:String, indentLevel:Int, var 
 
     init {
         this.text.fill = awtColorToJavaFX(RnartistConfig.keywordEditorColor)
-        this.addToFinalScript(inFinalScript)
 
         addButton.onAction = EventHandler {
-            this.addToFinalScript(true)
+            this.inFinalScript = true
             script.initScript()
         }
 
         removeButton.onAction = EventHandler {
-            this.addToFinalScript(false)
+            this.inFinalScript = false
             script.initScript()
         }
     }
 
-    /**
-     * Reorganizes the children elements when this element changes its status concerning the final script
-     */
-    open fun addToFinalScript(add:Boolean) {
-        if (add) {
-            inFinalScript = true
-            this.children.add(OpenedCurly(script))
-            this.children.add(ClosedCurly(script, indentLevel))
-        } else {
-            inFinalScript = false
-            val toRemove = mutableListOf<DSLElement>()
-            for (e in this.children) {
-                toRemove.add(e)
-                if (e is ClosedCurly)
-                    break
-            }
-            this.children.removeAll(toRemove)
+    override fun dumpNodes(nodes:MutableList<Node>) {
+        (0 until indentLevel).forEach {
+            nodes.add(ScriptTab(script).text)
         }
-    }
-
-    override fun dumpNodes(nodes:MutableList<Node>, withTabs:Boolean) {
-        if (inFinalScript || !inFinalScript && this.children.isEmpty()) {
-            if (withTabs)
-                (0 until indentLevel).forEach {
-                    nodes.add(ScriptTab(script).text)
-                }
-    }
         if (inFinalScript) {
             nodes.add(this.removeButton)
             nodes.add(this.text)
-        }
-        else {
-            if (this.children.isEmpty()) { //if not empty, we have a keyword that can be multiple. And there is a children allowing to add a new one
-                nodes.add(this.addButton)
-                nodes.add(Text("\n"))
+            this.children.forEach {
+                it.dumpNodes(nodes)
             }
         }
-        this.children.forEach {
-            it.dumpNodes(nodes, withTabs)
+        else {
+            nodes.add(this.addButton)
+            nodes.add(Text("\n"))
         }
+
     }
 
 }

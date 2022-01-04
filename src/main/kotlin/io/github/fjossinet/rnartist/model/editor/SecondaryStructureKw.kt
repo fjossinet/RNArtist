@@ -1,36 +1,39 @@
 package io.github.fjossinet.rnartist.model.editor
 
+import io.github.fjossinet.rnartist.core.model.SecondaryStructure
 import io.github.fjossinet.rnartist.gui.editor.Script
-import java.util.*
+import javafx.event.EventHandler
 
-class SecondaryStructureKw(script: Script, indentLevel:Int = 0, val id:String= UUID.randomUUID().toString()): OptionalDSLKeyword(script, " ss", indentLevel, inFinalScript = false) {
+class SecondaryStructureKw(script: Script, indentLevel:Int = 0): OptionalDSLKeyword(script, " ss", indentLevel) {
 
-    override fun addToFinalScript(add: Boolean) {
-        super.addToFinalScript(add)
-        if (add) {
-            script.mediator.drawingDisplayed?.get()?.drawing?.secondaryStructure?.let { secondaryStructure ->
-                var lastHelixKw:HelixKw? = null
-                secondaryStructure.helices.forEach { helix ->
-                    lastHelixKw?.let {
-                        lastHelixKw = it.searchFirst { it is HelixKw && !it.inFinalScript } as HelixKw
-                        lastHelixKw!!.helix = helix
-                        lastHelixKw!!.addToFinalScript(true)
-                    } ?: run {
-                        lastHelixKw = HelixKw( script, indentLevel+1, helix)
-                        lastHelixKw!!.addToFinalScript(true)
-                        this.children.add(1, lastHelixKw!!)
-                    }
+    init {
+        this.children.add(1, InteractionKw(this, script, this.indentLevel + 1))
+        this.children.add(1, HelixKw(this, script, this.indentLevel + 1))
+        this.children.add(1, RnaKw(script, this.indentLevel + 1))
+
+        addButton.onAction = EventHandler {
+            this.inFinalScript = true
+            script.mediator.drawingDisplayed?.get()?.drawing?.secondaryStructure?.let { ss ->
+                ss.helices.forEach { helix ->
+                    val helixKw = this.searchFirst { it is HelixKw && !it.inFinalScript } as HelixKw
+                    helixKw.setHelix(helix)
                 }
-                val rnaKw = RnaKw(script, this.indentLevel + 1, secondaryStructure.rna)
-                this.children.add(1, rnaKw)
-            } ?: run {
-                this.children.add(1, InteractionKw(script, this.indentLevel + 1))
-                this.children.add(1, HelixKw(script, this.indentLevel + 1))
-                this.children.add(1, RnaKw(script, this.indentLevel + 1))
+                (this.searchFirst { it is RnaKw } as RnaKw).setRna(ss.rna)
             }
             //we need to remove the ss element in the themeAndLayoutScript
-            script.mediator.scriptEditor.themeAndLayoutScript.removeSS()
+            script.mediator.scriptEditor.themeAndLayoutScript.removeSecondaryStructure()
+            script.initScript()
         }
+
+    }
+
+    fun setSecondaryStructure(ss:SecondaryStructure) {
+        ss.helices.forEach { helix ->
+            val helixKw = this.searchFirst { it is HelixKw && !it.inFinalScript } as HelixKw
+            helixKw.setHelix(helix)
+        }
+        (this.searchFirst { it is RnaKw } as RnaKw).setRna(ss.rna)
+        this.addButton.fire()
     }
 
 }

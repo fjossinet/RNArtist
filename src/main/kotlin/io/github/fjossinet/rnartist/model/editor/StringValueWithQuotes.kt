@@ -9,6 +9,8 @@ class StringValueWithQuotes(script: Script, value:String, editable: Boolean = fa
         this.text.fill = Color.web("4d4d4d")
     }
 
+
+
     override fun clone(): StringValueWithQuotes = StringValueWithQuotes(script, this.text.text.replace("\"", ""), this.editable)
 
 }

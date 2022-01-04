@@ -27,5 +27,9 @@ class IntegerField(script: Script, value:Int, val min:Int = 1, val max:Int = Int
         }
     }
 
+    fun setValue(value:Int) {
+        this.text.text = "${value}"
+    }
+
     override fun clone(): IntegerField = IntegerField(script, text.text.toInt(), this.min, this.max)
 }

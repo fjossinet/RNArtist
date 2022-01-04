@@ -2,55 +2,61 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
+import javafx.event.EventHandler
 import javafx.scene.paint.Color
 
-class ColorKw(script: Script, indentLevel:Int, inFinalScript:Boolean = false): OptionalDSLKeyword(script, " color", indentLevel, inFinalScript) {
+class ColorKw(var parent:ThemeKw, script: Script, indentLevel:Int): OptionalDSLKeyword(script, " color", indentLevel) {
 
-    override fun addToFinalScript(add: Boolean) {
-        super.addToFinalScript(add)
-        if (add) {
-            this.children.add(1, OptionalDSLParameter(script, null, StringWithoutQuotes(script,"data"), DataOperatorField(script,"gt"),
-                FloatField(script,"20.7"), this.indentLevel + 1))
-            this.children.add(1, OptionalDSLParameter(script, null, StringWithoutQuotes(script,"to"), Operator(script,"="), ColorField(script), this.indentLevel + 1))
-            this.children.add(1, OptionalDSLParameter(script, null, StringWithoutQuotes(script,"type"), Operator(script,"="), TypeField(script,"click me"), this.indentLevel + 1))
-            this.children.add(1, LocationKw(script, this.indentLevel + 1))
-            this.children.add(1, DSLParameter(script, StringWithoutQuotes(script,"value"), Operator(script,"="), ColorField(script), this.indentLevel + 1))
-            this.children.add(ColorKw(script, indentLevel))
+    init {
+        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"data"), DataOperatorField(script,"gt"),
+            FloatField(script,"20.7"), this.indentLevel + 1))
+        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"to"), Operator(script,"="), ColorField(script), this.indentLevel + 1))
+        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"type"), Operator(script,"="), TypeField(script,"click me"), this.indentLevel + 1))
+        this.children.add(1, LocationKw(script, this.indentLevel + 1))
+        this.children.add(1, DSLParameter(script, StringWithoutQuotes(script,"value"), Operator(script,"="), ColorField(script), this.indentLevel + 1))
+
+        addButton.onAction = EventHandler {
+            this.inFinalScript = true
+            if (this.parent.children.get(this.parent.children.indexOf(this)+1) !is ColorKw)
+                this.parent.children.add(this.parent.children.indexOf(this) + 1, ColorKw(parent, script, indentLevel))
+            script.initScript()
+        }
+
+        removeButton.onAction = EventHandler {
+            this.inFinalScript = false
+            val childAfter = this.parent.children.get(this.parent.children.indexOf(this) + 1)
+            if (childAfter is ColorKw)
+                this.parent.children.remove(this)
+            else {
+                val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
+                if (childBefore is ColorKw && !childBefore.inFinalScript)
+                    this.parent.children.remove(this)
+            }
+            script.initScript()
         }
     }
 
     fun setTypes(types:String) {
-        if (!this.inFinalScript)
-            this.addButton.fire()
         val parameter = this.searchFirst { it is OptionalDSLParameter && "type".equals(it.key.text.text.trim())} as OptionalDSLParameter
-        if (!parameter.inFinalScript)
-            parameter.addButton.fire()
         parameter.value.text.text = "\"${types}\""
-        if (!parameter.inFinalScript)
-            parameter.addButton.fire()
+        parameter.addButton.fire()
+        this.addButton.fire()
     }
 
     fun getTypes():String? = (this.searchFirst { it is OptionalDSLParameter && "type".equals(it.key.text.text.trim())} as OptionalDSLParameter?)?.value?.text?.text?.replace("\"","")
 
     fun setColor(color:String) {
-        if (!this.inFinalScript)
-            this.addButton.fire()
         val parameter = this.searchFirst { it is DSLParameter && "value".equals(it.key.text.text.trim())} as DSLParameter
         parameter.value.text.text = "\"$color\""
         parameter.value.text.fill = Color.web(color)
+        this.addButton.fire()
     }
 
-    fun getLocation(): Location? = (this.searchFirst { it is LocationKw } as LocationKw?)?.location
+    fun getLocation(): Location? = (this.searchFirst { it is LocationKw } as LocationKw?)?.getLocation()
 
-    /**
-     * No argument needed. The function addToFinalScript (fired with the button) uses the current selection
-     */
-    fun setLocation() {
-        if (!this.inFinalScript)
-            this.addButton.fire()
-        val l = (this.searchFirst { it is LocationKw } as LocationKw?)!!
-        if (script.mediator.canvas2D.getSelection().isNotEmpty() && !l.inFinalScript) //if there is a selection, the location needs to be added to the script
-            l.addButton.fire()
+    fun setLocation(location:Location) {
+        (this.searchFirst { it is LocationKw } as LocationKw).setLocation(location)
+        this.addButton.fire()
     }
 
 }

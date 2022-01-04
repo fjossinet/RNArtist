@@ -2,50 +2,56 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
+import javafx.event.EventHandler
 
-class JunctionLayoutKw(script: Script, indentLevel:Int, inFinalScript:Boolean = false): OptionalDSLKeyword(script, " junction", indentLevel, inFinalScript) {
+class JunctionLayoutKw(val parent: LayoutKw, script: Script, indentLevel:Int): OptionalDSLKeyword(script, " junction", indentLevel) {
 
-    override fun addToFinalScript(add: Boolean) {
-        super.addToFinalScript(add)
-        if (add) {
-            this.children.add(1, OptionalDSLParameter(script, null, StringWithoutQuotes(script,"out_ids"), Operator(script,"="), StringValueWithQuotes(script,"nnw nne", editable = true), this.indentLevel + 1))
-            this.children.add(1, LocationKw(script, this.indentLevel + 1))
-            this.children.add(1, OptionalDSLParameter(script, null, StringWithoutQuotes(script,"type"), Operator(script,"="), IntegerField(script,3), this.indentLevel + 1))
-            this.children.add(JunctionLayoutKw(script, indentLevel))
+    init {
+        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"out_ids"), Operator(script,"="), StringValueWithQuotes(script,"nnw nne", editable = true), this.indentLevel + 1))
+        this.children.add(1, LocationKw(script, this.indentLevel + 1))
+        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"type"), Operator(script,"="), IntegerField(script,3), this.indentLevel + 1))
+
+        addButton.onAction = EventHandler {
+            this.inFinalScript = true
+            if (this.parent.children.get(this.parent.children.indexOf(this)+1) !is JunctionLayoutKw)
+                this.parent.children.add(this.parent.children.indexOf(this)+1, JunctionLayoutKw(parent, script, indentLevel))
+            script.initScript()
+        }
+
+        removeButton.onAction = EventHandler {
+            this.inFinalScript = false
+            val childAfter = this.parent.children.get(this.parent.children.indexOf(this)+1)
+            if (childAfter is JunctionLayoutKw)
+                this.parent.children.remove(this)
+            else {
+                val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
+                if (childBefore is JunctionLayoutKw && !childBefore.inFinalScript)
+                    this.parent.children.remove(this)
+            }
+            script.initScript()
         }
     }
 
     fun setOutIds(outIds:String) {
-        if (!this.inFinalScript)
-            this.addButton.fire()
         val parameter = this.searchFirst { it is OptionalDSLParameter && "out_ids".equals(it.key.text.text.trim())} as OptionalDSLParameter
-        if (!parameter.inFinalScript)
-            parameter.addButton.fire()
         parameter.value.text.text = outIds
-        if (!this.inFinalScript)
-            this.addButton.fire()
+        parameter.addButton.fire()
+        this.addButton.fire()
     }
 
-    fun getLocation():Location? = (this.searchFirst { it is LocationKw } as LocationKw?)?.location
+    fun getLocation(): Location? = (this.searchFirst { it is LocationKw } as LocationKw?)?.getLocation()
 
-    /**
-     * No argument needed. The function addToFinalScript (fired with the button) uses the current selection
-     */
-    fun setLocation() {
-        if (!this.inFinalScript)
-            this.addButton.fire()
-        val l = (this.searchFirst { it is LocationKw } as LocationKw?)!!
-        if (script.mediator.canvas2D.getSelection().isNotEmpty() && !l.inFinalScript) //if there is a selection, the location needs to be added to the script
-            l.addButton.fire()
+    fun setLocation(location:Location) {
+        (this.searchFirst { it is LocationKw } as LocationKw).setLocation(location)
+        this.addButton.fire()
     }
 
     fun setType(type: String) {
-        if (!this.inFinalScript)
-            this.addButton.fire()
         val parameter = this.searchFirst { it is OptionalDSLParameter && "type".equals(it.key.text.text.trim())} as OptionalDSLParameter
-        if (!parameter.inFinalScript)
-            parameter.addButton.fire()
         parameter.value.text.text = type
+        parameter.addButton.fire()
+        this.addButton.fire()
+
     }
 
 }

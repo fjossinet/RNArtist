@@ -249,15 +249,6 @@ rnartist {
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         saveProjectAs.onMouseClicked = EventHandler {
             mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                drawing.workingSession.is_screen_capture = true
-                drawing.workingSession.screen_capture_area =
-                    Rectangle2D.Double(
-                        mediator.canvas2D.getBounds().getCenterX() - 200,
-                        mediator.canvas2D.getBounds().getCenterY() - 100,
-                        400.0,
-                        200.0
-                    )
-                mediator.canvas2D.repaint()
                 val dialog = TextInputDialog("My Project")
                 dialog.initModality(Modality.NONE)
                 dialog.title = "Project Saving"
@@ -267,32 +258,10 @@ rnartist {
                 val projectName = dialog.showAndWait()
                 if (projectName.isPresent && !projectName.isEmpty) {
                     try {
-                        mediator.projectsPanel.saveProjectAs(
-                            projectName.get().trim { it <= ' ' },
-                            mediator.canvas2D.screenCapture()!!
-                        )?.let { id ->
-                            drawing.workingSession.is_screen_capture = false
-                            drawing.workingSession.screen_capture_area = null
-                            mediator.embeddedDB.getProject(id)
-                                ?.let { newDrawing -> //we reload it from the DB to have a copy of the drawing and not the same object
-                                    mediator.drawingsLoaded.add(
-                                        0,
-                                        DrawingLoadedFromRNArtistDB(mediator,
-                                            newDrawing,
-                                            id,
-                                            projectName.get().trim { it <= ' ' })
-                                    )
-                                    mediator.drawingDisplayed.set(mediator.drawingsLoaded[0])
-                                }
-                        }
 
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                } else {
-                    drawing.workingSession.is_screen_capture = false
-                    drawing.workingSession.screen_capture_area = null
-                    mediator.canvas2D.repaint()
                 }
             }
         }
@@ -305,14 +274,6 @@ rnartist {
         this.updateProject.setOnMouseClicked(EventHandler<MouseEvent?> {
             try {
                 mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                    drawing.workingSession.is_screen_capture = true
-                    drawing.workingSession.screen_capture_area =
-                        Rectangle2D.Double(
-                            mediator.canvas2D.getBounds().getCenterX() - 200,
-                            mediator.canvas2D.getBounds().getCenterY() - 100,
-                            400.0,
-                            200.0
-                        )
                     mediator.canvas2D.repaint()
                     val dialog =
                         TextInputDialog((mediator.drawingDisplayed.get() as? DrawingLoadedFromRNArtistDB)?.projectName)
@@ -325,21 +286,11 @@ rnartist {
                     if (projectName.isPresent) {
                         (mediator.drawingDisplayed.get() as? DrawingLoadedFromRNArtistDB)?.projectName =
                             projectName.get().trim { it <= ' ' }
-                        mediator.projectsPanel.updateProject(
-                            projectName.get().trim { it <= ' ' },
-                            mediator.canvas2D.screenCapture()!!
-                        )
                         allStructuresAvailable.items.forEach {
                             if (it.userData == mediator.drawingDisplayed.get()) {
                                 it.text = it.userData.toString()
                             }
                         }
-                        drawing.workingSession.is_screen_capture = false
-                        drawing.workingSession.screen_capture_area = null
-                        mediator.canvas2D.repaint()
-                    } else {
-                        drawing.workingSession.is_screen_capture = false
-                        drawing.workingSession.screen_capture_area = null
                         mediator.canvas2D.repaint()
                     }
                 }
@@ -402,14 +353,6 @@ rnartist {
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         submitProject.onMouseClicked = EventHandler {
             mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                drawing.workingSession.is_screen_capture = true
-                drawing.workingSession.screen_capture_area =
-                    Rectangle2D.Double(
-                        mediator.canvas2D.getBounds().getCenterX() - 200,
-                        mediator.canvas2D.getBounds().getCenterY() - 100,
-                        400.0,
-                        200.0
-                    )
                 mediator.canvas2D.repaint()
                 val dialog = TextInputDialog("My Project")
                 dialog.initModality(Modality.NONE)
@@ -479,12 +422,6 @@ rnartist {
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                    drawing.workingSession.is_screen_capture = false
-                    drawing.workingSession.screen_capture_area = null
-                    mediator.canvas2D.repaint()
-                } else {
-                    drawing.workingSession.is_screen_capture = false
-                    drawing.workingSession.screen_capture_area = null
                     mediator.canvas2D.repaint()
                 }
             }
@@ -1018,22 +955,34 @@ rnartist {
             for (start in starts) mediator.explorer.applyAdvancedTheme(start, t, scope)
             mediator.explorer.refresh()
             mediator.canvas2D.repaint()
-            mediator.scriptEditor.themeAndLayoutScript.setColor("A", getHTMLColorString(javaFXToAwt(AColorPicker.value)))
+            mediator.scriptEditor.themeAndLayoutScript.setColor(
+                "A",
+                getHTMLColorString(javaFXToAwt(AColorPicker.value))
+            )
             mediator.scriptEditor.themeAndLayoutScript.setColor(
                 "a",
                 getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor("U", getHTMLColorString(javaFXToAwt(UColorPicker.value)))
+            mediator.scriptEditor.themeAndLayoutScript.setColor(
+                "U",
+                getHTMLColorString(javaFXToAwt(UColorPicker.value))
+            )
             mediator.scriptEditor.themeAndLayoutScript.setColor(
                 "u",
                 getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor("G", getHTMLColorString(javaFXToAwt(GColorPicker.value)))
+            mediator.scriptEditor.themeAndLayoutScript.setColor(
+                "G",
+                getHTMLColorString(javaFXToAwt(GColorPicker.value))
+            )
             mediator.scriptEditor.themeAndLayoutScript.setColor(
                 "g",
                 getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor("C", getHTMLColorString(javaFXToAwt(CColorPicker.value)))
+            mediator.scriptEditor.themeAndLayoutScript.setColor(
+                "C",
+                getHTMLColorString(javaFXToAwt(CColorPicker.value))
+            )
             mediator.scriptEditor.themeAndLayoutScript.setColor(
                 "c",
                 getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE))
@@ -1591,121 +1540,138 @@ rnartist {
         swingNode.onMouseClicked = EventHandler { mouseEvent: MouseEvent ->
             if (mouseEvent.button == MouseButton.PRIMARY) {
                 mediator.drawingDisplayed.get()?.let mouseClicked@{ drawingLoaded ->
-                    if (!drawingLoaded.drawing.workingSession.is_screen_capture) {
-                        val at = AffineTransform()
-                        at.translate(
-                            drawingLoaded.drawing.workingSession.viewX,
-                            drawingLoaded.drawing.workingSession.viewY
-                        )
-                        at.scale(
-                            drawingLoaded.drawing.workingSession.zoomLevel,
-                            drawingLoaded.drawing.workingSession.zoomLevel
-                        )
-                        for (knob in drawingLoaded.knobs)
-                            if (knob.contains(mouseEvent.x, mouseEvent.y))
+                    val at = AffineTransform()
+                    at.translate(
+                        drawingLoaded.drawing.workingSession.viewX,
+                        drawingLoaded.drawing.workingSession.viewY
+                    )
+                    at.scale(
+                        drawingLoaded.drawing.workingSession.zoomLevel,
+                        drawingLoaded.drawing.workingSession.zoomLevel
+                    )
+                    for (knob in drawingLoaded.knobs)
+                        if (knob.contains(mouseEvent.x, mouseEvent.y))
+                            return@mouseClicked
+                    for (h in drawingLoaded.drawing.workingSession.helicesDrawn) {
+                        var shape = h.selectionFrame
+                        if (shape != null && at.createTransformedShape(shape)
+                                .contains(mouseEvent.x, mouseEvent.y)
+                        ) {
+                            for (r in h.residues) {
+                                shape = r.selectionFrame
+                                if (shape != null && at.createTransformedShape(shape)
+                                        .contains(mouseEvent.x, mouseEvent.y)
+                                ) {
+                                    if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent) && !mediator.canvas2D.isSelected(
+                                            r.parent!!.parent
+                                        )
+                                    ) {
+                                        mediator.canvas2D.addToSelection(r)
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object :
+                                                Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
+                                            Arrays.asList(mediator.explorer.treeTableView.root),
+                                            false,
+                                            RNArtist.SCOPE.BRANCH
+                                        )
+                                        return@mouseClicked
+                                    } else if (!mediator.canvas2D.isSelected(r.parent) && !mediator.canvas2D.isSelected(
+                                            r.parent!!.parent
+                                        )
+                                    ) {
+                                        mediator.canvas2D.removeFromSelection(r)
+                                        mediator.canvas2D.addToSelection(r.parent)
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object :
+                                                Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
+                                            Arrays.asList(mediator.explorer.treeTableView.root),
+                                            false,
+                                            RNArtist.SCOPE.BRANCH
+                                        )
+                                        return@mouseClicked
+                                    } else if (!mediator.canvas2D.isSelected(r.parent!!.parent)) {
+                                        mediator.canvas2D.removeFromSelection(r.parent)
+                                        mediator.canvas2D.addToSelection(r.parent!!.parent)
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object : Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
+                                            Arrays.asList(mediator.explorer.treeTableView.root),
+                                            false,
+                                            RNArtist.SCOPE.BRANCH
+                                        )
+                                        return@mouseClicked
+                                    }
+                                }
+                            }
+                            for (interaction in h.secondaryInteractions) {
+                                shape = interaction.selectionFrame
+                                if (shape != null && at.createTransformedShape(shape)
+                                        .contains(mouseEvent.x, mouseEvent.y)
+                                ) {
+                                    if (!mediator.canvas2D.isSelected(interaction) && !mediator.canvas2D.isSelected(
+                                            interaction.parent
+                                        )
+                                    ) {
+                                        mediator.canvas2D.addToSelection(interaction)
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object :
+                                                Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
+                                            Arrays.asList(mediator.explorer.treeTableView.root),
+                                            false,
+                                            RNArtist.SCOPE.BRANCH
+                                        )
+                                        return@mouseClicked
+                                    } else if (!mediator.canvas2D.isSelected(interaction.parent)) {
+                                        mediator.canvas2D.removeFromSelection(interaction)
+                                        mediator.canvas2D.addToSelection(interaction.parent)
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object : Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
+                                            Arrays.asList(mediator.explorer.treeTableView.root),
+                                            false,
+                                            RNArtist.SCOPE.BRANCH
+                                        )
+                                        return@mouseClicked
+                                    }
+                                }
+                            }
+                            if (!mediator.canvas2D.isSelected(h)) {
+                                mediator.canvas2D.addToSelection(h)
+                                mediator.explorer.selectAllTreeViewItems(
+                                    object : Explorer.DrawingElementFilter {
+                                        override fun isOK(el: DrawingElement?): Boolean {
+                                            return mediator.canvas2D.isSelected(el)
+                                        }
+                                    },
+                                    Arrays.asList(mediator.explorer.treeTableView.root),
+                                    false,
+                                    RNArtist.SCOPE.BRANCH
+                                )
                                 return@mouseClicked
-                        for (h in drawingLoaded.drawing.workingSession.helicesDrawn) {
-                            var shape = h.selectionFrame
-                            if (shape != null && at.createTransformedShape(shape)
-                                    .contains(mouseEvent.x, mouseEvent.y)
-                            ) {
-                                for (r in h.residues) {
-                                    shape = r.selectionFrame
-                                    if (shape != null && at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent) && !mediator.canvas2D.isSelected(
-                                                r.parent!!.parent
-                                            )
-                                        ) {
-                                            mediator.canvas2D.addToSelection(r)
-                                            mediator.explorer.selectAllTreeViewItems(
-                                                object :
-                                                    Explorer.DrawingElementFilter {
-                                                    override fun isOK(el: DrawingElement?): Boolean {
-                                                        return mediator.canvas2D.isSelected(el)
-                                                    }
-                                                },
-                                                Arrays.asList(mediator.explorer.treeTableView.root),
-                                                false,
-                                                RNArtist.SCOPE.BRANCH
-                                            )
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(r.parent) && !mediator.canvas2D.isSelected(
-                                                r.parent!!.parent
-                                            )
-                                        ) {
-                                            mediator.canvas2D.removeFromSelection(r)
-                                            mediator.canvas2D.addToSelection(r.parent)
-                                            mediator.explorer.selectAllTreeViewItems(
-                                                object :
-                                                    Explorer.DrawingElementFilter {
-                                                    override fun isOK(el: DrawingElement?): Boolean {
-                                                        return mediator.canvas2D.isSelected(el)
-                                                    }
-                                                },
-                                                Arrays.asList(mediator.explorer.treeTableView.root),
-                                                false,
-                                                RNArtist.SCOPE.BRANCH
-                                            )
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(r.parent!!.parent)) {
-                                            mediator.canvas2D.removeFromSelection(r.parent)
-                                            mediator.canvas2D.addToSelection(r.parent!!.parent)
-                                            mediator.explorer.selectAllTreeViewItems(
-                                                object : Explorer.DrawingElementFilter {
-                                                    override fun isOK(el: DrawingElement?): Boolean {
-                                                        return mediator.canvas2D.isSelected(el)
-                                                    }
-                                                },
-                                                Arrays.asList(mediator.explorer.treeTableView.root),
-                                                false,
-                                                RNArtist.SCOPE.BRANCH
-                                            )
-                                            return@mouseClicked
-                                        }
-                                    }
+                            } else {
+                                var p = h.parent
+                                while (p != null && mediator.canvas2D.isSelected(p)) {
+                                    p = p.parent
                                 }
-                                for (interaction in h.secondaryInteractions) {
-                                    shape = interaction.selectionFrame
-                                    if (shape != null && at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(interaction) && !mediator.canvas2D.isSelected(
-                                                interaction.parent
-                                            )
-                                        ) {
-                                            mediator.canvas2D.addToSelection(interaction)
-                                            mediator.explorer.selectAllTreeViewItems(
-                                                object :
-                                                    Explorer.DrawingElementFilter {
-                                                    override fun isOK(el: DrawingElement?): Boolean {
-                                                        return mediator.canvas2D.isSelected(el)
-                                                    }
-                                                },
-                                                Arrays.asList(mediator.explorer.treeTableView.root),
-                                                false,
-                                                RNArtist.SCOPE.BRANCH
-                                            )
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(interaction.parent)) {
-                                            mediator.canvas2D.removeFromSelection(interaction)
-                                            mediator.canvas2D.addToSelection(interaction.parent)
-                                            mediator.explorer.selectAllTreeViewItems(
-                                                object : Explorer.DrawingElementFilter {
-                                                    override fun isOK(el: DrawingElement?): Boolean {
-                                                        return mediator.canvas2D.isSelected(el)
-                                                    }
-                                                },
-                                                Arrays.asList(mediator.explorer.treeTableView.root),
-                                                false,
-                                                RNArtist.SCOPE.BRANCH
-                                            )
-                                            return@mouseClicked
-                                        }
-                                    }
-                                }
-                                if (!mediator.canvas2D.isSelected(h)) {
+                                if (p == null) {
                                     mediator.canvas2D.addToSelection(h)
                                     mediator.explorer.selectAllTreeViewItems(
                                         object : Explorer.DrawingElementFilter {
@@ -1717,83 +1683,83 @@ rnartist {
                                         false,
                                         RNArtist.SCOPE.BRANCH
                                     )
-                                    return@mouseClicked
                                 } else {
-                                    var p = h.parent
-                                    while (p != null && mediator.canvas2D.isSelected(p)) {
-                                        p = p.parent
-                                    }
-                                    if (p == null) {
-                                        mediator.canvas2D.addToSelection(h)
-                                        mediator.explorer.selectAllTreeViewItems(
-                                            object : Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
-                                            Arrays.asList(mediator.explorer.treeTableView.root),
-                                            false,
-                                            RNArtist.SCOPE.BRANCH
-                                        )
-                                    } else {
-                                        mediator.canvas2D.addToSelection(p)
-                                        mediator.explorer.selectAllTreeViewItems(
-                                            object : Explorer.DrawingElementFilter {
-                                                override fun isOK(el: DrawingElement?): Boolean {
-                                                    return mediator.canvas2D.isSelected(el)
-                                                }
-                                            },
-                                            Arrays.asList(mediator.explorer.treeTableView.root),
-                                            false,
-                                            RNArtist.SCOPE.BRANCH
-                                        )
-                                    }
-                                    return@mouseClicked
+                                    mediator.canvas2D.addToSelection(p)
+                                    mediator.explorer.selectAllTreeViewItems(
+                                        object : Explorer.DrawingElementFilter {
+                                            override fun isOK(el: DrawingElement?): Boolean {
+                                                return mediator.canvas2D.isSelected(el)
+                                            }
+                                        },
+                                        Arrays.asList(mediator.explorer.treeTableView.root),
+                                        false,
+                                        RNArtist.SCOPE.BRANCH
+                                    )
                                 }
+                                return@mouseClicked
                             }
                         }
-                        for (j in drawingLoaded.drawing.workingSession.junctionsDrawn) {
-                            var shape = j.selectionFrame
-                            if (shape != null && at.createTransformedShape(shape)
-                                    .contains(mouseEvent.x, mouseEvent.y)
-                            ) {
-                                for (r in j.residues) {
-                                    shape = r.selectionFrame
-                                    if (shape != null && at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
-                                            mediator.canvas2D.addToSelection(r)
-                                            mediator.explorer.selectAllTreeViewItems(
-                                                object : Explorer.DrawingElementFilter {
-                                                    override fun isOK(el: DrawingElement?): Boolean {
-                                                        return mediator.canvas2D.isSelected(el)
-                                                    }
-                                                },
-                                                Arrays.asList(mediator.explorer.treeTableView.root),
-                                                false,
-                                                RNArtist.SCOPE.BRANCH
-                                            )
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(r.parent)) {
-                                            mediator.canvas2D.removeFromSelection(r)
-                                            mediator.canvas2D.addToSelection(r.parent)
-                                            mediator.explorer.selectAllTreeViewItems(
-                                                object :
-                                                    Explorer.DrawingElementFilter {
-                                                    override fun isOK(el: DrawingElement?): Boolean {
-                                                        return mediator.canvas2D.isSelected(el)
-                                                    }
-                                                },
-                                                Arrays.asList(mediator.explorer.treeTableView.root),
-                                                false,
-                                                RNArtist.SCOPE.BRANCH
-                                            )
-                                            return@mouseClicked
-                                        }
+                    }
+                    for (j in drawingLoaded.drawing.workingSession.junctionsDrawn) {
+                        var shape = j.selectionFrame
+                        if (shape != null && at.createTransformedShape(shape)
+                                .contains(mouseEvent.x, mouseEvent.y)
+                        ) {
+                            for (r in j.residues) {
+                                shape = r.selectionFrame
+                                if (shape != null && at.createTransformedShape(shape)
+                                        .contains(mouseEvent.x, mouseEvent.y)
+                                ) {
+                                    if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
+                                        mediator.canvas2D.addToSelection(r)
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object : Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
+                                            Arrays.asList(mediator.explorer.treeTableView.root),
+                                            false,
+                                            RNArtist.SCOPE.BRANCH
+                                        )
+                                        return@mouseClicked
+                                    } else if (!mediator.canvas2D.isSelected(r.parent)) {
+                                        mediator.canvas2D.removeFromSelection(r)
+                                        mediator.canvas2D.addToSelection(r.parent)
+                                        mediator.explorer.selectAllTreeViewItems(
+                                            object :
+                                                Explorer.DrawingElementFilter {
+                                                override fun isOK(el: DrawingElement?): Boolean {
+                                                    return mediator.canvas2D.isSelected(el)
+                                                }
+                                            },
+                                            Arrays.asList(mediator.explorer.treeTableView.root),
+                                            false,
+                                            RNArtist.SCOPE.BRANCH
+                                        )
+                                        return@mouseClicked
                                     }
                                 }
-                                if (!mediator.canvas2D.isSelected(j)) {
+                            }
+                            if (!mediator.canvas2D.isSelected(j)) {
+                                mediator.canvas2D.addToSelection(j)
+                                mediator.explorer.selectAllTreeViewItems(
+                                    object : Explorer.DrawingElementFilter {
+                                        override fun isOK(el: DrawingElement?): Boolean {
+                                            return mediator.canvas2D.isSelected(el)
+                                        }
+                                    },
+                                    Arrays.asList(mediator.explorer.treeTableView.root),
+                                    false,
+                                    RNArtist.SCOPE.BRANCH
+                                )
+                                return@mouseClicked
+                            } else {
+                                var p = j.parent
+                                while (p != null && mediator.canvas2D.isSelected(p)) {
+                                    p = p.parent
+                                }
+                                if (p == null) {
                                     mediator.canvas2D.addToSelection(j)
                                     mediator.explorer.selectAllTreeViewItems(
                                         object : Explorer.DrawingElementFilter {
@@ -1805,14 +1771,35 @@ rnartist {
                                         false,
                                         RNArtist.SCOPE.BRANCH
                                     )
-                                    return@mouseClicked
                                 } else {
-                                    var p = j.parent
-                                    while (p != null && mediator.canvas2D.isSelected(p)) {
-                                        p = p.parent
-                                    }
-                                    if (p == null) {
-                                        mediator.canvas2D.addToSelection(j)
+                                    mediator.canvas2D.addToSelection(p)
+                                    mediator.explorer.selectAllTreeViewItems(
+                                        object : Explorer.DrawingElementFilter {
+                                            override fun isOK(el: DrawingElement?): Boolean {
+                                                return mediator.canvas2D.isSelected(el)
+                                            }
+                                        },
+                                        Arrays.asList(mediator.explorer.treeTableView.root),
+                                        false,
+                                        RNArtist.SCOPE.BRANCH
+                                    )
+                                }
+                                return@mouseClicked
+                            }
+                        }
+                    }
+                    for (ss in drawingLoaded.drawing.workingSession.singleStrandsDrawn) {
+                        var shape = ss.selectionFrame
+                        if (shape != null && at.createTransformedShape(shape)
+                                .contains(mouseEvent.x, mouseEvent.y)
+                        ) {
+                            for (r in ss.residues) {
+                                shape = r.selectionFrame
+                                if (shape != null && at.createTransformedShape(shape)
+                                        .contains(mouseEvent.x, mouseEvent.y)
+                                ) {
+                                    if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
+                                        mediator.canvas2D.addToSelection(r)
                                         mediator.explorer.selectAllTreeViewItems(
                                             object : Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
@@ -1823,8 +1810,10 @@ rnartist {
                                             false,
                                             RNArtist.SCOPE.BRANCH
                                         )
-                                    } else {
-                                        mediator.canvas2D.addToSelection(p)
+                                        return@mouseClicked
+                                    } else if (!mediator.canvas2D.isSelected(r.parent)) {
+                                        mediator.canvas2D.removeFromSelection(r)
+                                        mediator.canvas2D.addToSelection(r.parent)
                                         mediator.explorer.selectAllTreeViewItems(
                                             object : Explorer.DrawingElementFilter {
                                                 override fun isOK(el: DrawingElement?): Boolean {
@@ -1835,58 +1824,16 @@ rnartist {
                                             false,
                                             RNArtist.SCOPE.BRANCH
                                         )
-                                    }
-                                    return@mouseClicked
-                                }
-                            }
-                        }
-                        for (ss in drawingLoaded.drawing.workingSession.singleStrandsDrawn) {
-                            var shape = ss.selectionFrame
-                            if (shape != null && at.createTransformedShape(shape)
-                                    .contains(mouseEvent.x, mouseEvent.y)
-                            ) {
-                                for (r in ss.residues) {
-                                    shape = r.selectionFrame
-                                    if (shape != null && at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
-                                            mediator.canvas2D.addToSelection(r)
-                                            mediator.explorer.selectAllTreeViewItems(
-                                                object : Explorer.DrawingElementFilter {
-                                                    override fun isOK(el: DrawingElement?): Boolean {
-                                                        return mediator.canvas2D.isSelected(el)
-                                                    }
-                                                },
-                                                Arrays.asList(mediator.explorer.treeTableView.root),
-                                                false,
-                                                RNArtist.SCOPE.BRANCH
-                                            )
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(r.parent)) {
-                                            mediator.canvas2D.removeFromSelection(r)
-                                            mediator.canvas2D.addToSelection(r.parent)
-                                            mediator.explorer.selectAllTreeViewItems(
-                                                object : Explorer.DrawingElementFilter {
-                                                    override fun isOK(el: DrawingElement?): Boolean {
-                                                        return mediator.canvas2D.isSelected(el)
-                                                    }
-                                                },
-                                                Arrays.asList(mediator.explorer.treeTableView.root),
-                                                false,
-                                                RNArtist.SCOPE.BRANCH
-                                            )
-                                            return@mouseClicked
-                                        }
+                                        return@mouseClicked
                                     }
                                 }
                             }
                         }
-                        if (mouseEvent.clickCount == 2) {
-                            //no selection
-                            mediator.canvas2D.clearSelection()
-                            mediator.explorer.clearSelection()
-                        }
+                    }
+                    if (mouseEvent.clickCount == 2) {
+                        //no selection
+                        mediator.canvas2D.clearSelection()
+                        mediator.explorer.clearSelection()
                     }
                 }
             }
@@ -1894,26 +1841,12 @@ rnartist {
         swingNode.onMouseDragged = EventHandler { mouseEvent: MouseEvent ->
             if (mouseEvent.button == MouseButton.SECONDARY) {
                 mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                    if (drawingLoaded.drawing.workingSession.is_screen_capture) {
-                        val transX: Double =
-                            mouseEvent.x - drawingLoaded.drawing.workingSession.screen_capture_transX
-                        val transY: Double =
-                            mouseEvent.y - drawingLoaded.drawing.workingSession.screen_capture_transY
-                        drawingLoaded.drawing.workingSession.screen_capture_transX = mouseEvent.x
-                        drawingLoaded.drawing.workingSession.screen_capture_transY = mouseEvent.y
-                        val at = AffineTransform()
-                        at.translate(transX, transY)
-                        drawingLoaded.drawing.workingSession.screen_capture_area =
-                            at.createTransformedShape(drawingLoaded.drawing.workingSession.screen_capture_area)
-                                .bounds
-                    } else {
-                        drawingLoaded.drawing.quickDraw = true
-                        val transX: Double = mouseEvent.x - mediator.canvas2D.translateX
-                        val transY: Double = mouseEvent.y - mediator.canvas2D.translateY
-                        drawingLoaded.drawing.workingSession.moveView(transX, transY)
-                        mediator.canvas2D.translateX = mouseEvent.x
-                        mediator.canvas2D.translateY = mouseEvent.y
-                    }
+                    drawingLoaded.drawing.quickDraw = true
+                    val transX: Double = mouseEvent.x - mediator.canvas2D.translateX
+                    val transY: Double = mouseEvent.y - mediator.canvas2D.translateY
+                    drawingLoaded.drawing.workingSession.moveView(transX, transY)
+                    mediator.canvas2D.translateX = mouseEvent.x
+                    mediator.canvas2D.translateY = mouseEvent.y
                     mediator.canvas2D.repaint()
                 }
             }
@@ -1921,14 +1854,9 @@ rnartist {
         swingNode.onMouseReleased = EventHandler { mouseEvent: MouseEvent ->
             if (mouseEvent.button == MouseButton.SECONDARY) {
                 mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                    if (drawingLoaded.drawing.workingSession.is_screen_capture) {
-                        drawingLoaded.drawing.workingSession.screen_capture_transX = 0.0
-                        drawingLoaded.drawing.workingSession.screen_capture_transY = 0.0
-                    } else {
-                        drawingLoaded.drawing.quickDraw = false
-                        mediator.canvas2D.translateX = 0.0
-                        mediator.canvas2D.translateY = 0.0
-                    }
+                    drawingLoaded.drawing.quickDraw = false
+                    mediator.canvas2D.translateX = 0.0
+                    mediator.canvas2D.translateY = 0.0
                     mediator.canvas2D.repaint()
                 }
             }
@@ -1936,54 +1864,47 @@ rnartist {
         swingNode.onMousePressed = EventHandler { mouseEvent: MouseEvent ->
             if (mouseEvent.button == MouseButton.SECONDARY) {
                 mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                    if (drawingLoaded.drawing.workingSession.is_screen_capture) {
-                        drawingLoaded.drawing.workingSession.screen_capture_transX = mouseEvent.x
-                        drawingLoaded.drawing.workingSession.screen_capture_transY = mouseEvent.y
-                    } else {
-                        mediator.canvas2D.translateX = mouseEvent.x
-                        mediator.canvas2D.translateY = mouseEvent.y
-                    }
+                    mediator.canvas2D.translateX = mouseEvent.x
+                    mediator.canvas2D.translateY = mouseEvent.y
                 }
             }
         }
         swingNode.onScroll = EventHandler { scrollEvent: ScrollEvent ->
             mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                if (!drawingLoaded.drawing.workingSession.is_screen_capture) {
-                    drawingLoaded.drawing.quickDraw = true
-                    scrollCounter++
-                    val th = Thread {
-                        try {
-                            Thread.sleep(100)
-                            if (scrollCounter == 1) {
-                                drawingLoaded.drawing.quickDraw = false
-                                mediator.canvas2D.repaint()
-                            }
-                            scrollCounter--
-                        } catch (e1: Exception) {
-                            e1.printStackTrace()
+                drawingLoaded.drawing.quickDraw = true
+                scrollCounter++
+                val th = Thread {
+                    try {
+                        Thread.sleep(100)
+                        if (scrollCounter == 1) {
+                            drawingLoaded.drawing.quickDraw = false
+                            mediator.canvas2D.repaint()
                         }
+                        scrollCounter--
+                    } catch (e1: Exception) {
+                        e1.printStackTrace()
                     }
-                    th.isDaemon = true
-                    th.start()
-                    val realMouse =
-                        Point2D.Double(
-                            (scrollEvent.x - drawingLoaded.drawing.workingSession.viewX) / drawingLoaded.drawing.workingSession.zoomLevel,
-                            (scrollEvent.y - drawingLoaded.drawing.workingSession.viewY) / drawingLoaded.drawing.workingSession.zoomLevel
-                        )
-                    val notches = scrollEvent.deltaY
-                    if (notches < 0) drawingLoaded.drawing.workingSession.setZoom(1.25)
-                    if (notches > 0) drawingLoaded.drawing.workingSession.setZoom(1.0 / 1.25)
-                    val newRealMouse =
-                        Point2D.Double(
-                            (scrollEvent.x - drawingLoaded.drawing.workingSession.viewX) / drawingLoaded.drawing.workingSession.zoomLevel,
-                            (scrollEvent.y - drawingLoaded.drawing.workingSession.viewY) / drawingLoaded.drawing.workingSession.zoomLevel
-                        )
-                    drawingLoaded.drawing.workingSession.moveView(
-                        (newRealMouse.getX() - realMouse.getX()) * drawingLoaded.drawing.workingSession.zoomLevel,
-                        (newRealMouse.getY() - realMouse.getY()) * drawingLoaded.drawing.workingSession.zoomLevel
-                    )
-                    mediator.canvas2D.repaint()
                 }
+                th.isDaemon = true
+                th.start()
+                val realMouse =
+                    Point2D.Double(
+                        (scrollEvent.x - drawingLoaded.drawing.workingSession.viewX) / drawingLoaded.drawing.workingSession.zoomLevel,
+                        (scrollEvent.y - drawingLoaded.drawing.workingSession.viewY) / drawingLoaded.drawing.workingSession.zoomLevel
+                    )
+                val notches = scrollEvent.deltaY
+                if (notches < 0) drawingLoaded.drawing.workingSession.setZoom(1.25)
+                if (notches > 0) drawingLoaded.drawing.workingSession.setZoom(1.0 / 1.25)
+                val newRealMouse =
+                    Point2D.Double(
+                        (scrollEvent.x - drawingLoaded.drawing.workingSession.viewX) / drawingLoaded.drawing.workingSession.zoomLevel,
+                        (scrollEvent.y - drawingLoaded.drawing.workingSession.viewY) / drawingLoaded.drawing.workingSession.zoomLevel
+                    )
+                drawingLoaded.drawing.workingSession.moveView(
+                    (newRealMouse.getX() - realMouse.getX()) * drawingLoaded.drawing.workingSession.zoomLevel,
+                    (newRealMouse.getY() - realMouse.getY()) * drawingLoaded.drawing.workingSession.zoomLevel
+                )
+                mediator.canvas2D.repaint()
             }
         }
         createSwingContent(swingNode)
@@ -2122,27 +2043,28 @@ rnartist {
             }
         })
 
-        this.stage.widthProperty().addListener {
-                obs: ObservableValue<out Number?>?, oldVal: Number?, newVal: Number? ->
+        this.stage.widthProperty().addListener { obs: ObservableValue<out Number?>?, oldVal: Number?, newVal: Number? ->
             //mediator.canvas2D.updateKnobs()
             mediator.canvas2D.repaint()
         }
 
-        this.stage.heightProperty().addListener {
-                obs: ObservableValue<out Number?>?, oldVal: Number?, newVal: Number? ->
-            //mediator.canvas2D.updateKnobs()
-            mediator.canvas2D.repaint()
-        }
-
-        this.stage.fullScreenProperty().addListener { obs: ObservableValue<out Boolean?>?, oldVal: Boolean?, newVal: Boolean? ->
+        this.stage.heightProperty()
+            .addListener { obs: ObservableValue<out Number?>?, oldVal: Number?, newVal: Number? ->
                 //mediator.canvas2D.updateKnobs()
                 mediator.canvas2D.repaint()
-        }
+            }
 
-        this.stage.maximizedProperty().addListener{ obs: ObservableValue<out Boolean?>?, oldVal: Boolean?, newVal: Boolean? ->
+        this.stage.fullScreenProperty()
+            .addListener { obs: ObservableValue<out Boolean?>?, oldVal: Boolean?, newVal: Boolean? ->
                 //mediator.canvas2D.updateKnobs()
                 mediator.canvas2D.repaint()
-        }
+            }
+
+        this.stage.maximizedProperty()
+            .addListener { obs: ObservableValue<out Boolean?>?, oldVal: Boolean?, newVal: Boolean? ->
+                //mediator.canvas2D.updateKnobs()
+                mediator.canvas2D.repaint()
+            }
 
 
         val screen = Screen.getPrimary()

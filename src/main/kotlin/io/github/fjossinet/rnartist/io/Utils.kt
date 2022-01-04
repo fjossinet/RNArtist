@@ -1,5 +1,10 @@
 package io.github.fjossinet.rnartist.io
 
+import io.github.fjossinet.rnartist.core.model.SecondaryStructure
+import io.github.fjossinet.rnartist.gui.editor.Script
+import io.github.fjossinet.rnartist.model.editor.HelixKw
+import io.github.fjossinet.rnartist.model.editor.RnaKw
+import io.github.fjossinet.rnartist.model.editor.SecondaryStructureKw
 import javafx.scene.paint.Color
 import okio.ByteString.Companion.encode
 import java.awt.Image
@@ -8,7 +13,6 @@ import java.io.OutputStream
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import javax.imageio.ImageIO
-
 
 fun getImage(imageName: String?): Image? {
     if (imageName == null) {
@@ -24,10 +28,12 @@ fun getImage(imageName: String?): Image? {
 }
 
 fun javaFXToAwt(c: Color): java.awt.Color {
-    return java.awt.Color(c.red.toFloat(),
-            c.green.toFloat(),
-            c.blue.toFloat(),
-            c.opacity.toFloat())
+    return java.awt.Color(
+        c.red.toFloat(),
+        c.green.toFloat(),
+        c.blue.toFloat(),
+        c.opacity.toFloat()
+    )
 }
 
 fun awtColorToJavaFX(c: java.awt.Color): Color {
