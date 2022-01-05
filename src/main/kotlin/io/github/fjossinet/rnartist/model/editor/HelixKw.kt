@@ -49,7 +49,7 @@ class HelixKw(var parent: SecondaryStructureKw, script: Script, indentLevel: Int
         val helixLocationKw = this.searchFirst { it is HelixLocationKw && !it.inFinalScript } as HelixLocationKw
         helixLocationKw.setLocation(helix.location)
         val parameter = this.searchFirst { it is OptionalDSLParameter && "name".equals(it.key.text.text.trim()) } as OptionalDSLParameter
-        parameter.value = StringValueWithQuotes(script, helix.name, editable = true)
+        (parameter.value as StringValueWithQuotes).setText(helix.name)
         parameter.addButton.fire()
         this.addButton.fire()
     }

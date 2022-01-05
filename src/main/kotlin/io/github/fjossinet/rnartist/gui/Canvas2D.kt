@@ -1,15 +1,11 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.DrawingElement
 import io.github.fjossinet.rnartist.core.model.JunctionDrawing
 import io.github.fjossinet.rnartist.core.model.ResidueDrawing
 import io.github.fjossinet.rnartist.core.model.StructuralDomainDrawing
 import java.awt.*
-import java.awt.event.ActionEvent
-import java.awt.event.ComponentAdapter
-import java.awt.event.ComponentListener
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D

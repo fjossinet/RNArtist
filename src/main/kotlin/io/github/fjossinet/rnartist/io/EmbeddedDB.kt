@@ -2,14 +2,13 @@ package io.github.fjossinet.rnartist.io
 
 import io.github.fjossinet.rnartist.core.io.*
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.core.model.io.*
 import org.dizitart.no2.*
 import org.dizitart.no2.Document.createDocument
 import org.dizitart.no2.mapper.JacksonFacade
 import java.io.File
 import java.io.StringReader
 
-class EmbeddedDB() {
+class EmbeddedDB {
 
     var rootDir = File(getUserDir(),"db")
     private var userDB:Nitrite
@@ -54,39 +53,6 @@ class EmbeddedDB() {
 
         val r = this.userDB.getCollection("Projects").insert(doc)
         return r.first()
-    }
-
-    fun updateProject(name: String, id:NitriteId, secondaryStructureDrawing: SecondaryStructureDrawing) {
-        val doc = this.userDB.getCollection("Projects").getById(id) as Document
-
-        with (doc) {
-            doc.put("name", name)
-            put(
-                "rna", mutableMapOf<String, String>(
-                    "name" to secondaryStructureDrawing.secondaryStructure.rna.name,
-                    "seq" to secondaryStructureDrawing.secondaryStructure.rna.seq
-                )
-            )
-
-            //STRUCTURE
-            put("structure", dumpSecondaryStructure(secondaryStructureDrawing))
-
-            //LAYOUT (the size and orientation of junctions)
-            put("layout", dumpLayout(secondaryStructureDrawing))
-
-            //THEME (colors, line width, full details,...)
-            put("theme", dumpTheme(secondaryStructureDrawing))
-
-            //WORKING SESSION
-            put("session", dumpWorkingSession(secondaryStructureDrawing))
-        }
-
-        this.userDB.getCollection("Projects").update(doc)
-    }
-
-    fun removeProject(id:NitriteId) {
-        val doc = this.userDB.getCollection("Projects").getById(id) as Document
-        this.userDB.getCollection("Projects").remove(doc)
     }
 
 

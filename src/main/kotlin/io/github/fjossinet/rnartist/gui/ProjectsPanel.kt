@@ -82,37 +82,6 @@ class ProjectsPanel(val mediator:Mediator) {
         }
     }
 
-    @Throws(IOException::class)
-    fun saveProjectAs(name: String, image: BufferedImage): NitriteId? {
-        mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-            val id = mediator.embeddedDB.saveProjectAs(name, drawing)
-            val pngFile = File(File(File(mediator.embeddedDB.rootDir, "images"), "user"), "$id.png")
-            ImageIO.write(image, "PNG", pngFile)
-            val chimera_sessions = File(mediator.embeddedDB.rootDir, "chimera_sessions")
-            if (!chimera_sessions.exists()) chimera_sessions.mkdir()
-            mediator.chimeraDriver.saveSession(File(chimera_sessions, id.toString()), File(chimera_sessions, "$id.pdb"))
-            return id
-        }
-        return null
-    }
-
-    @Throws(IOException::class)
-    fun updateProject(name: String, image: BufferedImage) {
-        mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            (drawingDisplayed as? DrawingLoadedFromRNArtistDB)?.let { drawingDisplayed ->
-                mediator.embeddedDB.updateProject(name, drawingDisplayed.id,
-                    drawingDisplayed.drawing)
-                val pngFile = File(File(File(mediator.embeddedDB.rootDir, "images"), "user"), "${drawingDisplayed.id}.png")
-                ImageIO.write(image, "PNG", pngFile)
-                val chimera_sessions = File(mediator.embeddedDB.rootDir, "chimera_sessions")
-                mediator.chimeraDriver.saveSession(File(chimera_sessions,
-                    drawingDisplayed.id.toString()),
-                    File(chimera_sessions,
-                        drawingDisplayed.id.toString() + ".pdb"))
-            }
-        }
-    }
-
     private inner class ProjectCell : GridCell<ProjectPanel>() {
         private val icon = ImageView()
         private val projectName = Label()
