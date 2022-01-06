@@ -13,6 +13,10 @@ RNArtist allows you to design your RNA 2D structures interactively. To help you 
 
 ![Screen Capture](media/Capture%20d’écran%202020-12-27%20à%2020.48.24.png)
 
+* RNArtist provides an interactive editor to load and paint your 2D using the [RNArtistCore language](https://github.com/fjossinet/RNArtistCore)
+
+![Screen Capture](media/Capture%20d’écran%202022-01-06%20125240.png)
+* 
 * [P4-P6 domain](https://www.rcsb.org/structure/1HR2) in RNArtist linked to UCSF chimera. You can easily apply colors in your 2D to the 3D architecture.
 
 ![Screen Capture](media/Capture%20d’écran%202021-01-26%20à%2015.15.27.png)
@@ -26,10 +30,6 @@ RNArtist allows you to design your RNA 2D structures interactively. To help you 
 ![Screen Capture](media/Capture%20d’écran%202021-02-24%20à%2014.18.16.png)
 
 ![Screen Capture](media/Capture%20d’écran%202021-02-24%20à%2012.37.53.png)
-
-* RNArtist provides an interactive editor to load and paint your 2D using the [RNArtistCore language](https://github.com/fjossinet/RNArtistCore)
-
-![Screen Capture](media/Capture%20d’écran%202021-02-10%20à%2010.36.45.png)
 
 ## <a name="prerequesites"></a>Prerequisites
 
