@@ -2,7 +2,7 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.gui.editor.Script
 
-class PNGKw (script: Script, indentLevel:Int): OptionalDSLKeyword(script,  " png", indentLevel) {
+class PNGKw (script: Script, indentLevel:Int): OptionalDSLKeyword(script,  " png ", indentLevel) {
 
     init {
         this.children.add(
@@ -37,6 +37,16 @@ class PNGKw (script: Script, indentLevel:Int): OptionalDSLKeyword(script,  " png
                 this.indentLevel + 1
             )
         )
+        addButton.mouseReleased = {
+            val p = this.searchFirst { it is DSLParameter } as DSLParameter
+            val l = script.mediator.scriptEditor?.currentScriptLocation
+            p.value.text.text = if (l == null)
+                ""
+            else
+                "\"${l.absolutePath.replace("\\", "/")}\""
+            this.inFinalScript = true
+            script.initScript()
+        }
     }
 
 }

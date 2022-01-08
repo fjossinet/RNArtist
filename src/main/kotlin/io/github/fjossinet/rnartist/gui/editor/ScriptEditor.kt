@@ -10,6 +10,8 @@ import io.github.fjossinet.rnartist.io.javaFXToAwt
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromScriptEditor
 import io.github.fjossinet.rnartist.model.editor.*
 import javafx.application.Platform
+import javafx.beans.InvalidationListener
+import javafx.beans.value.ChangeListener
 import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import javafx.geometry.HPos
@@ -18,12 +20,8 @@ import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Scene
 import javafx.scene.control.*
-import javafx.scene.control.Button
 import javafx.scene.control.ButtonBar.ButtonData
-import javafx.scene.layout.BorderPane
-import javafx.scene.layout.GridPane
-import javafx.scene.layout.Region
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.Text
@@ -45,7 +43,9 @@ import javax.script.ScriptEngineManager
 
 abstract class Script(var mediator:Mediator): TextFlow() {
 
-    abstract var root:DSLElement
+    abstract protected var root:DSLElement
+    //this is to avoid to call script init too much time (for example when several elements are added, and then addButtons are fired several times)
+    var allowScriptInit = true
 
     open fun getScriptRoot():DSLElement = this.root
 
@@ -68,19 +68,23 @@ class ThemeAndLayoutScript(mediator:Mediator):Script(mediator) {
     override var root: DSLElement = RNArtistKw(this)
 
     init {
+        this.prefWidth = Region.USE_COMPUTED_SIZE
         this.initScript()
     }
 
     override fun getScriptRoot():RNArtistKw = this.root as RNArtistKw
 
     override fun initScript() {
-        this.getScriptRoot()?.let {
-            //currentJunctionBehaviors.clear() //we clear the current junction behaviors that can have been tweaked by the user
-            //currentJunctionBehaviors.putAll(defaultJunctionBehaviors)
-            this.children.clear()
-            var nodes = mutableListOf<Node>()
-            it.dumpNodes(nodes)
-            this.children.addAll(nodes)
+        if (this.allowScriptInit) {
+            this.getScriptRoot()?.let {
+                //currentJunctionBehaviors.clear() //we clear the current junction behaviors that can have been tweaked by the user
+                //currentJunctionBehaviors.putAll(defaultJunctionBehaviors)
+                this.children.clear()
+                var nodes = mutableListOf<Node>()
+                it.dumpNodes(nodes)
+                this.children.addAll(nodes)
+                this.layout()
+            }
         }
     }
 
@@ -91,9 +95,6 @@ class ThemeAndLayoutScript(mediator:Mediator):Script(mediator) {
                 if (it is JunctionLayoutKw) {
                     println((it as? JunctionLayoutKw)?.inFinalScript)
                     println((it as? JunctionLayoutKw)?.getLocation())
-                    println(((it as? JunctionLayoutKw)?.searchFirst { it is LocationKw } as LocationKw?)?.children?.filter {it is OptionalDSLParameter && it.inFinalScript && "to".equals(it.operator.text.text.trim()) }?.forEach {
-                        println("range")
-                    })
                     println(junctionLocation)
                 }
             }
@@ -222,7 +223,13 @@ class ThemeAndLayoutScript(mediator:Mediator):Script(mediator) {
 
     override fun removeSecondaryStructure() {
         (this.root as RNArtistKw).searchFirst { it is SecondaryStructureInputKw && it.inFinalScript}?.let {
-            (it as SecondaryStructureInputKw).removeButton.fire()
+            var optionalElements = mutableListOf<DSLElement>()
+            (it as SecondaryStructureInputKw).searchAll(optionalElements, {it is OptionalDSLParameter})
+            optionalElements.forEach { (it as OptionalDSLParameter).removeButton.fire() }
+            optionalElements.clear()
+            it.searchAll(optionalElements, {it is OptionalDSLKeyword})
+            optionalElements.forEach { (it as OptionalDSLKeyword).removeButton.fire() }
+            it.removeButton.fire()
             this.initScript()
         }
         //if we find a SecondaryStructureKw, this one has been injected from the last run of the script and we need to remove it from the children, since it should not stay as a regular child for RNArtistKw
@@ -240,15 +247,19 @@ class SecondaryStructureScript(mediator:Mediator):Script(mediator) {
     override var root: DSLElement = SecondaryStructureKw(this)
 
     init {
+        this.prefWidth = Region.USE_COMPUTED_SIZE
         this.initScript()
     }
 
     override fun initScript() {
-        this.getScriptRoot()?.let {
-            this.children.clear()
-            var nodes = mutableListOf<Node>()
-            it.dumpNodes(nodes)
-            this.children.addAll(nodes)
+        if (this.allowScriptInit) {
+            this.getScriptRoot()?.let {
+                this.children.clear()
+                var nodes = mutableListOf<Node>()
+                it.dumpNodes(nodes)
+                this.children.addAll(nodes)
+                this.layout()
+            }
         }
     }
 
@@ -262,6 +273,7 @@ class SecondaryStructureScript(mediator:Mediator):Script(mediator) {
 
 class ScriptEditor(val mediator: Mediator) {
 
+    var currentScriptLocation:File? = null
     val themeAndLayoutScript = ThemeAndLayoutScript(mediator)
     val secondaryStructureScript = SecondaryStructureScript(mediator)
     val stage = Stage()
@@ -281,11 +293,13 @@ class ScriptEditor(val mediator: Mediator) {
         themeAndLayoutScript.padding = Insets(10.0, 10.0, 10.0, 10.0)
         themeAndLayoutScript.lineSpacing = 10.0
         themeAndLayoutScript.tabSize = 6
+        themeAndLayoutScript.layout()
 
         secondaryStructureScript.style = "-fx-background-color: ${getHTMLColorString(RnartistConfig.backgroundEditorColor)}"
         secondaryStructureScript.padding = Insets(10.0, 10.0, 10.0, 10.0)
         secondaryStructureScript.lineSpacing = 10.0
         secondaryStructureScript.tabSize = 6
+        secondaryStructureScript.layout()
 
         val topToolbar = ToolBar()
         topToolbar.padding = Insets(5.0, 5.0, 5.0, 5.0)
@@ -303,28 +317,31 @@ class ScriptEditor(val mediator: Mediator) {
         val scriptsLibraryMenu = Menu("Scripts Library")
 
         val newScript = MenuItem("New Script")
-        newScript.setOnAction {
+        newScript.onAction = EventHandler {
             //we erase the 2D displayed
             mediator.drawingDisplayed.set(null)
             mediator.canvas2D.repaint()
+            currentScriptLocation = null
             //we erase the previous scripts
             themeAndLayoutScript.setScriptRoot(RNArtistKw(themeAndLayoutScript))
             secondaryStructureScript.setScriptRoot(SecondaryStructureKw(secondaryStructureScript))
         }
 
         val loadFile = MenuItem("Load Script..")
-        loadFile.setOnAction {
+        loadFile.onAction = EventHandler {
 
             val fileChooser = FileChooser()
             fileChooser.initialDirectory = File(mediator.rnartist.getInstallDir(), "samples")
             val file = fileChooser.showOpenDialog(stage)
             file?.let {
+                currentScriptLocation = file.parentFile
                 loadScript(FileReader(file))
             }
         }
 
         val loadGist = MenuItem("Load Gist..")
-        loadGist.setOnAction {
+        loadGist.onAction =  EventHandler {
+            currentScriptLocation = null
             val gistInput = TextInputDialog()
             gistInput.title = "Enter your Gist ID"
             gistInput.graphic = null
@@ -351,7 +368,8 @@ class ScriptEditor(val mediator: Mediator) {
         scriptsLibraryMenu.items.add(load2D)
 
         var menuItem = MenuItem("...from bracket notation")
-        menuItem.setOnAction {
+        menuItem.onAction = EventHandler {
+            currentScriptLocation = null
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_bn.kts")
             loadScript(FileReader(file))
         }
@@ -360,6 +378,7 @@ class ScriptEditor(val mediator: Mediator) {
 
         menuItem = MenuItem("...from bracket notation with data")
         menuItem.setOnAction {
+            currentScriptLocation = null
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_bn_with_data.kts")
             loadScript(FileReader(file))
         }
@@ -371,42 +390,48 @@ class ScriptEditor(val mediator: Mediator) {
         load2D.items.addAll(fromLocalFilesMenu, fromDatabasesMenu)
 
         menuItem = MenuItem("Vienna Format")
-        menuItem.setOnAction {
+        menuItem.onAction = EventHandler {
+            currentScriptLocation = null
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_vienna_file.kts")
             loadScript(FileReader(file))
         }
         fromLocalFilesMenu.items.add(menuItem)
 
         menuItem = MenuItem("CT Format")
-        menuItem.setOnAction {
+        menuItem.onAction = EventHandler {
+            currentScriptLocation = null
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_ct_file.kts")
             loadScript(FileReader(file))
         }
         fromLocalFilesMenu.items.add(menuItem)
 
         menuItem = MenuItem("BPSeq Format")
-        menuItem.setOnAction {
+        menuItem.onAction = EventHandler {
+            currentScriptLocation = null
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_bpseq_file.kts")
             loadScript(FileReader(file))
         }
         fromLocalFilesMenu.items.add(menuItem)
 
         menuItem = MenuItem("Stockholm Format")
-        menuItem.setOnAction {
+        menuItem.onAction = EventHandler {
+            currentScriptLocation = null
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_stockholm_file.kts")
             loadScript(FileReader(file))
         }
         fromLocalFilesMenu.items.add(menuItem)
 
         menuItem = MenuItem("Rfam DB")
-        menuItem.setOnAction {
+        menuItem.onAction = EventHandler {
+            currentScriptLocation = null
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_rfam_entry.kts")
             loadScript(FileReader(file))
         }
         fromDatabasesMenu.items.add(menuItem)
 
         menuItem = MenuItem("PDB")
-        menuItem.setOnAction {
+        menuItem.onAction = EventHandler {
+            currentScriptLocation = null
             val file = File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_pdb.kts")
             loadScript(FileReader(file))
         }
@@ -421,19 +446,19 @@ class ScriptEditor(val mediator: Mediator) {
         GridPane.setConstraints(loadScript, 0, 1)
         loadScriptPane.children.add(loadScript)
 
-        val saveScriptPane = GridPane()
-        saveScriptPane.vgap = 5.0
-        saveScriptPane.hgap = 5.0
+        val exportScriptPane = GridPane()
+        exportScriptPane.vgap = 5.0
+        exportScriptPane.hgap = 5.0
 
-        l = Label("Save")
+        l = Label("Export")
         GridPane.setHalignment(l, HPos.CENTER)
         GridPane.setConstraints(l, 0, 0)
-        saveScriptPane.children.add(l)
+        exportScriptPane.children.add(l)
 
         val saveScript = MenuButton(null, FontIcon("fas-sign-out-alt:15"))
 
         val saveAsFile = MenuItem("Export in File..")
-        saveAsFile.setOnAction(EventHandler<ActionEvent?> {
+        saveAsFile.onAction = EventHandler<ActionEvent?> {
             val fileChooser = FileChooser()
             fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("RNArtist Scripts", "*.kts"))
             val file = fileChooser.showSaveDialog(stage)
@@ -458,19 +483,13 @@ class ScriptEditor(val mediator: Mediator) {
                     } catch (e: IOException) {
                         e.printStackTrace()
                     }
-                    //and we create a preview as a png file...
-                    (mediator.drawingDisplayed.get() as? DrawingLoadedFromScriptEditor)?.let {
-                        if (it.id.equals(themeAndLayoutScript.getScriptRoot()!!.id)) {
-                            it.drawing.asPNG(Rectangle2D.Double(0.0,0.0,500.0,500.0), null, File(file.parentFile, "preview.png"))
-                        }
-                    }
                 }
             }
 
-        })
+        }
 
         val saveAsGist = MenuItem("Publish as GitHub Gist..")
-        saveAsGist.setOnAction(EventHandler<ActionEvent?> {
+        saveAsGist.onAction = EventHandler {
             val token = ""
             if (token.trim().isNotEmpty()) {
                 mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
@@ -543,12 +562,12 @@ class ScriptEditor(val mediator: Mediator) {
                 alert.contentText = "This feature will be activated soon"
                 alert.show()
             }
-        })
+        }
 
         saveScript.getItems().addAll(saveAsFile, saveAsGist)
 
         GridPane.setConstraints(saveScript, 0, 1)
-        saveScriptPane.children.add(saveScript)
+        exportScriptPane.children.add(saveScript)
 
         val fontPane = GridPane()
         fontPane.vgap = 5.0
@@ -569,10 +588,12 @@ class ScriptEditor(val mediator: Mediator) {
         fontChooser.onAction = EventHandler {
             RnartistConfig.editorFontName = fontChooser.value
             val hits = mutableListOf<DSLElement>()
-            themeAndLayoutScript.getScriptRoot()?.searchAll(hits) { it is DSLElement }
-            secondaryStructureScript.getScriptRoot()?.searchAll(hits) { it is DSLElement }
+            themeAndLayoutScript.getScriptRoot().searchAll(hits) { it is DSLElement }
+            secondaryStructureScript.getScriptRoot().searchAll(hits) { it is DSLElement }
             hits.forEach {
                 it.fontName = fontChooser.value
+                (it as? OptionalDSLKeyword)?.addButton?.setFontName(fontChooser.value)
+                (it as? OptionalDSLParameter)?.addButton?.setFontName(fontChooser.value)
             }
             themeAndLayoutScript.initScript()
             secondaryStructureScript.initScript()
@@ -586,9 +607,12 @@ class ScriptEditor(val mediator: Mediator) {
         sizeFont.onMouseClicked = EventHandler {
             RnartistConfig.editorFontSize = sizeFont.value
             val hits = mutableListOf<DSLElement>()
-            themeAndLayoutScript.getScriptRoot()?.searchAll(hits) { it is DSLElement }
+            themeAndLayoutScript.getScriptRoot().searchAll(hits) { it is DSLElement }
+            secondaryStructureScript.getScriptRoot().searchAll(hits) { it is DSLElement }
             hits.forEach {
                 it.fontSize = sizeFont.value
+                (it as? OptionalDSLKeyword)?.addButton?.setFontSize(sizeFont.value)
+                (it as? OptionalDSLParameter)?.addButton?.setFontSize(sizeFont.value)
             }
             themeAndLayoutScript.initScript()
             secondaryStructureScript.initScript()
@@ -645,7 +669,7 @@ class ScriptEditor(val mediator: Mediator) {
         val s3 = Separator()
         s3.padding = Insets(0.0, 5.0, 0.0, 5.0)
 
-        topToolbar.items.addAll(loadScriptPane, s1, saveScriptPane, s2, fontPane, s3, runPane)
+        topToolbar.items.addAll(loadScriptPane, s1, exportScriptPane, s2, fontPane, s3, runPane)
 
         val leftToolbar = VBox()
         leftToolbar.alignment = Pos.TOP_CENTER
@@ -667,25 +691,47 @@ class ScriptEditor(val mediator: Mediator) {
         val increaseTab = Button(null, FontIcon("fas-indent:15"))
         increaseTab.onAction = EventHandler {
             themeAndLayoutScript.tabSize++
-            themeAndLayoutScript.layout()
             secondaryStructureScript.tabSize++
-            secondaryStructureScript.layout()
         }
 
         val decreaseLineSpacing = Button(null, FontIcon("fas-compress-alt:15"))
         decreaseLineSpacing.onAction = EventHandler {
             themeAndLayoutScript.lineSpacing--
-            themeAndLayoutScript.layout()
             secondaryStructureScript.lineSpacing--
-            secondaryStructureScript.layout()
         }
 
         val increaseLineSpacing = Button(null, FontIcon("fas-expand-alt:15"))
         increaseLineSpacing.onAction = EventHandler {
             themeAndLayoutScript.lineSpacing++
-            themeAndLayoutScript.layout()
             secondaryStructureScript.lineSpacing++
-            secondaryStructureScript.layout()
+        }
+
+        val expandAll = Button(null, FontIcon("fas-plus:15"))
+        expandAll.onAction = EventHandler {
+            when (tabPane.selectionModel.selectedIndex) {
+                0 -> themeAndLayoutScript.children.filterIsInstance<Collapse>().map {
+                    if (it.collapsed)
+                        it.fire()
+                }
+                1 -> secondaryStructureScript.children.filterIsInstance<Collapse>().map {
+                    if (it.collapsed)
+                        it.fire()
+                }
+            }
+        }
+
+        val collapseAll = Button(null, FontIcon("fas-minus:15"))
+        collapseAll.onAction = EventHandler {
+            when (tabPane.selectionModel.selectedIndex) {
+                0 -> themeAndLayoutScript.children.filterIsInstance<Collapse>().map {
+                    if (!it.collapsed)
+                        it.fire()
+                }
+                1 -> secondaryStructureScript.children.filterIsInstance<Collapse>().map {
+                    if (!it.collapsed)
+                        it.fire()
+                }
+            }
         }
 
         val bgColor = ColorPicker()
@@ -708,6 +754,8 @@ class ScriptEditor(val mediator: Mediator) {
             secondaryStructureScript.getScriptRoot()?.searchAll(hits) { it is DSLKeyword }
             hits.forEach {
                 it.color = kwColor.value
+                (it as DSLKeyword).collapseButton.setColor(kwColor.value)
+                (it as? OptionalDSLKeyword)?.addButton?.setColor(kwColor.value)
             }
             RnartistConfig.keywordEditorColor = javaFXToAwt(kwColor.value)
             themeAndLayoutScript.initScript()
@@ -740,6 +788,7 @@ class ScriptEditor(val mediator: Mediator) {
             secondaryStructureScript.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
             hits.forEach {
                 (it as DSLParameter).key.color = keyParamColor.value
+                (it as? OptionalDSLParameter)?.addButton?.setColor(keyParamColor.value)
             }
             RnartistConfig.keyParamEditorColor = javaFXToAwt(keyParamColor.value)
             themeAndLayoutScript.initScript()
@@ -781,6 +830,8 @@ class ScriptEditor(val mediator: Mediator) {
         val spacer = Region()
         spacer.prefHeight = 20.0
         leftToolbar.children.addAll(
+            expandAll,
+            collapseAll,
             increaseLineSpacing,
             decreaseLineSpacing,
             increaseTab,
@@ -800,20 +851,18 @@ class ScriptEditor(val mediator: Mediator) {
             valueParamColor
         )
 
-
-
         root.top = topToolbar
         root.left = leftToolbar
         root.center = tabPane
 
         var scrollpane = ScrollPane(themeAndLayoutScript)
-        scrollpane.setFitToHeight(true);
-        scrollpane.setFitToWidth(true);
+        scrollpane.isFitToHeight = true
+        themeAndLayoutScript.minWidthProperty().bind(scrollpane.widthProperty())
         tabPane.tabs.add(Tab("Theme & Layout", scrollpane))
 
         scrollpane = ScrollPane(secondaryStructureScript)
-        scrollpane.setFitToHeight(true);
-        scrollpane.setFitToWidth(true);
+        scrollpane.isFitToHeight = true
+        secondaryStructureScript.minWidthProperty().bind(scrollpane.widthProperty())
         tabPane.tabs.add(Tab("Secondary Structure", scrollpane))
 
         tabPane.tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
@@ -836,10 +885,20 @@ class ScriptEditor(val mediator: Mediator) {
         //first we erase the previous scripts
         themeAndLayoutScript.setScriptRoot(RNArtistKw(themeAndLayoutScript))
         secondaryStructureScript.setScriptRoot(SecondaryStructureKw(secondaryStructureScript))
+        //to avoid doing initScript() for each addbutton fired
+        themeAndLayoutScript.allowScriptInit = false
+        secondaryStructureScript.allowScriptInit = false
 
+        //we construct the model
         val (themeAndLayoutScriptRoot, secondaryStructureScriptRoot, issues) = parseScript(scriptContent)
         themeAndLayoutScript.setScriptRoot(themeAndLayoutScriptRoot)
         secondaryStructureScript.setScriptRoot(secondaryStructureScriptRoot)
+
+        //we dump the nodes
+        themeAndLayoutScript.allowScriptInit = true
+        themeAndLayoutScript.initScript()
+        secondaryStructureScript.allowScriptInit = true
+        themeAndLayoutScript.initScript()
         if (issues.isNotEmpty()) {
             val alert = Alert(Alert.AlertType.WARNING)
             alert.headerText = "I fixed issues in your script."
@@ -862,10 +921,14 @@ class ScriptEditor(val mediator: Mediator) {
     fun getScriptAsText(): String {
         if (secondaryStructureScript.getScriptRoot().inFinalScript) {
             var root = secondaryStructureScript.getScriptRoot()
-            //this means that we have a secondary structure defined separately (and logically no ss element should be present in the layout & theme script)
+            //this means that we have a secondary structure defined separately (and then no ss element should be present in the layout & theme script)
             //so we need to inject the ss defined separately in the themeAndLayoutScript
             themeAndLayoutScript.setSecondaryStructure(root)
-            var scriptAsText = (themeAndLayoutScript.children.filterIsInstance<Text>().map {
+            var nodes = mutableListOf<Node>()
+            themeAndLayoutScript.getScriptRoot().dumpNodes(nodes, true)
+            if (nodes.filterIsInstance<DataField>().isNotEmpty())
+                println("Missing data")
+            var scriptAsText = (nodes.filterIsInstance<Text>().map {
                 it.text
             }).joinToString(separator = "")
             scriptAsText = scriptAsText.split("\n").filter { !it.matches(Regex("^\\s*$")) }.joinToString(separator = "\n")
@@ -874,7 +937,11 @@ class ScriptEditor(val mediator: Mediator) {
             secondaryStructureScript.initScript() //if i don't do that, the secondaryStructureScript becomes empty due to the previous instruction. Not sure why
             return "import io.github.fjossinet.rnartist.core.*\n\n ${scriptAsText}"
         } else {
-            var scriptAsText = (themeAndLayoutScript.children.filterIsInstance<Text>().map {
+            var nodes = mutableListOf<Node>()
+            themeAndLayoutScript.getScriptRoot().dumpNodes(nodes, true)
+            if (nodes.filterIsInstance<DataField>().isNotEmpty())
+                println("Missing data")
+            var scriptAsText = (nodes.filterIsInstance<Text>().map {
                 it.text
             }).joinToString(separator = "")
             scriptAsText = scriptAsText.split("\n").filter { !it.matches(Regex("^\\s*$")) }.joinToString(separator = "\n")
@@ -894,6 +961,15 @@ class ScriptEditor(val mediator: Mediator) {
                 "ss" -> {
                     val secondaryStructureInputKw = themeAndLayoutScriptRoot.searchFirst { it is SecondaryStructureInputKw } as SecondaryStructureInputKw
                     val secondaryStructureKw = secondaryStructureScriptRoot.searchFirst { it is SecondaryStructureKw } as SecondaryStructureKw
+                    element.attributes.forEach { attribute ->
+                        val tokens = attribute.split("=")
+                        if ("source".equals(tokens.first().trim())) {
+                            val tokens = attribute.split("=")
+                            val p = secondaryStructureKw.searchFirst { it is OptionalDSLParameter && "source".equals(it.key.text.text.trim())} as OptionalDSLParameter
+                            p.value.text.text = tokens.last()
+                            p.addButton.fire()
+                        }
+                    }
                     element.children.forEach { elementChild ->
                         when (elementChild.name) {
                             "bn" -> {

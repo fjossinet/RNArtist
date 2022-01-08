@@ -30,7 +30,7 @@ import java.util.*
 
 class Explorer(val mediator:Mediator) {
 
-    val stage = Stage()
+   /* val stage = Stage()
     val treeTableView = TreeTableView<ExplorerItem>()
     private var lastColorClicked: LastColor? = null
 
@@ -648,13 +648,13 @@ class Explorer(val mediator:Mediator) {
         }
     }
 
-    /**
+    *//**
      * Return a list of TreeItem containing a DrawingElement. Can return several objects since a DrawingElement can be encapsulated at different places
      * (like an helix and its children in a pknot or residues in tertiary interactions
      * @param item
      * @param drawingElement
      * @return
-     */
+     *//*
     private fun getTreeViewItemsFor(
         item: TreeItem<ExplorerItem>,
         drawingElement: DrawingElement,
@@ -1199,9 +1199,9 @@ class Explorer(val mediator:Mediator) {
                 graphic = getLineShape(item!!)
             }
         }
-    }
+    }*/
 }
-
+/*
 internal class FullDetailsTreeTableCell<T>(private val mediator: Mediator) : TreeTableCell<T, String>() {
     protected override fun updateItem(value: String?, empty: Boolean) {
         super.updateItem(value, empty)
@@ -1437,6 +1437,6 @@ class OpacityTableTreeCell<T>(private val mediator: Mediator) : TreeTableCell<T,
 }
 
 
-
+*/
 
 

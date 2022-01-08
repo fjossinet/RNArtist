@@ -2,13 +2,12 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
+import io.github.fjossinet.rnartist.core.model.DrawingConfiguration
 import io.github.fjossinet.rnartist.core.model.JunctionType
+import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.SecondaryStructureScript
 import io.github.fjossinet.rnartist.gui.editor.ThemeAndLayoutScript
-import io.github.fjossinet.rnartist.model.editor.HelixLocationKw
-import io.github.fjossinet.rnartist.model.editor.LocationKw
-import io.github.fjossinet.rnartist.model.editor.OptionalDSLParameter
-import io.github.fjossinet.rnartist.model.editor.SecondaryStructureKw
+import io.github.fjossinet.rnartist.model.editor.*
 import javafx.concurrent.Task
 import javafx.event.EventHandler
 import javafx.geometry.Insets
@@ -160,49 +159,55 @@ class SplashWindow(val mediator: Mediator) {
                 ) {
                     updateMessage("Migrating old database..")
                     for (project in this.mediator.embeddedDB.getProjects().find()) {
+                        updateMessage("Migrating project ${project.get("name")}..")
                         val drawing = mediator.embeddedDB.getProject(project.id)
                         with(drawing) {
                             val layoutScript = ThemeAndLayoutScript(mediator)
+                            layoutScript.allowScriptInit = false
                             with(layoutScript.getScriptRoot().getLayoutKw()) {
                                 addButton.fire()
+                                updateMessage("Migrating layout for project ${project.get("name")}..")
                                 allJunctions.forEach {
                                     if (it.junctionType != JunctionType.ApicalLoop) {
                                         with(this.getJunctionLayoutKw()) {
-                                            addButton.fire()
                                             if (it.junctionType != JunctionType.ApicalLoop) { //not possible to modify layout for apical loops
-                                                var parameter =
-                                                    searchFirst {
-                                                        it is OptionalDSLParameter && "out_ids".equals(
-                                                            it.key.text.text
-                                                        )
-                                                    } as OptionalDSLParameter
-                                                parameter.addButton.fire()
-                                                parameter.value.text.text =
+                                                setOutIds(
                                                     "\"${
                                                         it.currentLayout.map { it.toString() }
                                                             .joinToString(separator = " ")
-                                                    }\""
-                                                val locationKw = this.searchFirst { it is LocationKw } as LocationKw
-                                                locationKw.addButton.fire()
-                                                it.location.blocks.forEach {
-                                                    val parameter =
-                                                        locationKw.searchFirst { it is OptionalDSLParameter && !it.inFinalScript } as OptionalDSLParameter
-                                                    parameter.addButton.fire()
-                                                    parameter.key.text.text = it.start.toString()
-                                                    parameter.value.text.text = it.end.toString()
-                                                }
+                                                    }\"")
+                                                setLocation(it.location)
                                         }
                                     }
                                 }
                                 }
                             }
+                            updateMessage("Migrating theme for project ${project.get("name")}..")
+                            val themeDoc = mediator.embeddedDB.getThemeAsJSON(project.id)
+                            with(layoutScript.getScriptRoot().getThemeKw()) {
+                                addButton.fire()
+                                val detailsKw = searchFirst { it is DetailsKw && !it.inFinalScript } as DetailsKw
+                                detailsKw.setlevel("5")
+                            }
+                            layoutScript.allowScriptInit = true
+                            layoutScript.initScript()
+                            updateMessage("Migrating structure for project ${project.get("name")}..")
                             val secondaryStructureScript = SecondaryStructureScript(mediator)
+                            secondaryStructureScript.allowScriptInit = false
                             val structureKw = SecondaryStructureKw(secondaryStructureScript)
                             structureKw.setSecondaryStructure(this.secondaryStructure)
                             secondaryStructureScript.setScriptRoot(structureKw)
+                            secondaryStructureScript.allowScriptInit = true
+                            secondaryStructureScript.initScript()
                             layoutScript.setSecondaryStructure(structureKw)
-                            updateMessage("Migrating project ${project.get("name")}..")
-                            val projectDir = File(File(RnartistConfig.projectsFolder), layoutScript.getScriptRoot().id)
+
+                            var projectDir = File(File(RnartistConfig.projectsFolder), project.get("name") as String)
+                            var i = 1
+                            while (projectDir.exists()) {
+                                projectDir =
+                                    File(File(RnartistConfig.projectsFolder), "${project.get(" name ") as String}_$i")
+                                i++
+                            }
                             projectDir.mkdir()
                             var scriptFile = File(projectDir, "rnartist.kts")
                             scriptFile.createNewFile()

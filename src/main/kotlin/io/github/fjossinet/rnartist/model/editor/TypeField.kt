@@ -1,31 +1,56 @@
 package io.github.fjossinet.rnartist.model.editor
 
+import io.github.fjossinet.rnartist.gui.editor.DataField
 import io.github.fjossinet.rnartist.gui.editor.Script
+import io.github.fjossinet.rnartist.gui.editor.TextField
 import io.github.fjossinet.rnartist.gui.editor.TypeChooser
 import javafx.event.EventHandler
+import javafx.scene.Node
 import javafx.scene.paint.Color
 
-class TypeField(script: Script, value:String, types:List<String>? = null): ParameterField(script, "\"${value}\"", true) {
+class TypeField(script: Script, value:String = "", val restrictedTypes:List<String>? = null): ParameterField(script, "\"${value}\"", true) {
 
     init {
         this.text.fill = Color.web("#4d4d4d")
-        if (editable) {
-            this.text.onMouseClicked = EventHandler {
-                val index = script.children.indexOf(this.text)
-                val chooser = TypeChooser(script, this.text, types)
+        this.text.onMouseClicked = EventHandler {
+            val index = script.children.indexOf(this.text)
+            val chooser = TypeChooser(script, this.text, restrictedTypes)
+            chooser.focusedProperty().addListener { observableValue, oldValue, newValue ->
+                if (!newValue) {
+                    this.text.text = "\"${chooser.getSelection()}\""
+                    script.children.removeAt(index)
+                    script.children.add(index, this.text)
+                    script.initScript() //necessary if the new text is empty, then will be replaced witth the datafield
+                }
+            }
+            script.children.removeAt(index)
+            script.children.add(index, chooser)
+            chooser.requestFocus()
+        }
+    }
+
+    override fun clone():TypeField = TypeField(script, this.text.text.replace("\"",""))
+
+    override fun dumpNodes(nodes: MutableList<Node>, enterInCollapsedNode: Boolean) {
+        if (this.text.text.replace("\"", "").isEmpty()) {
+            val button = DataField(script)
+            button.onMouseClicked = EventHandler {
+                val index = script.children.indexOf(button)
+                val chooser = TypeChooser(script, this.text, restrictedTypes)
                 chooser.focusedProperty().addListener { observableValue, oldValue, newValue ->
                     if (!newValue) {
                         this.text.text = "\"${chooser.getSelection()}\""
                         script.children.removeAt(index)
                         script.children.add(index, this.text)
+                        script.initScript()
                     }
                 }
                 script.children.removeAt(index)
                 script.children.add(index, chooser)
                 chooser.requestFocus()
             }
-        }
+            nodes.add(button)
+        } else
+            nodes.add(this.text)
     }
-
-    override fun clone():TypeField = TypeField(script, this.text.text.replace("\"",""))
 }

@@ -7,7 +7,7 @@ import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 
-open class DSLElement(val script: Script, text:String, var indentLevel:Int) {
+open class DSLElement(val script: Script, text:String?, var indentLevel:Int) {
     val children = mutableListOf<DSLElement>()
     val text = Text()
 
@@ -45,13 +45,13 @@ open class DSLElement(val script: Script, text:String, var indentLevel:Int) {
     /**
      * Generates the JavaFX Nodes from the editor model
      */
-    open fun dumpNodes(nodes:MutableList<Node>) {
+    open fun dumpNodes(nodes:MutableList<Node>, enterInCollapsedNode:Boolean = false) {
         (0 until indentLevel).forEach {
             nodes.add(ScriptTab(script).text)
         }
         nodes.add(this.text)
         this.children.forEach {
-            it.dumpNodes(nodes)
+            it.dumpNodes(nodes, enterInCollapsedNode)
         }
     }
 

@@ -6,7 +6,7 @@ import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
 
 class HelixKw(var parent: SecondaryStructureKw, script: Script, indentLevel: Int) :
-    OptionalDSLKeyword(script, " helix", indentLevel) {
+    OptionalDSLKeyword(script, " helix ", indentLevel) {
 
     init {
         this.children.add(1, InteractionKw(this, script, this.indentLevel + 1))
@@ -24,14 +24,14 @@ class HelixKw(var parent: SecondaryStructureKw, script: Script, indentLevel: Int
             )
         )
 
-        addButton.onAction = EventHandler {
+        addButton.mouseReleased = {
             this.inFinalScript = true
             if (this.parent.children.get(this.parent.children.indexOf(this)+1) !is HelixKw)
                 this.parent.children.add(this.parent.children.indexOf(this) + 1, HelixKw(parent, script, indentLevel))
             script.initScript()
         }
 
-        removeButton.onAction = EventHandler {
+        removeButton.mouseReleased =  {
             this.inFinalScript = false
             val childAfter = this.parent.children.get(this.parent.children.indexOf(this) + 1)
             if (childAfter is HelixKw)

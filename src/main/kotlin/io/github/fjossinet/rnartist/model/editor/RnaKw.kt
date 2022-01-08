@@ -3,7 +3,7 @@ package io.github.fjossinet.rnartist.model.editor
 import io.github.fjossinet.rnartist.core.model.RNA
 import io.github.fjossinet.rnartist.gui.editor.Script
 
-class RnaKw(script: Script, indentLevel: Int) : DSLKeyword(script, " rna", indentLevel) {
+class RnaKw(script: Script, indentLevel: Int) : DSLKeyword(script, " rna ", indentLevel) {
 
     init {
         this.children.add(
@@ -24,7 +24,7 @@ class RnaKw(script: Script, indentLevel: Int) : DSLKeyword(script, " rna", inden
                 null,
                 StringWithoutQuotes(script, "seq"),
                 Operator(script, "="),
-                StringValueWithQuotes(script, "click me to set your sequence", editable = true),
+                StringValueWithQuotes(script, "", editable = true),
                 this.indentLevel + 1
             )
         )
@@ -35,7 +35,7 @@ class RnaKw(script: Script, indentLevel: Int) : DSLKeyword(script, " rna", inden
                 null,
                 StringWithoutQuotes(script, "length"),
                 Operator(script, "="),
-                IntegerField(script, 100),
+                StringWithoutQuotes(script, editable = true),
                 this.indentLevel + 1
             )
         )

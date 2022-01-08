@@ -2,7 +2,7 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.gui.editor.Script
 
-class ThemeKw(script: Script, indentLevel:Int): OptionalDSLKeyword(script, " theme", indentLevel) {
+class ThemeKw(script: Script, indentLevel:Int): OptionalDSLKeyword(script, " theme ", indentLevel) {
 
     init {
         this.children.add(1, LineKw(this, script, this.indentLevel+1))

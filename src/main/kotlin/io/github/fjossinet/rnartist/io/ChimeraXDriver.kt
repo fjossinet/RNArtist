@@ -120,7 +120,7 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
             if (numberingSystem != null) {
                 val colors2residues = mutableMapOf<String, MutableList<ResidueDrawing>>()
                 for (r in residues) {
-                    val coloredResidues = colors2residues.getOrDefault(getHTMLColorString(r.getColor()), mutableListOf<ResidueDrawing>())
+                    val coloredResidues = colors2residues.getOrDefault(getHTMLColorString(r.getColor()), mutableListOf())
                     coloredResidues.add(r)
                     colors2residues[getHTMLColorString(r.getColor())] = coloredResidues
                 }

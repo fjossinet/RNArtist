@@ -133,7 +133,10 @@ class ProjectsPanel(val mediator:Mediator) {
                     val deleteProject: Task<Exception?> = object : Task<Exception?>() {
                         override fun call(): Exception? {
                             return try {
-                                item!!.projectDir!!.delete()
+                                Platform.runLater {
+                                    item!!.projectDir.deleteRecursively()
+                                    projectPanels.remove(item)
+                                }
                                 null
                             } catch (e: Exception) {
                                 e
@@ -186,6 +189,7 @@ class ProjectsPanel(val mediator:Mediator) {
                         override fun call(): Exception? {
                             return try {
                                 Platform.runLater {
+                                    mediator.scriptEditor.currentScriptLocation = item!!.projectDir
                                     mediator.scriptEditor.loadScript(
                                         FileReader(
                                             File(

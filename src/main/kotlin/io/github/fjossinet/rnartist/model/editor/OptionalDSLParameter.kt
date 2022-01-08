@@ -1,13 +1,10 @@
 package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.gui.editor.Button
-import io.github.fjossinet.rnartist.gui.editor.Script
-import javafx.event.EventHandler
+import io.github.fjossinet.rnartist.gui.editor.*
 import javafx.scene.Node
 import javafx.scene.text.Font
 import javafx.scene.text.Text
-import org.kordamp.ikonli.javafx.FontIcon
 
 open class OptionalDSLParameter(var parent:DSLElement, script: Script, var buttonName:String? = null, key:ParameterField, operator:Operator, value:ParameterField, indentLevel:Int, var canBeMultiple:Boolean = false):
     DSLParameter(script, key, operator, value,indentLevel) {
@@ -16,8 +13,8 @@ open class OptionalDSLParameter(var parent:DSLElement, script: Script, var butto
         protected set(value) {
             field = value
         }
-    val addButton = Button(script, "+ ${buttonName ?: key.text.text}", null)
-    val removeButton = Button(script, null, FontIcon("fas-trash:15"))
+    val addButton = AddParameter(script, buttonName ?: key.text.text)
+    val removeButton = Remove(script)
 
     override var fontSize:Int = RnartistConfig.editorFontSize
         set(value) {
@@ -39,13 +36,13 @@ open class OptionalDSLParameter(var parent:DSLElement, script: Script, var butto
 
     init {
         if (this.canBeMultiple) {
-            addButton.onAction = EventHandler {
+            addButton.mouseReleased =  {
                 this.inFinalScript = true
                 this.parent.children.add(this.parent.children.indexOf(this)+1, OptionalDSLParameter(parent, script, buttonName, key.clone(), operator.clone(), value.clone(),indentLevel, canBeMultiple))
                 script.initScript()
             }
 
-            removeButton.onAction = EventHandler {
+            removeButton.mouseReleased = {
                 this.inFinalScript = false
                 val childAfter = this.parent.children.get(this.parent.children.indexOf(this)+1)
                 if (childAfter is OptionalDSLParameter)
@@ -60,19 +57,19 @@ open class OptionalDSLParameter(var parent:DSLElement, script: Script, var butto
         }
         else {
 
-            addButton.onAction = EventHandler {
+            addButton.mouseReleased = {
                 this.inFinalScript = true
                 script.initScript()
             }
 
-            removeButton.onAction = EventHandler {
+            removeButton.mouseReleased = {
                 this.inFinalScript = false
                 script.initScript()
             }
         }
     }
 
-    override fun dumpNodes(nodes:MutableList<Node>) {
+    override fun dumpNodes(nodes: MutableList<Node>, enterInCollapsedNode: Boolean) {
         (0 until indentLevel).forEach {
             nodes.add(ScriptTab(script).text)
         }

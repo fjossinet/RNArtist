@@ -4,7 +4,7 @@ import io.github.fjossinet.rnartist.core.model.RNA
 import io.github.fjossinet.rnartist.core.model.SecondaryStructure
 import io.github.fjossinet.rnartist.gui.editor.Script
 
-class SequenceBnParameter(parent:DSLElement, script: Script, val bnValue: DSLParameter, indentLevel: Int, inFinalScript: Boolean = false, sequence:String = "click me to set your sequence") :
+class SequenceBnParameter(parent:DSLElement, script: Script, val bnValue: DSLParameter, indentLevel: Int, inFinalScript: Boolean = false, sequence:String = "") :
     OptionalDSLParameter(parent,
         script,
         null,
@@ -16,7 +16,7 @@ class SequenceBnParameter(parent:DSLElement, script: Script, val bnValue: DSLPar
     ) {
 
     init {
-        var sequence = "click me to set your sequence"
+        var sequence = ""
         script.mediator.drawingDisplayed.get()?.let {
             sequence = it.drawing.secondaryStructure.rna.seq
         } ?: run {

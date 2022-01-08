@@ -1,13 +1,11 @@
-package io.github.fjossinet.rnartist.model.editor
+package io.github.fjossinet.rnartist.io.model.editor
 
 import io.github.fjossinet.rnartist.gui.editor.Script
-import javafx.event.EventHandler
+import io.github.fjossinet.rnartist.model.editor.*
 
-class SVGKw (editor: Script, indentLevel:Int): OptionalDSLKeyword(editor,  " svg ", indentLevel) {
+class ChimeraKw (editor: Script, indentLevel:Int): OptionalDSLKeyword(editor,  " chimera ", indentLevel) {
 
     init {
-        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"width"), Operator(script,"="), FloatField(script,"800.0"), this.indentLevel + 1))
-        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"height"), Operator(script,"="), FloatField(script,"800.0"), this.indentLevel + 1))
         this.children.add(1, DSLParameter(script, StringWithoutQuotes(script,"path"), Operator(script,"="), DirectoryField(script), this.indentLevel+1))
         addButton.mouseReleased = {
             val p = this.searchFirst { it is DSLParameter } as DSLParameter
@@ -20,5 +18,4 @@ class SVGKw (editor: Script, indentLevel:Int): OptionalDSLKeyword(editor,  " svg
             script.initScript()
         }
     }
-
 }

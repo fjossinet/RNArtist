@@ -3,17 +3,18 @@ package io.github.fjossinet.rnartist.model.editor
 import io.github.fjossinet.rnartist.core.model.Block
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
+import javafx.event.EventHandler
 
-open class LocationKw(script: Script, indentLevel:Int): OptionalDSLKeyword(script, " location", indentLevel) {
+open class LocationKw(script: Script, indentLevel:Int): OptionalDSLKeyword(script, " location ", indentLevel) {
 
     init {
         val p = OptionalDSLParameter(
             this,
             script,
             "range",
-            IntegerField(script, 1),
+            StringWithoutQuotes(script, editable = true),
             Operator(script, "to"),
-            IntegerField(script, 10),
+            StringWithoutQuotes(script, editable = true),
             this.indentLevel + 1,
             canBeMultiple = true
         )
@@ -21,13 +22,26 @@ open class LocationKw(script: Script, indentLevel:Int): OptionalDSLKeyword(scrip
             this.children.size - 1,
             p
         )
+        addButton.mouseReleased = {
+            if (getLocation() == null && script.mediator.canvas2D.getSelectedPositions().isNotEmpty()) {
+                val location = Location(script.mediator.canvas2D.getSelectedPositions().toIntArray())
+                location.blocks.forEachIndexed() { index, block ->
+                    val p = this.searchFirst { it is OptionalDSLParameter && !it.inFinalScript && "to".equals(it.operator.text.text.trim()) } as OptionalDSLParameter
+                    (p.key as StringWithoutQuotes).setText(block.start.toString())
+                    (p.value as StringWithoutQuotes).setText(block.end.toString())
+                    p.addButton.fire()
+                }
+            }
+            this.inFinalScript = true
+            script.initScript()
+        }
     }
 
     fun setLocation(location: Location) {
         location.blocks.forEachIndexed() { index, block ->
             val p = this.searchFirst { it is OptionalDSLParameter && !it.inFinalScript && "to".equals(it.operator.text.text.trim()) } as OptionalDSLParameter
-            (p.key as IntegerField).setValue(block.start)
-            (p.value as IntegerField).setValue(block.end)
+            (p.key as StringWithoutQuotes).setText(block.start.toString())
+            (p.value as StringWithoutQuotes).setText(block.end.toString())
             p.addButton.fire()
         }
         this.addButton.fire()

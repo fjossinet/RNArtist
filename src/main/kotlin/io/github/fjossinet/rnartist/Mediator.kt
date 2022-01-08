@@ -29,7 +29,7 @@ class Mediator(val rnartist: RNArtist) {
                             ChimeraDriver(this)
     var scriptEditor = ScriptEditor(this)
     val settings = Settings(this)
-    val explorer = Explorer(this)
+    //val explorer = Explorer(this)
     val projectsPanel = ProjectsPanel(this)
     lateinit var canvas2D: Canvas2D
 
@@ -92,7 +92,6 @@ class Mediator(val rnartist: RNArtist) {
                     oldValue.tmpChimeraSession = Pair(tmpSessionFile, tmpPdbFile)
                     this.chimeraDriver.saveSession(tmpSessionFile, tmpPdbFile)
                 }
-                this.explorer.load(newValue.drawing)
                 when (newValue) {
                     is DrawingLoadedFromFile -> {
                         if (newValue.tmpChimeraSession != null) {
@@ -129,7 +128,7 @@ class Mediator(val rnartist: RNArtist) {
                                 Thread.sleep(1000)
                             }
                         }
-                        rnartist.updateProject.isDisable = true
+                        rnartist.saveProject.isDisable = true
                     }
                     is DrawingLoadedFromRNArtistDB -> {
                         //println("new 2D loaded from DB")
@@ -153,7 +152,7 @@ class Mediator(val rnartist: RNArtist) {
                                 this.rnartist.reload3D.isDisable = false
                             }
                         }
-                        rnartist.updateProject.isDisable = false
+                        rnartist.saveProject.isDisable = false
                     }
                 }
                 this.canvas2D.repaint();

@@ -76,7 +76,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
                 }
             }
 
-            println((System.currentTimeMillis() - start) / 1000.0)
+            //println((System.currentTimeMillis() - start) / 1000.0)
         }
     }
 

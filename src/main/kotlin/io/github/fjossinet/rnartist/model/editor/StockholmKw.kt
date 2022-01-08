@@ -3,7 +3,7 @@ package io.github.fjossinet.rnartist.model.editor
 import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
 
-class StockholmKw(val parent:SecondaryStructureInputKw, script: Script, indentLevel:Int): OptionalDSLKeyword(script,  " stockholm", indentLevel) {
+class StockholmKw(val parent:SecondaryStructureInputKw, script: Script, indentLevel:Int): OptionalDSLKeyword(script,  " stockholm ", indentLevel) {
 
     init {
         this.children.add(
@@ -28,14 +28,14 @@ class StockholmKw(val parent:SecondaryStructureInputKw, script: Script, indentLe
             )
         )
 
-        addButton.onAction = EventHandler {
+        addButton.mouseReleased = {
             this.inFinalScript = true
             if (this.parent.children.get(this.parent.children.indexOf(this)+1) !is StockholmKw)
                 this.parent.children.add(this.parent.children.indexOf(this) + 1, StockholmKw(parent, script, indentLevel))
             script.initScript()
         }
 
-        removeButton.onAction = EventHandler {
+        removeButton.mouseReleased =  {
             this.inFinalScript = false
             val childAfter = this.parent.children.get(this.parent.children.indexOf(this) + 1)
             if (childAfter is StockholmKw)

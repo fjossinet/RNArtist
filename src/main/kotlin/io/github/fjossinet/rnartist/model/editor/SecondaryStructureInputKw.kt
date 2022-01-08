@@ -2,7 +2,7 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.gui.editor.Script
 
-class SecondaryStructureInputKw(script: Script, indentLevel:Int): OptionalDSLKeyword(script, " ss", indentLevel) {
+class SecondaryStructureInputKw(script: Script, indentLevel:Int): OptionalDSLKeyword(script, " ss ", indentLevel) {
 
     init {
         this.children.add(this.children.size - 1, BracketNotationKw(this, script, this.indentLevel + 1))
