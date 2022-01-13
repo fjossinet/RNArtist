@@ -9,8 +9,8 @@ import javafx.scene.text.Text
 import javafx.stage.DirectoryChooser
 import java.io.File
 
-class DirectoryField(script: Script, value: String = "") :
-    StringWithQuotes(script, value, true) {
+class DirectoryField(parent:DSLElementInt, script: Script, value: String = "") :
+    StringWithQuotes(parent, script, value, true) {
 
     init {
         val l = script.mediator.scriptEditor?.currentScriptLocation
@@ -30,9 +30,9 @@ class DirectoryField(script: Script, value: String = "") :
         }
     }
 
-    override fun clone(): DirectoryField = DirectoryField(script, this.text.text.replace("\"", ""))
+    override fun clone(): DirectoryField = DirectoryField(this.parent, script)
 
-    override fun dumpNodes(nodes: MutableList<Node>, enterInCollapsedNode: Boolean) {
+    override fun dumpNodes(nodes: MutableList<Node>) {
         if (this.text.text.replace("\"","").isEmpty()) {
             val button = DataField(script)
             button.onMouseClicked = EventHandler {
@@ -50,4 +50,10 @@ class DirectoryField(script: Script, value: String = "") :
         else
             nodes.add(this.text)
     }
+
+    override fun dumpText(text:StringBuilder) {
+        if (this.text.text.replace("\"", "").isNotEmpty())
+            text.append(this.text.text)
+    }
+
 }

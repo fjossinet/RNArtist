@@ -4,16 +4,16 @@ import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
 
-class DetailsKw(var parent:ThemeKw, script: Script, indentLevel:Int): OptionalDSLKeyword(script, " details ", indentLevel) {
+class DetailsKw(parent:ThemeKw, script: Script, indentLevel:Int): OptionalDSLKeyword(parent, script, "details", indentLevel) {
 
     init {
-        this.children.add(1, LocationKw(script, this.indentLevel + 1))
-        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"type"), Operator(script,"="), TypeField(script, restrictedTypes =  listOf("helix", "single_strand", "junction")), this.indentLevel + 1))
-        this.children.add(1, DSLParameter(script, StringWithoutQuotes(script,"value"), Operator(script,"="), StringWithoutQuotes(script, "1", editable = true), this.indentLevel+1))
+        this.children.add(LocationKw(this, script, this.indentLevel + 1))
+        this.children.add(OptionalDSLParameter(this, script, null, StringWithoutQuotes(this, script,"type"), Operator(this, script,"="), TypeField(this, script, restrictedTypes =  listOf("helix", "single_strand", "junction")), this.indentLevel + 1))
+        this.children.add(DSLParameter(this, script, StringWithoutQuotes(this, script,"value"), Operator(this, script,"="), StringWithoutQuotes(this, script, "1", editable = true), this.indentLevel+1))
 
         addButton.mouseReleased = {
             this.inFinalScript = true
-            if (this.parent.children.get(this.parent.children.indexOf(this)+1) !is DetailsKw)
+            if (this.parent.children.indexOf(this) == this.parent.children.size-1 || this.parent.children.get(this.parent.children.indexOf(this)+1) !is DetailsKw)
                 this.parent.children.add(this.parent.children.indexOf(this) + 1, DetailsKw(parent, script, indentLevel))
             script.initScript()
         }
@@ -25,7 +25,7 @@ class DetailsKw(var parent:ThemeKw, script: Script, indentLevel:Int): OptionalDS
                 this.parent.children.remove(this)
             else {
                 val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
-                if (childBefore is DetailsKw && !childBefore.inFinalScript)
+                if (childBefore is DetailsKw)
                     this.parent.children.remove(this)
             }
             script.initScript()

@@ -3,9 +3,10 @@ package io.github.fjossinet.rnartist.model.editor
 import io.github.fjossinet.rnartist.gui.editor.Script
 import io.github.fjossinet.rnartist.gui.editor.TextField
 import javafx.event.EventHandler
+import javafx.scene.Node
 import javafx.scene.input.KeyCode
 
-abstract open class ParameterField(script: Script, value:String, var editable:Boolean = false): DSLElement(script, value, 0) {
+abstract open class ParameterField(parent: DSLElementInt, script: Script, value:String, var editable:Boolean = false): DSLElement(parent, script, value, 0) {
 
     init {
         if (editable) {

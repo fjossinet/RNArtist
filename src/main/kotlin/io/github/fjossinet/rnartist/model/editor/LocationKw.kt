@@ -5,23 +5,49 @@ import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
 
-open class LocationKw(script: Script, indentLevel:Int): OptionalDSLKeyword(script, " location ", indentLevel) {
+open class LocationKw(parent:DSLElement, script: Script, indentLevel:Int): OptionalDSLKeyword(parent, script, "location", indentLevel) {
 
     init {
+        this.text
         val p = OptionalDSLParameter(
             this,
             script,
             "range",
-            StringWithoutQuotes(script, editable = true),
-            Operator(script, "to"),
-            StringWithoutQuotes(script, editable = true),
+            StringWithoutQuotes(this, script, editable = true),
+            Operator(this, script, "to"),
+            StringWithoutQuotes(this, script, editable = true),
             this.indentLevel + 1,
             canBeMultiple = true
         )
         this.children.add(
-            this.children.size - 1,
             p
         )
+
+        this.text.onMouseReleased = EventHandler {
+            script.mediator.canvas2D.clearSelection()
+            this.getLocation()?.let { l ->
+                (this.parent as? JunctionLayoutKw)?.let {
+                    script.mediator.drawingDisplayed.get()?.let { drawingLoaded ->
+                        drawingLoaded.drawing.allJunctions.forEach { j ->
+                            if (j.inside(l)) {
+                                script.mediator.canvas2D.addToSelection(j)
+                            }
+                        }
+                        script.mediator.canvas2D.fitStructure(script.mediator.canvas2D.getSelectionFrame(), ratio = 3.0)
+                    }
+                } ?: run {
+                    script.mediator.drawingDisplayed.get()?.let { drawingLoaded ->
+                        drawingLoaded.drawing.residues.forEach { r ->
+                            if (r.inside(l)) {
+                                script.mediator.canvas2D.addToSelection(r)
+                            }
+                        }
+                        script.mediator.canvas2D.fitStructure(script.mediator.canvas2D.getSelectionFrame(), ratio = 3.0)
+                    }
+                }
+            }
+        }
+
         addButton.mouseReleased = {
             if (getLocation() == null && script.mediator.canvas2D.getSelectedPositions().isNotEmpty()) {
                 val location = Location(script.mediator.canvas2D.getSelectedPositions().toIntArray())
@@ -33,6 +59,14 @@ open class LocationKw(script: Script, indentLevel:Int): OptionalDSLKeyword(scrip
                 }
             }
             this.inFinalScript = true
+            script.initScript()
+        }
+
+        removeButton.mouseReleased =  {
+            this.inFinalScript = false
+            val index = this.parent.children.indexOf(this)
+            this.parent.children.remove(this)
+            this.parent.children.add(index, LocationKw(this.parent as DSLElement, script, this.indentLevel))
             script.initScript()
         }
     }

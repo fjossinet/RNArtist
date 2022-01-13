@@ -2,10 +2,18 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.gui.editor.Script
 
-class LayoutKw(script: Script, indentLevel:Int): OptionalDSLKeyword(script, " layout ", indentLevel) {
+class LayoutKw(parent:RNArtistKw, script: Script, indentLevel:Int): OptionalDSLKeyword(parent, script, "layout", indentLevel) {
 
     init {
-        this.children.add(1, JunctionLayoutKw(this, script, this.indentLevel+1))
+        this.children.add(JunctionLayoutKw(this, script, this.indentLevel+1))
+
+        removeButton.mouseReleased =  {
+            this.inFinalScript = false
+            val index = this.parent.children.indexOf(this)
+            this.parent.children.remove(this)
+            this.parent.children.add(index, LayoutKw(this.parent as RNArtistKw, script, this.indentLevel))
+            script.initScript()
+        }
     }
 
     /**

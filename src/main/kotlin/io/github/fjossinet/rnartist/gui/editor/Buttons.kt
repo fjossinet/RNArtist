@@ -5,6 +5,7 @@ import io.github.fjossinet.rnartist.core.model.getHTMLColorString
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import javafx.event.EventHandler
+import javafx.geometry.Pos
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.shape.SVGPath
@@ -68,6 +69,7 @@ class AddKeyWord(val script: Script, label:String): Region() {
     init {
         val hbox = HBox()
         hbox.spacing = 5.0
+        hbox.alignment = Pos.CENTER
         this.children.add(hbox)
         innerRegion.isCenterShape = true
         val svg = SVGPath()
@@ -122,6 +124,7 @@ class AddParameter(val script: Script, label:String): Region() {
     init {
         val hbox = HBox()
         hbox.spacing = 5.0
+        hbox.alignment = Pos.CENTER
         this.children.add(hbox)
         innerRegion.isCenterShape = true
         val svg = SVGPath()

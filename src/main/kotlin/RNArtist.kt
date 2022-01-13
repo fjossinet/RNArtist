@@ -11,10 +11,9 @@ import io.github.fjossinet.rnartist.core.io.createTemporaryFile
 import io.github.fjossinet.rnartist.core.io.toJSON
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.theme
-import io.github.fjossinet.rnartist.gui.Canvas2D
-import io.github.fjossinet.rnartist.gui.Explorer
-import io.github.fjossinet.rnartist.gui.SplashWindow
+import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import io.github.fjossinet.rnartist.io.sendField
 import io.github.fjossinet.rnartist.io.sendFile
@@ -107,10 +106,12 @@ class RNArtist : Application() {
             val file = fileChooser.showOpenDialog(stage)
             file?.let { f ->
                 if (f.name.endsWith(".ct")) {
-                    Platform.runLater {
-                        mediator.scriptEditor.loadScript(
-                            StringReader(
+                    mediator.scriptEditor.currentScriptLocation = null
+                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
+                    StringReader(
                                 """
+import io.github.fjossinet.rnartist.core.*
+
 rnartist {
     ss {
         ct {
@@ -120,20 +121,20 @@ rnartist {
     
     theme {
        details {
-           value = 1
+           value = 3
        }
     }
 }
 """
-                            )
+                            ), runScript = true
                         )
-                        mediator.scriptEditor.runScript()
-                    }
                 } else if (f.name.endsWith(".bpseq")) {
-                    Platform.runLater {
-                        mediator.scriptEditor.loadScript(
-                            StringReader(
+                    mediator.scriptEditor.currentScriptLocation = null
+                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
+                    StringReader(
                                 """
+import io.github.fjossinet.rnartist.core.*
+
 rnartist {
     ss {
         bpseq {
@@ -142,23 +143,23 @@ rnartist {
     }    
     theme {
        details {
-           value = 1
+           value = 3
        }
     }
 }
 """
-                            )
+                            ), runScript = true
                         )
-                        mediator.scriptEditor.runScript()
-                    }
                 } else if (f.name.endsWith(".fasta") || f.name.endsWith(".fas") || f.name.endsWith(
                         ".fa"
                     ) || f.name.endsWith(".vienna")
                 ) {
-                    Platform.runLater {
-                        mediator.scriptEditor.loadScript(
-                            StringReader(
+                    mediator.scriptEditor.currentScriptLocation = null
+                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
+                    StringReader(
                                 """
+import io.github.fjossinet.rnartist.core.*
+
 rnartist {
     ss {
         vienna {
@@ -167,20 +168,20 @@ rnartist {
     }    
     theme {
        details {
-           value = 1
+           value = 3
        }
     }
 }
 """
-                            )
-                        )
-                        mediator.scriptEditor.runScript()
-                    }
+                            ), runScript = true
+                    )
                 } else if (f.name.matches(Regex(".+\\.pdb[0-9]?"))) {
-                    Platform.runLater {
-                        mediator.scriptEditor.loadScript(
-                            StringReader(
+                    mediator.scriptEditor.currentScriptLocation = null
+                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
+                    StringReader(
                                 """
+import io.github.fjossinet.rnartist.core.*
+
 rnartist {
     ss {
         pdb {
@@ -189,21 +190,21 @@ rnartist {
     }    
     theme {
        details {
-           value = 1
+           value = 3
        }
     }
 }
 """
-                            )
+                            ), runScript = true
                         )
-                        mediator.scriptEditor.runScript()
                         mediator.chimeraDriver.loadTertiaryStructure(f)
-                    }
                 } else if (f.name.endsWith(".stk") || f.name.endsWith(".stockholm")) {
-                    Platform.runLater {
-                        mediator.scriptEditor.loadScript(
-                            StringReader(
+                    mediator.scriptEditor.currentScriptLocation = null
+                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
+                    StringReader(
                                 """
+import io.github.fjossinet.rnartist.core.*
+
 rnartist {
     ss {
         stockholm {
@@ -212,15 +213,13 @@ rnartist {
     }    
     theme {
        details {
-           value = 1
+           value = 3
        }
     }
 }
 """
-                            )
+                            ), runScript = true
                         )
-                        mediator.scriptEditor.runScript()
-                    }
                 }
             }
         }
@@ -252,50 +251,19 @@ rnartist {
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         saveProjectAs.onMouseClicked = EventHandler {
             mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                val dialog = TextInputDialog("My Project")
+                val dialog = TextInputDialog("Project ${File(RnartistConfig.projectsFolder).listFiles(FileFilter { it.isDirectory }).size+1}")
                 dialog.initModality(Modality.NONE)
                 dialog.title = "Save Project"
                 dialog.headerText = null
                 dialog.contentText = "Project name:"
                 var projectName = dialog.showAndWait()
                 while (projectName.isPresent && !projectName.isEmpty && File(File(RnartistConfig.projectsFolder), projectName.get().trim()).exists()) {
-                    dialog.headerText = "Project name already exists"
+                    if (File(File(RnartistConfig.projectsFolder), projectName.get().trim()).exists())
+                        dialog.headerText = "This project already exists"
                     projectName = dialog.showAndWait()
                 }
-                if (projectName.isPresent && !projectName.isEmpty) {
-                    try {
-                        mediator.scriptEditor.themeAndLayoutScript.getScriptRoot().getSecondaryStructureKw().let { ssKw ->
-                            val inputFiles = mutableListOf<DSLElement>()
-                            ssKw.searchAll(inputFiles) { it is OptionalDSLKeyword && it.inFinalScript && it.text.text.trim() in listOf("pdb", "vienna", "stockholm", "ct", "bpseq", "bn") }
-                            if (inputFiles.isNotEmpty()) {
-                                //the script loaded the 2D from local files, we will rather store the 2D as a script
-                                mediator.scriptEditor.secondaryStructureScript.getScriptRoot().addButton.fire()
-                            }
-                        }
-                        val projectDir = File(File(RnartistConfig.projectsFolder), projectName.get())
-                        projectDir.mkdir()
-                        var scriptFile = File(projectDir, "rnartist.kts")
-                        scriptFile.createNewFile()
-                        var writer: PrintWriter
-                        try {
-                            writer = PrintWriter(scriptFile)
-                            writer.println(mediator.scriptEditor.getScriptAsText())
-                            writer.close()
-                            mediator.scriptEditor.currentScriptLocation = projectDir
-                        } catch (e: IOException) {
-                            e.printStackTrace()
-                        }
-                        //and we create a preview as a png file...
-                        (mediator.drawingDisplayed.get() as? DrawingLoadedFromScriptEditor)?.let {
-                            if (it.id.equals( mediator.scriptEditor.themeAndLayoutScript.getScriptRoot().id)) {
-                                it.drawing.asPNG(Rectangle2D.Double(0.0,0.0,400.0,400.0), null, File(projectDir, "preview.png"))
-                            }
-                        }
-
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
+                if (projectName.isPresent && !projectName.isEmpty)
+                    RNArtistTaskWindow(mediator).task = SaveProject(mediator, File(File(RnartistConfig.projectsFolder), projectName.get()))
             }
         }
         saveProjectAs.tooltip = Tooltip("Save Project As...")
@@ -305,40 +273,11 @@ rnartist {
         this.saveProject = Button(null, FontIcon("fas-sync:15"))
 
         this.saveProject.setOnMouseClicked {
-            try {
-                mediator.scriptEditor.currentScriptLocation?.let { projectDir ->
-                    RnartistConfig.projectsFolder?.let {
-                        if (projectDir.absolutePath.startsWith(it)) {
-                            mediator.scriptEditor.themeAndLayoutScript.getScriptRoot().getSecondaryStructureKw().let { ssKw ->
-                                val inputFiles = mutableListOf<DSLElement>()
-                                ssKw.searchAll(inputFiles) { it is OptionalDSLKeyword && it.inFinalScript && it.text.text.trim() in listOf("pdb", "vienna", "stockholm", "ct", "bpseq", "bn") }
-                                if (inputFiles.isNotEmpty()) {
-                                    //the script loaded the 2D from local files, we will rather store the 2D as a script
-                                    mediator.scriptEditor.secondaryStructureScript.getScriptRoot().addButton.fire()
-                                }
-                            }
-                            //We update the script
-                            var scriptFile = File(projectDir, "rnartist.kts")
-                            var writer: PrintWriter
-                            try {
-                                writer = PrintWriter(scriptFile)
-                                writer.println(mediator.scriptEditor.getScriptAsText())
-                                writer.close()
-                                mediator.scriptEditor.currentScriptLocation = projectDir
-                            } catch (e: IOException) {
-                                e.printStackTrace()
-                            }
-                            //and we update a preview as a png file...
-                            (mediator.drawingDisplayed.get() as? DrawingLoadedFromScriptEditor)?.let {
-                                if (it.id.equals( mediator.scriptEditor.themeAndLayoutScript.getScriptRoot().id)) {
-                                    it.drawing.asPNG(Rectangle2D.Double(0.0,0.0,400.0,400.0), null, File(projectDir, "preview.png"))
-                                }
-                            }
-                        }
-                    }
+            mediator.scriptEditor.currentScriptLocation?.let { projectDir ->
+                RnartistConfig.projectsFolder?.let {
+                    if (projectDir.absolutePath.startsWith(it))
+                        RNArtistTaskWindow(mediator).task = SaveProject(mediator, projectDir)
                 }
-            } catch (e: IOException) {
-                e.printStackTrace()
             }
         }
 
@@ -597,7 +536,12 @@ rnartist {
         val fit2D = Button(null, FontIcon("fas-expand-arrows-alt:15"))
         fit2D.maxWidth = Double.MAX_VALUE
         fit2D.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        fit2D.onMouseClicked = EventHandler { mediator.canvas2D.fitStructure(null) }
+        fit2D.onMouseClicked = EventHandler {
+            if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                mediator.canvas2D.fitStructure(mediator.canvas2D.getSelectionFrame(), 2.0)
+            } else
+                mediator.canvas2D.fitStructure(null)
+        }
         fit2D.tooltip = Tooltip("Fit 2D")
 
         leftToolBar.add(center2D, 0, row)
@@ -1319,23 +1263,23 @@ rnartist {
         val lineWidth3 = Button(null, null)
         lineWidth3.maxWidth = Double.MAX_VALUE
         line = Line(0.0, 10.0, 10.0, 10.0)
-        line.strokeWidth = 0.75
+        line.strokeWidth = 1.0
         lineWidth3.graphic = line
         lineWidth3.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         lineWidth3.onAction = EventHandler {
-            applyLineWidth(0.75)
+            applyLineWidth(1.0)
         }
 
         val lineWidth4 = Button(null, null)
         lineWidth4.maxWidth = Double.MAX_VALUE
         line = Line(0.0, 10.0, 10.0, 10.0)
-        line.strokeWidth = 1.0
+        line.strokeWidth = 3.0
         lineWidth4.graphic = line
         lineWidth4.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         lineWidth4.onAction = EventHandler {
-            applyLineWidth(1.0)
+            applyLineWidth(3.0)
         }
         leftToolBar.add(lineWidth3, 0, row)
         GridPane.setHalignment(lineWidth3, HPos.CENTER)
@@ -1345,12 +1289,12 @@ rnartist {
         val lineWidth5 = Button(null, null)
         lineWidth5.maxWidth = Double.MAX_VALUE
         line = Line(0.0, 10.0, 10.0, 10.0)
-        line.strokeWidth = 2.0
+        line.strokeWidth = 5.0
         lineWidth5.graphic = line
         lineWidth5.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         lineWidth5.onAction = EventHandler {
-            applyLineWidth(2.0)
+            applyLineWidth(5.0)
         }
 
         val lineColorPicker = ColorPicker(Color.BLACK)

@@ -8,7 +8,7 @@ rnartist {
     }
     theme {
         details {
-            value = 1
+            value = 3
         }
     }
 }

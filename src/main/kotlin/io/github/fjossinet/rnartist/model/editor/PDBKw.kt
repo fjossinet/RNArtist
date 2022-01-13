@@ -2,17 +2,18 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
+import javafx.scene.text.Text
 
-class PDBKw (val parent: SecondaryStructureInputKw, script: Script, indentLevel:Int): OptionalDSLKeyword(script,  " pdb ", indentLevel) {
+class PDBKw (parent: SecondaryStructureInputKw, script: Script, indentLevel:Int): InputFileKw(parent, script,  "pdb", indentLevel) {
 
     init {
-        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"file"), Operator(script,"="), FileField(script), this.indentLevel+1))
-        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"name"), Operator(script,"="), StringValueWithQuotes(script, editable = true), this.indentLevel+1))
-        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"id"), Operator(script,"="), StringValueWithQuotes(script, editable = true), this.indentLevel+1))
+        this.children.add(OptionalDSLParameter(this, script, null, StringWithoutQuotes(this, script,"file"), Operator(this, script,"="), FileField(this, script), this.indentLevel+1))
+        this.children.add(OptionalDSLParameter(this, script, null, StringWithoutQuotes(this, script,"id"), Operator(this, script,"="), StringValueWithQuotes(this, script, editable = true), this.indentLevel+1))
+        this.children.add(OptionalDSLParameter(this, script, null, StringWithoutQuotes(this, script,"name"), Operator(this, script,"="), StringValueWithQuotes(this, script, editable = true), this.indentLevel+1))
 
         addButton.mouseReleased = {
             this.inFinalScript = true
-            if (this.parent.children.get(this.parent.children.indexOf(this)+1) !is PDBKw)
+            if (this.parent.children.indexOf(this) == this.parent.children.size-1 || this.parent.children.get(this.parent.children.indexOf(this)+1) !is PDBKw)
                 this.parent.children.add(this.parent.children.indexOf(this) + 1, PDBKw(parent, script, indentLevel))
             script.initScript()
         }
@@ -24,11 +25,16 @@ class PDBKw (val parent: SecondaryStructureInputKw, script: Script, indentLevel:
                 this.parent.children.remove(this)
             else {
                 val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
-                if (childBefore is PDBKw && !childBefore.inFinalScript)
+                if (childBefore is PDBKw)
                     this.parent.children.remove(this)
             }
             script.initScript()
         }
+    }
+
+    //for a PDB file, the file parameter is optional since the user can set the id to download the PDB entry
+    override open fun getFileField(): FileField {
+        return (this.searchFirst { it is OptionalDSLParameter && "file".equals(it.key.text.text.trim()) } as OptionalDSLParameter).value as FileField
     }
 
 }

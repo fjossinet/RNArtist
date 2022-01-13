@@ -4,21 +4,20 @@ import io.github.fjossinet.rnartist.core.model.Block
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
 
-class HelixLocationKw(script: Script, indentLevel: Int) : OptionalDSLKeyword(script, " location ", indentLevel) {
+class HelixLocationKw(parent:HelixKw, script: Script, indentLevel: Int) : OptionalDSLKeyword(parent, script, "location", indentLevel) {
 
     init {
         val p = OptionalDSLParameter(
             this,
             script,
             "range",
-            StringWithoutQuotes(script, editable = true),
-            Operator(script, "to"),
-            StringWithoutQuotes(script, editable = true),
+            StringWithoutQuotes(this, script, editable = true),
+            Operator(this, script, "to"),
+            StringWithoutQuotes(this, script, editable = true),
             this.indentLevel + 1,
             canBeMultiple = true
         )
         this.children.add(
-            this.children.size - 1,
             p
         )
     }

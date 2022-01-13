@@ -2,8 +2,7 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
-import io.github.fjossinet.rnartist.model.DrawingLoadedFromRNArtistDB
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
 import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -27,16 +26,11 @@ import javafx.stage.Modality
 import javafx.stage.Screen
 import javafx.stage.Stage
 import javafx.stage.WindowEvent
-import org.apache.commons.lang3.tuple.Pair
 import org.controlsfx.control.GridCell
 import org.controlsfx.control.GridView
-import org.dizitart.no2.NitriteId
 import org.kordamp.ikonli.javafx.FontIcon
-import java.awt.image.BufferedImage
 import java.io.*
 import java.util.concurrent.ExecutionException
-import javax.imageio.ImageIO
-import javax.script.ScriptEngineManager
 
 class ProjectsPanel(val mediator:Mediator) {
     private val projectPanels: ObservableList<ProjectPanel>
@@ -73,6 +67,10 @@ class ProjectsPanel(val mediator:Mediator) {
         val newY = (screenSize.height - stage.height) / 2
         stage.x = newX
         stage.y = newY
+    }
+
+    fun removeProjectPanel(projectDir:File) {
+        this.projectPanels.remove(this.projectPanels.find { it.projectDir.equals(projectDir) })
     }
 
     fun loadProjects() {
@@ -130,119 +128,18 @@ class ProjectsPanel(val mediator:Mediator) {
                 alerttStage.toFront()
                 val result = alert.showAndWait()
                 if (result.get() == ButtonType.OK) {
-                    val deleteProject: Task<Exception?> = object : Task<Exception?>() {
-                        override fun call(): Exception? {
-                            return try {
-                                Platform.runLater {
-                                    item!!.projectDir.deleteRecursively()
-                                    projectPanels.remove(item)
-                                }
-                                null
-                            } catch (e: Exception) {
-                                e
-                            }
-                        }
-                    }
-                    deleteProject.onSucceeded = EventHandler {
-                        try {
-                            if (deleteProject.get() != null) {
-                                val alert = Alert(Alert.AlertType.ERROR)
-                                alert.title = "Project deletion error"
-                                alert.headerText = deleteProject.get()!!.message
-                                alert.contentText =
-                                    "If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com"
-                                val sw = StringWriter()
-                                val pw = PrintWriter(sw)
-                                deleteProject.get()!!.printStackTrace(pw)
-                                val exceptionText = sw.toString()
-                                val label = Label("The exception stacktrace was:")
-                                val textArea = TextArea(exceptionText)
-                                textArea.isEditable = false
-                                textArea.isWrapText = true
-                                textArea.maxWidth = Double.MAX_VALUE
-                                textArea.maxHeight = Double.MAX_VALUE
-                                GridPane.setVgrow(textArea, Priority.ALWAYS)
-                                GridPane.setHgrow(textArea, Priority.ALWAYS)
-                                val expContent = GridPane()
-                                expContent.maxWidth = Double.MAX_VALUE
-                                expContent.add(label, 0, 0)
-                                expContent.add(textArea, 0, 1)
-                                alert.dialogPane.expandableContent = expContent
-                                alert.showAndWait()
-                            } else {
-                                loadProjects()
-                            }
-                        } catch (e: InterruptedException) {
-                            e.printStackTrace()
-                        } catch (e: ExecutionException) {
-                            e.printStackTrace()
-                        }
-                    }
-                    Thread(deleteProject).start()
+                    RNArtistTaskWindow(mediator).task = DeleteProject(mediator, item!!.projectDir)
                 } else {
                     event.consume()
                 }
             }
             icon.onMouseClicked = EventHandler {
-                val loadData: Task<Exception?> =
-                    object : Task<Exception?>() {
-                        override fun call(): Exception? {
-                            return try {
-                                Platform.runLater {
-                                    mediator.scriptEditor.currentScriptLocation = item!!.projectDir
-                                    mediator.scriptEditor.loadScript(
-                                        FileReader(
-                                            File(
-                                                item!!.projectDir,
-                                                "rnartist.kts"
-                                            )
-                                        )
-                                    )
-                                    mediator.scriptEditor.runScript()
-                                }
-                                null
-                            } catch (e: Exception) {
-                                e
-                            }
-                        }
-                    }
-                loadData.onSucceeded = EventHandler {
-                    try {
-                        loadData.get()?.let { exception ->
-                            val alert = Alert(Alert.AlertType.ERROR)
-                            alert.title = "Project loading error"
-                            alert.headerText = exception.message
-                            alert.contentText =
-                                "If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com"
-                            val sw = StringWriter()
-                            val pw = PrintWriter(sw)
-                            exception.printStackTrace(pw)
-                            val exceptionText = sw.toString()
-                            val label = Label("The exception stacktrace was:")
-                            val textArea = TextArea(exceptionText)
-                            textArea.isEditable = false
-                            textArea.isWrapText = true
-                            textArea.maxWidth = Double.MAX_VALUE
-                            textArea.maxHeight = Double.MAX_VALUE
-                            GridPane.setVgrow(textArea, Priority.ALWAYS)
-                            GridPane.setHgrow(textArea, Priority.ALWAYS)
-                            val expContent = GridPane()
-                            expContent.maxWidth = Double.MAX_VALUE
-                            expContent.add(label, 0, 0)
-                            expContent.add(textArea, 0, 1)
-                            alert.dialogPane.expandableContent = expContent
-                            alert.showAndWait()
-                        } ?: run {
-                            stage.hide()
-                            mediator.scriptEditor.stage.show()
-                            mediator.rnartist.stage.show()
-                            mediator.rnartist.stage.toFront()
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-                Thread(loadData).start()
+                mediator.scriptEditor.currentScriptLocation = item!!.projectDir
+                this@ProjectsPanel.stage.hide()
+                RNArtistTaskWindow(mediator).task = LoadScript(mediator, script = FileReader(File(
+                    item!!.projectDir,
+                    "rnartist.kts"
+                )), runScript = true)
             }
             this.onMouseEntered = EventHandler { border.style = "-fx-border-color: darkgray; -fx-border-width: 4px;" }
             this.onMouseExited = EventHandler { border.style = "-fx-border-color: lightgray; -fx-border-width: 4px;" }

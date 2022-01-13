@@ -7,8 +7,8 @@ import javafx.scene.Node
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 
-open class OptionalDSLKeyword(script: Script, text:String, indentLevel:Int):
-    DSLKeyword(script,text,indentLevel) {
+open class OptionalDSLKeyword(parent:DSLElementInt, script: Script, text:String, indentLevel:Int):
+    DSLKeyword(parent, script,text,indentLevel) {
 
     var inFinalScript = false
         protected set(value) {
@@ -37,31 +37,38 @@ open class OptionalDSLKeyword(script: Script, text:String, indentLevel:Int):
         }
     }
 
-    override fun dumpNodes(nodes: MutableList<Node>, enterInCollapsedNode: Boolean) {
+    override fun dumpNodes(nodes: MutableList<Node>) {
         (0 until indentLevel).forEach {
-            nodes.add(ScriptTab(script).text)
+            nodes.add(ScriptTab(this, script).text)
         }
         if (inFinalScript) {
-            nodes.add(removeButton)
-            nodes.add(this.text)
-            nodes.add(collapseButton)
-            if (!collapseButton.collapsed || enterInCollapsedNode) {
+            nodes.add(KeywordNode(removeButton, this.text, collapseButton, this.openedCurly.text))
+            nodes.add(Text(System.lineSeparator()))
+            if (!collapseButton.collapsed) {
                 this.children.forEach {
-                    it.dumpNodes(nodes, enterInCollapsedNode)
+                    it.dumpNodes(nodes)
                 }
+                this.closedCurly.dumpNodes(nodes)
             }
             else {
-                this.children.forEach {
-                    if (it is OpenedCurly || it is ClosedCurly)
-                        it.dumpNodes(nodes, enterInCollapsedNode)
-                }
+                this.closedCurly.dumpNodes(nodes)
             }
         }
         else {
             nodes.add(this.addButton)
-            nodes.add(Text("\n"))
+            nodes.add(Text(System.lineSeparator()))
         }
+    }
 
+    override fun dumpText(text:StringBuilder) {
+        if (inFinalScript) {
+            (0 until indentLevel).forEach {
+                text.append(" ")
+            }
+            text.append(this.text.text, " ", this.openedCurly.text.text, System.lineSeparator())
+            children.forEach { it.dumpText(text) }
+            this.closedCurly.dumpText(text)
+        }
     }
 
 }

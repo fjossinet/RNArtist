@@ -1,10 +1,5 @@
 package io.github.fjossinet.rnartist.io
 
-import io.github.fjossinet.rnartist.core.model.SecondaryStructure
-import io.github.fjossinet.rnartist.gui.editor.Script
-import io.github.fjossinet.rnartist.model.editor.HelixKw
-import io.github.fjossinet.rnartist.model.editor.RnaKw
-import io.github.fjossinet.rnartist.model.editor.SecondaryStructureKw
 import javafx.scene.paint.Color
 import okio.ByteString.Companion.encode
 import java.awt.Image

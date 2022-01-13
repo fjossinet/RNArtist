@@ -3,12 +3,12 @@ import io.github.fjossinet.rnartist.core.*
 rnartist {
     ss {
         stockholm {
-            file = "Click me to choose your file"
+            file = ""
         }
     }
     theme {
         details {
-            value = 1
+            value = 3
         }
     }
 }

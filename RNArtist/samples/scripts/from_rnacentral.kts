@@ -2,8 +2,8 @@ import io.github.fjossinet.rnartist.core.*
 
 rnartist {
     ss {
-        ct {
-            file = ""
+        rnacentral {
+            id = "URS0000494C6C"
         }
     }
     theme {

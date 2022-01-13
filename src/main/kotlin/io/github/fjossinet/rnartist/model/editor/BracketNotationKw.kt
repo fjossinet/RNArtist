@@ -3,15 +3,15 @@ package io.github.fjossinet.rnartist.model.editor
 import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
 
-class BracketNotationKw(val parent:SecondaryStructureInputKw, script: Script, indentLevel:Int): OptionalDSLKeyword(script,  " bn ", indentLevel) {
+class BracketNotationKw(parent:SecondaryStructureInputKw, script: Script, indentLevel:Int): OptionalDSLKeyword(parent, script,  "bn", indentLevel) {
 
     init {
         var bracketNotation = ""
         script.mediator.drawingDisplayed.get()?.let {
             bracketNotation = it.drawing.secondaryStructure.toBracketNotation()
         }
-        val bnParameter = DSLParameter(script, StringWithoutQuotes(script,"value"), Operator(script,"="), StringValueWithQuotes(script, bracketNotation, true), this.indentLevel+1)
-        this.children.add(1, bnParameter)
+        val bnParameter = DSLParameter(this, script, StringWithoutQuotes(this, script,"value"), Operator(this, script,"="), StringValueWithQuotes(this, script, bracketNotation, true), this.indentLevel+1)
+        this.children.add(bnParameter)
 
         var sequence = ""
         var inFinalScript = false
@@ -20,13 +20,24 @@ class BracketNotationKw(val parent:SecondaryStructureInputKw, script: Script, in
             inFinalScript = true
         }
         val seq = SequenceBnParameter(this, script, bnParameter, this.indentLevel+1, inFinalScript, sequence)
-        this.children.add(1, seq)
-        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"name"), Operator(script,"="), StringValueWithQuotes(script,"A", true), this.indentLevel+1))
+        this.children.add(seq)
+        this.children.add(OptionalDSLParameter(this, script, null, StringWithoutQuotes(this, script,"name"), Operator(this, script,"="), StringValueWithQuotes(this, script,"A", true), this.indentLevel+1))
 
         addButton.mouseReleased = {
             this.inFinalScript = true
+            script.mediator.drawingDisplayed.get()?.let {
+                val bnParameter = searchFirst { it is DSLParameter && "value".equals(it.key.text.text.trim()) } as DSLParameter
+                bnParameter.value.text.text = "\"${it.drawing.secondaryStructure.toBracketNotation()}\""
 
-            this.parent.children.add(this.parent.children.indexOf(this)+1, BracketNotationKw(parent, script, indentLevel))
+                val seqParameter = searchFirst { it is SequenceBnParameter } as SequenceBnParameter
+                seqParameter.value.text.text = "\"${it.drawing.secondaryStructure.rna.seq}\""
+
+                val nameParameter = searchFirst { it is OptionalDSLParameter && "name".equals(it.key.text.text.trim()) } as OptionalDSLParameter
+                nameParameter.value.text.text = "\"${it.drawing.secondaryStructure.rna.name}\""
+
+            }
+            if (this.parent.children.indexOf(this) == this.parent.children.size-1 || this.parent.children.get(this.parent.children.indexOf(this)+1) !is BracketNotationKw)
+                this.parent.children.add(this.parent.children.indexOf(this)+1, BracketNotationKw(parent, script, indentLevel))
             script.initScript()
         }
 
@@ -37,7 +48,7 @@ class BracketNotationKw(val parent:SecondaryStructureInputKw, script: Script, in
                 this.parent.children.remove(this)
             else {
                 val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
-                if (childBefore is BracketNotationKw && !childBefore.inFinalScript)
+                if (childBefore is BracketNotationKw)
                     this.parent.children.remove(this)
             }
             script.initScript()

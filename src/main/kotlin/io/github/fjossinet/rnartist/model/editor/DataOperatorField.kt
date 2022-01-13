@@ -6,7 +6,7 @@ import javafx.event.EventHandler
 import javafx.scene.control.ChoiceBox
 import javafx.scene.paint.Color
 
-class DataOperatorField(script: Script, value:String): Operator(script, "${value}", true) {
+class DataOperatorField(parent:DSLElementInt, script: Script, value:String =""): Operator(parent, script, "${value}", true) {
 
     init {
         this.text.fill = Color.web("#4d4d4d")
@@ -29,5 +29,5 @@ class DataOperatorField(script: Script, value:String): Operator(script, "${value
         }
     }
 
-    override fun clone():DataOperatorField = DataOperatorField(script, this.text.text)
+    override fun clone():DataOperatorField = DataOperatorField(this.parent, script)
 }

@@ -24,7 +24,7 @@ rnartist {
     }
     theme {
         details {
-            value = 2
+            value = 3
         }
 
         show {

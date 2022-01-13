@@ -2,10 +2,7 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.core.model.DrawingConfiguration
 import io.github.fjossinet.rnartist.core.model.JunctionType
-import io.github.fjossinet.rnartist.core.model.Location
-import io.github.fjossinet.rnartist.gui.editor.SecondaryStructureScript
 import io.github.fjossinet.rnartist.gui.editor.ThemeAndLayoutScript
 import io.github.fjossinet.rnartist.model.editor.*
 import javafx.concurrent.Task
@@ -96,11 +93,11 @@ class SplashWindow(val mediator: Mediator) {
             form.layout()
             val task = WarmUp(mediator, stage)
             stage.show()
-            progressBar.progressProperty().unbind();
-            progressBar.progressProperty().bind(task.progressProperty());
-            statusLabel.textProperty().unbind();
-            statusLabel.textProperty().bind(task.messageProperty());
-            Thread(task).start();
+            progressBar.progressProperty().unbind()
+            progressBar.progressProperty().bind(task.progressProperty())
+            statusLabel.textProperty().unbind()
+            statusLabel.textProperty().bind(task.messageProperty())
+            Thread(task).start()
         }
 
     }
@@ -117,11 +114,12 @@ class SplashWindow(val mediator: Mediator) {
                     mediator.scriptEditor.stage.show()
                 }
                 result.second?.let {
+                    stage.hide()
                     val alert = Alert(Alert.AlertType.ERROR)
-                    alert.title = "Problem to connect to RNA Gallery"
-                    alert.headerText = "RNartist cannot reach the RNA Gallery website."
+                    alert.title = "I got a problem"
+                    alert.headerText = "RNartist got a problem during stratup ."
                     alert.contentText =
-                        "You can still use RNArtist. If this problem persists, you can send the exception stacktrace below to fjossinet@gmail.com"
+                        "You can send the exception stacktrace below to fjossinet@gmail.com"
                     val sw = StringWriter()
                     val pw = PrintWriter(sw)
                     it.printStackTrace(pw)
@@ -144,7 +142,6 @@ class SplashWindow(val mediator: Mediator) {
                     expContent.add(textArea, 0, 1)
                     alert.dialogPane.expandableContent = expContent
                     alert.showAndWait()
-                    stage.hide()
                     mediator.rnartist.stage.show()
                     mediator.rnartist.stage.toFront()
                     mediator.scriptEditor.stage.show()
@@ -189,17 +186,15 @@ class SplashWindow(val mediator: Mediator) {
                                 val detailsKw = searchFirst { it is DetailsKw && !it.inFinalScript } as DetailsKw
                                 detailsKw.setlevel("5")
                             }
+                            updateMessage("Migrating structure for project ${project.get("name")}..")
+                            with(layoutScript.getScriptRoot().getSecondaryStructureKw()) {
+                                addButton.fire()
+                                with(getRawSSKw()) {
+                                    setSecondaryStructure(secondaryStructure)
+                                }
+                            }
                             layoutScript.allowScriptInit = true
                             layoutScript.initScript()
-                            updateMessage("Migrating structure for project ${project.get("name")}..")
-                            val secondaryStructureScript = SecondaryStructureScript(mediator)
-                            secondaryStructureScript.allowScriptInit = false
-                            val structureKw = SecondaryStructureKw(secondaryStructureScript)
-                            structureKw.setSecondaryStructure(this.secondaryStructure)
-                            secondaryStructureScript.setScriptRoot(structureKw)
-                            secondaryStructureScript.allowScriptInit = true
-                            secondaryStructureScript.initScript()
-                            layoutScript.setSecondaryStructure(structureKw)
 
                             var projectDir = File(File(RnartistConfig.projectsFolder), project.get("name") as String)
                             var i = 1
@@ -211,12 +206,9 @@ class SplashWindow(val mediator: Mediator) {
                             projectDir.mkdir()
                             var scriptFile = File(projectDir, "rnartist.kts")
                             scriptFile.createNewFile()
-                            var scriptAsText = (layoutScript.children.filterIsInstance<Text>().map {
-                                it.text
-                            }).joinToString(separator = "")
-                            scriptAsText = scriptAsText.split("\n").filter { !it.matches(Regex("^\\s*$")) }
-                                .joinToString(separator = "\n")
-                            scriptFile.writeText("import io.github.fjossinet.rnartist.core.*\n\n ${scriptAsText}")
+                            val scriptContent = StringBuilder()
+                            layoutScript.getScriptRoot().dumpText(scriptContent)
+                            scriptFile.writeText("import io.github.fjossinet.rnartist.core.*${System.lineSeparator()}${System.lineSeparator()} ${scriptContent.toString()}")
                             drawing.asPNG(
                                 Rectangle2D.Double(0.0, 0.0, 400.0, 400.0),
                                 null,

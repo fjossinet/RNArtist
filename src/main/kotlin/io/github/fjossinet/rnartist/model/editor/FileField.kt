@@ -9,13 +9,18 @@ import javafx.stage.DirectoryChooser
 import javafx.stage.FileChooser
 import java.io.File
 
-class FileField(script: Script, value:String = ""): StringWithQuotes(script, value, true) {
+class FileField(parent: DSLElementInt, script: Script, value: String = "") :
+    StringWithQuotes(parent, script, value, true) {
+
+    companion object {
+        var useAbsolutePath = false
+    }
 
     init {
         this.text.fill = Color.web("#4d4d4d")
         this.text.onMouseClicked = EventHandler {
             val fileChooser = FileChooser()
-            fileChooser.initialDirectory = File(script.mediator.rnartist.getInstallDir(),"samples")
+            fileChooser.initialDirectory = File(script.mediator.rnartist.getInstallDir(), "samples")
             val file = fileChooser.showOpenDialog(script.mediator.scriptEditor.stage)
             file?.let {
                 text.text = "\"${file.absolutePath.replace("\\", "/")}\""
@@ -23,14 +28,14 @@ class FileField(script: Script, value:String = ""): StringWithQuotes(script, val
         }
     }
 
-    override fun clone():FileField = FileField(script, this.text.text.replace("\"", ""))
+    override fun clone(): FileField = FileField(this.parent, script)
 
-    override fun dumpNodes(nodes: MutableList<Node>, enterInCollapsedNode: Boolean) {
-        if (this.text.text.replace("\"","").isEmpty()) {
+    override fun dumpNodes(nodes: MutableList<Node>) {
+        if (this.text.text.replace("\"", "").isEmpty()) {
             val button = DataField(script)
             button.onMouseClicked = EventHandler {
                 val fileChooser = FileChooser()
-                fileChooser.initialDirectory = File(script.mediator.rnartist.getInstallDir(),"samples")
+                fileChooser.initialDirectory = File(script.mediator.rnartist.getInstallDir(), "samples")
                 val file = fileChooser.showOpenDialog(script.mediator.scriptEditor.stage)
                 file?.let {
                     text.text = "\"${file.absolutePath.replace("\\", "/")}\""
@@ -38,8 +43,19 @@ class FileField(script: Script, value:String = ""): StringWithQuotes(script, val
                 script.initScript()
             }
             nodes.add(button)
-        }
-        else
+        } else
             nodes.add(this.text)
+    }
+
+    override fun dumpText(text: StringBuilder) {
+        if (this.text.text.replace("\"", "").isNotEmpty()) {
+            var inputPath = this.text.text.replace("\"", "")
+            if (useAbsolutePath && !inputPath.startsWith("/") /*unix*/ && !inputPath.matches(Regex("^[A-Z]:/.+")) /*windows*/ && script.mediator.scriptEditor.currentScriptLocation != null) {
+                inputPath =
+                    "${script.mediator.scriptEditor.currentScriptLocation?.absolutePath?.replace("\\", "/")}/$inputPath"
+            }
+            text.append("\"${inputPath}\"")
+        }
+
     }
 }

@@ -16,7 +16,8 @@ class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
     var connectorRadius = 10.0
     var centerX = 200.0
     var centerY = 200.0
-    //lateinit var detailsButton:DetailsButton
+    val initialRadius = junction.radius
+    var radiusRatio = 1.0
 
     init {
         this.update()
@@ -63,16 +64,10 @@ class JunctionKnob( val mediator: Mediator, val junction: JunctionDrawing) {
         for (arrow in this.arrows)
             arrow.draw(g)
 
-        //this.detailsButton.draw(g, at)
-
         g.color = previousColor
     }
 
     fun contains(x: Double, y: Double): Boolean {
-        /*if (at.createTransformedShape(this.detailsButton.innerCircle).contains(x, y)) {
-            this.detailsButton.mouseCliked()
-            return true;
-        }*/
         for (connector in this.connectors) {
             if (!connector.isInId && connector.circle.contains(x, y)) {
                 connector.mouseClicked()
@@ -146,11 +141,6 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
     fun draw(g: Graphics2D) {
         if (isInId)
             return;
-        /*else if (selected && this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("true"))
-            g.color = Color.GREEN
-        else if (selected && this.knob.junction.drawingConfiguration.params.containsKey(DrawingConfigurationParameter.FullDetails.toString()) && this.knob.junction.drawingConfiguration.params[DrawingConfigurationParameter.FullDetails.toString()].equals("false"))
-            g.color = Color.RED
-        else*/
         if (selected)
             g.color = Color.DARK_GRAY
         else
@@ -239,10 +229,11 @@ class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
     }
 
     override fun mouseClicked() {
+        knob.radiusRatio += 0.1
         this.knob.junction.applyLayout(layout {
             junction {
                 name =  knob.junction.name
-                radius = knob.junction.radius * 1.1
+                radius =  Math.round(knob.initialRadius * knob.radiusRatio * 100.0) / 100.0
             }
         }!!)
 
@@ -250,6 +241,7 @@ class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
             it.update()
         }
         this.knob.mediator.canvas2D.repaint()
+        knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionRadius(this.knob.junction.radius, "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
     }
 
     override fun mouseReleased() {
@@ -275,16 +267,18 @@ class Down(private val knob:JunctionKnob):AbstractJunctionArrow() {
     }
 
     override fun mouseClicked() {
+        knob.radiusRatio -= 0.1
         this.knob.junction.applyLayout(layout {
             junction {
                 name =  knob.junction.name
-                radius = knob.junction.radius * 0.9
+                radius =  Math.round(knob.initialRadius * knob.radiusRatio * 100.0) / 100.0
             }
         }!!)
         this.knob.mediator.drawingDisplayed.get()!!.knobs.forEach {
             it.update()
         }
         this.knob.mediator.canvas2D.repaint()
+        knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionRadius(this.knob.junction.radius, "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
     }
 
     override fun mouseReleased() {

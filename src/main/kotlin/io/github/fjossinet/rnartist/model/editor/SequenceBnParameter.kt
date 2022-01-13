@@ -8,9 +8,9 @@ class SequenceBnParameter(parent:DSLElement, script: Script, val bnValue: DSLPar
     OptionalDSLParameter(parent,
         script,
         null,
-        StringWithoutQuotes(script, "seq"),
-        Operator(script, "="),
-        StringValueWithQuotes(script, sequence, true),
+        StringWithoutQuotes(parent, script, "seq"),
+        Operator(parent, script, "="),
+        StringValueWithQuotes(parent, script, sequence, true),
         indentLevel,
         inFinalScript
     ) {

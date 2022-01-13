@@ -4,16 +4,16 @@ import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
 
-class ShowKw(var parent:ThemeKw, editor: Script, indentLevel:Int): OptionalDSLKeyword(editor, " show ", indentLevel) {
+class ShowKw(parent:ThemeKw, editor: Script, indentLevel:Int): OptionalDSLKeyword(parent, editor, "show", indentLevel) {
 
     init {
-        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"data"), DataOperatorField(script,"gt"), FloatField(script), this.indentLevel + 1))
-        this.children.add(1, OptionalDSLParameter(this, script, null, StringWithoutQuotes(script,"type"), Operator(script,"="), TypeField(script), this.indentLevel + 1))
-        this.children.add(1, LocationKw(script, this.indentLevel + 1))
+        this.children.add(OptionalDSLParameter(this, script, null, StringWithoutQuotes(this, script,"data"), DataOperatorField(this, script,"gt"), FloatField(this, script), this.indentLevel + 1))
+        this.children.add(OptionalDSLParameter(this, script, null, StringWithoutQuotes(this, script,"type"), Operator(this, script,"="), TypeField(this, script), this.indentLevel + 1))
+        this.children.add(LocationKw(this, script, this.indentLevel + 1))
 
         addButton.mouseReleased = {
             this.inFinalScript = true
-            if (this.parent.children.get(this.parent.children.indexOf(this)+1) !is ShowKw)
+            if (this.parent.children.indexOf(this) == this.parent.children.size-1 || this.parent.children.get(this.parent.children.indexOf(this)+1) !is ShowKw)
                 this.parent.children.add(this.parent.children.indexOf(this) + 1, ShowKw(parent, script, indentLevel))
             script.initScript()
         }
@@ -25,7 +25,7 @@ class ShowKw(var parent:ThemeKw, editor: Script, indentLevel:Int): OptionalDSLKe
                 this.parent.children.remove(this)
             else {
                 val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
-                if (childBefore is ShowKw && !childBefore.inFinalScript)
+                if (childBefore is ShowKw)
                     this.parent.children.remove(this)
             }
             script.initScript()

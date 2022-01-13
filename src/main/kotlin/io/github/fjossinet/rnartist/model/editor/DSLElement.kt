@@ -6,24 +6,47 @@ import javafx.scene.Node
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.Text
+import kotlin.text.StringBuilder
 
-open class DSLElement(val script: Script, text:String?, var indentLevel:Int) {
-    val children = mutableListOf<DSLElement>()
+interface DSLElementInt {
+    val children:MutableList<DSLElementInt>
+    var fontName:String
+    var fontSize:Int
+    var color:Color
+
+    fun increaseIndentLevel()
+    fun decreaseIndentLevel()
+
+    /**
+     * Generates the JavaFX Nodes from the editor model
+     */
+    fun dumpNodes(nodes:MutableList<Node>)
+
+    fun dumpText(text:StringBuilder)
+
+    fun searchFirst(query:(DSLElementInt) -> Boolean ):DSLElementInt?
+
+    fun searchAll(hits:MutableList<DSLElementInt>, query:(DSLElementInt) -> Boolean)
+}
+
+open class DSLElement(val parent:DSLElementInt, val script: Script, text:String?, var indentLevel:Int):DSLElementInt {
+    override val children = mutableListOf<DSLElementInt>()
+
     val text = Text()
 
-    var color:Color = Color.web("#000000")
+    override var color:Color = Color.web("#000000")
         set(value) {
             field = value
             text.fill = value
         }
 
-    open var fontName:String = RnartistConfig.editorFontName
+    override var fontName:String = RnartistConfig.editorFontName
         set(value) {
             field = value
             this.text.font = Font.font(value, RnartistConfig.editorFontSize.toDouble())
         }
 
-    open var fontSize:Int = RnartistConfig.editorFontSize
+    override var fontSize:Int = RnartistConfig.editorFontSize
         set(value) {
             field = value
             this.text.font = Font.font(RnartistConfig.editorFontName, value.toDouble())
@@ -34,35 +57,43 @@ open class DSLElement(val script: Script, text:String?, var indentLevel:Int) {
         this.text.font = Font.font(RnartistConfig.editorFontName, RnartistConfig.editorFontSize.toDouble())
     }
 
-    open fun increaseIndentLevel() {
+    override fun increaseIndentLevel() {
         this.children.forEach { it.increaseIndentLevel() }
     }
 
-    open fun decreaseIndentLevel() {
+    override fun decreaseIndentLevel() {
         this.children.forEach { it.decreaseIndentLevel() }
     }
 
     /**
      * Generates the JavaFX Nodes from the editor model
      */
-    open fun dumpNodes(nodes:MutableList<Node>, enterInCollapsedNode:Boolean = false) {
+    override fun dumpNodes(nodes:MutableList<Node>) {
         (0 until indentLevel).forEach {
-            nodes.add(ScriptTab(script).text)
+            nodes.add(ScriptTab(this, script).text)
         }
         nodes.add(this.text)
         this.children.forEach {
-            it.dumpNodes(nodes, enterInCollapsedNode)
+            it.dumpNodes(nodes)
         }
     }
 
-    fun searchFirst(query:(DSLElement) -> Boolean ):DSLElement? {
+    override fun dumpText(text:StringBuilder) {
+        (0 until indentLevel).forEach {
+            text.append(" ")
+        }
+        text.append(this.text.text)
+        children.forEach { it.dumpText(text) }
+    }
+
+    override fun searchFirst(query:(DSLElementInt) -> Boolean ):DSLElementInt? {
         if (query(this))
             return this
         else
             return this.children.map { it.searchFirst(query) }.filterIsInstance<DSLElement>().firstOrNull()
     }
 
-    fun searchAll(hits:MutableList<DSLElement>, query:(DSLElement) -> Boolean) {
+    override fun searchAll(hits:MutableList<DSLElementInt>, query:(DSLElementInt) -> Boolean) {
         if (query(this))
             hits.add(this)
         hits.addAll(this.children.map { it.searchAll(hits, query) }.filterIsInstance<DSLElement>())

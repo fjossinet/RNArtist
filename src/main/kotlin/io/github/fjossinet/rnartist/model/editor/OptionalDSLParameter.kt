@@ -6,8 +6,8 @@ import javafx.scene.Node
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 
-open class OptionalDSLParameter(var parent:DSLElement, script: Script, var buttonName:String? = null, key:ParameterField, operator:Operator, value:ParameterField, indentLevel:Int, var canBeMultiple:Boolean = false):
-    DSLParameter(script, key, operator, value,indentLevel) {
+open class OptionalDSLParameter(parent:DSLElement, script: Script, var buttonName:String? = null, key:ParameterField, operator:Operator, value:ParameterField, indentLevel:Int, var canBeMultiple:Boolean = false):
+    DSLParameter(parent, script, key, operator, value,indentLevel) {
 
     var inFinalScript = false
         protected set(value) {
@@ -49,7 +49,7 @@ open class OptionalDSLParameter(var parent:DSLElement, script: Script, var butto
                     this.parent.children.remove(this)
                 else {
                     val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
-                    if (childBefore is OptionalDSLParameter && !childBefore.inFinalScript)
+                    if (childBefore is OptionalDSLParameter)
                         this.parent.children.remove(this)
                 }
                 script.initScript()
@@ -64,26 +64,40 @@ open class OptionalDSLParameter(var parent:DSLElement, script: Script, var butto
 
             removeButton.mouseReleased = {
                 this.inFinalScript = false
+                val index = this.parent.children.indexOf(this)
+                this.parent.children.remove(this)
+                this.parent.children.add(index, OptionalDSLParameter(this.parent as DSLElement, this.script, this.buttonName, this.key.clone(), this.operator.clone(), this.value.clone(), this.indentLevel))
                 script.initScript()
             }
         }
     }
 
-    override fun dumpNodes(nodes: MutableList<Node>, enterInCollapsedNode: Boolean) {
+    override fun dumpNodes(nodes: MutableList<Node>) {
         (0 until indentLevel).forEach {
-            nodes.add(ScriptTab(script).text)
+            nodes.add(ScriptTab(this, script).text)
         }
         if (inFinalScript) {
-            nodes.add(this.removeButton)
-            nodes.add(this.text)
+            val _nodes = mutableListOf<Node>(removeButton)
             this.children.forEach {
-                it.dumpNodes(nodes)
+                it.dumpNodes(_nodes)
             }
+            nodes.add(ParameterNode(*_nodes.toTypedArray()))
+            nodes.add(Text(System.lineSeparator()))
         } else {
             nodes.add(this.addButton)
-            nodes.add(Text("\n"))
+            nodes.add(Text(System.lineSeparator()))
         }
 
+    }
+
+    override fun dumpText(text:StringBuilder) {
+        if (inFinalScript) {
+            (0 until indentLevel).forEach {
+                text.append(" ")
+            }
+            children.forEach { it.dumpText(text) }
+            text.append(System.lineSeparator())
+        }
     }
 
 }
