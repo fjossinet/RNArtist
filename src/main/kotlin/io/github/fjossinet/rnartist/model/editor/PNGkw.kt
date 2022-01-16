@@ -36,7 +36,7 @@ class PNGKw (parent:RNArtistKw, script: Script, indentLevel:Int): OptionalDSLKey
         )
         addButton.mouseReleased = {
             val p = this.searchFirst { it is DSLParameter } as DSLParameter
-            val l = script.mediator.scriptEditor?.currentScriptLocation
+            val l = script.mediator.scriptEditor.currentScriptLocation
             p.value.text.text = if (l == null)
                 ""
             else

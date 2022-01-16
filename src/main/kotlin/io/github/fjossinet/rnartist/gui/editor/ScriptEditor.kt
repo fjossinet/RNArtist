@@ -14,18 +14,15 @@ import io.github.fjossinet.rnartist.io.javaFXToAwt
 import io.github.fjossinet.rnartist.model.editor.*
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
-import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import javafx.geometry.HPos
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Node
-import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.control.ButtonBar.ButtonData
 import javafx.scene.layout.*
 import javafx.scene.text.Font
-import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
 import javafx.stage.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -36,7 +33,6 @@ import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.Desktop
 import java.awt.geom.Rectangle2D
 import java.io.*
-import java.lang.IllegalStateException
 import java.net.URL
 import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
@@ -230,23 +226,17 @@ class ThemeAndLayoutScript(mediator: Mediator) : Script(mediator) {
     }
 }
 
-class ScriptEditor(val mediator: Mediator) {
+class ScriptEditor(val mediator: Mediator):BorderPane() {
 
     var currentScriptLocation: File? = null
-    val themeAndLayoutScript = ThemeAndLayoutScript(mediator)
+    val themeAndLayoutScript:ThemeAndLayoutScript
     val engine: ScriptEngine
-    val stage = Stage()
     private val run = Button(null, FontIcon("fas-play:15"))
 
     init {
-        stage.title = "Script Editor"
+        themeAndLayoutScript = ThemeAndLayoutScript(mediator)
         val manager = ScriptEngineManager()
         this.engine = manager.getEngineByExtension("kts")
-        createScene(stage)
-    }
-
-    private fun createScene(stage: Stage) {
-        val root = BorderPane()
         themeAndLayoutScript.style = "-fx-background-color: ${getHTMLColorString(RnartistConfig.backgroundEditorColor)}"
         themeAndLayoutScript.padding = Insets(10.0, 10.0, 10.0, 10.0)
         themeAndLayoutScript.lineSpacing = 10.0
@@ -260,58 +250,26 @@ class ScriptEditor(val mediator: Mediator) {
         loadScriptPane.vgap = 5.0
         loadScriptPane.hgap = 5.0
 
-        var l = Label("Load")
+        var l = Label("Open")
         GridPane.setHalignment(l, HPos.CENTER)
         GridPane.setConstraints(l, 0, 0)
         loadScriptPane.children.add(l)
 
         val loadScript = MenuButton(null, FontIcon("fas-sign-in-alt:15"))
-        val scriptsLibraryMenu = Menu("Scripts Templates")
 
-        val newScript = MenuItem("New Script")
-        newScript.onAction = EventHandler {
-            //we erase the 2D displayed
-            mediator.drawingDisplayed.set(null)
-            mediator.canvas2D.repaint()
+        val newScript = Menu("New Script..")
+
+        val emptyScript = MenuItem("Empty Script")
+        emptyScript.onAction = EventHandler {
             currentScriptLocation = null
-            //we erase the previous scripts
-            themeAndLayoutScript.setScriptRoot(RNArtistKw(themeAndLayoutScript))
+            RNArtistTaskWindow(mediator).task = LoadScript(
+                mediator,
+                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/empty.kts"))
+            )
         }
+        newScript.items.add(emptyScript)
 
-        val loadFile = MenuItem("Load Script..")
-        loadFile.onAction = EventHandler {
-
-            val fileChooser = FileChooser()
-            fileChooser.initialDirectory = File(mediator.rnartist.getInstallDir(), "samples")
-            val file = fileChooser.showOpenDialog(stage)
-            file?.let {
-                currentScriptLocation = file.parentFile
-                RNArtistTaskWindow(mediator).task = LoadScript(mediator, script = FileReader(file), true)
-            }
-        }
-
-        val loadGist = MenuItem("Load Gist..")
-        loadGist.onAction = EventHandler {
-            currentScriptLocation = null
-            val gistInput = TextInputDialog()
-            gistInput.title = "Enter your Gist ID"
-            gistInput.graphic = null
-            gistInput.headerText = null
-            gistInput.contentText = "Gist ID"
-            gistInput.editor.text = "Paste your ID"
-            var gistID = gistInput.showAndWait()
-            if (gistID.isPresent && !gistID.isEmpty) {
-                RNArtistTaskWindow(mediator).task = LoadGist(mediator, gistID.get())
-            }
-        }
-
-        loadScript.getItems().addAll(newScript, loadFile, loadGist, scriptsLibraryMenu)
-
-        val load2D = Menu("Load 2D..")
-
-        scriptsLibraryMenu.items.add(load2D)
-
-        var menuItem = MenuItem("...from bracket notation")
+        var menuItem = MenuItem("2D from bracket notation")
         menuItem.onAction = EventHandler {
             currentScriptLocation = null
             RNArtistTaskWindow(mediator).task = LoadScript(
@@ -320,22 +278,11 @@ class ScriptEditor(val mediator: Mediator) {
             )
         }
 
-        load2D.items.add(menuItem)
+        newScript.items.add(menuItem)
 
-        menuItem = MenuItem("...from bracket notation with data")
-        menuItem.setOnAction {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_bn_with_data.kts"))
-            )
-        }
-
-        load2D.items.add(menuItem)
-
-        val fromLocalFilesMenu = Menu("...from Local Files")
-        val fromDatabasesMenu = Menu("...from Databases")
-        load2D.items.addAll(fromLocalFilesMenu, fromDatabasesMenu)
+        val fromLocalFilesMenu = Menu("2D from Local Files")
+        val fromDatabasesMenu = Menu("2D from Databases")
+        newScript.items.addAll(fromLocalFilesMenu, fromDatabasesMenu)
 
         menuItem = MenuItem("Vienna Format")
         menuItem.onAction = EventHandler {
@@ -407,6 +354,41 @@ class ScriptEditor(val mediator: Mediator) {
         }
         fromDatabasesMenu.items.add(menuItem)
 
+        val openFile = MenuItem("Open Script..")
+        openFile.onAction = EventHandler {
+            val fileChooser = FileChooser()
+            fileChooser.initialDirectory = File(mediator.rnartist.getInstallDir(), "samples")
+            val file = fileChooser.showOpenDialog(mediator.rnartist.stage)
+            file?.let {
+                currentScriptLocation = file.parentFile
+                RNArtistTaskWindow(mediator).task = LoadScript(mediator, script = FileReader(file), true)
+            }
+        }
+
+        val openProject = MenuItem("Open Project..")
+        openProject.onAction = EventHandler {
+            mediator.projectsPanel.stage.show()
+            mediator.projectsPanel.stage.toFront()
+            mediator.projectsPanel.loadProjects()
+        }
+
+        val openGist = MenuItem("Open Gist..")
+        openGist.onAction = EventHandler {
+            currentScriptLocation = null
+            val gistInput = TextInputDialog()
+            gistInput.title = "Enter your Gist ID"
+            gistInput.graphic = null
+            gistInput.headerText = null
+            gistInput.contentText = "Gist ID"
+            gistInput.editor.text = "Paste your ID"
+            var gistID = gistInput.showAndWait()
+            if (gistID.isPresent && !gistID.isEmpty) {
+                RNArtistTaskWindow(mediator).task = LoadGist(mediator, gistID.get())
+            }
+        }
+
+        loadScript.getItems().addAll(newScript, openFile, openProject, openGist)
+
 
         val themes = Menu("Create Theme..")
         //scriptsLibraryMenu.items.add(themes)
@@ -415,25 +397,55 @@ class ScriptEditor(val mediator: Mediator) {
         //scriptsLibraryMenu.items.add(layout)
 
         GridPane.setConstraints(loadScript, 0, 1)
+        GridPane.setHalignment(loadScript, HPos.CENTER)
         loadScriptPane.children.add(loadScript)
 
         val exportScriptPane = GridPane()
         exportScriptPane.vgap = 5.0
         exportScriptPane.hgap = 5.0
 
-        l = Label("Export")
+        l = Label("Save/Export")
         GridPane.setHalignment(l, HPos.CENTER)
         GridPane.setConstraints(l, 0, 0)
         exportScriptPane.children.add(l)
 
         val saveScript = MenuButton(null, FontIcon("fas-sign-out-alt:15"))
+        saveScript.disableProperty()
+            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+
+        val saveProjectAs = MenuItem("Save Project as..")
+        saveProjectAs.onAction = EventHandler {
+            mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+                val dialog = TextInputDialog("Project ${File(RnartistConfig.projectsFolder).listFiles(FileFilter { it.isDirectory }).size+1}")
+                dialog.initModality(Modality.NONE)
+                dialog.title = "Save Project"
+                dialog.headerText = null
+                dialog.contentText = "Project name:"
+                var projectName = dialog.showAndWait()
+                while (projectName.isPresent && !projectName.isEmpty && File(File(RnartistConfig.projectsFolder), projectName.get().trim()).exists()) {
+                    if (File(File(RnartistConfig.projectsFolder), projectName.get().trim()).exists())
+                        dialog.headerText = "This project already exists"
+                    projectName = dialog.showAndWait()
+                }
+                if (projectName.isPresent && !projectName.isEmpty)
+                    RNArtistTaskWindow(mediator).task = SaveProject(mediator, File(File(RnartistConfig.projectsFolder), projectName.get()))
+            }
+        }
+
+        val updateProject = MenuItem("Update Project")
+        updateProject.onAction = EventHandler {
+            mediator.scriptEditor.currentScriptLocation?.let { projectDir ->
+                RnartistConfig.projectsFolder?.let {
+                    if (projectDir.absolutePath.startsWith(it))
+                        RNArtistTaskWindow(mediator).task = SaveProject(mediator, projectDir)
+                }
+            }
+        }
 
         val saveAsFile = MenuItem("Export in File..")
-        saveAsFile.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
         saveAsFile.onAction = EventHandler {
             mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                val dir = DirectoryChooser().showDialog(stage)
+                val dir = DirectoryChooser().showDialog(mediator.rnartist.stage)
                 dir?.let {
                     val dialog = TextInputDialog()
                     dialog.initModality(Modality.NONE)
@@ -529,8 +541,9 @@ class ScriptEditor(val mediator: Mediator) {
             }
         }
 
-        saveScript.getItems().addAll(saveAsFile, saveAsGist)
+        saveScript.getItems().addAll(saveProjectAs, updateProject, saveAsFile, saveAsGist)
 
+        GridPane.setHalignment(saveScript, HPos.CENTER)
         GridPane.setConstraints(saveScript, 0, 1)
         exportScriptPane.children.add(saveScript)
 
@@ -773,23 +786,13 @@ class ScriptEditor(val mediator: Mediator) {
             valueParamColor
         )
 
-        root.top = topToolbar
-        root.left = leftToolbar
+        this.top = topToolbar
+        this.left = leftToolbar
 
         var scrollpane = ScrollPane(themeAndLayoutScript)
         scrollpane.isFitToHeight = true
         themeAndLayoutScript.minWidthProperty().bind(scrollpane.widthProperty())
-        root.center = scrollpane
-
-        val scene = Scene(root)
-        scene.stylesheets.add("io/github/fjossinet/rnartist/gui/css/main.css")
-        stage.scene = scene
-        val screenSize = Screen.getPrimary().bounds
-        val width = (screenSize.width * 0.5).toInt()
-        scene.window.width = width.toDouble()
-        scene.window.height = screenSize.height
-        scene.window.x = screenSize.width - width
-        scene.window.y = 0.0
+        this.center = scrollpane
     }
 
     fun getScriptAsText(): String {

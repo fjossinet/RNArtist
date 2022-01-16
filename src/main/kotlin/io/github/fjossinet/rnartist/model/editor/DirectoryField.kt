@@ -5,7 +5,6 @@ import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
 import javafx.scene.Node
 import javafx.scene.paint.Color
-import javafx.scene.text.Text
 import javafx.stage.DirectoryChooser
 import java.io.File
 
@@ -23,7 +22,7 @@ class DirectoryField(parent:DSLElementInt, script: Script, value: String = "") :
             val directoryChooser = DirectoryChooser()
             directoryChooser.initialDirectory =
                 script.mediator.scriptEditor.currentScriptLocation ?: File(System.getProperty("user.home"))
-            val dir = directoryChooser.showDialog(script.mediator.scriptEditor.stage)
+            val dir = directoryChooser.showDialog(script.mediator.sideWindow.stage)
             dir?.let {
                 text.text = "\"${dir.absolutePath.replace("\\", "/")}\""
             }
@@ -39,7 +38,7 @@ class DirectoryField(parent:DSLElementInt, script: Script, value: String = "") :
                 val directoryChooser = DirectoryChooser()
                 directoryChooser.initialDirectory =
                     script.mediator.scriptEditor.currentScriptLocation ?: File(System.getProperty("user.home"))
-                val dir = directoryChooser.showDialog(script.mediator.scriptEditor.stage)
+                val dir = directoryChooser.showDialog(script.mediator.sideWindow.stage)
                 dir?.let {
                     text.text = "\"${dir.absolutePath.replace("\\", "/")}\""
                 }

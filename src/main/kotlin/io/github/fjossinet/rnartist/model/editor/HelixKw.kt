@@ -49,14 +49,10 @@ class HelixKw(parent: PartsKw, script: Script, indentLevel: Int) :
 
         removeButton.mouseReleased =  {
             this.inFinalScript = false
-            val childAfter = this.parent.children.get(this.parent.children.indexOf(this) + 1)
-            if (childAfter is HelixKw)
+            if (this.parent.children.indexOf(this) <this.parent.children.size-1 && this.parent.children.get(this.parent.children.indexOf(this) + 1) is HelixKw)
                 this.parent.children.remove(this)
-            else {
-                val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
-                if (childBefore is HelixKw)
-                    this.parent.children.remove(this)
-            }
+            else if (this.parent.children.indexOf(this) > 0 && this.parent.children.get(this.parent.children.indexOf(this) - 1) is HelixKw)
+                this.parent.children.remove(this)
             script.initScript()
         }
     }

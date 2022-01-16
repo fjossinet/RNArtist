@@ -9,7 +9,7 @@ class ChimeraKw (parent:RNArtistKw, editor: Script, indentLevel:Int): OptionalDS
         this.children.add(DSLParameter(this, script, StringWithoutQuotes(this, script,"path"), Operator(this, script,"="), DirectoryField(this, script), this.indentLevel+1))
         addButton.mouseReleased = {
             val p = this.searchFirst { it is DSLParameter } as DSLParameter
-            val l = script.mediator.scriptEditor?.currentScriptLocation
+            val l = script.mediator.scriptEditor.currentScriptLocation
             p.value.text.text = if (l == null)
                 ""
             else

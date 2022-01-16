@@ -6,33 +6,25 @@ import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerImageInstalled
 import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerInstalled
 import io.github.fjossinet.rnartist.core.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
-import io.github.fjossinet.rnartist.core.RnartistConfig.selectionWidth
-import io.github.fjossinet.rnartist.core.io.createTemporaryFile
-import io.github.fjossinet.rnartist.core.io.toJSON
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
 import io.github.fjossinet.rnartist.io.javaFXToAwt
-import io.github.fjossinet.rnartist.io.sendField
-import io.github.fjossinet.rnartist.io.sendFile
-import io.github.fjossinet.rnartist.model.DrawingLoaded
-import io.github.fjossinet.rnartist.model.DrawingLoadedFromScriptEditor
-import io.github.fjossinet.rnartist.model.ExplorerItem
-import io.github.fjossinet.rnartist.model.editor.DSLElement
-import io.github.fjossinet.rnartist.model.editor.OptionalDSLKeyword
 import javafx.animation.KeyFrame
 import javafx.animation.Timeline
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
+import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
+import javafx.collections.FXCollections
 import javafx.embed.swing.SwingNode
 import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import javafx.geometry.HPos
 import javafx.geometry.Insets
+import javafx.geometry.Orientation
 import javafx.geometry.Pos
 import javafx.scene.CacheHint
 import javafx.scene.Scene
@@ -43,17 +35,18 @@ import javafx.scene.input.ScrollEvent
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.shape.Line
+import javafx.scene.text.Font
 import javafx.stage.*
 import javafx.util.Duration
+import org.controlsfx.glyphfont.FontAwesome
+import org.controlsfx.glyphfont.Glyph
 import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
 import java.io.*
-import java.net.HttpURLConnection
-import java.net.URL
-import java.nio.charset.StandardCharsets
 import java.util.*
+import java.util.stream.Collectors
 
 class RNArtist : Application() {
     enum class SCOPE {
@@ -64,10 +57,7 @@ class RNArtist : Application() {
     lateinit var stage: Stage
     private var scrollCounter = 0
     private val statusBar: FlowPane
-    val allStructuresAvailable = MenuButton("Choose a 2D")
-    val clearAll2DsItem: MenuItem
-    val clearAll2DsExceptCurrentItem: MenuItem
-    val saveProject: Button
+    val swingNode = SwingNode()
     val focus3D: Button
     val reload3D: Button
     val paintSelectionin3D: Button
@@ -76,7 +66,7 @@ class RNArtist : Application() {
 
     fun getInstallDir(): String {
         return File(
-            this::class.java.getProtectionDomain().getCodeSource().getLocation()
+            this::class.java.protectionDomain.codeSource.location
                 .toURI()
         ).parentFile.parent
     }
@@ -86,408 +76,113 @@ class RNArtist : Application() {
         this.mediator = Mediator(this)
         this.root = BorderPane()
 
-        //++++++ top Toolbar
         val toolbar = ToolBar()
-        toolbar.padding = Insets(5.0, 5.0, 5.0, 5.0)
+        toolbar.padding = Insets(10.0, 10.0, 10.0, 10.0)
 
-        val loadFiles = GridPane()
-        loadFiles.vgap = 5.0
-        loadFiles.hgap = 5.0
+        toolbar.items.add(Label("Selection"))
 
-        var l = Label("Load")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0, 2, 1)
-        loadFiles.children.add(l)
-
-        val loadData = Button(null, FontIcon("fas-sign-in-alt:15"))
-        loadData.onMouseClicked = EventHandler {
-            val fileChooser = FileChooser()
-            fileChooser.initialDirectory = File(mediator.rnartist.getInstallDir(), "samples")
-            val file = fileChooser.showOpenDialog(stage)
-            file?.let { f ->
-                if (f.name.endsWith(".ct")) {
-                    mediator.scriptEditor.currentScriptLocation = null
-                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
-                    StringReader(
-                                """
-import io.github.fjossinet.rnartist.core.*
-
-rnartist {
-    ss {
-        ct {
-            file = "${f.absolutePath.replace("\\", "/")}"
+        var selectionWidth = Button(null, null)
+        selectionWidth.maxWidth = Double.MAX_VALUE
+        var selectionLine = Line(0.0, 10.0, 10.0, 10.0)
+        selectionLine.strokeWidth = 1.0
+        selectionWidth.graphic = selectionLine
+        selectionWidth.onAction = EventHandler {
+            RnartistConfig.selectionWidth = 1
+            mediator.canvas2D.repaint()
         }
-    }
-    
-    theme {
-       details {
-           value = 3
-       }
-    }
-}
-"""
-                            ), runScript = true
-                        )
-                } else if (f.name.endsWith(".bpseq")) {
-                    mediator.scriptEditor.currentScriptLocation = null
-                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
-                    StringReader(
-                                """
-import io.github.fjossinet.rnartist.core.*
+        toolbar.items.add(selectionWidth)
 
-rnartist {
-    ss {
-        bpseq {
-            file = "${f.absolutePath.replace("\\", "/")}"
+        selectionWidth = Button(null, null)
+        selectionWidth.maxWidth = Double.MAX_VALUE
+        selectionLine = Line(0.0, 10.0, 10.0, 10.0)
+        selectionLine.strokeWidth = 2.0
+        selectionWidth.graphic = selectionLine
+        selectionWidth.onAction = EventHandler {
+            RnartistConfig.selectionWidth = 2
+            mediator.canvas2D.repaint()
         }
-    }    
-    theme {
-       details {
-           value = 3
-       }
-    }
-}
-"""
-                            ), runScript = true
-                        )
-                } else if (f.name.endsWith(".fasta") || f.name.endsWith(".fas") || f.name.endsWith(
-                        ".fa"
-                    ) || f.name.endsWith(".vienna")
-                ) {
-                    mediator.scriptEditor.currentScriptLocation = null
-                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
-                    StringReader(
-                                """
-import io.github.fjossinet.rnartist.core.*
+        toolbar.items.add(selectionWidth)
 
-rnartist {
-    ss {
-        vienna {
-            file = "${f.absolutePath.replace("\\", "/")}"
+        selectionWidth = Button(null, null)
+        selectionWidth.maxWidth = Double.MAX_VALUE
+        selectionLine = Line(0.0, 10.0, 10.0, 10.0)
+        selectionLine.strokeWidth = 4.0
+        selectionWidth.graphic = selectionLine
+        selectionWidth.onAction = EventHandler {
+            RnartistConfig.selectionWidth = 4
+            mediator.canvas2D.repaint()
         }
-    }    
-    theme {
-       details {
-           value = 3
-       }
-    }
-}
-"""
-                            ), runScript = true
-                    )
-                } else if (f.name.matches(Regex(".+\\.pdb[0-9]?"))) {
-                    mediator.scriptEditor.currentScriptLocation = null
-                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
-                    StringReader(
-                                """
-import io.github.fjossinet.rnartist.core.*
+        toolbar.items.add(selectionWidth)
 
-rnartist {
-    ss {
-        pdb {
-            file = "${f.absolutePath.replace("\\", "/")}"
+        selectionWidth = Button(null, null)
+        selectionWidth.maxWidth = Double.MAX_VALUE
+        selectionLine = Line(0.0, 10.0, 10.0, 10.0)
+        selectionLine.strokeWidth = 8.0
+        selectionWidth.graphic = selectionLine
+        selectionWidth.onAction = EventHandler {
+            RnartistConfig.selectionWidth = 8
+            mediator.canvas2D.repaint()
         }
-    }    
-    theme {
-       details {
-           value = 3
-       }
-    }
-}
-"""
-                            ), runScript = true
-                        )
-                        mediator.chimeraDriver.loadTertiaryStructure(f)
-                } else if (f.name.endsWith(".stk") || f.name.endsWith(".stockholm")) {
-                    mediator.scriptEditor.currentScriptLocation = null
-                    RNArtistTaskWindow(mediator).task =  LoadScript(mediator, script =
-                    StringReader(
-                                """
-import io.github.fjossinet.rnartist.core.*
+        toolbar.items.add(selectionWidth)
 
-rnartist {
-    ss {
-        stockholm {
-            file = "${f.absolutePath.replace("\\", "/")}"
+        val selectionColorPicker = ColorPicker(Color.RED)
+        selectionColorPicker.maxWidth = Double.MAX_VALUE
+        selectionColorPicker.styleClass.add("button")
+        selectionColorPicker.style = "-fx-color-label-visible: false ;"
+        selectionColorPicker.onAction = EventHandler {
+            RnartistConfig.selectionColor = javaFXToAwt(selectionColorPicker.value)
+            mediator.canvas2D.repaint()
         }
-    }    
-    theme {
-       details {
-           value = 3
-       }
-    }
-}
-"""
-                            ), runScript = true
-                        )
-                }
-            }
-        }
-        loadData.tooltip = Tooltip("Load 2D from file")
-        GridPane.setConstraints(loadData, 0, 1)
-        loadFiles.children.add(loadData)
+        toolbar.items.add(selectionColorPicker)
 
-        val loadProject = Button(null, FontIcon("fas-grip-horizontal:15"))
-        loadProject.onMouseClicked = EventHandler {
-            mediator.projectsPanel.stage.show()
-            mediator.projectsPanel.stage.toFront()
-            mediator.projectsPanel.loadProjects()
-        }
-        loadProject.tooltip = Tooltip("Load Project")
-        GridPane.setConstraints(loadProject, 1, 1)
-        loadFiles.children.add(loadProject)
+        toolbar.items.add(Separator(Orientation.VERTICAL))
 
-        val saveFiles = GridPane()
-        saveFiles.vgap = 5.0
-        saveFiles.hgap = 5.0
+        toolbar.items.add(Label("Font"))
 
-        l = Label("Save")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0, 3, 1)
-        saveFiles.children.add(l)
-
-        val saveProjectAs = Button(null, FontIcon("fas-database:15"))
-        saveProjectAs.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        saveProjectAs.onMouseClicked = EventHandler {
-            mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                val dialog = TextInputDialog("Project ${File(RnartistConfig.projectsFolder).listFiles(FileFilter { it.isDirectory }).size+1}")
-                dialog.initModality(Modality.NONE)
-                dialog.title = "Save Project"
-                dialog.headerText = null
-                dialog.contentText = "Project name:"
-                var projectName = dialog.showAndWait()
-                while (projectName.isPresent && !projectName.isEmpty && File(File(RnartistConfig.projectsFolder), projectName.get().trim()).exists()) {
-                    if (File(File(RnartistConfig.projectsFolder), projectName.get().trim()).exists())
-                        dialog.headerText = "This project already exists"
-                    projectName = dialog.showAndWait()
-                }
-                if (projectName.isPresent && !projectName.isEmpty)
-                    RNArtistTaskWindow(mediator).task = SaveProject(mediator, File(File(RnartistConfig.projectsFolder), projectName.get()))
-            }
-        }
-        saveProjectAs.tooltip = Tooltip("Save Project As...")
-        GridPane.setConstraints(saveProjectAs, 0, 1)
-        saveFiles.children.add(saveProjectAs)
-
-        this.saveProject = Button(null, FontIcon("fas-sync:15"))
-
-        this.saveProject.setOnMouseClicked {
-            mediator.scriptEditor.currentScriptLocation?.let { projectDir ->
-                RnartistConfig.projectsFolder?.let {
-                    if (projectDir.absolutePath.startsWith(it))
-                        RNArtistTaskWindow(mediator).task = SaveProject(mediator, projectDir)
-                }
-            }
-        }
-
-        this.saveProject.setTooltip(Tooltip("Save Project"))
-        saveProject.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-
-        GridPane.setConstraints(saveProject, 1, 1)
-        saveFiles.children.add(saveProject)
-
-        val submitProject = Button(null, FontIcon("fas-database:15"))
-        submitProject.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        submitProject.onMouseClicked = EventHandler {
-            mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+        val fontNames = ComboBox(
+            FXCollections.observableList(Font.getFamilies().stream().distinct().collect(Collectors.toList())))
+        fontNames.onAction = EventHandler {
+            mediator.drawingDisplayed.get()?.let { drawingLoaded ->
+                drawingLoaded.drawing.workingSession.fontName = fontNames.value
                 mediator.canvas2D.repaint()
-                val dialog = TextInputDialog("My Project")
-                dialog.initModality(Modality.NONE)
-                dialog.title = "Project Saving"
-                dialog.headerText =
-                    "Keep right mouse button pressed and drag the rectangle to define your project miniature."
-                dialog.contentText = "Project name:"
-                val projectName = dialog.showAndWait()
-                if (projectName.isPresent && !projectName.isEmpty) {
-                    try {
-                        val pictureFile = createTemporaryFile("test.svg")
-                        //ImageIO.write(mediator.canvas2D.screenCapture()!!, "PNG", pictureFile)
-                        drawing.asSVG(
-                            frame = Rectangle2D.Double(
-                                0.0,
-                                0.0,
-                                mediator.canvas2D.getBounds().width.toDouble(),
-                                mediator.canvas2D.getBounds().height.toDouble()
-                            ), outputFile = pictureFile
-                        )
-
-                        val url = URL("http://localhost:8080/api/submit")
-                        val con = url.openConnection()
-                        val http = con as HttpURLConnection
-                        http.setRequestMethod("POST")
-                        http.setDoOutput(true)
-                        val boundary = UUID.randomUUID().toString()
-                        val boundaryBytes = "--$boundary\r\n".toByteArray(StandardCharsets.UTF_8)
-                        val finishBoundaryBytes = "--$boundary--".toByteArray(StandardCharsets.UTF_8)
-                        http.setRequestProperty(
-                            "Content-Type",
-                            "multipart/form-data; charset=UTF-8; boundary=$boundary"
-                        )
-
-                        // Enable streaming mode with default settings
-                        http.setChunkedStreamingMode(0)
-
-                        // Send our fields:
-                        http.outputStream.use { out ->
-                            // Send our header (thx Algoman)
-                            out.write(boundaryBytes)
-
-                            // Send our first field
-                            sendField(out, "script", mediator.scriptEditor.getScriptAsText())
-
-                            // Send a separator
-                            out.write(boundaryBytes)
-
-                            // Send our second field
-                            sendField(out, "password", "toor")
-
-                            //Send another separator
-                            out.write(boundaryBytes)
-                            FileInputStream(pictureFile).use { file ->
-                                sendFile(
-                                    out,
-                                    "capture",
-                                    file,
-                                    pictureFile.name
-                                )
-                            }
-
-                            // Finish the request
-                            out.write(finishBoundaryBytes)
-                        }
-
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                    mediator.canvas2D.repaint()
-                }
             }
         }
-        submitProject.tooltip = Tooltip("Submit project to RNArtist Gallery")
-        GridPane.setConstraints(submitProject, 3, 1)
-        //saveFiles.children.add(submitProject)
+        fontNames.maxWidth = Double.MAX_VALUE
 
-        val tertiaryStructureButtons = GridPane()
-        tertiaryStructureButtons.vgap = 5.0
-        tertiaryStructureButtons.hgap = 5.0
+        toolbar.items.add(fontNames)
 
-        val selectionSize = GridPane()
-        selectionSize.vgap = 5.0
-        selectionSize.hgap = 5.0
-
-        l = Label("Selection Width (px)")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0)
-        selectionSize.children.add(l)
-
-        val sliderSize = Slider(1.0, 3.0, selectionWidth.toDouble())
-        sliderSize.isShowTickLabels = true
-        sliderSize.isShowTickMarks = true
-        sliderSize.isSnapToTicks = true
-        sliderSize.majorTickUnit = 1.0
-        sliderSize.minorTickCount = 0
-
-        sliderSize.onMouseReleased = EventHandler {
-            selectionWidth = sliderSize.value.toInt()
-            mediator.canvas2D.repaint()
-        }
-        GridPane.setHalignment(sliderSize, HPos.CENTER)
-        GridPane.setConstraints(sliderSize, 0, 1)
-        selectionSize.children.add(sliderSize)
-
-        val selectionColor = GridPane()
-        selectionColor.vgap = 5.0
-        selectionColor.hgap = 5.0
-
-        l = Label("Selection Color")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0)
-        selectionColor.children.add(l)
-
-        val colorPicker = ColorPicker()
-        colorPicker.value = awtColorToJavaFX(RnartistConfig.selectionColor)
-        colorPicker.valueProperty().addListener { observableValue, color, newValue ->
-            val c = javaFXToAwt(colorPicker.value)
-            RnartistConfig.selectionColor = c
-            mediator.canvas2D.repaint()
-        }
-        colorPicker.maxWidth = Double.MAX_VALUE
-        colorPicker.minWidth = Control.USE_PREF_SIZE
-        GridPane.setConstraints(colorPicker, 0, 1)
-        selectionColor.children.add(colorPicker)
-
-        val structureSelection = GridPane()
-        structureSelection.vgap = 5.0
-        structureSelection.hgap = 5.0
-
-        l = Label("2Ds Loaded")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0)
-        structureSelection.children.add(l)
-
-        this.clearAll2DsItem = MenuItem("Clear All")
-        this.clearAll2DsItem.setDisable(true)
-        clearAll2DsItem.setOnAction(EventHandler<ActionEvent?> {
-            val alert = Alert(Alert.AlertType.CONFIRMATION)
-            alert.title = "Confirmation Dialog"
-            alert.headerText = null
-            alert.contentText = "Are you Sure to Remove all the 2Ds from your Project?"
-            val result = alert.showAndWait()
-            if (result.get() == ButtonType.OK) {
-                mediator.drawingsLoaded.clear()
-                stage.title = "RNArtist"
+        val deltaXRes = Spinner<Int>(Int.MIN_VALUE, Int.MAX_VALUE, 0)
+        deltaXRes.prefWidth = 50.0
+        deltaXRes.valueProperty().addListener { observable, oldValue, newValue ->
+            mediator.drawingDisplayed.get()?.let { drawingLoaded ->
+                drawingLoaded.drawing.workingSession.deltafontx = deltaXRes.value
+                mediator.canvas2D.repaint()
             }
-        })
+        }
+        toolbar.items.add(Label("x"))
+        toolbar.items.add(deltaXRes)
 
-        this.clearAll2DsExceptCurrentItem = MenuItem("Clear All Except Current")
-        this.clearAll2DsExceptCurrentItem.setDisable(true)
-        clearAll2DsExceptCurrentItem.setOnAction(EventHandler<ActionEvent?> {
-            val alert = Alert(Alert.AlertType.CONFIRMATION)
-            alert.title = "Confirmation Dialog"
-            alert.headerText = null
-            alert.contentText = "Are you Sure to Remove all the Remaining 2Ds from your Project?"
-            val result = alert.showAndWait()
-            if (result.get() == ButtonType.OK) {
-                val toDelete: MutableList<DrawingLoaded> = ArrayList()
-                for (drawingLoaded in mediator.drawingsLoaded) if (drawingLoaded.drawing != mediator.drawingDisplayed.get()?.drawing) toDelete.add(
-                    drawingLoaded
-                )
-                mediator.drawingsLoaded.removeAll(toDelete)
+        val deltaYRes = Spinner<Int>(Int.MIN_VALUE, Int.MAX_VALUE, 0)
+        deltaYRes.prefWidth = 50.0
+        deltaYRes.valueProperty().addListener { observable, oldValue, newValue ->
+            mediator.drawingDisplayed.get()?.let { drawingLoaded ->
+                drawingLoaded.drawing.workingSession.deltafonty = deltaYRes.value
+                mediator.canvas2D.repaint()
             }
-        })
+        }
+        toolbar.items.add(Label("y"))
+        toolbar.items.add(deltaYRes)
 
-        allStructuresAvailable.getItems().addAll(SeparatorMenuItem(), clearAll2DsItem, clearAll2DsExceptCurrentItem)
-
-        GridPane.setHalignment(allStructuresAvailable, HPos.CENTER)
-        GridPane.setConstraints(allStructuresAvailable, 0, 1)
-        structureSelection.children.add(allStructuresAvailable)
-
-        val s1 = Separator()
-        s1.padding = Insets(0.0, 5.0, 0.0, 5.0)
-
-        val s2 = Separator()
-        s2.padding = Insets(0.0, 5.0, 0.0, 5.0)
-
-        val s3 = Separator()
-        s2.padding = Insets(0.0, 5.0, 0.0, 5.0)
-
-        val s4 = Separator()
-        s2.padding = Insets(0.0, 5.0, 0.0, 5.0)
-
-        toolbar.items.addAll(
-            loadFiles,
-            s1,
-            saveFiles,
-            s2,
-            structureSelection,
-            s3,
-            tertiaryStructureButtons,
-            s4,
-            selectionSize,
-            selectionColor
-        )
+        val deltaFontSize = Spinner<Int>(Int.MIN_VALUE, Int.MAX_VALUE, 0)
+        deltaFontSize.prefWidth = 50.0
+        deltaFontSize.valueProperty().addListener { observable, oldValue, newValue ->
+            mediator.drawingDisplayed.get()?.let { drawingLoaded ->
+                drawingLoaded.drawing.workingSession.deltafontsize = deltaFontSize.value
+                mediator.canvas2D.repaint()
+            }
+        }
+        toolbar.items.add(Label("s"))
+        toolbar.items.add(deltaFontSize)
 
         root.top = toolbar
 
@@ -506,7 +201,7 @@ rnartist {
         leftToolBar.add(s, 0, row++, 2, 1)
         GridPane.setHalignment(s, HPos.CENTER)
 
-        l = Label("2D")
+        var l = Label("2D")
         leftToolBar.add(l, 0, row++, 2, 1)
         GridPane.setHalignment(l, HPos.CENTER)
 
@@ -518,7 +213,7 @@ rnartist {
 
         val center2D = Button(null, FontIcon("fas-crosshairs:15"))
         center2D.maxWidth = Double.MAX_VALUE
-        center2D.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+        center2D.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull).then(true).otherwise(false))
         center2D.onMouseClicked = EventHandler { mouseEvent ->
             if (mouseEvent.isShiftDown) {
                 centerDisplayOnSelection = !centerDisplayOnSelection
@@ -535,7 +230,7 @@ rnartist {
 
         val fit2D = Button(null, FontIcon("fas-expand-arrows-alt:15"))
         fit2D.maxWidth = Double.MAX_VALUE
-        fit2D.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+        fit2D.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull).then(true).otherwise(false))
         fit2D.onMouseClicked = EventHandler {
             if (mediator.canvas2D.getSelection().isNotEmpty()) {
                 mediator.canvas2D.fitStructure(mediator.canvas2D.getSelectionFrame(), 2.0)
@@ -1346,12 +1041,12 @@ rnartist {
 
         this.reload3D = Button(null, FontIcon("fas-redo:15"))
         this.reload3D.setDisable(true)
-        this.reload3D.setOnMouseClicked(EventHandler<MouseEvent?> { mediator.chimeraDriver.reloadTertiaryStructure() })
+        this.reload3D.onMouseClicked = EventHandler { mediator.chimeraDriver.reloadTertiaryStructure() }
         this.reload3D.setTooltip(Tooltip("Reload 3D"))
 
         this.focus3D = Button(null, FontIcon("fas-crosshairs:15"))
         this.focus3D.setDisable(true)
-        this.focus3D.setOnMouseClicked(EventHandler<MouseEvent?> { mediator.focusInChimera() })
+        this.focus3D.onMouseClicked = EventHandler { mediator.focusInChimera() }
         this.focus3D.setTooltip(Tooltip("Focus 3D on Selection"))
 
         leftToolBar.add(this.reload3D, 0, row)
@@ -1370,7 +1065,6 @@ rnartist {
         root.left = leftToolBar
 
         //++++++ Canvas2D
-        val swingNode = SwingNode()
         swingNode.onMouseMoved = EventHandler { mouseEvent: MouseEvent? ->
             mediator.drawingDisplayed.get()?.drawing?.let {
                 it.quickDraw = false //a trick if after the scroll event the quickdraw is still true
@@ -1592,6 +1286,7 @@ rnartist {
             }
         }
         createSwingContent(swingNode)
+
         root.center = swingNode
 
         //### Status Bar
@@ -1661,21 +1356,13 @@ rnartist {
         windowsBar.padding = Insets(5.0, 10.0, 5.0, 10.0)
         windowsBar.hgap = 10.0
 
-        val settings = Button(null, FontIcon("fas-cog:15"))
-        settings.tooltip = Tooltip("Show RNArtist Settings")
-        settings.onAction = EventHandler { actionEvent: ActionEvent? ->
-            mediator.settings.stage.show()
-            mediator.settings.stage.toFront()
+        val showTools = Button(null, FontIcon("fas-tools:15"))
+        showTools.tooltip = Tooltip("Show Tools")
+        showTools.onAction = EventHandler { actionEvent: ActionEvent? ->
+            mediator.sideWindow.stage.show()
+            mediator.sideWindow.stage.toFront()
         }
-        windowsBar.children.add(settings)
-
-        val showEditor = Button(null, FontIcon("fas-play:15"))
-        showEditor.tooltip = Tooltip("Show Script Editor")
-        showEditor.onAction = EventHandler { actionEvent: ActionEvent? ->
-            mediator.scriptEditor.stage.show()
-            mediator.scriptEditor.stage.toFront()
-        }
-        windowsBar.children.add(showEditor)
+        windowsBar.children.add(showTools)
 
         val bar = GridPane()
         val cc = ColumnConstraints()

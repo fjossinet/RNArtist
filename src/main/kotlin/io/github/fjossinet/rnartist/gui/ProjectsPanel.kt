@@ -3,10 +3,8 @@ package io.github.fjossinet.rnartist.gui
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
-import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
-import javafx.concurrent.Task
 import javafx.event.EventHandler
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -14,12 +12,9 @@ import javafx.scene.Scene
 import javafx.scene.control.Alert
 import javafx.scene.control.ButtonType
 import javafx.scene.control.Label
-import javafx.scene.control.TextArea
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
-import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
-import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.stage.Modality
@@ -30,7 +25,6 @@ import org.controlsfx.control.GridCell
 import org.controlsfx.control.GridView
 import org.kordamp.ikonli.javafx.FontIcon
 import java.io.*
-import java.util.concurrent.ExecutionException
 
 class ProjectsPanel(val mediator:Mediator) {
     private val projectPanels: ObservableList<ProjectPanel>

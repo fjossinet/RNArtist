@@ -8,6 +8,7 @@ import io.github.fjossinet.rnartist.core.model.Block
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
+import io.github.fjossinet.rnartist.model.DrawingLoaded
 import io.github.fjossinet.rnartist.model.DrawingLoadedFromScriptEditor
 import io.github.fjossinet.rnartist.model.editor.*
 import javafx.application.Platform
@@ -22,7 +23,6 @@ import java.awt.geom.Rectangle2D
 import java.io.*
 import java.lang.StringBuilder
 import java.net.URL
-import javax.script.ScriptContext
 
 abstract class RNArtistTask(val mediator: Mediator) : Task<Pair<Any?, Exception?>>() {
     var rnartistTaskWindow: RNArtistTaskWindow? = null
@@ -35,16 +35,7 @@ class RunScript(mediator: Mediator) : RNArtistTask(mediator) {
             this.rnartistTaskWindow?.stage?.hide()
             val result = get()
             result.first?.let { scriptResult ->
-                (scriptResult as? List<SecondaryStructureDrawing>)?.forEach {
-                    mediator.drawingsLoaded.add(
-                        DrawingLoadedFromScriptEditor(
-                            mediator,
-                            it, mediator.scriptEditor.themeAndLayoutScript.getScriptRoot().id
-                        )
-                    )
-                    mediator.drawingDisplayed.set(mediator.drawingsLoaded[mediator.drawingsLoaded.size - 1])
-                    mediator.canvas2D.fitStructure(null)
-                }
+
             }
             result.second?.let {
                 val alert = Alert(Alert.AlertType.ERROR)
@@ -82,6 +73,20 @@ class RunScript(mediator: Mediator) : RNArtistTask(mediator) {
 
     override fun call(): Pair<Any?, Exception?> {
         try {
+            val structuresToBeRemoved:List<DrawingLoaded> = mediator.drawingsLoaded.toList()
+            var totalProgress = structuresToBeRemoved.size.toDouble()
+            var progressStep = 0.0
+            var removed = 0
+            structuresToBeRemoved.forEach {
+                Platform.runLater {
+                    updateProgress(++progressStep, totalProgress)
+                    updateMessage("Removing 2D ${++removed}/${structuresToBeRemoved.size}")
+                    mediator.drawingsLoaded.remove(
+                        structuresToBeRemoved[removed-1]
+                    )
+                }
+                Thread.sleep(50)
+            }
             Platform.runLater {
                 updateMessage("Running script..")
             }
@@ -92,9 +97,27 @@ class RunScript(mediator: Mediator) : RNArtistTask(mediator) {
             //println(scriptContent)
             val result = mediator.scriptEditor.engine.eval(scriptContent)
             Platform.runLater {
-                updateMessage("Plotting 2D...")
+                mediator.sideWindow.tabPane.selectionModel.select(1)
+                updateMessage("Loading new 2Ds...")
             }
             Thread.sleep(100)
+            val structuresToBeLoaded = (result as? List<SecondaryStructureDrawing>)?.sortedBy { it.secondaryStructure.name }?.reversed()
+            totalProgress = structuresToBeLoaded!!.size.toDouble()
+            progressStep = 0.0
+            var loaded = 0
+            structuresToBeLoaded?.forEach {
+                Platform.runLater {
+                    updateProgress(++progressStep, totalProgress)
+                    updateMessage("Loading 2D ${++loaded}/${structuresToBeLoaded.size}")
+                    mediator.drawingsLoaded.add(
+                        DrawingLoadedFromScriptEditor(
+                            mediator,
+                            it, mediator.scriptEditor.themeAndLayoutScript.getScriptRoot().id
+                        )
+                    )
+                }
+                Thread.sleep(500)
+            }
             return Pair(result, null)
         } catch (e: Exception) {
             return Pair(null, e)
@@ -154,6 +177,24 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
     override fun call(): Pair<Any?, Exception?> {
         try {
             Platform.runLater {
+                updateMessage("Removing previous 2Ds...")
+            }
+            Thread.sleep(100)
+            val structuresToBeRemoved:List<DrawingLoaded> = mediator.drawingsLoaded.toList()
+            var totalProgress = structuresToBeRemoved.size.toDouble()
+            var progressStep = 0.0
+            var removed = 0
+            structuresToBeRemoved.forEach {
+                Platform.runLater {
+                    updateProgress(++progressStep, totalProgress)
+                    updateMessage("Removing 2D ${++removed}/${structuresToBeRemoved.size}")
+                    mediator.drawingsLoaded.remove(
+                        structuresToBeRemoved[removed-1]
+                    )
+                }
+                Thread.sleep(50)
+            }
+            Platform.runLater {
                 updateMessage("Loading script..")
             }
             Thread.sleep(100)
@@ -165,7 +206,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
             Thread.sleep(100)
             var (elements, issues) = result
 
-            var progressStep = 0.0
+            progressStep = 0.0
             Platform.runLater {
                 updateMessage("Importing script in script editor..")
             }
@@ -173,7 +214,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
 
             val allElements = mutableListOf<ScriptElement>()
             elements.first().getAllElements(allElements)
-            var totalProgress = allElements.size.toDouble() + 1
+            totalProgress = allElements.size.toDouble() + 1
             elements.first().children.forEach { element ->
                 when (element.name) {
                     "ss" -> {

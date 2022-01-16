@@ -7,6 +7,8 @@ import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.ChimeraXDriver
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingsLoadedPanel
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.SideWindow
 import io.github.fjossinet.rnartist.model.*
 import javafx.beans.property.SimpleObjectProperty
 import javafx.collections.FXCollections
@@ -27,9 +29,10 @@ class Mediator(val rnartist: RNArtist) {
                             ChimeraXDriver(this)
                         else
                             ChimeraDriver(this)
-    var scriptEditor = ScriptEditor(this)
+    val scriptEditor = ScriptEditor(this)
+    val drawingsLoadedPanel = DrawingsLoadedPanel(this)
     val settings = Settings(this)
-    //val explorer = Explorer(this)
+    var sideWindow = SideWindow(this)
     val projectsPanel = ProjectsPanel(this)
     lateinit var canvas2D: Canvas2D
 
@@ -128,7 +131,6 @@ class Mediator(val rnartist: RNArtist) {
                                 Thread.sleep(1000)
                             }
                         }
-                        rnartist.saveProject.isDisable = true
                     }
                     is DrawingLoadedFromRNArtistDB -> {
                         //println("new 2D loaded from DB")
@@ -152,7 +154,6 @@ class Mediator(val rnartist: RNArtist) {
                                 this.rnartist.reload3D.isDisable = false
                             }
                         }
-                        rnartist.saveProject.isDisable = false
                     }
                 }
                 this.canvas2D.repaint();
@@ -161,47 +162,23 @@ class Mediator(val rnartist: RNArtist) {
 
         this.drawingsLoaded.addListener(ListChangeListener { change ->
             while (change.next()) {
-                if (change.wasAdded()) {
-                    for (drawingLoaded in change.addedSubList) {
-                        val item = MenuItem(drawingLoaded.toString())
-                        item.setMnemonicParsing(false)
-                        item.userData = drawingLoaded
-                        item.setOnAction {
-                            this.drawingDisplayed.set(item.userData as DrawingLoaded)
-                            if ((item.userData as DrawingLoaded).drawing.viewX == 0.0 && (item.userData as DrawingLoaded).drawing.viewY == 0.0 && (item.userData as DrawingLoaded).drawing.zoomLevel == 1.0) {
-                                //it seems it is a first opening, then we fit to the display
-                                canvas2D.fitStructure(null)
-                            }
-                        }
-                        rnartist.allStructuresAvailable.items.add(0, item)
-                    }
-                } else if (change.wasRemoved()) {
-                    val toDelete = mutableListOf<MenuItem>()
-                    for (menuItem in rnartist.allStructuresAvailable.items.toList()) {
-                        for (drawingLoaded in change.removed) {
-                            if (menuItem.userData == drawingLoaded) {
-                                toDelete.add(menuItem)
-                            }
-                        }
-                    }
-                    rnartist.allStructuresAvailable.items.removeAll(toDelete)
+                if (change.wasAdded())
+                    for (drawingLoaded in change.addedSubList)
+                        this.drawingsLoadedPanel.addItem(drawingLoaded)
+                else if (change.wasRemoved()) {
+                    for (drawingLoaded in change.removed)
+                        this.drawingsLoadedPanel.removeItem(drawingLoaded)
                 }
             }
-            if (!this.drawingsLoaded.isEmpty()) {
-                rnartist.clearAll2DsItem.isDisable = false
-                rnartist.clearAll2DsExceptCurrentItem.isDisable = false
-            }
-            else {
+            if (this.drawingsLoaded.isEmpty()) {
                 this.drawingDisplayed.set(null)
-                rnartist.clearAll2DsItem.isDisable = true
-                rnartist.clearAll2DsExceptCurrentItem.isDisable = true
                 canvas2D.repaint()
             }
         })
 
     }
 
-    public fun focusInChimera() {
+    fun focusInChimera() {
         this.drawingDisplayed.get()?.let { drawingDisplayed ->
             chimeraDriver.setFocus(
                 canvas2D.getSelectedPositions()
@@ -209,7 +186,7 @@ class Mediator(val rnartist: RNArtist) {
         }
     }
 
-    public fun pivotInChimera() {
+    fun pivotInChimera() {
         this.drawingDisplayed.get()?.let { drawingDisplayed->
             chimeraDriver.setPivot(
                 canvas2D.getSelectedPositions()

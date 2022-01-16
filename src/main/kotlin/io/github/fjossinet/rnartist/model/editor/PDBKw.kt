@@ -20,14 +20,10 @@ class PDBKw (parent: SecondaryStructureInputKw, script: Script, indentLevel:Int)
 
         removeButton.mouseReleased =  {
             this.inFinalScript = false
-            val childAfter = this.parent.children.get(this.parent.children.indexOf(this) + 1)
-            if (childAfter is PDBKw)
+            if (this.parent.children.indexOf(this) <this.parent.children.size-1 && this.parent.children.get(this.parent.children.indexOf(this) + 1) is PDBKw)
                 this.parent.children.remove(this)
-            else {
-                val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
-                if (childBefore is PDBKw)
-                    this.parent.children.remove(this)
-            }
+            else if (this.parent.children.indexOf(this) > 0 && this.parent.children.get(this.parent.children.indexOf(this) - 1) is PDBKw)
+                this.parent.children.remove(this)
             script.initScript()
         }
     }

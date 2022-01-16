@@ -29,18 +29,16 @@ open class LocationKw(parent:DSLElement, script: Script, indentLevel:Int): Optio
                 (this.parent as? JunctionLayoutKw)?.let {
                     script.mediator.drawingDisplayed.get()?.let { drawingLoaded ->
                         drawingLoaded.drawing.allJunctions.forEach { j ->
-                            if (j.inside(l)) {
+                            if (j.inside(l))
                                 script.mediator.canvas2D.addToSelection(j)
-                            }
                         }
                         script.mediator.canvas2D.fitStructure(script.mediator.canvas2D.getSelectionFrame(), ratio = 3.0)
                     }
                 } ?: run {
                     script.mediator.drawingDisplayed.get()?.let { drawingLoaded ->
                         drawingLoaded.drawing.residues.forEach { r ->
-                            if (r.inside(l)) {
+                            if (r.inside(l))
                                 script.mediator.canvas2D.addToSelection(r)
-                            }
                         }
                         script.mediator.canvas2D.fitStructure(script.mediator.canvas2D.getSelectionFrame(), ratio = 3.0)
                     }

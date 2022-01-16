@@ -11,6 +11,7 @@ import javafx.scene.image.ImageView
 import javafx.scene.layout.ColumnConstraints
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.Priority
+import javafx.stage.Modality
 import javafx.stage.Stage
 import javafx.stage.StageStyle
 
@@ -32,7 +33,8 @@ class RNArtistTaskWindow(val mediator: Mediator) {
 
     init {
         stage.initStyle(StageStyle.UNDECORATED)
-
+        stage.initModality(Modality.WINDOW_MODAL)
+        stage.initOwner(mediator.sideWindow.stage)
         val form = GridPane()
         val constraints = ColumnConstraints()
         constraints.hgrow = Priority.ALWAYS

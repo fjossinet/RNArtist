@@ -25,30 +25,15 @@ import org.controlsfx.glyphfont.FontAwesome
 import org.controlsfx.glyphfont.Glyph
 import java.util.stream.Collectors
 
-class Settings(mediator: Mediator) {
-
-    var stage: Stage
-    private var fontNames: ComboBox<String>
-    private var deltaXRes: Spinner<Int>
-    private  var deltaYRes:Spinner<Int>
-    private  var deltaFontSize:Spinner<Int>
+class Settings(mediator: Mediator):VBox() {
 
     init {
-        stage = Stage()
-        stage.title = "Settings"
-        stage.onCloseRequest = EventHandler { windowEvent: WindowEvent? -> save() }
-        val root = TabPane()
-        root.tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
-        val vbox = VBox()
-        vbox.isFillWidth = true
-        vbox.padding = Insets(10.0, 10.0, 10.0, 10.0)
-        val settings = Tab("Global Settings", vbox)
-        root.tabs.add(settings)
+        this.padding = Insets(10.0, 10.0, 10.0, 10.0)
 
         //---- Chimera
         var title = Label("UCSF Chimera")
         title.style = "-fx-font-size: 20"
-        vbox.children.add(VBox(title, Separator(Orientation.HORIZONTAL)))
+        this.children.add(VBox(title, Separator(Orientation.HORIZONTAL)))
         val chimeraPane = GridPane()
         for (i in 0..5) {
             val constraints = ColumnConstraints()
@@ -58,7 +43,7 @@ class Settings(mediator: Mediator) {
         chimeraPane.padding = Insets(10.0, 5.0, 15.0, 5.0)
         chimeraPane.hgap = 5.0
         chimeraPane.vgap = 5.0
-        vbox.children.add(chimeraPane)
+        this.children.add(chimeraPane)
         var hostLabel = Label("Host")
         chimeraPane.children.add(hostLabel)
         GridPane.setConstraints(hostLabel, 0, 0)
@@ -101,84 +86,17 @@ class Settings(mediator: Mediator) {
         }
 
         //++++++ pane for the fonts
-        title = Label("Font")
-        title.style = "-fx-font-size: 20"
-        vbox.children.add(VBox(title, Separator(Orientation.HORIZONTAL)))
-        val fontsPane = GridPane()
-        fontsPane.padding = Insets(10.0, 5.0, 15.0, 5.0)
-        fontsPane.maxWidth = Double.MAX_VALUE
-        fontsPane.hgap = 5.0
-        fontsPane.vgap = 5.0
-        vbox.children.add(fontsPane)
-        var cc = ColumnConstraints()
-        cc.hgrow = Priority.ALWAYS
-        fontsPane.columnConstraints.addAll(ColumnConstraints(),
-            ColumnConstraints(),
-            ColumnConstraints(),
-            ColumnConstraints(),
-            ColumnConstraints(),
-            cc,
-            ColumnConstraints())
-        fontNames = ComboBox(
-            FXCollections.observableList(Font.getFamilies().stream().distinct().collect(Collectors.toList())))
-        /*val eventHandler: EventHandler<*> = label@ EventHandler { event: Event? ->
-            object : SwingWorker<Any?, Any?>() {
-                @Throws(Exception::class)
-                override fun doInBackground(): Any? {
-                    return@label null
-                }
-            }.execute()
-        }
-        fontNames.setOnAction(eventHandler)*/
-        fontNames.maxWidth = Double.MAX_VALUE
-        GridPane.setConstraints(fontNames, 0, 0, 6, 1)
-        fontsPane.children.add(fontNames)
-        val applyFontName = Button(null, Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE))
-        GridPane.setConstraints(applyFontName, 6, 0, 1, 1)
-        fontsPane.children.add(applyFontName)
-        applyFontName.onMouseClicked = EventHandler { }
-        deltaXRes = Spinner()
-        deltaXRes!!.valueProperty().addListener { observable, oldValue, newValue -> }
-        deltaYRes = Spinner<Int>()
-        deltaYRes.valueProperty().addListener(ChangeListener<Int?> { observable, oldValue, newValue -> })
-        deltaFontSize = Spinner<Int>()
-        deltaFontSize.valueProperty().addListener(ChangeListener<Int?> { observable, oldValue, newValue -> })
-        var l = Label("x")
-        GridPane.setConstraints(l, 0, 1, 1, 1)
-        GridPane.setHalignment(l, HPos.LEFT)
-        fontsPane.children.add(l)
-        GridPane.setConstraints(deltaXRes, 1, 1, 1, 1)
-        GridPane.setHalignment(deltaXRes, HPos.LEFT)
-        fontsPane.children.add(deltaXRes)
-        l = Label("y")
-        GridPane.setConstraints(l, 2, 1, 1, 1)
-        GridPane.setHalignment(l, HPos.LEFT)
-        fontsPane.children.add(l)
-        GridPane.setConstraints(deltaYRes, 3, 1, 1, 1)
-        GridPane.setHalignment(deltaYRes, HPos.LEFT)
-        fontsPane.children.add(deltaYRes)
-        l = Label("s")
-        GridPane.setConstraints(l, 4, 1, 1, 1)
-        fontsPane.children.add(l)
-        GridPane.setHalignment(l, HPos.LEFT)
-        GridPane.setConstraints(deltaFontSize, 5, 1, 1, 1)
-        fontsPane.children.add(deltaFontSize)
-        GridPane.setHalignment(deltaFontSize, HPos.LEFT)
-        val applyDeltas = Button(null, Glyph("FontAwesome", FontAwesome.Glyph.CHECK_CIRCLE))
-        applyDeltas.minWidth = Control.USE_PREF_SIZE
-        GridPane.setConstraints(applyDeltas, 6, 1, 1, 1)
-        fontsPane.children.add(applyDeltas)
-        applyDeltas.onMouseClicked = EventHandler { }
+
 
         //---- Bunch of options
         title = Label("Misc Settings")
         title.style = "-fx-font-size: 20"
-        vbox.children.add(VBox(title, Separator(Orientation.HORIZONTAL)))
+        this.children.add(VBox(title, Separator(Orientation.HORIZONTAL)))
         val optionsPane = GridPane()
-        cc = ColumnConstraints()
+        var cc = ColumnConstraints()
         cc.hgrow = Priority.ALWAYS
         optionsPane.columnConstraints.addAll(ColumnConstraints(), cc)
-        vbox.children.add(optionsPane)
+        this.children.add(optionsPane)
         optionsPane.padding = Insets(10.0, 5.0, 15.0, 5.0)
         optionsPane.hgap = 5.0
         optionsPane.vgap = 5.0
@@ -190,17 +108,9 @@ class Settings(mediator: Mediator) {
         }
         optionsPane.children.add(svgBrowserFix)
         GridPane.setConstraints(svgBrowserFix, 0, row)
-        l = Label("Set Browser Compatibility for SVG Export")
+        var l = Label("Set Browser Compatibility for SVG Export")
         optionsPane.children.add(l)
         GridPane.setConstraints(l, 1, row++)
-        val scene = Scene(root)
-        scene.stylesheets.add("io/github/fjossinet/rnartist/gui/css/main.css")
-        stage.scene = scene
-        val screenSize = Screen.getPrimary().bounds
-        scene.window.width = screenSize.width / 3
-        scene.window.height = screenSize.height / 2
-        scene.window.x = screenSize.width / 2 - screenSize.width / 4
-        scene.window.y = screenSize.height / 2 - screenSize.height / 4
     }
 
 }

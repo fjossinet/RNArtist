@@ -2,7 +2,6 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
-import javafx.event.EventHandler
 
 class LineKw(parent:ThemeKw, script: Script, indentLevel:Int): OptionalDSLKeyword(parent, script, "line", indentLevel) {
 
@@ -20,14 +19,10 @@ class LineKw(parent:ThemeKw, script: Script, indentLevel:Int): OptionalDSLKeywor
 
         removeButton.mouseReleased =  {
             this.inFinalScript = false
-            val childAfter = this.parent.children.get(this.parent.children.indexOf(this) + 1)
-            if (childAfter is LineKw)
+            if (this.parent.children.indexOf(this) <this.parent.children.size-1 && this.parent.children.get(this.parent.children.indexOf(this) + 1) is LineKw)
                 this.parent.children.remove(this)
-            else {
-                val childBefore = this.parent.children.get(this.parent.children.indexOf(this) - 1)
-                if (childBefore is LineKw)
-                    this.parent.children.remove(this)
-            }
+            else if (this.parent.children.indexOf(this) > 0 && this.parent.children.get(this.parent.children.indexOf(this) - 1) is LineKw)
+                this.parent.children.remove(this)
             script.initScript()
         }
     }

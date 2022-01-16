@@ -13,7 +13,6 @@ import javafx.scene.control.*
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.layout.*
-import javafx.scene.text.Text
 import javafx.stage.DirectoryChooser
 import javafx.stage.Stage
 import javafx.stage.StageStyle
@@ -111,7 +110,7 @@ class SplashWindow(val mediator: Mediator) {
                     stage.hide()
                     mediator.rnartist.stage.show()
                     mediator.rnartist.stage.toFront()
-                    mediator.scriptEditor.stage.show()
+                    mediator.sideWindow.stage.show()
                 }
                 result.second?.let {
                     stage.hide()
@@ -144,7 +143,8 @@ class SplashWindow(val mediator: Mediator) {
                     alert.showAndWait()
                     mediator.rnartist.stage.show()
                     mediator.rnartist.stage.toFront()
-                    mediator.scriptEditor.stage.show()
+                    mediator.sideWindow.stage.show()
+                    mediator.sideWindow.stage.toFront()
                 }
             }
         }

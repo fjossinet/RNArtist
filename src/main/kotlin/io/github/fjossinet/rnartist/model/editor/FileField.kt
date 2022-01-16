@@ -5,7 +5,6 @@ import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
 import javafx.scene.Node
 import javafx.scene.paint.Color
-import javafx.stage.DirectoryChooser
 import javafx.stage.FileChooser
 import java.io.File
 
@@ -21,7 +20,7 @@ class FileField(parent: DSLElementInt, script: Script, value: String = "") :
         this.text.onMouseClicked = EventHandler {
             val fileChooser = FileChooser()
             fileChooser.initialDirectory = File(script.mediator.rnartist.getInstallDir(), "samples")
-            val file = fileChooser.showOpenDialog(script.mediator.scriptEditor.stage)
+            val file = fileChooser.showOpenDialog(script.mediator.sideWindow.stage)
             file?.let {
                 text.text = "\"${file.absolutePath.replace("\\", "/")}\""
             }
@@ -36,7 +35,7 @@ class FileField(parent: DSLElementInt, script: Script, value: String = "") :
             button.onMouseClicked = EventHandler {
                 val fileChooser = FileChooser()
                 fileChooser.initialDirectory = File(script.mediator.rnartist.getInstallDir(), "samples")
-                val file = fileChooser.showOpenDialog(script.mediator.scriptEditor.stage)
+                val file = fileChooser.showOpenDialog(script.mediator.sideWindow.stage)
                 file?.let {
                     text.text = "\"${file.absolutePath.replace("\\", "/")}\""
                 }
