@@ -3,7 +3,7 @@ package io.github.fjossinet.rnartist.gui
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.JunctionType
-import io.github.fjossinet.rnartist.gui.editor.ThemeAndLayoutScript
+import io.github.fjossinet.rnartist.gui.editor.RNArtistScript
 import io.github.fjossinet.rnartist.model.editor.*
 import javafx.concurrent.Task
 import javafx.event.EventHandler
@@ -159,7 +159,7 @@ class SplashWindow(val mediator: Mediator) {
                         updateMessage("Migrating project ${project.get("name")}..")
                         val drawing = mediator.embeddedDB.getProject(project.id)
                         with(drawing) {
-                            val layoutScript = ThemeAndLayoutScript(mediator)
+                            val layoutScript = RNArtistScript(mediator)
                             layoutScript.allowScriptInit = false
                             with(layoutScript.getScriptRoot().getLayoutKw()) {
                                 addButton.fire()
@@ -210,7 +210,7 @@ class SplashWindow(val mediator: Mediator) {
                             layoutScript.getScriptRoot().dumpText(scriptContent)
                             scriptFile.writeText("import io.github.fjossinet.rnartist.core.*${System.lineSeparator()}${System.lineSeparator()} ${scriptContent.toString()}")
                             drawing.asPNG(
-                                Rectangle2D.Double(0.0, 0.0, 400.0, 400.0),
+                                Rectangle2D.Double(0.0, 0.0, 200.0, 200.0),
                                 null,
                                 File(projectDir, "preview.png")
                             )

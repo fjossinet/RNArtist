@@ -1,39 +1,20 @@
 package io.github.fjossinet.rnartist.gui.editor
 
-import com.google.gson.JsonParser
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.gui.LoadGist
-import io.github.fjossinet.rnartist.gui.LoadScript
-import io.github.fjossinet.rnartist.gui.RunScript
-import io.github.fjossinet.rnartist.gui.SaveProject
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import io.github.fjossinet.rnartist.model.editor.*
-import javafx.application.Platform
-import javafx.beans.binding.Bindings
 import javafx.event.EventHandler
-import javafx.geometry.HPos
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.control.*
-import javafx.scene.control.ButtonBar.ButtonData
 import javafx.scene.layout.*
-import javafx.scene.text.Font
 import javafx.scene.text.TextFlow
-import javafx.stage.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.kordamp.ikonli.javafx.FontIcon
-import java.awt.Desktop
-import java.awt.geom.Rectangle2D
 import java.io.*
-import java.net.URL
 import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 
@@ -55,7 +36,7 @@ abstract class Script(var mediator: Mediator) : TextFlow() {
 
 }
 
-class ThemeAndLayoutScript(mediator: Mediator) : Script(mediator) {
+class RNArtistScript(mediator: Mediator) : Script(mediator) {
 
     override var root: DSLElement = RNArtistKw(this)
 
@@ -94,7 +75,12 @@ class ThemeAndLayoutScript(mediator: Mediator) : Script(mediator) {
                 junctionLayoutKw.addButton.fire()
                 junctionLayoutKw.setOutIds(outIds)
                 junctionLayoutKw.setType(type)
-                junctionLayoutKw.setLocation(junctionLocation)
+                mediator.drawingDisplayed.get()?.let {
+                    if (it.drawing.secondaryStructure.rna.useNumberingSystem)
+                        junctionLayoutKw.setLocation(it.drawing.secondaryStructure.rna.mapLocation(junctionLocation))
+                    else
+                        junctionLayoutKw.setLocation(junctionLocation)
+                }
             }
             allowScriptInit = true
             initScript()
@@ -115,7 +101,12 @@ class ThemeAndLayoutScript(mediator: Mediator) : Script(mediator) {
                 junctionLayoutKw.addButton.fire()
                 junctionLayoutKw.setRadius(radius)
                 junctionLayoutKw.setType(type)
-                junctionLayoutKw.setLocation(junctionLocation)
+                mediator.drawingDisplayed.get()?.let {
+                    if (it.drawing.secondaryStructure.rna.useNumberingSystem)
+                        junctionLayoutKw.setLocation(it.drawing.secondaryStructure.rna.mapLocation(junctionLocation))
+                    else
+                        junctionLayoutKw.setLocation(junctionLocation)
+                }
             }
             allowScriptInit = true
             initScript()
@@ -146,8 +137,13 @@ class ThemeAndLayoutScript(mediator: Mediator) : Script(mediator) {
             } else { //nothing found we add a new DetailsKw element
                 val detailsKw = searchFirst { it is DetailsKw && !it.inFinalScript } as DetailsKw
                 detailsKw.setlevel(level)
-                selection?.let {
-                    detailsKw.setLocation(it)
+                selection?.let { l ->
+                    mediator.drawingDisplayed.get()?.let {
+                        if (it.drawing.secondaryStructure.rna.useNumberingSystem)
+                            detailsKw.setLocation(it.drawing.secondaryStructure.rna.mapLocation(l))
+                        else
+                            detailsKw.setLocation(l)
+                    }
                 }
             }
             allowScriptInit = true
@@ -181,8 +177,13 @@ class ThemeAndLayoutScript(mediator: Mediator) : Script(mediator) {
                 val colorKw = searchFirst { it is ColorKw && !it.inFinalScript } as ColorKw
                 colorKw.setColor(color)
                 colorKw.setTypes(types)
-                selection?.let {
-                    colorKw.setLocation(it)
+                selection?.let { l ->
+                    mediator.drawingDisplayed.get()?.let {
+                        if (it.drawing.secondaryStructure.rna.useNumberingSystem)
+                            colorKw.setLocation(it.drawing.secondaryStructure.rna.mapLocation(l))
+                        else
+                            colorKw.setLocation(l)
+                    }
                 }
             }
             allowScriptInit = true
@@ -216,8 +217,13 @@ class ThemeAndLayoutScript(mediator: Mediator) : Script(mediator) {
                 val lineKw = searchFirst { it is LineKw && !it.inFinalScript } as LineKw
                 lineKw.setWidth(width)
                 lineKw.setTypes(types)
-                selection?.let {
-                    lineKw.setLocation(it)
+                selection?.let { l ->
+                    mediator.drawingDisplayed.get()?.let {
+                        if (it.drawing.secondaryStructure.rna.useNumberingSystem)
+                            lineKw.setLocation(it.drawing.secondaryStructure.rna.mapLocation(l))
+                        else
+                            lineKw.setLocation(l)
+                    }
                 }
             }
             allowScriptInit = true
@@ -229,401 +235,18 @@ class ThemeAndLayoutScript(mediator: Mediator) : Script(mediator) {
 class ScriptEditor(val mediator: Mediator):BorderPane() {
 
     var currentScriptLocation: File? = null
-    val themeAndLayoutScript:ThemeAndLayoutScript
+    val script:RNArtistScript
     val engine: ScriptEngine
-    private val run = Button(null, FontIcon("fas-play:15"))
 
     init {
-        themeAndLayoutScript = ThemeAndLayoutScript(mediator)
+        script = RNArtistScript(mediator)
         val manager = ScriptEngineManager()
         this.engine = manager.getEngineByExtension("kts")
-        themeAndLayoutScript.style = "-fx-background-color: ${getHTMLColorString(RnartistConfig.backgroundEditorColor)}"
-        themeAndLayoutScript.padding = Insets(10.0, 10.0, 10.0, 10.0)
-        themeAndLayoutScript.lineSpacing = 10.0
-        themeAndLayoutScript.tabSize = 6
-        themeAndLayoutScript.layout()
-
-        val topToolbar = ToolBar()
-        topToolbar.padding = Insets(5.0, 5.0, 5.0, 5.0)
-
-        val loadScriptPane = GridPane()
-        loadScriptPane.vgap = 5.0
-        loadScriptPane.hgap = 5.0
-
-        var l = Label("Open")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0)
-        loadScriptPane.children.add(l)
-
-        val loadScript = MenuButton(null, FontIcon("fas-sign-in-alt:15"))
-
-        val newScript = Menu("New Script..")
-
-        val emptyScript = MenuItem("Empty Script")
-        emptyScript.onAction = EventHandler {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/empty.kts"))
-            )
-        }
-        newScript.items.add(emptyScript)
-
-        var menuItem = MenuItem("2D from bracket notation")
-        menuItem.onAction = EventHandler {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_bn.kts"))
-            )
-        }
-
-        newScript.items.add(menuItem)
-
-        val fromLocalFilesMenu = Menu("2D from Local Files")
-        val fromDatabasesMenu = Menu("2D from Databases")
-        newScript.items.addAll(fromLocalFilesMenu, fromDatabasesMenu)
-
-        menuItem = MenuItem("Vienna Format")
-        menuItem.onAction = EventHandler {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_vienna_file.kts"))
-            )
-        }
-        fromLocalFilesMenu.items.add(menuItem)
-
-        menuItem = MenuItem("CT Format")
-        menuItem.onAction = EventHandler {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_ct_file.kts"))
-            )
-        }
-        fromLocalFilesMenu.items.add(menuItem)
-
-        menuItem = MenuItem("BPSeq Format")
-        menuItem.onAction = EventHandler {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_bpseq_file.kts"))
-            )
-        }
-        fromLocalFilesMenu.items.add(menuItem)
-
-        menuItem = MenuItem("Stockholm Format")
-        menuItem.onAction = EventHandler {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_stockholm_file.kts"))
-            )
-        }
-        fromLocalFilesMenu.items.add(menuItem)
-
-        menuItem = MenuItem("Rfam DB")
-        menuItem.onAction = EventHandler {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_rfam.kts"))
-            )
-        }
-        fromDatabasesMenu.items.add(menuItem)
-
-        menuItem = MenuItem("PDB")
-        menuItem.onAction = EventHandler {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_pdb.kts"))
-            )
-        }
-        fromDatabasesMenu.items.add(menuItem)
-
-        menuItem = MenuItem("RNACentral")
-        menuItem.onAction = EventHandler {
-            currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_rnacentral.kts"))
-            )
-        }
-        fromDatabasesMenu.items.add(menuItem)
-
-        val openFile = MenuItem("Open Script..")
-        openFile.onAction = EventHandler {
-            val fileChooser = FileChooser()
-            fileChooser.initialDirectory = File(mediator.rnartist.getInstallDir(), "samples")
-            val file = fileChooser.showOpenDialog(mediator.rnartist.stage)
-            file?.let {
-                currentScriptLocation = file.parentFile
-                RNArtistTaskWindow(mediator).task = LoadScript(mediator, script = FileReader(file), true)
-            }
-        }
-
-        val openProject = MenuItem("Open Project..")
-        openProject.onAction = EventHandler {
-            mediator.projectsPanel.stage.show()
-            mediator.projectsPanel.stage.toFront()
-            mediator.projectsPanel.loadProjects()
-        }
-
-        val openGist = MenuItem("Open Gist..")
-        openGist.onAction = EventHandler {
-            currentScriptLocation = null
-            val gistInput = TextInputDialog()
-            gistInput.title = "Enter your Gist ID"
-            gistInput.graphic = null
-            gistInput.headerText = null
-            gistInput.contentText = "Gist ID"
-            gistInput.editor.text = "Paste your ID"
-            var gistID = gistInput.showAndWait()
-            if (gistID.isPresent && !gistID.isEmpty) {
-                RNArtistTaskWindow(mediator).task = LoadGist(mediator, gistID.get())
-            }
-        }
-
-        loadScript.getItems().addAll(newScript, openFile, openProject, openGist)
-
-
-        val themes = Menu("Create Theme..")
-        //scriptsLibraryMenu.items.add(themes)
-
-        val layout = Menu("Create Layout..")
-        //scriptsLibraryMenu.items.add(layout)
-
-        GridPane.setConstraints(loadScript, 0, 1)
-        GridPane.setHalignment(loadScript, HPos.CENTER)
-        loadScriptPane.children.add(loadScript)
-
-        val exportScriptPane = GridPane()
-        exportScriptPane.vgap = 5.0
-        exportScriptPane.hgap = 5.0
-
-        l = Label("Save/Export")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0)
-        exportScriptPane.children.add(l)
-
-        val saveScript = MenuButton(null, FontIcon("fas-sign-out-alt:15"))
-        saveScript.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-
-        val saveProjectAs = MenuItem("Save Project as..")
-        saveProjectAs.onAction = EventHandler {
-            mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                val dialog = TextInputDialog("Project ${File(RnartistConfig.projectsFolder).listFiles(FileFilter { it.isDirectory }).size+1}")
-                dialog.initModality(Modality.NONE)
-                dialog.title = "Save Project"
-                dialog.headerText = null
-                dialog.contentText = "Project name:"
-                var projectName = dialog.showAndWait()
-                while (projectName.isPresent && !projectName.isEmpty && File(File(RnartistConfig.projectsFolder), projectName.get().trim()).exists()) {
-                    if (File(File(RnartistConfig.projectsFolder), projectName.get().trim()).exists())
-                        dialog.headerText = "This project already exists"
-                    projectName = dialog.showAndWait()
-                }
-                if (projectName.isPresent && !projectName.isEmpty)
-                    RNArtistTaskWindow(mediator).task = SaveProject(mediator, File(File(RnartistConfig.projectsFolder), projectName.get()))
-            }
-        }
-
-        val updateProject = MenuItem("Update Project")
-        updateProject.onAction = EventHandler {
-            mediator.scriptEditor.currentScriptLocation?.let { projectDir ->
-                RnartistConfig.projectsFolder?.let {
-                    if (projectDir.absolutePath.startsWith(it))
-                        RNArtistTaskWindow(mediator).task = SaveProject(mediator, projectDir)
-                }
-            }
-        }
-
-        val saveAsFile = MenuItem("Export in File..")
-        saveAsFile.onAction = EventHandler {
-            mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                val dir = DirectoryChooser().showDialog(mediator.rnartist.stage)
-                dir?.let {
-                    val dialog = TextInputDialog()
-                    dialog.initModality(Modality.NONE)
-                    dialog.title = "Export Project"
-                    dialog.headerText = null
-                    dialog.contentText = "Project name:"
-                    var projectName = dialog.showAndWait()
-                    while (projectName.isPresent && !projectName.isEmpty && File(dir, projectName.get().trim()).exists()) {
-                        if (File(dir, projectName.get().trim()).exists())
-                            dialog.headerText = "This project already exists in ${dir.name}"
-                        projectName = dialog.showAndWait()
-                    }
-                    if (projectName.isPresent && !projectName.isEmpty)
-                        RNArtistTaskWindow(mediator).task = SaveProject(mediator, File(dir, projectName.get().trim()))
-                }
-
-            }
-        }
-
-        val saveAsGist = MenuItem("Publish as GitHub Gist..")
-        saveAsGist.onAction = EventHandler {
-            val token = ""
-            if (token.trim().isNotEmpty()) {
-                mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
-                    val dialog = Dialog<String>()
-                    dialog.headerText = "Description of your Plot"
-                    dialog.initModality(Modality.NONE)
-                    dialog.title = "Publish Plot as a GitHub Gist"
-                    dialog.contentText = null
-                    dialog.dialogPane.content = TextArea()
-                    val publish = ButtonType("Publish", ButtonData.OK_DONE)
-                    dialog.dialogPane.buttonTypes.add(publish)
-                    dialog.setResultConverter { b ->
-                        if (b == publish) {
-                            (dialog.dialogPane.content as TextArea).text.trim()
-                        } else null
-                    }
-                    val description = dialog.showAndWait()
-                    if (description.isPresent && !description.isEmpty) {
-                        try {
-                            val client = OkHttpClient()
-                            val body = """{"description":"${
-                                description.get().trim()
-                            }", "files":{"rnartist.kts":{"content":"${
-                                getScriptAsText().replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t")
-                            }"},
-                        "rnartist.svg":{"content":"${
-                                drawing.asSVG(Rectangle2D.Double(0.0, 0.0, 800.0, 800.0)).replace("\"", "\\\"")
-                            }"}}, "public":true}"""
-                            println(body)
-                            val request = Request.Builder()
-                                .url("https://api.github.com/gists")
-                                .header("User-Agent", "OkHttp Headers.java")
-                                .addHeader("Authorization", "bearer $token")
-                                .post(
-                                    body.toRequestBody("application/json".toMediaTypeOrNull())
-                                )
-                                .build()
-
-                            client.newCall(request).execute().use { response ->
-                                if (!response.isSuccessful) {
-                                    println("Problem!")
-                                    println(response.body?.charStream()?.readText())
-                                } else {
-                                    val root =
-                                        JsonParser.parseString(response.body?.charStream()?.readText())
-                                            .getAsJsonObject()
-                                    val alert = Alert(Alert.AlertType.INFORMATION)
-                                    alert.headerText = "Script published Successfully."
-                                    alert.graphic = FontIcon("fab-github:15")
-                                    alert.buttonTypes.clear()
-                                    alert.buttonTypes.add(ButtonType.OK)
-                                    alert.buttonTypes.add(ButtonType("Show me", ButtonData.HELP))
-                                    var result = alert.showAndWait()
-                                    if (result.isPresent && result.get() != ButtonType.OK) { //show me
-                                        Desktop.getDesktop().browse(URL(root.get("html_url").asString).toURI())
-                                    }
-                                }
-
-                            }
-
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-
-                    }
-                }
-            } else {
-                val alert = Alert(Alert.AlertType.WARNING)
-                alert.headerText = "Gist publication not available."
-                alert.contentText = "This feature will be activated soon"
-                alert.show()
-            }
-        }
-
-        saveScript.getItems().addAll(saveProjectAs, updateProject, saveAsFile, saveAsGist)
-
-        GridPane.setHalignment(saveScript, HPos.CENTER)
-        GridPane.setConstraints(saveScript, 0, 1)
-        exportScriptPane.children.add(saveScript)
-
-        val fontPane = GridPane()
-        fontPane.vgap = 5.0
-        fontPane.hgap = 5.0
-
-        l = Label("Font")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0, 2, 1)
-        fontPane.children.add(l)
-
-        val fontFamilies = Font.getFamilies()
-
-        val fontChooser = ComboBox<String>()
-        fontChooser.items.addAll(fontFamilies)
-        fontChooser.value = RnartistConfig.editorFontName
-        GridPane.setConstraints(fontChooser, 0, 1)
-
-        fontChooser.onAction = EventHandler {
-            RnartistConfig.editorFontName = fontChooser.value
-            val hits = mutableListOf<DSLElementInt>()
-            themeAndLayoutScript.getScriptRoot().searchAll(hits) { it is DSLElement }
-            hits.forEach {
-                it.fontName = fontChooser.value
-                (it as? OptionalDSLKeyword)?.addButton?.setFontName(fontChooser.value)
-                (it as? OptionalDSLParameter)?.addButton?.setFontName(fontChooser.value)
-            }
-            themeAndLayoutScript.initScript()
-        }
-
-        fontPane.children.add(fontChooser)
-
-        val sizeFont = Spinner<Int>(5, 40, RnartistConfig.editorFontSize)
-        sizeFont.isEditable = true
-        sizeFont.prefWidth = 75.0
-        sizeFont.onMouseClicked = EventHandler {
-            RnartistConfig.editorFontSize = sizeFont.value
-            val hits = mutableListOf<DSLElementInt>()
-            themeAndLayoutScript.getScriptRoot().searchAll(hits) { it is DSLElement }
-            hits.forEach {
-                it.fontSize = sizeFont.value
-                (it as? OptionalDSLKeyword)?.addButton?.setFontSize(sizeFont.value)
-                (it as? OptionalDSLParameter)?.addButton?.setFontSize(sizeFont.value)
-            }
-            themeAndLayoutScript.initScript()
-        }
-
-        GridPane.setConstraints(sizeFont, 1, 1)
-        fontPane.children.add(sizeFont)
-
-        val runPane = GridPane()
-        runPane.vgap = 5.0
-        runPane.hgap = 5.0
-
-        l = Label("Run")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0)
-        runPane.children.add(l)
-
-        run.onAction = EventHandler {
-            Platform.runLater {
-                RNArtistTaskWindow(mediator).task = RunScript(mediator)
-            }
-
-        }
-
-        GridPane.setConstraints(run, 0, 1)
-        runPane.children.add(run)
-
-        val s1 = Separator()
-        s1.padding = Insets(0.0, 5.0, 0.0, 5.0)
-
-        val s2 = Separator()
-        s2.padding = Insets(0.0, 5.0, 0.0, 5.0)
-
-        val s3 = Separator()
-        s3.padding = Insets(0.0, 5.0, 0.0, 5.0)
-
-        topToolbar.items.addAll(loadScriptPane, s1, exportScriptPane, s2, fontPane, s3, runPane)
+        script.style = "-fx-background-color: ${getHTMLColorString(RnartistConfig.backgroundEditorColor)}"
+        script.padding = Insets(10.0, 10.0, 10.0, 10.0)
+        script.lineSpacing = 10.0
+        script.tabSize = 6
+        script.layout()
 
         val leftToolbar = VBox()
         leftToolbar.alignment = Pos.TOP_CENTER
@@ -632,52 +255,52 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
 
         val decreaseTab = Button(null, FontIcon("fas-outdent:15"))
         decreaseTab.onAction = EventHandler {
-            if (themeAndLayoutScript.tabSize > 1) {
-                themeAndLayoutScript.tabSize--
+            if (script.tabSize > 1) {
+                script.tabSize--
             }
         }
 
         val increaseTab = Button(null, FontIcon("fas-indent:15"))
         increaseTab.onAction = EventHandler {
-            themeAndLayoutScript.tabSize++
+            script.tabSize++
         }
 
         val decreaseLineSpacing = Button(null, FontIcon("fas-compress-alt:15"))
         decreaseLineSpacing.onAction = EventHandler {
-            themeAndLayoutScript.lineSpacing--
+            script.lineSpacing--
         }
 
         val increaseLineSpacing = Button(null, FontIcon("fas-expand-alt:15"))
         increaseLineSpacing.onAction = EventHandler {
-            themeAndLayoutScript.lineSpacing++
+            script.lineSpacing++
         }
 
         val expandAll = Button(null, FontIcon("fas-plus:15"))
         expandAll.onAction = EventHandler {
-            themeAndLayoutScript.allowScriptInit = false
-            themeAndLayoutScript.children.filterIsInstance<DSLKeyword.KeywordNode>().map {
+            script.allowScriptInit = false
+            script.children.filterIsInstance<DSLKeyword.KeywordNode>().map {
                 if (it.children.isNotEmpty())
                     (it.children.get(it.children.size - 2) as? Collapse)?.let {
                         if (it.collapsed)
                             it.fire()
                     }
             }
-            themeAndLayoutScript.allowScriptInit = true
-            themeAndLayoutScript.initScript()
+            script.allowScriptInit = true
+            script.initScript()
         }
 
         val collapseAll = Button(null, FontIcon("fas-minus:15"))
         collapseAll.onAction = EventHandler {
-            themeAndLayoutScript.allowScriptInit = false
-            themeAndLayoutScript.children.filterIsInstance<DSLKeyword.KeywordNode>().map {
+            script.allowScriptInit = false
+            script.children.filterIsInstance<DSLKeyword.KeywordNode>().map {
                 if (it.children.isNotEmpty())
                     (it.children.get(it.children.size - 2) as? Collapse)?.let {
                         if (!it.collapsed)
                             it.fire()
                     }
             }
-            themeAndLayoutScript.allowScriptInit = true
-            themeAndLayoutScript.initScript()
+            script.allowScriptInit = true
+            script.initScript()
         }
 
         val bgColor = ColorPicker()
@@ -685,7 +308,7 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         bgColor.styleClass.add("button")
         bgColor.style = "-fx-color-label-visible: false ;"
         bgColor.onAction = EventHandler {
-            themeAndLayoutScript.style = "-fx-background-color: ${getHTMLColorString(javaFXToAwt(bgColor.value))}"
+            script.style = "-fx-background-color: ${getHTMLColorString(javaFXToAwt(bgColor.value))}"
             RnartistConfig.backgroundEditorColor = javaFXToAwt(bgColor.value)
         }
 
@@ -695,14 +318,14 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         kwColor.style = "-fx-color-label-visible: false ;"
         kwColor.onAction = EventHandler {
             val hits = mutableListOf<DSLElementInt>()
-            themeAndLayoutScript.getScriptRoot()?.searchAll(hits) { it is DSLKeyword }
+            script.getScriptRoot()?.searchAll(hits) { it is DSLKeyword }
             hits.forEach {
                 it.color = kwColor.value
                 (it as DSLKeyword).collapseButton.setColor(kwColor.value)
                 (it as? OptionalDSLKeyword)?.addButton?.setColor(kwColor.value)
             }
             RnartistConfig.keywordEditorColor = javaFXToAwt(kwColor.value)
-            themeAndLayoutScript.initScript()
+            script.initScript()
         }
 
         val bracesColor = ColorPicker()
@@ -711,12 +334,12 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         bracesColor.style = "-fx-color-label-visible: false ;"
         bracesColor.onAction = EventHandler {
             val hits = mutableListOf<DSLElementInt>()
-            themeAndLayoutScript.getScriptRoot()?.searchAll(hits) { it is OpenedCurly || it is ClosedCurly }
+            script.getScriptRoot()?.searchAll(hits) { it is OpenedCurly || it is ClosedCurly }
             hits.forEach {
                 it.color = bracesColor.value
             }
             RnartistConfig.bracesEditorColor = javaFXToAwt(bracesColor.value)
-            themeAndLayoutScript.initScript()
+            script.initScript()
         }
 
         val keyParamColor = ColorPicker()
@@ -725,13 +348,13 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         keyParamColor.style = "-fx-color-label-visible: false ;"
         keyParamColor.onAction = EventHandler {
             val hits = mutableListOf<DSLElementInt>()
-            themeAndLayoutScript.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
+            script.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
             hits.forEach {
                 (it as DSLParameter).key.color = keyParamColor.value
                 (it as? OptionalDSLParameter)?.addButton?.setColor(keyParamColor.value)
             }
             RnartistConfig.keyParamEditorColor = javaFXToAwt(keyParamColor.value)
-            themeAndLayoutScript.initScript()
+            script.initScript()
         }
 
         val operatorParamColor = ColorPicker()
@@ -740,12 +363,12 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         operatorParamColor.style = "-fx-color-label-visible: false ;"
         operatorParamColor.onAction = EventHandler {
             val hits = mutableListOf<DSLElementInt>()
-            themeAndLayoutScript.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
+            script.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
             hits.forEach {
                 (it as DSLParameter).operator.color = operatorParamColor.value
             }
             RnartistConfig.operatorParamEditorColor = javaFXToAwt(operatorParamColor.value)
-            themeAndLayoutScript.initScript()
+            script.initScript()
         }
 
         val valueParamColor = ColorPicker()
@@ -754,12 +377,12 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         valueParamColor.style = "-fx-color-label-visible: false ;"
         valueParamColor.onAction = EventHandler {
             val hits = mutableListOf<DSLElementInt>()
-            themeAndLayoutScript.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
+            script.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
             hits.forEach {
                 (it as DSLParameter).value.color = valueParamColor.value
             }
             RnartistConfig.valueParamEditorColor = javaFXToAwt(valueParamColor.value)
-            themeAndLayoutScript.initScript()
+            script.initScript()
         }
 
         val spacer = Region()
@@ -786,27 +409,37 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
             valueParamColor
         )
 
-        this.top = topToolbar
         this.left = leftToolbar
 
-        var scrollpane = ScrollPane(themeAndLayoutScript)
+        var scrollpane = ScrollPane(script)
         scrollpane.isFitToHeight = true
-        themeAndLayoutScript.minWidthProperty().bind(scrollpane.widthProperty())
+        script.minWidthProperty().bind(scrollpane.widthProperty())
         this.center = scrollpane
     }
 
-    fun getScriptAsText(): String {
+    fun getEntireScriptAsText(): String {
         val scriptContent = StringBuilder()
-        themeAndLayoutScript.getScriptRoot().dumpText(scriptContent)
+        script.getScriptRoot().dumpText(scriptContent)
+        return "import io.github.fjossinet.rnartist.core.*${System.lineSeparator()}${System.lineSeparator()} ${scriptContent}"
+    }
 
-        //scriptContent.split("\n").filter { !it.matches(Regex("^\\s*$")) }.joinToString(separator = "\n")
-        //println(scriptContent)
+    fun getLayoutAsText(): String {
+        val scriptContent = StringBuilder()
+        val layoutKw = script.getScriptRoot().getLayoutKw()
+        layoutKw.dumpText(scriptContent)
+        return "import io.github.fjossinet.rnartist.core.*${System.lineSeparator()}${System.lineSeparator()} ${scriptContent}"
+    }
+
+    fun getThemeAsText(): String {
+        val scriptContent = StringBuilder()
+        val themeKw = script.getScriptRoot().getThemeKw()
+        themeKw.dumpText(scriptContent)
         return "import io.github.fjossinet.rnartist.core.*${System.lineSeparator()}${System.lineSeparator()} ${scriptContent}"
     }
 
     fun getInputFileFields():List<InputFileKw> {
         val hits = mutableListOf<DSLElementInt>()
-        themeAndLayoutScript.getScriptRoot().searchAll(hits, {it is InputFileKw})
+        script.getScriptRoot().searchAll(hits, {it is InputFileKw})
         return hits.map { it  as InputFileKw }
     }
 

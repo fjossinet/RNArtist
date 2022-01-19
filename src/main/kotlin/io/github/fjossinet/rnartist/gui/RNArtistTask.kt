@@ -4,12 +4,9 @@ import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.io.ScriptElement
 import io.github.fjossinet.rnartist.core.io.copyFile
 import io.github.fjossinet.rnartist.core.io.parseDSLScript
-import io.github.fjossinet.rnartist.core.model.Block
-import io.github.fjossinet.rnartist.core.model.Location
-import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
+import io.github.fjossinet.rnartist.core.model.*
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
-import io.github.fjossinet.rnartist.model.DrawingLoaded
-import io.github.fjossinet.rnartist.model.DrawingLoadedFromScriptEditor
 import io.github.fjossinet.rnartist.model.editor.*
 import javafx.application.Platform
 import javafx.concurrent.Task
@@ -28,7 +25,90 @@ abstract class RNArtistTask(val mediator: Mediator) : Task<Pair<Any?, Exception?
     var rnartistTaskWindow: RNArtistTaskWindow? = null
 }
 
-class RunScript(mediator: Mediator) : RNArtistTask(mediator) {
+class ApplyThemeAndLayout(mediator: Mediator) : RNArtistTask(mediator) {
+
+    init {
+        setOnSucceeded { event ->
+            this.rnartistTaskWindow?.stage?.hide()
+            val result = get()
+            result.first?.let { scriptResult ->
+            }
+            result.second?.let {
+                val alert = Alert(Alert.AlertType.ERROR)
+                alert.dialogPane.minWidth = Region.USE_PREF_SIZE
+                alert.dialogPane.minHeight = Region.USE_PREF_SIZE
+                alert.title = "I got a problem"
+                alert.headerText = "RNArtist got a problem"
+                alert.contentText =
+                    "You can send the exception stacktrace below to fjossinet@gmail.com"
+                val sw = StringWriter()
+                val pw = PrintWriter(sw)
+                it.printStackTrace(pw)
+                val exceptionText = sw.toString()
+
+                val label = Label("The exception stacktrace was:")
+
+                val textArea = TextArea(exceptionText)
+                textArea.isEditable = false
+                textArea.isWrapText = true
+
+                textArea.maxWidth = Double.MAX_VALUE
+                textArea.maxHeight = Double.MAX_VALUE
+                GridPane.setVgrow(textArea, Priority.ALWAYS)
+                GridPane.setHgrow(textArea, Priority.ALWAYS)
+
+                val expContent = GridPane()
+                expContent.maxWidth = Double.MAX_VALUE
+                expContent.add(label, 0, 0)
+                expContent.add(textArea, 0, 1)
+                alert.dialogPane.expandableContent = expContent
+                alert.showAndWait()
+            }
+            //we repaint the current 2D (if the layout and theme have been defined directly from the script, we the current 2D needs to be updated to fit its thumbnail
+            mediator.canvas2D.repaint()
+        }
+    }
+
+    override fun call(): Pair<Any?, Exception?> {
+        try {
+            Platform.runLater {
+                updateMessage("Applying theme & layout..")
+            }
+            Thread.sleep(100)
+            FileField.useAbsolutePath = true
+            val theme = mediator.scriptEditor.engine.eval(mediator.scriptEditor.getThemeAsText()) as? Theme
+            val layout = mediator.scriptEditor.engine.eval(mediator.scriptEditor.getLayoutAsText()) as? Layout
+            FileField.useAbsolutePath = false
+            //println(scriptContent)
+            Thread.sleep(100)
+            var totalProgress = mediator.drawingsLoadedPanel.count().toDouble()
+            var progressStep = 0.0
+            var loaded = 0
+            mediator.drawingsLoadedPanel.drawingsLoaded().forEach { drawingLoaded ->
+                Platform.runLater {
+                    updateProgress(++progressStep, totalProgress)
+                    updateMessage("Applying theme & layout to 2D ${++loaded}/${mediator.drawingsLoadedPanel.count()}")
+                    drawingLoaded.drawing.clearTheme()
+                    theme?.let {
+                        drawingLoaded.drawing.applyTheme(it)
+                    }
+                    //TODO clear layout
+                    layout?.let {
+                        drawingLoaded.drawing.applyLayout(it)
+                    }
+                    drawingLoaded.layoutAndThemeUpdated.value = !drawingLoaded.layoutAndThemeUpdated.value
+                }
+                Thread.sleep(100)
+            }
+            return Pair(null, null)
+        } catch (e: Exception) {
+            return Pair(null, e)
+        }
+    }
+
+}
+
+class RunEntireScript(mediator: Mediator) : RNArtistTask(mediator) {
 
     init {
         setOnSucceeded { event ->
@@ -73,7 +153,7 @@ class RunScript(mediator: Mediator) : RNArtistTask(mediator) {
 
     override fun call(): Pair<Any?, Exception?> {
         try {
-            val structuresToBeRemoved:List<DrawingLoaded> = mediator.drawingsLoaded.toList()
+            val structuresToBeRemoved:List<DrawingLoaded> = mediator.drawingsLoadedPanel.drawingsLoaded().toList()
             var totalProgress = structuresToBeRemoved.size.toDouble()
             var progressStep = 0.0
             var removed = 0
@@ -81,7 +161,7 @@ class RunScript(mediator: Mediator) : RNArtistTask(mediator) {
                 Platform.runLater {
                     updateProgress(++progressStep, totalProgress)
                     updateMessage("Removing 2D ${++removed}/${structuresToBeRemoved.size}")
-                    mediator.drawingsLoaded.remove(
+                    mediator.drawingsLoadedPanel.removeItem(
                         structuresToBeRemoved[removed-1]
                     )
                 }
@@ -92,7 +172,7 @@ class RunScript(mediator: Mediator) : RNArtistTask(mediator) {
             }
             Thread.sleep(100)
             FileField.useAbsolutePath = true
-            val scriptContent = mediator.scriptEditor.getScriptAsText()
+            val scriptContent = mediator.scriptEditor.getEntireScriptAsText()
             FileField.useAbsolutePath = false
             //println(scriptContent)
             val result = mediator.scriptEditor.engine.eval(scriptContent)
@@ -109,14 +189,14 @@ class RunScript(mediator: Mediator) : RNArtistTask(mediator) {
                 Platform.runLater {
                     updateProgress(++progressStep, totalProgress)
                     updateMessage("Loading 2D ${++loaded}/${structuresToBeLoaded.size}")
-                    mediator.drawingsLoaded.add(
-                        DrawingLoadedFromScriptEditor(
+                    mediator.drawingsLoadedPanel.addItem(
+                        DrawingLoaded(
                             mediator,
-                            it, mediator.scriptEditor.themeAndLayoutScript.getScriptRoot().id
+                            it, mediator.scriptEditor.script.getScriptRoot().id
                         )
                     )
                 }
-                Thread.sleep(500)
+                Thread.sleep(100)
             }
             return Pair(result, null)
         } catch (e: Exception) {
@@ -131,9 +211,9 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
     init {
         mediator.drawingDisplayed.set(null)
         mediator.canvas2D.repaint()
-        mediator.scriptEditor.themeAndLayoutScript.setScriptRoot(RNArtistKw(mediator.scriptEditor.themeAndLayoutScript))
+        mediator.scriptEditor.script.setScriptRoot(RNArtistKw(mediator.scriptEditor.script))
         //to avoid doing initScript() for each addbutton fired
-        mediator.scriptEditor.themeAndLayoutScript.allowScriptInit = false
+        mediator.scriptEditor.script.allowScriptInit = false
         setOnSucceeded { event ->
             val result = get()
             this.rnartistTaskWindow?.stage?.hide()
@@ -169,7 +249,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                 alert.showAndWait()
             } ?: run {
                 if (runScript)
-                    RNArtistTaskWindow(mediator).task = RunScript(mediator)
+                    RNArtistTaskWindow(mediator).task = RunEntireScript(mediator)
             }
         }
     }
@@ -180,7 +260,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                 updateMessage("Removing previous 2Ds...")
             }
             Thread.sleep(100)
-            val structuresToBeRemoved:List<DrawingLoaded> = mediator.drawingsLoaded.toList()
+            val structuresToBeRemoved:List<DrawingLoaded> = mediator.drawingsLoadedPanel.drawingsLoaded().toList()
             var totalProgress = structuresToBeRemoved.size.toDouble()
             var progressStep = 0.0
             var removed = 0
@@ -188,7 +268,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                 Platform.runLater {
                     updateProgress(++progressStep, totalProgress)
                     updateMessage("Removing 2D ${++removed}/${structuresToBeRemoved.size}")
-                    mediator.drawingsLoaded.remove(
+                    mediator.drawingsLoadedPanel.removeItem(
                         structuresToBeRemoved[removed-1]
                     )
                 }
@@ -225,7 +305,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                         }
                         Thread.sleep(5)
                         val secondaryStructureInputKw =
-                            mediator.scriptEditor.themeAndLayoutScript.getScriptRoot()
+                            mediator.scriptEditor.script.getScriptRoot()
                                 .searchFirst { it is SecondaryStructureInputKw } as SecondaryStructureInputKw
                         element.children.forEach { elementChild ->
                             when (elementChild.name) {
@@ -590,7 +670,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                             updateMessage("Importing script element ${element.name}")
                         }
                         Thread.sleep(5)
-                        val themeKw = mediator.scriptEditor.themeAndLayoutScript.getScriptRoot()
+                        val themeKw = mediator.scriptEditor.script.getScriptRoot()
                             .searchFirst { it is ThemeKw } as ThemeKw
                         themeKw.addButton.fire()
                         element.children.forEach { elementChild ->
@@ -659,10 +739,17 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                                         var tokens = attribute.split("=")
                                         if ("value".equals(tokens.first().trim())) {
                                             val parameter =
-                                                (colorKw.searchFirst { it is DSLParameter && "value".equals(it.key.text.text) } as DSLParameter)
+                                                (colorKw.searchFirst { it is OptionalDSLParameter && "value".equals(it.key.text.text) } as OptionalDSLParameter)
+                                            parameter.addButton.fire()
                                             parameter.value.text.text = tokens.last().trim()
                                             parameter.value.text.fill =
                                                 Color.web(tokens.last().trim().replace("\"", ""))
+                                        }
+                                        if ("scheme".equals(tokens.first().trim())) {
+                                            val parameter =
+                                                (colorKw.searchFirst { it is OptionalDSLParameter && "scheme".equals(it.key.text.text) } as OptionalDSLParameter)
+                                            parameter.addButton.fire()
+                                            parameter.value.text.text = tokens.last().trim()
                                         }
                                         if ("type".equals(tokens.first().trim())) {
                                             val parameter =
@@ -895,7 +982,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                             updateMessage("Importing script element ${element.name}")
                         }
                         Thread.sleep(5)
-                        val layoutKw = mediator.scriptEditor.themeAndLayoutScript.getScriptRoot()
+                        val layoutKw = mediator.scriptEditor.script.getScriptRoot()
                             .searchFirst { it is LayoutKw } as LayoutKw
                         layoutKw.addButton.fire()
                         element.children.forEach { elementChild ->
@@ -971,7 +1058,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                             updateMessage("Importing script element ${element.name} ")
                         }
                         Thread.sleep(5)
-                        val dataKw = mediator.scriptEditor.themeAndLayoutScript.getScriptRoot()
+                        val dataKw = mediator.scriptEditor.script.getScriptRoot()
                             .searchFirst { it is DataKw } as DataKw
                         dataKw.addButton.fire()
                         element.attributes.forEach { attribute ->
@@ -991,8 +1078,8 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
             }
             Thread.sleep(100)
             Platform.runLater {
-                mediator.scriptEditor.themeAndLayoutScript.allowScriptInit = true
-                mediator.scriptEditor.themeAndLayoutScript.initScript()
+                mediator.scriptEditor.script.allowScriptInit = true
+                mediator.scriptEditor.script.initScript()
                 if (issues.isNotEmpty()) {
                     val alert = Alert(Alert.AlertType.WARNING)
                     alert.dialogPane.minWidth = Region.USE_PREF_SIZE
@@ -1024,9 +1111,9 @@ class LoadGist(mediator: Mediator, val gistID:String) : RNArtistTask(mediator) {
     init {
         mediator.drawingDisplayed.set(null)
         mediator.canvas2D.repaint()
-        mediator.scriptEditor.themeAndLayoutScript.setScriptRoot(RNArtistKw(mediator.scriptEditor.themeAndLayoutScript))
+        mediator.scriptEditor.script.setScriptRoot(RNArtistKw(mediator.scriptEditor.script))
         //to avoid doing initScript() for each addbutton fired
-        mediator.scriptEditor.themeAndLayoutScript.allowScriptInit = false
+        mediator.scriptEditor.script.allowScriptInit = false
         setOnSucceeded { event ->
             val result = get()
             this.rnartistTaskWindow?.stage?.hide()
@@ -1163,7 +1250,7 @@ class SaveProject(mediator: Mediator, val projectDir: File) : RNArtistTask(media
             Platform.runLater {
                 updateMessage("Saving script..")
                 var writer = PrintWriter(scriptFile)
-                writer.println(mediator.scriptEditor.getScriptAsText())
+                writer.println(mediator.scriptEditor.getEntireScriptAsText())
                 writer.close()
                 mediator.scriptEditor.currentScriptLocation = projectDir
             }
@@ -1174,8 +1261,8 @@ class SaveProject(mediator: Mediator, val projectDir: File) : RNArtistTask(media
             }
             Thread.sleep(100)
             //and we create a preview as a png file...
-            (mediator.drawingDisplayed.get() as? DrawingLoadedFromScriptEditor)?.let {
-                if (it.id.equals( mediator.scriptEditor.themeAndLayoutScript.getScriptRoot().id)) {
+            mediator.drawingDisplayed.get()?.let {
+                if (it.id.equals( mediator.scriptEditor.script.getScriptRoot().id)) {
                     it.drawing.asPNG(Rectangle2D.Double(0.0,0.0,400.0,400.0), null, File(projectDir, "preview.png"))
                 }
             }

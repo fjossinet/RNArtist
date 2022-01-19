@@ -8,7 +8,7 @@ import java.awt.geom.*
 
 class SelectionShape(val mediator: Mediator, val element: DrawingElement) {
 
-    private val edges = listOf<SelectionEdge>(
+    private val edges = listOf(
         SelectionEdge(0, 1, element),
         SelectionEdge(1, 2, element),
         SelectionEdge(2, 3, element),
@@ -36,7 +36,7 @@ class SelectionShape(val mediator: Mediator, val element: DrawingElement) {
                 val (p1_1, p2_1) = pointsFrom(
                     element.selectionPoints[p1],
                     element.selectionPoints[p2],
-                    spaceBetweenResidues
+                    spaceBetweenResidues*2
                 )
                 g.draw(at.createTransformedShape(Line2D.Double(element.selectionPoints[p1], p1_1)))
                 g.draw(at.createTransformedShape(Line2D.Double(p2_1, element.selectionPoints[p2])))

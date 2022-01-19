@@ -173,7 +173,7 @@ class JunctionConnector(val connectorId: ConnectorId, var selected:Boolean = fal
             }
         }
         knob.mediator.canvas2D.repaint()
-        knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
+        knob.mediator.scriptEditor.script.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
     }
 }
 
@@ -241,7 +241,7 @@ class Up(private val knob:JunctionKnob):AbstractJunctionArrow() {
             it.update()
         }
         this.knob.mediator.canvas2D.repaint()
-        knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionRadius(this.knob.junction.radius, "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
+        knob.mediator.scriptEditor.script.setJunctionRadius(this.knob.junction.radius, "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
     }
 
     override fun mouseReleased() {
@@ -278,7 +278,7 @@ class Down(private val knob:JunctionKnob):AbstractJunctionArrow() {
             it.update()
         }
         this.knob.mediator.canvas2D.repaint()
-        knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionRadius(this.knob.junction.radius, "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
+        knob.mediator.scriptEditor.script.setJunctionRadius(this.knob.junction.radius, "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
     }
 
     override fun mouseReleased() {
@@ -325,7 +325,7 @@ class Left(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 it.update()
             }
             this.knob.mediator.canvas2D.repaint()
-            knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
+            knob.mediator.scriptEditor.script.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
         }
     }
 
@@ -373,7 +373,7 @@ class Right(private val knob:JunctionKnob):AbstractJunctionArrow() {
                 it.update()
             }
             this.knob.mediator.canvas2D.repaint()
-            knob.mediator.scriptEditor.themeAndLayoutScript.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
+            knob.mediator.scriptEditor.script.setJunctionLayout("\"${this.knob.junction.currentLayout.map { it.name }.joinToString(separator = " ")}\"", "${(this.knob.junction.currentLayout.size+1)}", knob.junction.location)
         }
     }
 

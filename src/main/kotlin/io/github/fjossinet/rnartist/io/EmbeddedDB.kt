@@ -38,34 +38,6 @@ class EmbeddedDB {
         return doc["theme"] as Map<String, Map<String, Map<String, String>>>
     }
 
-    fun saveProjectAs(name: String, secondaryStructureDrawing: SecondaryStructureDrawing):NitriteId {
-        val doc = createDocument("name",name)
-
-        with (doc) {
-            put(
-                "rna", mutableMapOf<String, String>(
-                    "name" to secondaryStructureDrawing.secondaryStructure.rna.name,
-                    "seq" to secondaryStructureDrawing.secondaryStructure.rna.seq
-                )
-            )
-
-            //STRUCTURE
-            put("structure", dumpSecondaryStructure(secondaryStructureDrawing))
-
-            //LAYOUT (the size and orientation of junctions)
-            put("layout", dumpLayout(secondaryStructureDrawing))
-
-            //THEME (colors, line width, full details,...)
-            put("theme", dumpTheme(secondaryStructureDrawing))
-
-            //WORKING SESSION
-            put("session", dumpWorkingSession(secondaryStructureDrawing))
-        }
-
-        val r = this.userDB.getCollection("Projects").insert(doc)
-        return r.first()
-    }
-
 
     fun getProjects():NitriteCollection {
         return this.userDB.getCollection("Projects")

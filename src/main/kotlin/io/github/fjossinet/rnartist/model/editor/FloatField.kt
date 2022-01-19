@@ -5,8 +5,6 @@ import io.github.fjossinet.rnartist.gui.editor.Script
 import io.github.fjossinet.rnartist.gui.editor.TextField
 import javafx.event.EventHandler
 import javafx.scene.Node
-import javafx.scene.paint.Color
-import java.util.*
 
 class FloatField(parent:DSLElementInt, script: Script, value:String = ""): ParameterField(parent, script, value, true) {
 

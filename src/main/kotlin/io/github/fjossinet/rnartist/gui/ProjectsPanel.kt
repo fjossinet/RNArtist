@@ -3,8 +3,10 @@ package io.github.fjossinet.rnartist.gui
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
+import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
+import javafx.concurrent.Task
 import javafx.event.EventHandler
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -12,8 +14,10 @@ import javafx.scene.Scene
 import javafx.scene.control.Alert
 import javafx.scene.control.ButtonType
 import javafx.scene.control.Label
+import javafx.scene.control.ProgressBar
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
+import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
@@ -26,12 +30,14 @@ import org.controlsfx.control.GridView
 import org.kordamp.ikonli.javafx.FontIcon
 import java.io.*
 
-class ProjectsPanel(val mediator:Mediator) {
+class ProjectsPanel(val mediator: Mediator) {
     private val projectPanels: ObservableList<ProjectPanel>
     private val gridview: GridView<ProjectPanel>
     val stage: Stage
+    val progressBar = ProgressBar(0.0)
 
     init {
+        val root = BorderPane()
         stage = Stage()
         stage.title = "Your Projects"
         stage.onCloseRequest = EventHandler { windowEvent: WindowEvent? ->
@@ -47,11 +53,16 @@ class ProjectsPanel(val mediator:Mediator) {
         gridview.padding = Insets(20.0, 20.0, 20.0, 20.0)
         gridview.horizontalCellSpacing = 20.0
         gridview.verticalCellSpacing = 20.0
-        gridview.cellWidth = 400.0
-        gridview.cellHeight = 400.0
+        gridview.cellWidth = 200.0
+        gridview.cellHeight = 200.0
         gridview.style = "-fx-background-color: lightgray;"
         gridview.setCellFactory { ProjectCell() }
-        val scene = Scene(gridview)
+        root.center = gridview
+
+        progressBar.prefWidth = Double.MAX_VALUE
+        root.bottom = progressBar
+
+        val scene = Scene(root)
         scene.stylesheets.add("io/github/fjossinet/rnartist/gui/css/main.css")
         stage.scene = scene
         val screenSize = Screen.getPrimary().bounds
@@ -63,15 +74,37 @@ class ProjectsPanel(val mediator:Mediator) {
         stage.y = newY
     }
 
-    fun removeProjectPanel(projectDir:File) {
+    fun clearProjects() {
+        this.projectPanels.clear()
+    }
+
+    fun removeProjectPanel(projectDir: File) {
         this.projectPanels.remove(this.projectPanels.find { it.projectDir.equals(projectDir) })
     }
 
     fun loadProjects() {
-        projectPanels.clear()
-        for (project in File(RnartistConfig.projectsFolder).listFiles(FileFilter { it.isDirectory })) {
-            projectPanels.add(ProjectPanel(project))
+        class ListingProjectsTask : Task<Any?>() {
+
+            init {
+                progressBar.progressProperty().unbind()
+                progressBar.progressProperty().bind(this.progressProperty())
+            }
+
+            override fun call(): Any? {
+                val projects = File(RnartistConfig.projectsFolder).listFiles(FileFilter { it.isDirectory })
+                var i = 0.0
+                for (project in projects) {
+                    Platform.runLater {
+                        projectPanels.add(ProjectPanel(project))
+                        updateProgress(++i, projects.size.toDouble())
+                    }
+                    Thread.sleep(50)
+                }
+                return null
+            }
         }
+        Thread(ListingProjectsTask()).start()
+
     }
 
     private inner class ProjectCell : GridCell<ProjectPanel>() {
@@ -130,23 +163,31 @@ class ProjectsPanel(val mediator:Mediator) {
             icon.onMouseClicked = EventHandler {
                 mediator.scriptEditor.currentScriptLocation = item!!.projectDir
                 this@ProjectsPanel.stage.hide()
-                RNArtistTaskWindow(mediator).task = LoadScript(mediator, script = FileReader(File(
-                    item!!.projectDir,
-                    "rnartist.kts"
-                )), runScript = true)
+                RNArtistTaskWindow(mediator).task = LoadScript(
+                    mediator, script = FileReader(
+                        File(
+                            item!!.projectDir,
+                            "rnartist.kts"
+                        )
+                    ), runScript = true
+                )
             }
             this.onMouseEntered = EventHandler { border.style = "-fx-border-color: darkgray; -fx-border-width: 4px;" }
             this.onMouseExited = EventHandler { border.style = "-fx-border-color: lightgray; -fx-border-width: 4px;" }
         }
     }
 
-    inner private class ProjectPanel(val projectDir:File) {
+    inner private class ProjectPanel(val projectDir: File) {
 
         val image: Image?
             get() {
                 try {
-                    return Image(File(projectDir,
-                        "preview.png").toURI().toURL().toString())
+                    return Image(
+                        File(
+                            projectDir,
+                            "preview.png"
+                        ).toURI().toURL().toString()
+                    )
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

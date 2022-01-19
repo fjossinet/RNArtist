@@ -1,31 +1,10 @@
 package io.github.fjossinet.rnartist.gui
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.RNArtist
-import io.github.fjossinet.rnartist.RNArtist.SCOPE
-import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.javaFXToAwt
 import io.github.fjossinet.rnartist.model.*
-import javafx.beans.binding.Bindings
-import javafx.event.EventHandler
-import javafx.geometry.HPos
-import javafx.geometry.Insets
-import javafx.geometry.Pos
-import javafx.scene.Node
-import javafx.scene.Scene
 import javafx.scene.control.*
-import javafx.scene.control.cell.TreeItemPropertyValueFactory
-import javafx.scene.input.KeyCode
 import javafx.scene.layout.*
-import javafx.scene.paint.Color
-import javafx.scene.shape.Line
-import javafx.scene.shape.Rectangle
-import javafx.stage.Screen
-import javafx.stage.Stage
-import javafx.util.Callback
-import org.kordamp.ikonli.javafx.FontIcon
 import java.util.*
 
 class Explorer(val mediator:Mediator) {

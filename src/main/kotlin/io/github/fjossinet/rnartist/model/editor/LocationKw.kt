@@ -48,12 +48,18 @@ open class LocationKw(parent:DSLElement, script: Script, indentLevel:Int): Optio
 
         addButton.mouseReleased = {
             if (getLocation() == null && script.mediator.canvas2D.getSelectedPositions().isNotEmpty()) {
-                val location = Location(script.mediator.canvas2D.getSelectedPositions().toIntArray())
-                location.blocks.forEachIndexed() { index, block ->
-                    val p = this.searchFirst { it is OptionalDSLParameter && !it.inFinalScript && "to".equals(it.operator.text.text.trim()) } as OptionalDSLParameter
-                    (p.key as StringWithoutQuotes).setText(block.start.toString())
-                    (p.value as StringWithoutQuotes).setText(block.end.toString())
-                    p.addButton.fire()
+                script.mediator.drawingDisplayed.get()?.let {
+
+                    val location = if (it.drawing.secondaryStructure.rna.useNumberingSystem)
+                        it.drawing.secondaryStructure.rna.mapLocation(Location(script.mediator.canvas2D.getSelectedPositions().toIntArray()))
+                    else
+                        Location(script.mediator.canvas2D.getSelectedPositions().toIntArray())
+                    location.blocks.forEachIndexed() { index, block ->
+                        val p = this.searchFirst { it is OptionalDSLParameter && !it.inFinalScript && "to".equals(it.operator.text.text.trim()) } as OptionalDSLParameter
+                        (p.key as StringWithoutQuotes).setText(block.start.toString())
+                        (p.value as StringWithoutQuotes).setText(block.end.toString())
+                        p.addButton.fire()
+                    }
                 }
             }
             this.inFinalScript = true

@@ -4,8 +4,6 @@ import io.github.fjossinet.rnartist.core.model.Helix
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.gui.editor.Script
 import javafx.event.EventHandler
-import java.awt.geom.AffineTransform
-import java.awt.geom.Rectangle2D
 
 class HelixKw(parent: PartsKw, script: Script, indentLevel: Int) :
     OptionalDSLKeyword(parent, script, "helix", indentLevel) {
@@ -51,8 +49,11 @@ class HelixKw(parent: PartsKw, script: Script, indentLevel: Int) :
             this.inFinalScript = false
             if (this.parent.children.indexOf(this) <this.parent.children.size-1 && this.parent.children.get(this.parent.children.indexOf(this) + 1) is HelixKw)
                 this.parent.children.remove(this)
-            else if (this.parent.children.indexOf(this) > 0 && this.parent.children.get(this.parent.children.indexOf(this) - 1) is HelixKw)
-                this.parent.children.remove(this)
+            else if (this.parent.children.indexOf(this) > 0) {
+                val previous = this.parent.children.get(this.parent.children.indexOf(this) - 1)
+                if (previous is HelixKw && !previous.inFinalScript)
+                    this.parent.children.remove(this)
+            }
             script.initScript()
         }
     }

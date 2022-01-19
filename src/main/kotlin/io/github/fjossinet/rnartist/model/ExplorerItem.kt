@@ -14,8 +14,7 @@ interface ExplorerItem {
     val drawingElement:DrawingElement?
     val residues:List<ResidueDrawing>
 
-    fun applyTheme(theme: Theme)
-    fun applyAdvancedTheme(theme: AdvancedTheme)
+    fun applyAdvancedTheme(theme: Theme)
 
 }
 
@@ -50,21 +49,8 @@ class SecondaryStructureItem(private val drawing:SecondaryStructureDrawing): Abs
     override val residues:List<ResidueDrawing>
         get() =this.drawing.residues
 
-    override fun applyTheme(theme: Theme) {
-        theme.configurations[SecondaryStructureType.Full2D.toString()]?.let { configuration ->
-            configuration.keys.forEach {
-                when(it) {
-                    ThemeParameter.color.toString() -> this.color = configuration[it]!!
-                    ThemeParameter.linewidth.toString() -> this.lineWidth = configuration[it]!!
-                    ThemeParameter.lineshift.toString() -> this.lineShift = configuration[it]!!
-                    ThemeParameter.opacity.toString() -> this.opacity = configuration[it]!!
-                    ThemeParameter.fulldetails.toString() -> this.fullDetails = configuration[it]!!
-                }
-            }
-        }
-    }
 
-    override fun applyAdvancedTheme(theme: AdvancedTheme) {
+    override fun applyAdvancedTheme(theme: Theme) {
         //not a drawing element so....
     }
 
@@ -109,30 +95,12 @@ abstract class StructuralItem(name:String, drawingElement:DrawingElement):Abstra
     override val residues:List<ResidueDrawing>
         get() =this.drawingElement!!.residues
 
-    override fun applyTheme(theme: Theme) {
-        theme.configurations[this.drawingElement!!.type.toString()]?.let { configuration ->
-            configuration.keys.forEach {
-                when(it) {
-                    ThemeParameter.color.toString() -> this.color = configuration[it]!!
-                    ThemeParameter.linewidth.toString() -> this.lineWidth = configuration[it]!!
-                    ThemeParameter.lineshift.toString() -> this.lineShift = configuration[it]!!
-                    ThemeParameter.opacity.toString() -> this.opacity = configuration[it]!!
-                    ThemeParameter.fulldetails.toString() -> this.fullDetails = configuration[it]!!
-                }
-            }
-        }
-    }
 
-    override fun applyAdvancedTheme(theme: AdvancedTheme) {
+
+    override fun applyAdvancedTheme(theme: Theme) {
         theme.configurations.entries.forEach { entry ->
             if (entry.key(this.drawingElement!!)) {
-                when(entry.value.first) {
-                    ThemeParameter.color.toString() -> this.color = entry.value.second
-                    ThemeParameter.linewidth.toString() -> this.lineWidth = entry.value.second
-                    ThemeParameter.lineshift.toString() -> this.lineShift = entry.value.second
-                    ThemeParameter.opacity.toString() -> this.opacity = entry.value.second
-                    ThemeParameter.fulldetails.toString() -> this.fullDetails = entry.value.second
-                }
+
             }
         }
     }
@@ -170,11 +138,7 @@ class GroupOfStructuralElements(name:String) : AbstractExplorerItem(name) {
     override val residues:List<ResidueDrawing>
         get() = this.children.flatMap { it.residues }
 
-    override fun applyTheme(theme: Theme) {
-        children.forEach { it.applyTheme(theme) }
-    }
-
-    override fun applyAdvancedTheme(theme: AdvancedTheme) {
+    override fun applyAdvancedTheme(theme: Theme) {
         children.forEach { it.applyAdvancedTheme(theme) }
     }
 }

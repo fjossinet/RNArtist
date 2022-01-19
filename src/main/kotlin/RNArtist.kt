@@ -6,6 +6,7 @@ import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerImageInstalled
 import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerInstalled
 import io.github.fjossinet.rnartist.core.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
+import io.github.fjossinet.rnartist.core.io.randomColor
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.*
@@ -16,7 +17,6 @@ import javafx.animation.Timeline
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
-import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.embed.swing.SwingNode
@@ -38,8 +38,6 @@ import javafx.scene.shape.Line
 import javafx.scene.text.Font
 import javafx.stage.*
 import javafx.util.Duration
-import org.controlsfx.glyphfont.FontAwesome
-import org.controlsfx.glyphfont.Glyph
 import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
@@ -49,9 +47,6 @@ import java.util.*
 import java.util.stream.Collectors
 
 class RNArtist : Application() {
-    enum class SCOPE {
-        ELEMENT, STRUCTURAL_DOMAIN, BRANCH
-    }
 
     val mediator: Mediator
     lateinit var stage: Stage
@@ -255,9 +250,9 @@ class RNArtist : Application() {
                 }
             }
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
         }
         showTertiaries.tooltip = Tooltip("Show Tertiaries")
@@ -273,9 +268,9 @@ class RNArtist : Application() {
                 }
             }
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
         }
 
@@ -302,11 +297,11 @@ class RNArtist : Application() {
                 }
             }
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
-            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("1")
+            mediator.scriptEditor.script.setDetailsLevel("1")
         }
 
         val levelDetails2 = Button("2")
@@ -320,11 +315,11 @@ class RNArtist : Application() {
                 }
             }
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
-            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("2")
+            mediator.scriptEditor.script.setDetailsLevel("2")
         }
 
         leftToolBar.add(levelDetails1, 0, row)
@@ -343,11 +338,11 @@ class RNArtist : Application() {
                 }
             }
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
-            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("3")
+            mediator.scriptEditor.script.setDetailsLevel("3")
         }
 
         val levelDetails4 = Button("4")
@@ -361,11 +356,11 @@ class RNArtist : Application() {
                 }
             }
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
-            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("4")
+            mediator.scriptEditor.script.setDetailsLevel("4")
         }
         leftToolBar.add(levelDetails3, 0, row)
         GridPane.setHalignment(levelDetails1, HPos.CENTER)
@@ -383,11 +378,11 @@ class RNArtist : Application() {
                 }
             }
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
-            mediator.scriptEditor.themeAndLayoutScript.setDetailsLevel("5")
+            mediator.scriptEditor.script.setDetailsLevel("5")
         }
 
         leftToolBar.add(levelDetails5, 0, row++)
@@ -455,7 +450,36 @@ class RNArtist : Application() {
         NLabel.textFill = Color.WHITE
         NLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(Color.BLACK))
 
-        val pickColorScheme = Button(null, FontIcon("fas-swatchbook:15"))
+        val clearTheme = Button(null, FontIcon("fas-undo:15"))
+        clearTheme.tooltip = Tooltip("Clear Theme")
+        clearTheme.maxWidth = Double.MAX_VALUE
+        clearTheme.disableProperty()
+            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+        clearTheme.onAction = EventHandler {
+            mediator.drawingDisplayed.get()?.let {
+                it.drawing.clearTheme()
+                mediator.canvas2D.repaint()
+                mediator.scriptEditor.script.getScriptRoot().getThemeKw().removeButton.fire()
+            }
+        }
+
+        val clearLayout = Button(null, FontIcon("fas-undo-alt:15"))
+        clearLayout.tooltip = Tooltip("Clear Layout")
+        clearLayout.maxWidth = Double.MAX_VALUE
+        clearLayout.disableProperty()
+            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
+        clearLayout.onAction = EventHandler {
+            mediator.drawingDisplayed.get()?.let {
+                mediator.scriptEditor.script.getScriptRoot().getLayoutKw().removeButton.fire()
+            }
+        }
+
+        leftToolBar.add(clearTheme, 0, row)
+        GridPane.setHalignment(clearTheme, HPos.CENTER)
+        leftToolBar.add(clearLayout, 1, row++)
+        GridPane.setHalignment(clearLayout, HPos.CENTER)
+
+        val pickColorScheme = Button(null, FontIcon("fas-dice-three:15"))
         pickColorScheme.maxWidth = Double.MAX_VALUE
         pickColorScheme.disableProperty()
             .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
@@ -505,39 +529,39 @@ class RNArtist : Application() {
             }
 
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
-            mediator.scriptEditor.themeAndLayoutScript.setColor(
+            mediator.scriptEditor.script.setColor(
                 "A",
                 getHTMLColorString(javaFXToAwt(AColorPicker.value))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor(
+            mediator.scriptEditor.script.setColor(
                 "a",
                 getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor(
+            mediator.scriptEditor.script.setColor(
                 "U",
                 getHTMLColorString(javaFXToAwt(UColorPicker.value))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor(
+            mediator.scriptEditor.script.setColor(
                 "u",
                 getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor(
+            mediator.scriptEditor.script.setColor(
                 "G",
                 getHTMLColorString(javaFXToAwt(GColorPicker.value))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor(
+            mediator.scriptEditor.script.setColor(
                 "g",
                 getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor(
+            mediator.scriptEditor.script.setColor(
                 "C",
                 getHTMLColorString(javaFXToAwt(CColorPicker.value))
             )
-            mediator.scriptEditor.themeAndLayoutScript.setColor(
+            mediator.scriptEditor.script.setColor(
                 "c",
                 getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE))
             )
@@ -741,22 +765,15 @@ class RNArtist : Application() {
         }
 
         //++++++++++ we init the color buttons with a random scheme
-        val scheme = RnartistConfig.colorSchemes.values.stream()
-            .toArray()[Random().nextInt(RnartistConfig.colorSchemes.size)] as Map<String, Map<String, String>>
-
+        val random = Random()
+        var color = randomColor()
         AColorPicker.value =
             awtColorToJavaFX(
-                getAWTColor(
-                    scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]!!,
-                    255
-                )
+                color
             )
         ALabel.style =
-            "-fx-background-color: " + scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]
-        if (scheme[SecondaryStructureType.A.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                java.awt.Color.WHITE
-            )
-        ) {
+            "-fx-background-color: " + getHTMLColorString(color)
+        if (random.nextInt(2) == 0) {
             ALabel.userData = "white"
             ALabel.textFill = Color.WHITE
         } else {
@@ -764,19 +781,14 @@ class RNArtist : Application() {
             ALabel.textFill = Color.BLACK
         }
 
+        color = randomColor()
         UColorPicker.value =
             awtColorToJavaFX(
-                getAWTColor(
-                    scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]!!,
-                    255
-                )
+                color
             )
         ULabel.style =
-            "-fx-background-color: " + scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]
-        if (scheme[SecondaryStructureType.U.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                java.awt.Color.WHITE
-            )
-        ) {
+            "-fx-background-color: " + getHTMLColorString(color)
+        if (random.nextInt(2) == 0) {
             ULabel.userData = "white"
             ULabel.textFill = Color.WHITE
         } else {
@@ -784,19 +796,15 @@ class RNArtist : Application() {
             ULabel.textFill = Color.BLACK
         }
 
+        color = randomColor()
         GColorPicker.value =
             awtColorToJavaFX(
-                getAWTColor(
-                    scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]!!,
-                    255
-                )
+                color
             )
         GLabel.style =
-            "-fx-background-color: " + scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]
-        if (scheme[SecondaryStructureType.G.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                java.awt.Color.WHITE
-            )
-        ) {
+            "-fx-background-color: " + getHTMLColorString(color)
+
+        if (random.nextInt(2) == 0) {
             GLabel.userData = "white"
             GLabel.textFill = Color.WHITE
         } else {
@@ -804,19 +812,16 @@ class RNArtist : Application() {
             GLabel.textFill = Color.BLACK
         }
 
+        color = randomColor()
         CColorPicker.value =
             awtColorToJavaFX(
-                getAWTColor(
-                    scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]!!,
-                    255
-                )
+                color
             )
+
         CLabel.style =
-            "-fx-background-color: " + scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]
-        if (scheme[SecondaryStructureType.C.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                java.awt.Color.WHITE
-            )
-        ) {
+            "-fx-background-color: " + getHTMLColorString(color)
+
+        if (random.nextInt(2) == 0) {
             CLabel.userData = "white"
             CLabel.textFill = Color.WHITE
         } else {
@@ -825,78 +830,64 @@ class RNArtist : Application() {
         }
 
         pickColorScheme.onAction = EventHandler {
-            val scheme = RnartistConfig.colorSchemes.values.stream()
-                .toArray()[Random().nextInt(RnartistConfig.colorSchemes.size)] as Map<String, Map<String, String>>
+
+            val random = Random()
+            var color = randomColor()
             AColorPicker.value =
                 awtColorToJavaFX(
-                    getAWTColor(
-                        scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]!!,
-                        255
-                    )
+                    color
                 )
             ALabel.style =
-                "-fx-background-color: " + scheme[SecondaryStructureType.AShape.toString()]!![ThemeParameter.color.toString()]
-            if (scheme[SecondaryStructureType.A.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                    java.awt.Color.WHITE
-                )
-            ) {
+                "-fx-background-color: " + getHTMLColorString(color)
+            if (random.nextInt(2) == 0) {
                 ALabel.userData = "white"
                 ALabel.textFill = Color.WHITE
             } else {
                 ALabel.userData = "black"
                 ALabel.textFill = Color.BLACK
             }
+
+            color = randomColor()
             UColorPicker.value =
                 awtColorToJavaFX(
-                    getAWTColor(
-                        scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]!!,
-                        255
-                    )
+                    color
                 )
             ULabel.style =
-                "-fx-background-color: " + scheme[SecondaryStructureType.UShape.toString()]!![ThemeParameter.color.toString()]
-            if (scheme[SecondaryStructureType.U.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                    java.awt.Color.WHITE
-                )
-            ) {
+                "-fx-background-color: " + getHTMLColorString(color)
+            if (random.nextInt(2) == 0) {
                 ULabel.userData = "white"
                 ULabel.textFill = Color.WHITE
             } else {
                 ULabel.userData = "black"
                 ULabel.textFill = Color.BLACK
             }
+
+            color = randomColor()
             GColorPicker.value =
                 awtColorToJavaFX(
-                    getAWTColor(
-                        scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]!!,
-                        255
-                    )
+                    color
                 )
             GLabel.style =
-                "-fx-background-color: " + scheme[SecondaryStructureType.GShape.toString()]!![ThemeParameter.color.toString()]
-            if (scheme[SecondaryStructureType.G.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                    java.awt.Color.WHITE
-                )
-            ) {
+                "-fx-background-color: " + getHTMLColorString(color)
+
+            if (random.nextInt(2) == 0) {
                 GLabel.userData = "white"
                 GLabel.textFill = Color.WHITE
             } else {
                 GLabel.userData = "black"
                 GLabel.textFill = Color.BLACK
             }
+
+            color = randomColor()
             CColorPicker.value =
                 awtColorToJavaFX(
-                    getAWTColor(
-                        scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]!!,
-                        255
-                    )
+                    color
                 )
+
             CLabel.style =
-                "-fx-background-color: " + scheme[SecondaryStructureType.CShape.toString()]!![ThemeParameter.color.toString()]
-            if (scheme[SecondaryStructureType.C.toString()]!![ThemeParameter.color.toString()] == getHTMLColorString(
-                    java.awt.Color.WHITE
-                )
-            ) {
+                "-fx-background-color: " + getHTMLColorString(color)
+
+            if (random.nextInt(2) == 0) {
                 CLabel.userData = "white"
                 CLabel.textFill = Color.WHITE
             } else {
@@ -919,11 +910,11 @@ class RNArtist : Application() {
                 }
             }
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
-            mediator.scriptEditor.themeAndLayoutScript.setLineWidth(
+            mediator.scriptEditor.script.setLineWidth(
                 "helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol",
                 "${lineWidth}"
             )
@@ -1008,11 +999,11 @@ class RNArtist : Application() {
             }
 
             if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyAdvancedTheme(t)}
+                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
             else
-                mediator.drawingDisplayed.get()?.drawing?.applyAdvancedTheme(t)
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
             mediator.canvas2D.repaint()
-            mediator.scriptEditor.themeAndLayoutScript.setColor(
+            mediator.scriptEditor.script.setColor(
                 "helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction",
                 getHTMLColorString(javaFXToAwt(lineColorPicker.value))
             )

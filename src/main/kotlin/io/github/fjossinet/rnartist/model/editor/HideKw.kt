@@ -22,8 +22,11 @@ class HideKw(parent:ThemeKw, script: Script, indentLevel:Int): OptionalDSLKeywor
             this.inFinalScript = false
             if (this.parent.children.indexOf(this) <this.parent.children.size-1 && this.parent.children.get(this.parent.children.indexOf(this) + 1) is HideKw)
                 this.parent.children.remove(this)
-            else if (this.parent.children.indexOf(this) > 0 && this.parent.children.get(this.parent.children.indexOf(this) - 1) is HideKw)
-                this.parent.children.remove(this)
+            else if (this.parent.children.indexOf(this) > 0) {
+                val previous = this.parent.children.get(this.parent.children.indexOf(this) - 1)
+                if (previous is HideKw && !previous.inFinalScript)
+                    this.parent.children.remove(this)
+            }
             script.initScript()
         }
     }
