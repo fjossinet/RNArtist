@@ -41,7 +41,7 @@ class Settings(mediator: Mediator):VBox() {
         GridPane.setHgrow(folderField, Priority.ALWAYS)
         projectsFolderPane.children.add(folderField)
         GridPane.setConstraints(folderField, 0, 2)
-        val chooseFolder = Button("Choose folder")
+        val chooseFolder = Button("Choose")
         projectsFolderPane.children.add(chooseFolder)
         GridPane.setConstraints(chooseFolder, 1, 2)
         GridPane.setHgrow(chooseFolder, Priority.NEVER)
@@ -52,6 +52,7 @@ class Settings(mediator: Mediator):VBox() {
                 folderField.text = dir.absolutePath
                 RnartistConfig.projectsFolder = dir.absolutePath
                 mediator.projectsPanel.clearProjects()
+                mediator.projectsPanel.loadProjects()
             }
         }
 

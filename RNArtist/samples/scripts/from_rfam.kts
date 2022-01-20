@@ -4,7 +4,7 @@ rnartist {
     ss {
         rfam {
             id = "RF00072"
-            name = "consensus"
+            use alignment numbering
         }
     }
     theme {

@@ -153,20 +153,10 @@ class RunEntireScript(mediator: Mediator) : RNArtistTask(mediator) {
 
     override fun call(): Pair<Any?, Exception?> {
         try {
-            val structuresToBeRemoved:List<DrawingLoaded> = mediator.drawingsLoadedPanel.drawingsLoaded().toList()
-            var totalProgress = structuresToBeRemoved.size.toDouble()
-            var progressStep = 0.0
-            var removed = 0
-            structuresToBeRemoved.forEach {
-                Platform.runLater {
-                    updateProgress(++progressStep, totalProgress)
-                    updateMessage("Removing 2D ${++removed}/${structuresToBeRemoved.size}")
-                    mediator.drawingsLoadedPanel.removeItem(
-                        structuresToBeRemoved[removed-1]
-                    )
-                }
-                Thread.sleep(50)
+            Platform.runLater {
+                mediator.drawingsLoadedPanel.drawingsLoaded().clear()
             }
+            Thread.sleep(100)
             Platform.runLater {
                 updateMessage("Running script..")
             }
@@ -177,13 +167,12 @@ class RunEntireScript(mediator: Mediator) : RNArtistTask(mediator) {
             //println(scriptContent)
             val result = mediator.scriptEditor.engine.eval(scriptContent)
             Platform.runLater {
-                mediator.sideWindow.tabPane.selectionModel.select(1)
                 updateMessage("Loading new 2Ds...")
             }
             Thread.sleep(100)
             val structuresToBeLoaded = (result as? List<SecondaryStructureDrawing>)?.sortedBy { it.secondaryStructure.name }?.reversed()
-            totalProgress = structuresToBeLoaded!!.size.toDouble()
-            progressStep = 0.0
+            val totalProgress = structuresToBeLoaded!!.size.toDouble()
+            var progressStep = 0.0
             var loaded = 0
             structuresToBeLoaded?.forEach {
                 Platform.runLater {
@@ -257,23 +246,9 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
     override fun call(): Pair<Any?, Exception?> {
         try {
             Platform.runLater {
-                updateMessage("Removing previous 2Ds...")
+                mediator.drawingsLoadedPanel.drawingsLoaded().clear()
             }
             Thread.sleep(100)
-            val structuresToBeRemoved:List<DrawingLoaded> = mediator.drawingsLoadedPanel.drawingsLoaded().toList()
-            var totalProgress = structuresToBeRemoved.size.toDouble()
-            var progressStep = 0.0
-            var removed = 0
-            structuresToBeRemoved.forEach {
-                Platform.runLater {
-                    updateProgress(++progressStep, totalProgress)
-                    updateMessage("Removing 2D ${++removed}/${structuresToBeRemoved.size}")
-                    mediator.drawingsLoadedPanel.removeItem(
-                        structuresToBeRemoved[removed-1]
-                    )
-                }
-                Thread.sleep(50)
-            }
             Platform.runLater {
                 updateMessage("Loading script..")
             }
@@ -286,15 +261,15 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
             Thread.sleep(100)
             var (elements, issues) = result
 
-            progressStep = 0.0
+            var progressStep = 0.0
             Platform.runLater {
-                updateMessage("Importing script in script editor..")
+                updateMessage("Loading script in script editor..")
             }
             Thread.sleep(100)
 
             val allElements = mutableListOf<ScriptElement>()
             elements.first().getAllElements(allElements)
-            totalProgress = allElements.size.toDouble() + 1
+            var totalProgress = allElements.size.toDouble() + 1
             elements.first().children.forEach { element ->
                 when (element.name) {
                     "ss" -> {
@@ -1255,7 +1230,6 @@ class SaveProject(mediator: Mediator, val projectDir: File) : RNArtistTask(media
                 mediator.scriptEditor.currentScriptLocation = projectDir
             }
             Thread.sleep(100)
-
             Platform.runLater {
                 updateMessage("Saving preview..")
             }
@@ -1263,9 +1237,19 @@ class SaveProject(mediator: Mediator, val projectDir: File) : RNArtistTask(media
             //and we create a preview as a png file...
             mediator.drawingDisplayed.get()?.let {
                 if (it.id.equals( mediator.scriptEditor.script.getScriptRoot().id)) {
-                    it.drawing.asPNG(Rectangle2D.Double(0.0,0.0,400.0,400.0), null, File(projectDir, "preview.png"))
+                    it.drawing.asPNG(Rectangle2D.Double(0.0,0.0,200.0,200.0), null, File(projectDir, "preview.png"))
                 }
             }
+            Platform.runLater {
+                mediator.projectsPanel.getProject(projectDir)?.let {
+                    it.projectUpdated.value = true
+                    mediator.drawingDisplayed.get()?.layoutAndThemeUpdated?.value = true
+                } ?: run {
+                    mediator.projectsPanel.addProject(projectDir)
+                    mediator.drawingDisplayed.get()?.layoutAndThemeUpdated?.value = true
+                }
+            }
+            Thread.sleep(100)
             return Pair(null, null)
         } catch (e: Exception) {
             return Pair(null, e)

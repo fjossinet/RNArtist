@@ -10,13 +10,13 @@ import io.github.fjossinet.rnartist.io.ChimeraXDriver
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingsLoadedPanel
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.SideWindow
+import io.github.fjossinet.rnartist.model.editor.DSLElementInt
+import io.github.fjossinet.rnartist.model.editor.RfamKw
 import javafx.beans.property.SimpleObjectProperty
 
 class Mediator(val rnartist: RNArtist) {
 
     var drawingDisplayed: SimpleObjectProperty<DrawingLoaded?> = SimpleObjectProperty<DrawingLoaded?>(null)
-
-    var ignoreTertiaries = false
 
     val embeddedDB = EmbeddedDB()
     var chimeraDriver = if (RnartistConfig.isChimeraX)
@@ -26,8 +26,8 @@ class Mediator(val rnartist: RNArtist) {
     val scriptEditor = ScriptEditor(this)
     val drawingsLoadedPanel = DrawingsLoadedPanel(this)
     val settings = Settings(this)
-    var sideWindow = SideWindow(this)
     val projectsPanel = ProjectsPanel(this)
+    var sideWindow = SideWindow(this)
     lateinit var canvas2D: Canvas2D
 
     //++++++ some shortcuts
@@ -82,6 +82,13 @@ class Mediator(val rnartist: RNArtist) {
                     this.chimeraDriver.saveSession(tmpSessionFile, tmpPdbFile)
                 }
                 this.canvas2D.repaint();
+            }
+            drawingDisplayed.get()?.drawing?.secondaryStructure?.let { ss ->
+                ss.source?.let { source ->
+                    if (source.toString().startsWith("db:rfam")) {
+                        (scriptEditor.script.getScriptRoot().getSecondaryStructureKw().searchFirst  { it is RfamKw && it.inFinalScript && it.getId().equals(source.getId()) } as RfamKw).setName(ss.name)
+                    }
+                }
             }
         }
 

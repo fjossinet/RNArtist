@@ -29,4 +29,11 @@ class RfamKw(parent:SecondaryStructureInputKw, script: Script, indentLevel:Int):
         }
     }
 
+    fun getId() = (this.children.first() as DSLParameter).value.text.text.replace("\"","")
+
+    fun setName(name: String) {
+        val param = this.children.get(1) as OptionalDSLParameter
+        param.value.text.text = "\"$name\""
+        param.addButton.fire()
+    }
 }

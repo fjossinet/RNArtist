@@ -2,15 +2,17 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
 import javafx.application.Platform
+import javafx.beans.Observable
+import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.concurrent.Task
 import javafx.event.EventHandler
 import javafx.geometry.Insets
 import javafx.geometry.Pos
-import javafx.scene.Scene
 import javafx.scene.control.Alert
 import javafx.scene.control.ButtonType
 import javafx.scene.control.Label
@@ -22,34 +24,19 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.stage.Modality
-import javafx.stage.Screen
 import javafx.stage.Stage
-import javafx.stage.WindowEvent
+import javafx.util.Callback
 import org.controlsfx.control.GridCell
 import org.controlsfx.control.GridView
 import org.kordamp.ikonli.javafx.FontIcon
 import java.io.*
 
-class ProjectsPanel(val mediator: Mediator) {
-    private val projectPanels: ObservableList<ProjectPanel>
-    private val gridview: GridView<ProjectPanel>
-    val stage: Stage
+class ProjectsPanel(val mediator: Mediator):BorderPane() {
+    private val projectLoadeds: ObservableList<ProjectLoaded> =  FXCollections.observableArrayList(ProjectLoaded.extractor())
+    private val gridview: GridView<ProjectLoaded> = GridView(projectLoadeds)
     val progressBar = ProgressBar(0.0)
 
     init {
-        val root = BorderPane()
-        stage = Stage()
-        stage.title = "Your Projects"
-        stage.onCloseRequest = EventHandler { windowEvent: WindowEvent? ->
-            if (mediator.drawingDisplayed.isNotNull
-                    .get()
-            ) { //the user has decided to cancel its idea to open another project
-                mediator.rnartist.stage.show()
-                mediator.rnartist.stage.toFront()
-            }
-        }
-        projectPanels = FXCollections.observableArrayList()
-        gridview = GridView(projectPanels)
         gridview.padding = Insets(20.0, 20.0, 20.0, 20.0)
         gridview.horizontalCellSpacing = 20.0
         gridview.verticalCellSpacing = 20.0
@@ -57,29 +44,24 @@ class ProjectsPanel(val mediator: Mediator) {
         gridview.cellHeight = 200.0
         gridview.style = "-fx-background-color: lightgray;"
         gridview.setCellFactory { ProjectCell() }
-        root.center = gridview
+        this.center = gridview
 
         progressBar.prefWidth = Double.MAX_VALUE
-        root.bottom = progressBar
-
-        val scene = Scene(root)
-        scene.stylesheets.add("io/github/fjossinet/rnartist/gui/css/main.css")
-        stage.scene = scene
-        val screenSize = Screen.getPrimary().bounds
-        stage.width = 1360.0
-        stage.height = 2 * screenSize.height / 3
-        val newX = (screenSize.width - stage.width) / 2
-        val newY = (screenSize.height - stage.height) / 2
-        stage.x = newX
-        stage.y = newY
+        this.bottom = progressBar
     }
 
+    fun getProject(projectDir:File):ProjectLoaded? = this.projectLoadeds.find { it.projectDir.equals(projectDir) }
+
     fun clearProjects() {
-        this.projectPanels.clear()
+        this.projectLoadeds.clear()
     }
 
     fun removeProjectPanel(projectDir: File) {
-        this.projectPanels.remove(this.projectPanels.find { it.projectDir.equals(projectDir) })
+        this.projectLoadeds.remove(this.getProject(projectDir))
+    }
+
+    fun addProject(projectDir:File) {
+        projectLoadeds.add(ProjectLoaded(projectDir))
     }
 
     fun loadProjects() {
@@ -95,7 +77,7 @@ class ProjectsPanel(val mediator: Mediator) {
                 var i = 0.0
                 for (project in projects) {
                     Platform.runLater {
-                        projectPanels.add(ProjectPanel(project))
+                        projectLoadeds.add(ProjectLoaded(project))
                         updateProgress(++i, projects.size.toDouble())
                     }
                     Thread.sleep(50)
@@ -104,23 +86,22 @@ class ProjectsPanel(val mediator: Mediator) {
             }
         }
         Thread(ListingProjectsTask()).start()
-
     }
 
-    private inner class ProjectCell : GridCell<ProjectPanel>() {
+    private inner class ProjectCell : GridCell<ProjectLoaded>() {
         private val icon = ImageView()
         private val projectName = Label()
         private val content: VBox
         private val border: HBox
         private val titleBar: HBox
 
-        override fun updateItem(projectPanel: ProjectPanel?, empty: Boolean) {
-            super.updateItem(projectPanel, empty)
+        override fun updateItem(projectLoaded: ProjectLoaded?, empty: Boolean) {
+            super.updateItem(projectLoaded, empty)
             graphic = null
             text = null
-            if (!empty && projectPanel != null) {
-                projectName.text = projectPanel.projectDir.name
-                icon.image = projectPanel.image
+            if (!empty && projectLoaded != null) {
+                projectName.text = projectLoaded.projectDir.name
+                icon.image = projectLoaded.image
                 graphic = content
             }
         }
@@ -145,7 +126,7 @@ class ProjectsPanel(val mediator: Mediator) {
             projectName.style = "-fx-font-weight: bold"
             deleteProject.onMouseClicked = EventHandler { event ->
                 val alert = Alert(Alert.AlertType.CONFIRMATION)
-                alert.initOwner(this@ProjectsPanel.stage)
+                alert.initOwner(mediator.rnartist.stage)
                 alert.initModality(Modality.WINDOW_MODAL)
                 alert.title = "Confirm Deletion"
                 alert.headerText = null
@@ -162,7 +143,6 @@ class ProjectsPanel(val mediator: Mediator) {
             }
             icon.onMouseClicked = EventHandler {
                 mediator.scriptEditor.currentScriptLocation = item!!.projectDir
-                this@ProjectsPanel.stage.hide()
                 RNArtistTaskWindow(mediator).task = LoadScript(
                     mediator, script = FileReader(
                         File(
@@ -177,21 +157,32 @@ class ProjectsPanel(val mediator: Mediator) {
         }
     }
 
-    inner private class ProjectPanel(val projectDir: File) {
+}
 
-        val image: Image?
-            get() {
-                try {
-                    return Image(
-                        File(
-                            projectDir,
-                            "preview.png"
-                        ).toURI().toURL().toString()
-                    )
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-                return null
+class ProjectLoaded(val projectDir: File) {
+
+    var projectUpdated = SimpleBooleanProperty()
+
+    companion object {
+        fun extractor(): Callback<ProjectLoaded, Array<Observable>> {
+            return Callback<ProjectLoaded, Array<Observable>> {
+                arrayOf(it.projectUpdated)
             }
+        }
     }
+
+    val image: Image?
+        get() {
+            try {
+                return Image(
+                    File(
+                        projectDir,
+                        "preview.png"
+                    ).toURI().toURL().toString()
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return null
+        }
 }

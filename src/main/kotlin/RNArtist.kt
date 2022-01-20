@@ -1365,7 +1365,7 @@ class RNArtist : Application() {
         GridPane.setHalignment(windowsBar, HPos.LEFT)
         bar.add(this.statusBar, 1, 0)
         GridPane.setHalignment(this.statusBar, HPos.RIGHT)
-        root.bottom = bar
+        //root.bottom = bar
 
         //root.right = RNAGallery(mediator)
     }

@@ -5,6 +5,7 @@ import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.JunctionType
 import io.github.fjossinet.rnartist.gui.editor.RNArtistScript
 import io.github.fjossinet.rnartist.model.editor.*
+import javafx.application.Platform
 import javafx.concurrent.Task
 import javafx.event.EventHandler
 import javafx.geometry.Insets
@@ -101,18 +102,12 @@ class SplashWindow(val mediator: Mediator) {
 
     }
 
-    class WarmUp(val mediator: Mediator, val stage: Stage) : Task<Pair<Map<String, List<String>>?, Exception?>>() {
+    class WarmUp(val mediator: Mediator, val stage: Stage) : Task<Exception?>() {
 
         init {
             setOnSucceeded { event ->
                 val result = get()
-                result.first?.let {
-                    stage.hide()
-                    mediator.rnartist.stage.show()
-                    mediator.rnartist.stage.toFront()
-                    mediator.sideWindow.stage.show()
-                }
-                result.second?.let {
+                result?.let {
                     stage.hide()
                     val alert = Alert(Alert.AlertType.ERROR)
                     alert.title = "I got a problem"
@@ -141,15 +136,16 @@ class SplashWindow(val mediator: Mediator) {
                     expContent.add(textArea, 0, 1)
                     alert.dialogPane.expandableContent = expContent
                     alert.showAndWait()
-                    mediator.rnartist.stage.show()
-                    mediator.rnartist.stage.toFront()
-                    mediator.sideWindow.stage.show()
-                    mediator.sideWindow.stage.toFront()
                 }
+                stage.hide()
+                mediator.rnartist.stage.show()
+                mediator.rnartist.stage.toFront()
+                mediator.sideWindow.stage.show()
+                mediator.projectsPanel.loadProjects()
             }
         }
 
-        override fun call(): Pair<Map<String, List<String>>?, Exception?> {
+        override fun call(): Exception? {
             try {
                 if (mediator.embeddedDB.getProjects().size() != 0L && File(RnartistConfig.projectsFolder).listFiles(
                         FileFilter { it.isDirectory }).isEmpty()
@@ -219,15 +215,14 @@ class SplashWindow(val mediator: Mediator) {
                 }
                 updateMessage("Checking configuration..")
                 Thread.sleep(2000)
-                val projects = mutableMapOf<String, MutableList<String>>()
                 var step = 0.0
                 do {
                     updateProgress(step++, 100.0)
                     Thread.sleep(5)
                 } while (step < 100.0)
-                return Pair(projects, null)
+                return null
             } catch (e: Exception) {
-                return Pair(null, e)
+                return e
             }
         }
     }

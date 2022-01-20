@@ -38,7 +38,6 @@ class DrawingsLoadedPanel(val mediator: Mediator): BorderPane() {
     init {
         val items: ObservableList<DrawingLoaded> = FXCollections.observableArrayList(DrawingLoaded.extractor())
         this.gridview.items = items
-        this.gridview.padding = Insets(20.0, 20.0, 20.0, 20.0)
         this.gridview.horizontalCellSpacing = 20.0
         this.gridview.verticalCellSpacing = 20.0
         this.gridview.cellWidth = 200.0

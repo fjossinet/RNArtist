@@ -50,7 +50,7 @@ open class LocationKw(parent:DSLElement, script: Script, indentLevel:Int): Optio
             if (getLocation() == null && script.mediator.canvas2D.getSelectedPositions().isNotEmpty()) {
                 script.mediator.drawingDisplayed.get()?.let {
 
-                    val location = if (it.drawing.secondaryStructure.rna.useNumberingSystem)
+                    val location = if (it.drawing.secondaryStructure.rna.useAlignmentNumberingSystem)
                         it.drawing.secondaryStructure.rna.mapLocation(Location(script.mediator.canvas2D.getSelectedPositions().toIntArray()))
                     else
                         Location(script.mediator.canvas2D.getSelectedPositions().toIntArray())

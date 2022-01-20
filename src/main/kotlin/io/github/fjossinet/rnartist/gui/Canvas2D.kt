@@ -5,7 +5,6 @@ import io.github.fjossinet.rnartist.core.model.DrawingElement
 import io.github.fjossinet.rnartist.core.model.JunctionDrawing
 import io.github.fjossinet.rnartist.core.model.ResidueDrawing
 import io.github.fjossinet.rnartist.core.model.StructuralDomainDrawing
-import javafx.application.Platform
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
@@ -111,7 +110,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
             return drawingDisplayed.selectionShapes.map { it.element }
         }
-        return listOf<DrawingElement>()
+        return listOf()
     }
 
     fun getSelectedPositions(): List<Int> {
