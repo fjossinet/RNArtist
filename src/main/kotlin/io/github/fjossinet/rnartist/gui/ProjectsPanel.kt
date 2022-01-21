@@ -126,7 +126,6 @@ class ProjectsPanel(val mediator: Mediator):BorderPane() {
             projectName.style = "-fx-font-weight: bold"
             deleteProject.onMouseClicked = EventHandler { event ->
                 val alert = Alert(Alert.AlertType.CONFIRMATION)
-                alert.initOwner(mediator.rnartist.stage)
                 alert.initModality(Modality.WINDOW_MODAL)
                 alert.title = "Confirm Deletion"
                 alert.headerText = null

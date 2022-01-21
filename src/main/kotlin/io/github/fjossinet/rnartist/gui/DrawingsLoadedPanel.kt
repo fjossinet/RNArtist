@@ -107,7 +107,7 @@ class DrawingsLoadedPanel(val mediator: Mediator): BorderPane() {
                 alert.initModality(Modality.WINDOW_MODAL)
                 alert.title = "Confirm Deletion"
                 alert.headerText = null
-                alert.contentText = "Are you sure to delete this project?"
+                alert.contentText = "Are you sure to delete this 2D?"
                 val alerttStage = alert.dialogPane.scene.window as Stage
                 alerttStage.isAlwaysOnTop = true
                 alerttStage.toFront()

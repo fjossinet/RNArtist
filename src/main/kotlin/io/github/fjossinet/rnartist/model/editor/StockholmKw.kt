@@ -25,6 +25,7 @@ class StockholmKw(parent:SecondaryStructureInputKw, script: Script, indentLevel:
                 this.indentLevel + 1
             )
         )
+        this.children.add(OptionalDSLParameter(this, script, "numbering", StringWithoutQuotes(this, script,"use"), Operator(this, script,"alignment"), StringWithoutQuotes(this, script,"numbering"), this.indentLevel+1))
 
         addButton.mouseReleased = {
             this.inFinalScript = true

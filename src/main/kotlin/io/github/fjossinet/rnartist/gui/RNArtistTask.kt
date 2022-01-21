@@ -515,6 +515,17 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                                         (secondaryStructureInputKw.searchFirst { themeChild -> themeChild is StockholmKw && !themeChild.inFinalScript } as StockholmKw)
                                     stockholmKw.addButton.fire()
                                     elementChild.attributes.forEach { attribute ->
+                                        if (attribute.startsWith("use alignment numbering")) {
+                                            val parameter =
+                                                stockholmKw.searchFirst {
+                                                    it is OptionalDSLParameter && "use".equals(
+                                                        it.key.text.text
+                                                    ) && "alignment".equals(it.operator.text.text.trim()) && "numbering".equals(
+                                                        it.value.text.text
+                                                    )
+                                                } as OptionalDSLParameter
+                                            parameter.addButton.fire()
+                                        }
                                         val tokens = attribute.split("=")
                                         if ("file".equals(tokens.first().trim())) {
                                             val parameter =

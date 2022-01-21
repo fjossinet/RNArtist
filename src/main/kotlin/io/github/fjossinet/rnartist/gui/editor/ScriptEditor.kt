@@ -3,7 +3,8 @@ package io.github.fjossinet.rnartist.gui.editor
 import com.google.gson.JsonParser
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.core.model.*
+import io.github.fjossinet.rnartist.core.model.Location
+import io.github.fjossinet.rnartist.core.model.getHTMLColorString
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
@@ -16,7 +17,11 @@ import javafx.geometry.HPos
 import javafx.geometry.Insets
 import javafx.scene.Node
 import javafx.scene.control.*
-import javafx.scene.layout.*
+import javafx.scene.control.ColorPicker
+import javafx.scene.layout.BorderPane
+import javafx.scene.layout.GridPane
+import javafx.scene.layout.Region
+import javafx.scene.layout.VBox
 import javafx.scene.text.Font
 import javafx.scene.text.TextFlow
 import javafx.stage.DirectoryChooser
@@ -29,10 +34,14 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.Desktop
 import java.awt.geom.Rectangle2D
-import java.io.*
+import java.io.File
+import java.io.FileFilter
+import java.io.FileReader
+import java.io.StringReader
 import java.net.URL
 import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
+
 
 abstract class Script(var mediator: Mediator) : TextFlow() {
 
@@ -355,10 +364,20 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         menuItem = MenuItem("Rfam DB")
         menuItem.onAction = EventHandler {
             mediator.scriptEditor.currentScriptLocation = null
-            RNArtistTaskWindow(mediator).task = LoadScript(
-                mediator,
-                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_rfam.kts"))
-            )
+            val inputdialog = TextInputDialog("RF01072")
+            inputdialog.contentText = "Rfam ID: "
+            inputdialog.headerText = "Enter your Rfam ID"
+
+            val rfamID = inputdialog.showAndWait()
+
+            if (!rfamID.isEmpty) {
+                RNArtistTaskWindow(mediator).task = LoadScript(
+                    mediator,
+                    script = StringReader(URL("https://raw.githubusercontent.com/fjossinet/Rfam-for-RNArtist/main/data/${rfamID.get()}/rnartist.kts").readText())
+                )
+            }
+
+
         }
         fromDatabasesMenu.items.add(menuItem)
 
