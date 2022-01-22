@@ -61,4 +61,10 @@ class RNArtistKw(script: Script, indentLevel:Int = 0, val id:String= UUID.random
 
     fun getSecondaryStructureKw():SecondaryStructureInputKw = this.searchFirst { it is SecondaryStructureInputKw } as SecondaryStructureInputKw
 
+    fun getSVGKw(): SVGKw = this.searchFirst { it is SVGKw } as SVGKw
+
+    fun getPNGKw(): PNGKw = this.searchFirst { it is PNGKw } as PNGKw
+
+    fun getChimeraKw(): ChimeraKw = this.searchFirst { it is ChimeraKw } as ChimeraKw
+
 }

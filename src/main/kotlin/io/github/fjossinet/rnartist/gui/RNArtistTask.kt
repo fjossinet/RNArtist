@@ -20,9 +20,100 @@ import java.awt.geom.Rectangle2D
 import java.io.*
 import java.lang.StringBuilder
 import java.net.URL
+import java.nio.file.Paths
 
 abstract class RNArtistTask(val mediator: Mediator) : Task<Pair<Any?, Exception?>>() {
     var rnartistTaskWindow: RNArtistTaskWindow? = null
+}
+
+class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
+
+    init {
+        setOnSucceeded { event ->
+            this.rnartistTaskWindow?.stage?.hide()
+            val result = get()
+            result.first?.let { scriptResult ->
+            }
+            result.second?.let {
+                val alert = Alert(Alert.AlertType.ERROR)
+                alert.dialogPane.minWidth = Region.USE_PREF_SIZE
+                alert.dialogPane.minHeight = Region.USE_PREF_SIZE
+                alert.title = "I got a problem"
+                alert.headerText = "RNArtist got a problem"
+                alert.contentText =
+                    "You can send the exception stacktrace below to fjossinet@gmail.com"
+                val sw = StringWriter()
+                val pw = PrintWriter(sw)
+                it.printStackTrace(pw)
+                val exceptionText = sw.toString()
+
+                val label = Label("The exception stacktrace was:")
+
+                val textArea = TextArea(exceptionText)
+                textArea.isEditable = false
+                textArea.isWrapText = true
+
+                textArea.maxWidth = Double.MAX_VALUE
+                textArea.maxHeight = Double.MAX_VALUE
+                GridPane.setVgrow(textArea, Priority.ALWAYS)
+                GridPane.setHgrow(textArea, Priority.ALWAYS)
+
+                val expContent = GridPane()
+                expContent.maxWidth = Double.MAX_VALUE
+                expContent.add(label, 0, 0)
+                expContent.add(textArea, 0, 1)
+                alert.dialogPane.expandableContent = expContent
+                alert.showAndWait()
+            }
+        }
+    }
+
+    override fun call(): Pair<Any?, Exception?> {
+        try {
+            Platform.runLater {
+                updateMessage("Export data..")
+            }
+            Thread.sleep(100)
+            val svgKw = mediator.scriptEditor.script.getScriptRoot().getSVGKw()
+            if (svgKw.inFinalScript) {
+                svgKw.path?.let { path ->
+                    mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
+                        Platform.runLater() {
+                            it.drawing.asSVG(
+                                Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
+                                null,
+                                Paths.get(path).resolve("${it.drawing.name}.svg").toFile()
+                            )
+                        }
+                        Thread.sleep(100)
+                    }
+                }
+            }
+            val pngKw = mediator.scriptEditor.script.getScriptRoot().getPNGKw()
+            if (pngKw.inFinalScript) {
+                pngKw.path?.let { path ->
+                    mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
+                        Platform.runLater() {
+                            it.drawing.asPNG(
+                                Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
+                                null,
+                                Paths.get(path).resolve("${it.drawing.name}.png").toFile()
+                            )
+                        }
+                        Thread.sleep(100)
+                    }
+                }
+            }
+            val chimeraKw = mediator.scriptEditor.script.getScriptRoot().getChimeraKw()
+            if (chimeraKw.inFinalScript) {
+
+            }
+            return Pair(null, null)
+        } catch (e: Exception) {
+            return Pair(null, e)
+        }
+    }
+
 }
 
 class ApplyThemeAndLayout(mediator: Mediator) : RNArtistTask(mediator) {

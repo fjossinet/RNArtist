@@ -4,6 +4,21 @@ import io.github.fjossinet.rnartist.gui.editor.Script
 
 class PNGKw (parent:RNArtistKw, script: Script, indentLevel:Int): OptionalDSLKeyword(parent, script,  "png", indentLevel) {
 
+    var path:String? = null
+        get() = (this.children.get(0) as DSLParameter).value.text.text.replace("\"","")
+
+    var width: Double = 800.0
+        get() = if ((this.children.get(1) as OptionalDSLParameter).inFinalScript)
+            (this.children.get(1) as OptionalDSLParameter).value.text.text.toDouble()
+        else
+            800.0
+
+    var height: Double = 800.0
+        get() = if ((this.children.get(2) as OptionalDSLParameter).inFinalScript)
+            (this.children.get(2) as OptionalDSLParameter).value.text.text.toDouble()
+        else
+            800.0
+
     init {
         this.children.add(
             DSLParameter(this,

@@ -635,8 +635,19 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
 
         l = Label("Run Script")
         GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0, 2, 1)
+        GridPane.setConstraints(l, 0, 0, 3, 1)
         runPane.children.add(l)
+
+        val exportInFiles = Button(null, FontIcon("fas-file:15"))
+
+        exportInFiles.onAction = EventHandler {
+            Platform.runLater {
+                RNArtistTaskWindow(mediator).task = ApplyExportInScript(mediator)
+            }
+        }
+
+        GridPane.setConstraints(exportInFiles, 0, 1)
+        runPane.children.add(exportInFiles)
 
         val runThemeAndLayout = Button(null, FontIcon("fas-magic:15"))
 
@@ -646,7 +657,7 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
             }
         }
 
-        GridPane.setConstraints(runThemeAndLayout, 0, 1, 1, 1)
+        GridPane.setConstraints(runThemeAndLayout, 1, 1)
         runPane.children.add(runThemeAndLayout)
 
         val runEntireScript = Button(null, FontIcon("fas-play:15"))
@@ -657,7 +668,7 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
             }
         }
 
-        GridPane.setConstraints(runEntireScript, 1, 1, 1, 1)
+        GridPane.setConstraints(runEntireScript, 2, 1)
         runPane.children.add(runEntireScript)
 
         val s1 = Separator()
