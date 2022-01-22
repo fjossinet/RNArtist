@@ -3,6 +3,7 @@ package io.github.fjossinet.rnartist.gui.editor
 import com.google.gson.JsonParser
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
+import io.github.fjossinet.rnartist.core.model.JunctionDrawing
 import io.github.fjossinet.rnartist.core.model.Location
 import io.github.fjossinet.rnartist.core.model.getHTMLColorString
 import io.github.fjossinet.rnartist.gui.*
@@ -148,7 +149,7 @@ class RNArtistScript(mediator: Mediator) : Script(mediator) {
             addButton.fire()
             var selection = if (mediator.canvas2D.getSelectedPositions()
                     .isEmpty()
-            ) null else Location(mediator.canvas2D.getSelectedPositions().toIntArray())
+            ) null else Location(mediator.canvas2D.getSelection().flatMap { if (it is JunctionDrawing) it.junction.locationWithoutSecondaries.blocks else it.location.blocks })
             selection?.let { sel  ->
                 mediator.drawingDisplayed.get()?.let {
                     if (it.drawing.secondaryStructure.rna.useAlignmentNumberingSystem)
@@ -187,7 +188,7 @@ class RNArtistScript(mediator: Mediator) : Script(mediator) {
             addButton.fire()
             var selection = if (mediator.canvas2D.getSelectedPositions()
                     .isEmpty()
-            ) null else Location(mediator.canvas2D.getSelectedPositions().toIntArray())
+            ) null else Location(mediator.canvas2D.getSelection().flatMap { if (it is JunctionDrawing) it.junction.locationWithoutSecondaries.blocks else it.location.blocks })
             selection?.let { sel  ->
                 mediator.drawingDisplayed.get()?.let {
                     if (it.drawing.secondaryStructure.rna.useAlignmentNumberingSystem)
@@ -228,7 +229,7 @@ class RNArtistScript(mediator: Mediator) : Script(mediator) {
             addButton.fire()
             var selection = if (mediator.canvas2D.getSelectedPositions()
                     .isEmpty()
-            ) null else Location(mediator.canvas2D.getSelectedPositions().toIntArray())
+            ) null else Location(mediator.canvas2D.getSelection().flatMap { if (it is JunctionDrawing) it.junction.locationWithoutSecondaries.blocks else it.location.blocks })
             selection?.let { sel  ->
                 mediator.drawingDisplayed.get()?.let {
                     if (it.drawing.secondaryStructure.rna.useAlignmentNumberingSystem)
