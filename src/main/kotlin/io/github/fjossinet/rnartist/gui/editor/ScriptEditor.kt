@@ -352,6 +352,16 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         }
         fromLocalFilesMenu.items.add(menuItem)
 
+        menuItem = MenuItem("PDB Format")
+        menuItem.onAction = EventHandler {
+            mediator.scriptEditor.currentScriptLocation = null
+            RNArtistTaskWindow(mediator).task = LoadScript(
+                mediator,
+                script = FileReader(File(mediator.rnartist.getInstallDir(), "/samples/scripts/from_pdb_file.kts"))
+            )
+        }
+        fromLocalFilesMenu.items.add(menuItem)
+
         menuItem = MenuItem("Stockholm Format")
         menuItem.onAction = EventHandler {
             mediator.scriptEditor.currentScriptLocation = null

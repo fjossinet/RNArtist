@@ -78,7 +78,7 @@ class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
             if (svgKw.inFinalScript) {
                 svgKw.path?.let { path ->
                     mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
-                        Platform.runLater() {
+                        Platform.runLater {
                             it.drawing.asSVG(
                                 Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
                                 null,
@@ -93,7 +93,7 @@ class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
             if (pngKw.inFinalScript) {
                 pngKw.path?.let { path ->
                     mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
-                        Platform.runLater() {
+                        Platform.runLater {
                             it.drawing.asPNG(
                                 Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
                                 null,
@@ -106,7 +106,16 @@ class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
             }
             val chimeraKw = mediator.scriptEditor.script.getScriptRoot().getChimeraKw()
             if (chimeraKw.inFinalScript) {
-
+                chimeraKw.path?.let { path ->
+                    mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
+                        Platform.runLater {
+                            it.drawing.asChimeraScript(
+                                Paths.get(path).resolve("${it.drawing.name}.cxc").toFile()
+                            )
+                        }
+                        Thread.sleep(100)
+                    }
+                }
             }
             return Pair(null, null)
         } catch (e: Exception) {
