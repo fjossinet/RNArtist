@@ -68,26 +68,6 @@
 
     <dependencies>
 
-        <!-- kotlin -->
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-scripting-jsr223</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-script-runtime</artifactId>
-            <version>${kotlin.version}</version>
-            <scope>compile</scope>
-        </dependency>
-
         <!-- openjfx -->
         <dependency>
             <groupId>org.openjfx</groupId>
@@ -97,11 +77,6 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-web</artifactId>
             <version>${javafx.version}</version>
         </dependency>
         <dependency>
@@ -121,7 +96,7 @@
         <dependency>
             <groupId>org.controlsfx</groupId>
             <artifactId>controlsfx</artifactId>
-            <version>11.1.0</version>
+            <version>11.1.1</version>
         </dependency>
 
         <dependency>
@@ -136,21 +111,12 @@
             <version>12.2.0</version>
         </dependency>
 
-        <!--jdesktop (for SwingWorker) -->
         <dependency>
             <groupId>org.jdesktop</groupId>
             <artifactId>swing-worker</artifactId>
             <version>1.1</version>
         </dependency>
 
-        <!-- gson -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.8.9</version>
-        </dependency>
-
-        <!--rnartistcore -->
         <dependency>
             <groupId>io.github.fjossinet.rnartist</groupId>
             <artifactId>rnartistcore</artifactId>
@@ -160,13 +126,7 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>src/main/kotlin</sourceDirectory>
         <plugins>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M5</version>
-            </plugin>
-
             <!-- kotlin compiler -->
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
@@ -293,11 +253,7 @@
                                 <argument>--module-path</argument>
                                 <argument>${project.basedir}/target/RNArtist/lib/</argument>
                                 <argument>--add-modules</argument>
-                                <argument>javafx.controls,javafx.swing,javafx.web,java.scripting,java.logging</argument>
-                                <argument>--java-options</argument>
-                                <argument>--add-exports javafx.graphics/com.sun.javafx.css=ALL-UNNAMED</argument>
-                                <argument>--java-options</argument>
-                                <argument>--add-opens javafx.controls/javafx.scene.control.skin=ALL-UNNAMED</argument>
+                                <argument>javafx.controls,javafx.swing</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -322,11 +278,7 @@
                                 <argument>--module-path</argument>
                                 <argument>${project.basedir}/target/RNArtist/lib/</argument>
                                 <argument>--add-modules</argument>
-                                <argument>javafx.controls,javafx.swing,javafx.web,java.scripting,java.logging</argument>
-                                <argument>--java-options</argument>
-                                <argument>--add-exports javafx.graphics/com.sun.javafx.css=ALL-UNNAMED</argument>
-                                <argument>--java-options</argument>
-                                <argument>--add-opens javafx.controls/javafx.scene.control.skin=ALL-UNNAMED</argument>
+                                <argument>javafx.controls,javafx.swing</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -351,11 +303,7 @@
                                 <argument>--module-path</argument>
                                 <argument>${project.basedir}/target/RNArtist/lib/</argument>
                                 <argument>--add-modules</argument>
-                                <argument>javafx.controls,javafx.swing,javafx.web,java.scripting,java.logging</argument>
-                                <argument>--java-options</argument>
-                                <argument>--add-exports javafx.graphics/com.sun.javafx.css=ALL-UNNAMED</argument>
-                                <argument>--java-options</argument>
-                                <argument>--add-opens javafx.controls/javafx.scene.control.skin=ALL-UNNAMED</argument>
+                                <argument>javafx.controls,javafx.swing</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -374,11 +322,7 @@
                         <argument>-Xmx500M</argument>
                         <argument>--module-path</argument>
                         <argument>${project.basedir}/target/RNArtist/lib</argument>
-                        <argument>--add-modules=javafx.controls,javafx.swing,javafx.web</argument>
-                        <argument>--add-exports</argument>
-                        <argument>javafx.graphics/com.sun.javafx.css=ALL-UNNAMED</argument>
-                        <argument>--add-opens</argument>
-                        <argument>javafx.controls/javafx.scene.control.skin=ALL-UNNAMED</argument>
+                        <argument>--add-modules=javafx.controls,javafx.swing</argument>
                         <argument>-Dprism.lcdtext=false</argument> <!--anti-aliasing to avoid to have scratched fonts-->
                         <argument>-jar</argument>
                         <argument>${project.basedir}/target/RNArtist/lib/rnartist-1.0.jar</argument>
