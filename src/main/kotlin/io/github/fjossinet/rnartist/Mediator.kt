@@ -10,9 +10,9 @@ import io.github.fjossinet.rnartist.io.ChimeraXDriver
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingsLoadedPanel
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.SideWindow
-import io.github.fjossinet.rnartist.model.editor.DSLElementInt
 import io.github.fjossinet.rnartist.model.editor.RfamKw
 import javafx.beans.property.SimpleObjectProperty
+import java.io.File
 
 class Mediator(val rnartist: RNArtist) {
 
@@ -87,6 +87,8 @@ class Mediator(val rnartist: RNArtist) {
                 ss.source?.let { source ->
                     if (source.toString().startsWith("db:rfam")) {
                         (scriptEditor.script.getScriptRoot().getSecondaryStructureKw().searchFirst  { it is RfamKw && it.inFinalScript && it.getId().equals(source.getId()) } as RfamKw).setName(ss.name)
+                    } else if (source.toString().startsWith("local:file") && source.toString().endsWith("pdb")) {
+                        this.chimeraDriver.loadTertiaryStructure(File(source.getId()))
                     }
                 }
             }
