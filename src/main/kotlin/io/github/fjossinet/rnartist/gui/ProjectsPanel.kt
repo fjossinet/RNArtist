@@ -177,7 +177,7 @@ class ProjectLoaded(val projectDir: File) {
                     File(
                         projectDir,
                         "preview.png"
-                    ).toURI().toURL().toString()
+                    ).toURI().toString()
                 )
             } catch (e: Exception) {
                 e.printStackTrace()

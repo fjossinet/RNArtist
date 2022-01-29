@@ -153,7 +153,7 @@ class DrawingLoaded(val mediator: Mediator, val drawing: SecondaryStructureDrawi
         try {
             val previewFile =  Files.createTempFile("preview", "png")
             this.drawing.asPNG(Rectangle2D.Double(0.0,0.0,200.0,200.0), null, previewFile.toFile())
-            thumbnail = Image(previewFile.toString())
+            thumbnail = Image(previewFile.toUri().toString())
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -169,7 +169,7 @@ class DrawingLoaded(val mediator: Mediator, val drawing: SecondaryStructureDrawi
             }
             val previewFile = Files.createTempFile("preview", "png")
             this.drawing.asPNG(Rectangle2D.Double(0.0,0.0,200.0,200.0), null, previewFile.toFile())
-            thumbnail = Image(previewFile.toString())
+            thumbnail = Image(previewFile.toUri().toString())
             previous?.let {
                 Files.delete(it)
             }
