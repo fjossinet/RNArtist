@@ -1,6 +1,7 @@
 package io.github.fjossinet.rnartist
 
 import io.github.fjossinet.rnartist.core.RnartistConfig
+import io.github.fjossinet.rnartist.core.io.getTmpDirectory
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
@@ -85,8 +86,12 @@ class Mediator(val rnartist: RNArtist) {
             }
             drawingDisplayed.get()?.drawing?.secondaryStructure?.let { ss ->
                 ss.source?.let { source ->
-                    if (source.toString().startsWith("db:rfam")) {
+                    if (source.toString().startsWith("db:rfam")) { //we record in the script the molecule chosen for this Rfam alignment
                         (scriptEditor.script.getScriptRoot().getSecondaryStructureKw().searchFirst  { it is RfamKw && it.inFinalScript && it.getId().equals(source.getId()) } as RfamKw).setName(ss.name)
+                    } else if (source.toString().startsWith("db:pdb")) {
+                        val f = File(getTmpDirectory(), "${source.getId()}.pdb")
+                        f.writeText(PDB().getEntry(source.getId()!!).readText())
+                        this.chimeraDriver.loadTertiaryStructure(f)
                     } else if (source.toString().startsWith("local:file") && source.toString().endsWith("pdb")) {
                         this.chimeraDriver.loadTertiaryStructure(File(source.getId()))
                     }
