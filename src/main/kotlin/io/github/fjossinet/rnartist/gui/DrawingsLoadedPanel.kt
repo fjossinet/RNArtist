@@ -157,10 +157,6 @@ class DrawingLoaded(val mediator: Mediator, val drawing: SecondaryStructureDrawi
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        this.selectionShapes.addListener(ListChangeListener {
-            mediator.rnartist.paintSelectionin3D.isDisable =
-                !(!this.selectionShapes.isEmpty() && mediator.chimeraDriver.pdbFile != null)
-        })
 
         this.layoutAndThemeUpdated.addListener { _, _, _ ->
             var previous:Path? = null

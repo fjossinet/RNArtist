@@ -1047,7 +1047,7 @@ class RNArtist : Application() {
 
         this.paintSelectionin3D = Button(null, FontIcon("fas-fill:15"))
         this.paintSelectionin3D.setDisable(true)
-        this.paintSelectionin3D.setOnMouseClicked(EventHandler<MouseEvent?> { mediator.chimeraDriver.color3D(mediator.canvas2D.getSelectedResidues()) })
+        this.paintSelectionin3D.setOnMouseClicked( { mediator.chimeraDriver.color3D(mediator.canvas2D.getSelectedResidues()) })
         this.paintSelectionin3D.setTooltip(Tooltip("Paint 3D selection"))
 
         leftToolBar.add(this.paintSelectionin3D, 0, row++)

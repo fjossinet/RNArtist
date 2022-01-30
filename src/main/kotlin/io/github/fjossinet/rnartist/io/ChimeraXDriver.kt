@@ -9,6 +9,7 @@ import io.github.fjossinet.rnartist.core.io.copyFile
 import io.github.fjossinet.rnartist.core.io.createTemporaryFile
 import io.github.fjossinet.rnartist.core.io.parsePDB
 import io.github.fjossinet.rnartist.io.javaFXToAwt
+import javafx.application.Platform
 import javafx.scene.control.Alert
 import java.io.*
 import java.net.HttpURLConnection
@@ -26,10 +27,8 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
             object : SwingWorker<Any?, Any?>() {
                 @Throws(Exception::class)
                 override fun doInBackground(): Any? {
-                    println(command)
-                    val data = URLEncoder.encode("command", "UTF-8") + "=" + URLEncoder.encode(command, "UTF-8")
 
-                    println(baseURL+"?"+data)
+                    val data = URLEncoder.encode("command", "UTF-8") + "=" + URLEncoder.encode(command, "UTF-8")
 
                     val url = URL(baseURL+"?"+data)
 
@@ -41,14 +40,24 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
                         }
                     }
 
-                    println(response)
-
+                    if (command.trim().equals("version")) {
+                        Platform.runLater {
+                            response?.trim()?.let {
+                                mediator.settings.chimeraConnected(it.startsWith("UCSF ChimeraX version:"))
+                            } ?: run {
+                                mediator.settings.chimeraConnected(false)
+                            }
+                        }
+                        Thread.sleep(100)
+                    }
                     return null
                 }
             }.execute()
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        if (command.trim().equals("version"))
+            mediator.settings.chimeraConnected(false)
         return null
     }
 

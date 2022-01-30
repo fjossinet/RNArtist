@@ -63,6 +63,8 @@ class Mediator(val rnartist: RNArtist) {
 
     init {
 
+        this.chimeraDriver.connectToRestServer() //to see if at start, RNArtist can connect to ChimeraX rest Server with the current parameters
+
         this.drawingDisplayed.addListener {
                 observableValue, oldValue, newValue ->
 

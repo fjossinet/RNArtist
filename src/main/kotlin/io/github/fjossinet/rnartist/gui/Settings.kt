@@ -15,9 +15,10 @@ import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.stage.DirectoryChooser
 import org.kordamp.ikonli.javafx.FontIcon
-import java.io.File
 
 class Settings(mediator: Mediator):VBox() {
+
+    val chimeraXConnectionStatus:Label
 
     init {
         this.padding = Insets(10.0, 10.0, 10.0, 10.0)
@@ -72,15 +73,25 @@ class Settings(mediator: Mediator):VBox() {
         val connect2Docker = Button("Test Connection")
         dockerPane.children.add(connect2Docker)
         GridPane.setConstraints(connect2Docker, 0, 2)
+        val status = RnartistConfig.isDockerInstalled() && RnartistConfig.isDockerImageInstalled()
+        var connectionStatus = Label(null, if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15"))
+        if (status) (connectionStatus.graphic as FontIcon).fill = Color.GREEN else (connectionStatus.graphic as FontIcon).fill =
+            Color.RED
         connect2Docker.onMouseClicked = EventHandler {
             try {
+                val status = RnartistConfig.isDockerInstalled() && RnartistConfig.isDockerImageInstalled()
+                connectionStatus.graphic =
+                    if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
+                connectionStatus.tooltip =
+                    Tooltip(if (status) "I found RNAVIEW! You can open PDB files" else "RNAVIEW not found! You cannot open PDB files!")
+                if (status) (connectionStatus.graphic as FontIcon).fill =
+                    Color.GREEN else (connectionStatus.graphic as FontIcon).fill =
+                    Color.RED
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-        var connectionStatus = Label(null, if (false) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15"))
-        if (false) (connectionStatus.graphic as FontIcon).fill = Color.GREEN else (connectionStatus.graphic as FontIcon).fill =
-            Color.RED
+
         dockerPane.children.add(connectionStatus)
         GridPane.setConstraints(connectionStatus, 1, 2)
 
@@ -128,11 +139,11 @@ class Settings(mediator: Mediator):VBox() {
                 e.printStackTrace()
             }
         }
-        connectionStatus = Label(null, if (false) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15"))
-        if (false) (connectionStatus.graphic as FontIcon).fill = Color.GREEN else (connectionStatus.graphic as FontIcon).fill =
-            Color.RED
-        chimeraPane.children.add(connectionStatus)
-        GridPane.setConstraints(connectionStatus, 5, 2)
+
+        this.chimeraXConnectionStatus = Label(null, FontIcon("fas-check-circle:15"))
+        (this.chimeraXConnectionStatus.graphic as FontIcon).fill = Color.RED
+        chimeraPane.children.add(this.chimeraXConnectionStatus)
+        GridPane.setConstraints(this.chimeraXConnectionStatus, 5, 2)
 
         val optionsPane = GridPane()
         optionsPane.padding = Insets(10.0, 5.0, 15.0, 5.0)
@@ -157,6 +168,12 @@ class Settings(mediator: Mediator):VBox() {
         }
         optionsPane.children.add(svgBrowserFix)
         GridPane.setConstraints(svgBrowserFix, 1, 2)
+    }
+
+    fun chimeraConnected(connected:Boolean) {
+        chimeraXConnectionStatus.graphic =
+            if (connected) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
+        (chimeraXConnectionStatus.graphic as FontIcon).fill = if (connected) Color.GREEN else Color.RED
     }
 
 }

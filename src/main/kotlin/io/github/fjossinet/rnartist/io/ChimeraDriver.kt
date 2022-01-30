@@ -36,7 +36,6 @@ open class ChimeraDriver(val mediator:Mediator) {
     //the tertiary structures are constructed from the parsing of the PDB file. They're mainly used to get the numbering system for each molecular chain when some residues are selected in the Canvas2D.
     var tertiaryStructures: MutableList<TertiaryStructure>
 
-
     init {
         tertiaryStructures = ArrayList()
         try {
@@ -79,7 +78,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     """.trimIndent())
                         wr.close()
                         rd.close()
-                        //return result.toString();
+                        return result.toString();
                     }
                     return null
                 }
