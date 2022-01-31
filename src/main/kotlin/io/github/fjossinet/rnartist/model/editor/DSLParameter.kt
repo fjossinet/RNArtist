@@ -61,11 +61,11 @@ open class DSLParameter(parent:DSLElement, script: Script, var key:ParameterFiel
         nodes.add(Text(System.lineSeparator()))
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         (0 until indentLevel).forEach {
             text.append(" ")
         }
-        children.forEach { it.dumpText(text) }
+        children.forEach { it.dumpText(text, useAbsolutePath) }
         text.append(System.lineSeparator())
     }
 

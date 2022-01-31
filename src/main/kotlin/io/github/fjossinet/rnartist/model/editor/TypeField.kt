@@ -2,7 +2,6 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.gui.editor.DataField
 import io.github.fjossinet.rnartist.gui.editor.Script
-import io.github.fjossinet.rnartist.gui.editor.TextField
 import io.github.fjossinet.rnartist.gui.editor.TypeChooser
 import javafx.event.EventHandler
 import javafx.scene.Node
@@ -57,7 +56,7 @@ class TypeField(parent:DSLElementInt, script: Script, value:String = "", val res
             nodes.add(this.text)
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         if (this.text.text.replace("\"", "").isNotEmpty())
             text.append(this.text.text)
     }

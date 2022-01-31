@@ -11,10 +11,6 @@ import java.io.File
 class FileField(parent: DSLElementInt, script: Script, value: String = "") :
     StringWithQuotes(parent, script, value, true) {
 
-    companion object {
-        var useAbsolutePath = false
-    }
-
     init {
         this.text.fill = Color.web("#4d4d4d")
         this.text.onMouseClicked = EventHandler {
@@ -46,7 +42,7 @@ class FileField(parent: DSLElementInt, script: Script, value: String = "") :
             nodes.add(this.text)
     }
 
-    override fun dumpText(text: StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         if (this.text.text.replace("\"", "").isNotEmpty()) {
             var inputPath = this.text.text.replace("\"", "")
             if (useAbsolutePath && !inputPath.startsWith("/") /*unix*/ && !inputPath.matches(Regex("^[A-Z]:/.+")) /*windows*/ && script.mediator.scriptEditor.currentScriptLocation != null) {

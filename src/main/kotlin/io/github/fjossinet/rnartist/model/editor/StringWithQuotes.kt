@@ -66,7 +66,7 @@ open class StringWithQuotes(parent:DSLElementInt, script: Script, value:String =
         }
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         if (this.text.text.replace("\"", "").isNotEmpty())
             text.append(this.text.text)
     }

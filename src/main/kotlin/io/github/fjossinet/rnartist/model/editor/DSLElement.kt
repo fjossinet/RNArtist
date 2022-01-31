@@ -22,7 +22,7 @@ interface DSLElementInt {
      */
     fun dumpNodes(nodes:MutableList<Node>)
 
-    fun dumpText(text:StringBuilder)
+    fun dumpText(text:StringBuilder, useAbsolutePath:Boolean = false)
 
     fun searchFirst(query:(DSLElementInt) -> Boolean ):DSLElementInt?
 
@@ -78,12 +78,12 @@ open class DSLElement(val parent:DSLElementInt, val script: Script, text:String?
         }
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         (0 until indentLevel).forEach {
             text.append(" ")
         }
         text.append(this.text.text)
-        children.forEach { it.dumpText(text) }
+        children.forEach { it.dumpText(text, useAbsolutePath) }
     }
 
     override fun searchFirst(query:(DSLElementInt) -> Boolean ):DSLElementInt? {

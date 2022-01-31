@@ -5,7 +5,6 @@ import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.model.JunctionType
 import io.github.fjossinet.rnartist.gui.editor.RNArtistScript
 import io.github.fjossinet.rnartist.model.editor.*
-import javafx.application.Platform
 import javafx.concurrent.Task
 import javafx.event.EventHandler
 import javafx.geometry.Insets
@@ -185,7 +184,7 @@ class SplashWindow(val mediator: Mediator) {
                             updateMessage("Migrating structure for project ${project.get("name")}..")
                             with(layoutScript.getScriptRoot().getSecondaryStructureKw()) {
                                 addButton.fire()
-                                with(getRawSSKw()) {
+                                with(getPartsKw()) {
                                     setSecondaryStructure(secondaryStructure)
                                 }
                             }

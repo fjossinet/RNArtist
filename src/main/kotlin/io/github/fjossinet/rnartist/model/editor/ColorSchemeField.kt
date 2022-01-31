@@ -56,7 +56,7 @@ class ColorSchemeField(parent:DSLElementInt, script: Script, value:String = ""):
             nodes.add(this.text)
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         if (this.text.text.replace("\"", "").isNotEmpty())
             text.append(this.text.text)
     }

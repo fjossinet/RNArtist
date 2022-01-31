@@ -61,7 +61,7 @@ class FloatField(parent:DSLElementInt, script: Script, value:String = ""): Param
             super.dumpNodes(nodes)
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         if (this.text.text.isNotEmpty())
             text.append(this.text.text)
     }

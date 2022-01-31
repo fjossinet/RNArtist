@@ -27,6 +27,7 @@ import org.controlsfx.control.GridView
 import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.geom.Rectangle2D
 import java.io.File
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -161,7 +162,7 @@ class DrawingLoaded(val mediator: Mediator, val drawing: SecondaryStructureDrawi
         this.layoutAndThemeUpdated.addListener { _, _, _ ->
             var previous:Path? = null
             this.thumbnail?.let {
-                previous = Paths.get(it.url)
+                previous = Paths.get(URI(it.url))
             }
             val previewFile = Files.createTempFile("preview", "png")
             this.drawing.asPNG(Rectangle2D.Double(0.0,0.0,200.0,200.0), null, previewFile.toFile())

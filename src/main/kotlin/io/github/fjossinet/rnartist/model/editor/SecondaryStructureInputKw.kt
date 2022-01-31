@@ -16,6 +16,6 @@ class SecondaryStructureInputKw(parent:RNArtistKw, script: Script, indentLevel:I
         this.children.add(RNACentralKw(this, script, this.indentLevel + 1))
     }
 
-    fun getRawSSKw():PartsKw = this.searchFirst { it is PartsKw } as PartsKw
+    fun getPartsKw():PartsKw = this.searchFirst { it is PartsKw } as PartsKw
 
 }

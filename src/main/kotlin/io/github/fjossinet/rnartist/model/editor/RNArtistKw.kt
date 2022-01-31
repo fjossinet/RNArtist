@@ -30,7 +30,7 @@ class Root:DSLElementInt {
         TODO("Not yet implemented")
     }
 
-    override fun dumpText(text: StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         TODO("Not yet implemented")
     }
 

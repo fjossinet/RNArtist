@@ -16,7 +16,7 @@ import javafx.scene.paint.Color
 import javafx.stage.DirectoryChooser
 import org.kordamp.ikonli.javafx.FontIcon
 
-class Settings(mediator: Mediator):VBox() {
+class Settings(val mediator: Mediator):VBox() {
 
     val chimeraXConnectionStatus:Label
 
@@ -120,7 +120,7 @@ class Settings(mediator: Mediator):VBox() {
         val portValue = TextField("$chimeraPort")
         chimeraPane.children.add(portValue)
         GridPane.setConstraints(portValue, 3, 2)
-        val connect2ChimeraRest = Button("Test Connection")
+        val connect2ChimeraRest = Button("Connect")
         chimeraPane.children.add(connect2ChimeraRest)
         GridPane.setConstraints(connect2ChimeraRest, 4, 2)
         connect2ChimeraRest.onMouseClicked = EventHandler {
@@ -174,6 +174,8 @@ class Settings(mediator: Mediator):VBox() {
         chimeraXConnectionStatus.graphic =
             if (connected) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
         (chimeraXConnectionStatus.graphic as FontIcon).fill = if (connected) Color.GREEN else Color.RED
+        if (connected)
+            mediator.chimeraDriver.displayCurrent3D()
     }
 
 }

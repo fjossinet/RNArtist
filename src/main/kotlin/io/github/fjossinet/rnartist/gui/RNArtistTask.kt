@@ -5,6 +5,7 @@ import io.github.fjossinet.rnartist.core.io.ScriptElement
 import io.github.fjossinet.rnartist.core.io.copyFile
 import io.github.fjossinet.rnartist.core.io.parseDSLScript
 import io.github.fjossinet.rnartist.core.model.*
+import io.github.fjossinet.rnartist.gui.editor.Script
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
 import io.github.fjossinet.rnartist.model.editor.*
@@ -175,10 +176,8 @@ class ApplyThemeAndLayout(mediator: Mediator) : RNArtistTask(mediator) {
                 updateMessage("Applying theme & layout..")
             }
             Thread.sleep(100)
-            FileField.useAbsolutePath = true
-            val theme = mediator.scriptEditor.engine.eval(mediator.scriptEditor.getThemeAsText()) as? Theme
-            val layout = mediator.scriptEditor.engine.eval(mediator.scriptEditor.getLayoutAsText()) as? Layout
-            FileField.useAbsolutePath = false
+            val theme = mediator.scriptEditor.engine.eval(mediator.scriptEditor.getThemeAsText(useAbsolutePath= true)) as? Theme
+            val layout = mediator.scriptEditor.engine.eval(mediator.scriptEditor.getLayoutAsText(useAbsolutePath= true)) as? Layout
             //println(scriptContent)
             Thread.sleep(100)
             var totalProgress = mediator.drawingsLoadedPanel.count().toDouble()
@@ -261,10 +260,8 @@ class RunEntireScript(mediator: Mediator) : RNArtistTask(mediator) {
                 updateMessage("Running script..")
             }
             Thread.sleep(100)
-            FileField.useAbsolutePath = true
-            val scriptContent = mediator.scriptEditor.getEntireScriptAsText()
-            FileField.useAbsolutePath = false
-            //println(scriptContent)
+            val scriptContent = mediator.scriptEditor.getEntireScriptAsText(useAbsolutePath= true)
+            println(scriptContent)
             val result = mediator.scriptEditor.engine.eval(scriptContent)
             Platform.runLater {
                 updateMessage("Loading new 2Ds...")
@@ -500,8 +497,8 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                                         if ("source".equals(tokens.first().trim())) {
                                             val tokens = attribute.split("=")
                                             val p = partsKw.searchFirst {
-                                                it is OptionalDSLParameter && "source".equals(it.key.text.text.trim())
-                                            } as OptionalDSLParameter
+                                                it is SourceParameter
+                                            } as SourceParameter
                                             p.value.text.text = tokens.last().trim()
                                             p.addButton.fire()
                                         }
@@ -1318,15 +1315,28 @@ class SaveProject(mediator: Mediator, val projectDir: File) : RNArtistTask(media
             Thread.sleep(100)
             mediator.scriptEditor.getInputFileFields().forEach { inputFileField ->
                 val inputPath = StringBuilder()
-                FileField.useAbsolutePath = true
-                inputFileField.getFileField().dumpText(inputPath)
-                FileField.useAbsolutePath = false
+                inputFileField.getFileField().dumpText(inputPath, useAbsolutePath = true)
                 if (inputPath.isNotEmpty()) {
                     val inputFile = File(inputPath.toString().replace("\"",""))
                     val outputFile = File(projectDir, inputFile.name)
                     if (!outputFile.exists()) { //if we copy a file over itself, it becomes empty
                         copyFile(inputFile, outputFile)
                         inputFileField.getFileField().text.text = "\"${outputFile.name}\""
+                    }
+                }
+            }
+
+            with(mediator.scriptEditor.script.getScriptRoot().getSecondaryStructureKw().getPartsKw()) {
+                if (inFinalScript) {
+                    val source = searchFirst { it is SourceParameter} as SourceParameter
+                    val sourceValue = source.value.text.text.replace("\"","")
+                    if (sourceValue.startsWith("local:file:")) {
+                        val inputFile = File(sourceValue.split("local:file:").last())
+                        val outputFile = File(projectDir, inputFile.name)
+                        if (!outputFile.exists()) { //if we copy a file over itself, it becomes empty
+                            copyFile(inputFile, outputFile)
+                            source.value.text.text = "\"local:file:${outputFile.name}\""
+                        }
                     }
                 }
             }

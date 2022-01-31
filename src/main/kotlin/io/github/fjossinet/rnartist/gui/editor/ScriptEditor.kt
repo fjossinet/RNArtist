@@ -863,23 +863,23 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         this.center = scrollpane
     }
 
-    fun getEntireScriptAsText(): String {
+    fun getEntireScriptAsText(useAbsolutePath: Boolean = false): String {
         val scriptContent = StringBuilder()
-        script.getScriptRoot().dumpText(scriptContent)
+        script.getScriptRoot().dumpText(scriptContent, useAbsolutePath)
         return "import io.github.fjossinet.rnartist.core.*${System.lineSeparator()}${System.lineSeparator()} ${scriptContent}"
     }
 
-    fun getLayoutAsText(): String {
+    fun getLayoutAsText(useAbsolutePath:Boolean= false): String {
         val scriptContent = StringBuilder()
         val layoutKw = script.getScriptRoot().getLayoutKw()
-        layoutKw.dumpText(scriptContent)
+        layoutKw.dumpText(scriptContent, useAbsolutePath)
         return "import io.github.fjossinet.rnartist.core.*${System.lineSeparator()}${System.lineSeparator()} ${scriptContent}"
     }
 
-    fun getThemeAsText(): String {
+    fun getThemeAsText(useAbsolutePath:Boolean= false): String {
         val scriptContent = StringBuilder()
         val themeKw = script.getScriptRoot().getThemeKw()
-        themeKw.dumpText(scriptContent)
+        themeKw.dumpText(scriptContent, useAbsolutePath)
         return "import io.github.fjossinet.rnartist.core.*${System.lineSeparator()}${System.lineSeparator()} ${scriptContent}"
     }
 

@@ -60,14 +60,14 @@ open class OptionalDSLKeyword(parent:DSLElementInt, script: Script, text:String,
         }
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         if (inFinalScript) {
             (0 until indentLevel).forEach {
                 text.append(" ")
             }
             text.append(this.text.text, " ", this.openedCurly.text.text, System.lineSeparator())
-            children.forEach { it.dumpText(text) }
-            this.closedCurly.dumpText(text)
+            children.forEach { it.dumpText(text, useAbsolutePath) }
+            this.closedCurly.dumpText(text, useAbsolutePath)
         }
     }
 

@@ -62,13 +62,13 @@ abstract class DSLKeyword(parent:DSLElementInt, script: Script, text:String, ind
 
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         (0 until indentLevel).forEach {
             text.append(" ")
         }
         text.append(this.text.text, " ", this.openedCurly.text.text, System.lineSeparator())
-        children.forEach { it.dumpText(text) }
-        this.closedCurly.dumpText(text)
+        children.forEach { it.dumpText(text, useAbsolutePath) }
+        this.closedCurly.dumpText(text, useAbsolutePath)
     }
 
     override fun searchAll(hits:MutableList<DSLElementInt>, query:(DSLElementInt) -> Boolean) {

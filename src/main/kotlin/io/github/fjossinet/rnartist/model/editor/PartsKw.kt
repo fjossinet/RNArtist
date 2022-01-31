@@ -6,7 +6,7 @@ import io.github.fjossinet.rnartist.gui.editor.Script
 class PartsKw(parent: SecondaryStructureInputKw, script: Script, indentLevel:Int = 0): OptionalDSLKeyword(parent, script, "parts", indentLevel) {
 
     init {
-        this.children.add(OptionalDSLParameter(this, script, null, StringWithoutQuotes(this, script,"source"), Operator(this, script, "="), StringValueWithQuotes(this, script, "",editable = true), indentLevel+1))
+        this.children.add(SourceParameter(this, script, indentLevel+1))
         this.children.add(RnaKw(this, script, this.indentLevel + 1))
         this.children.add(HelixKw(this, script, this.indentLevel + 1))
         this.children.add(InteractionKw(this, script, this.indentLevel + 1))
@@ -21,7 +21,7 @@ class PartsKw(parent: SecondaryStructureInputKw, script: Script, indentLevel:Int
                     helixKw.collapseButton.collapsed = true
                 }
                 (this.searchFirst { it is RnaKw } as RnaKw).setRna(ss.rna)
-                val p = this.searchFirst { it is OptionalDSLParameter && "source".equals(it.key.text.text.trim())} as OptionalDSLParameter
+                val p = this.searchFirst { it is SourceParameter} as SourceParameter
                 p.value.text.text = "\"${ss.source.toString()}\""
                 p.addButton.fire()
                 script.allowScriptInit = true

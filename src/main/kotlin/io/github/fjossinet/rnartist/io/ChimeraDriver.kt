@@ -1,15 +1,13 @@
 package io.github.fjossinet.rnartist.io
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.model.Location
-import io.github.fjossinet.rnartist.core.model.Residue3D
-import io.github.fjossinet.rnartist.core.model.ResidueDrawing
 import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraHost
 import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraPort
-import io.github.fjossinet.rnartist.core.model.TertiaryStructure
 import io.github.fjossinet.rnartist.core.io.copyFile
 import io.github.fjossinet.rnartist.core.io.createTemporaryFile
+import io.github.fjossinet.rnartist.core.io.getTmpDirectory
 import io.github.fjossinet.rnartist.core.io.parsePDB
+import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.*
 import java.io.*
 import java.net.MalformedURLException
@@ -53,6 +51,17 @@ open class ChimeraDriver(val mediator:Mediator) {
 
     fun showVersion() {
         postCommand("version")
+    }
+
+    fun displayCurrent3D() {
+        mediator.drawingDisplayed.get()?.drawing?.secondaryStructure?.let { ss ->
+            if (ss.source.toString().startsWith("db:pdb")) {
+                val f = File(getTmpDirectory(), "${ss.source?.getId()}.pdb")
+                f.writeText(PDB().getEntry(ss.source?.getId()!!).readText())
+                this.loadTertiaryStructure(f)
+            } else if (ss.source.toString().startsWith("local:file") && ss.source.toString().endsWith("pdb"))
+                this.loadTertiaryStructure(File(ss.source?.getId()))
+        }
     }
 
     open fun postCommand(command: String): String? {

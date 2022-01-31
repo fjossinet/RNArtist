@@ -89,12 +89,12 @@ open class OptionalDSLParameter(parent:DSLElement, script: Script, var buttonNam
 
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         if (inFinalScript) {
             (0 until indentLevel).forEach {
                 text.append(" ")
             }
-            children.forEach { it.dumpText(text) }
+            children.forEach { it.dumpText(text, useAbsolutePath) }
             text.append(System.lineSeparator())
         }
     }

@@ -5,7 +5,6 @@ import io.github.fjossinet.rnartist.gui.editor.Script
 import io.github.fjossinet.rnartist.gui.editor.TextField
 import javafx.event.EventHandler
 import javafx.scene.Node
-import javafx.scene.paint.Color
 
 open class StringWithoutQuotes(parent:DSLElementInt, script: Script, value:String = "", editable: Boolean = false): ParameterField(parent, script, value, editable) {
 
@@ -65,7 +64,7 @@ open class StringWithoutQuotes(parent:DSLElementInt, script: Script, value:Strin
             super.dumpNodes(nodes)
     }
 
-    override fun dumpText(text:StringBuilder) {
+    override fun dumpText(text: StringBuilder, useAbsolutePath: Boolean) {
         if (this.text.text.isNotEmpty())
             text.append(this.text.text)
     }
