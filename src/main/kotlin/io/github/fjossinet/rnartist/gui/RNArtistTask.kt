@@ -261,7 +261,7 @@ class RunEntireScript(mediator: Mediator) : RNArtistTask(mediator) {
             }
             Thread.sleep(100)
             val scriptContent = mediator.scriptEditor.getEntireScriptAsText(useAbsolutePath= true)
-            println(scriptContent)
+            //println(scriptContent)
             val result = mediator.scriptEditor.engine.eval(scriptContent)
             Platform.runLater {
                 updateMessage("Loading new 2Ds...")
