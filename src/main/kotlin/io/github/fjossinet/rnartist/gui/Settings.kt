@@ -66,34 +66,59 @@ class Settings(val mediator: Mediator):VBox() {
         val dockerLabel = Label("Docker and RNArtistCore container")
         dockerLabel.style = "-fx-font-weight: bold"
         dockerPane.children.add(dockerLabel)
-        GridPane.setConstraints(dockerLabel, 0, 0, 2, 1)
+        GridPane.setConstraints(dockerLabel, 0, 0, 5, 1)
         s = Separator(Orientation.HORIZONTAL)
         dockerPane.children.add(s)
         GridPane.setConstraints(s, 0, 1, 2, 1)
+
+        var label = Label("Docker")
+        dockerPane.children.add(label)
+        GridPane.setConstraints(label, 0, 2, 1, 1)
+        var dockerInstalled = RnartistConfig.isDockerInstalled()
+        var dockerStatus = Label(null, if (dockerInstalled) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15"))
+        if (dockerInstalled) (dockerStatus.graphic as FontIcon).fill = Color.GREEN else (dockerStatus.graphic as FontIcon).fill =
+            Color.RED
+        dockerPane.children.add(dockerStatus)
+        GridPane.setConstraints(dockerStatus, 1, 2, 1, 1)
+
+        label = Label("RNArtistCore")
+        dockerPane.children.add(label)
+        GridPane.setConstraints(label, 2, 2, 1, 1)
+        var rnartistCoreInstalled = RnartistConfig.isDockerImageInstalled()
+        var rnartistCoreStatus = Label(null, if (rnartistCoreInstalled) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15"))
+        if (rnartistCoreInstalled) (rnartistCoreStatus.graphic as FontIcon).fill = Color.GREEN else (rnartistCoreStatus.graphic as FontIcon).fill =
+            Color.RED
+        dockerPane.children.add(rnartistCoreStatus)
+        GridPane.setConstraints(rnartistCoreStatus, 3, 2, 1, 1)
+
         val connect2Docker = Button("Test Connection")
         dockerPane.children.add(connect2Docker)
-        GridPane.setConstraints(connect2Docker, 0, 2)
-        val status = RnartistConfig.isDockerInstalled() && RnartistConfig.isDockerImageInstalled()
-        var connectionStatus = Label(null, if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15"))
-        if (status) (connectionStatus.graphic as FontIcon).fill = Color.GREEN else (connectionStatus.graphic as FontIcon).fill =
-            Color.RED
+        GridPane.setConstraints(connect2Docker, 4, 2, 1, 1)
+
         connect2Docker.onMouseClicked = EventHandler {
             try {
-                val status = RnartistConfig.isDockerInstalled() && RnartistConfig.isDockerImageInstalled()
-                connectionStatus.graphic =
-                    if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
-                connectionStatus.tooltip =
-                    Tooltip(if (status) "I found RNAVIEW! You can open PDB files" else "RNAVIEW not found! You cannot open PDB files!")
-                if (status) (connectionStatus.graphic as FontIcon).fill =
-                    Color.GREEN else (connectionStatus.graphic as FontIcon).fill =
-                    Color.RED
+                dockerInstalled = RnartistConfig.isDockerInstalled()
+                if (dockerInstalled) {
+                    dockerStatus.graphic = FontIcon("fas-check-circle:15")
+                    (dockerStatus.graphic as FontIcon).fill = Color.GREEN
+                } else {
+                    dockerStatus.graphic = FontIcon("fas-exclamation-circle:15")
+                    (dockerStatus.graphic as FontIcon).fill =Color.RED
+                }
+                rnartistCoreInstalled = RnartistConfig.isDockerImageInstalled()
+                if (rnartistCoreInstalled) {
+                    rnartistCoreStatus.graphic = FontIcon("fas-check-circle:15")
+                    (rnartistCoreStatus.graphic as FontIcon).fill = Color.GREEN
+                } else {
+                    rnartistCoreStatus.graphic = FontIcon("fas-exclamation-circle:15")
+                    (rnartistCoreStatus.graphic as FontIcon).fill =
+                        Color.RED
+                }
+
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-
-        dockerPane.children.add(connectionStatus)
-        GridPane.setConstraints(connectionStatus, 1, 2)
 
         val chimeraPane = GridPane()
         chimeraPane.padding = Insets(10.0, 5.0, 15.0, 5.0)
