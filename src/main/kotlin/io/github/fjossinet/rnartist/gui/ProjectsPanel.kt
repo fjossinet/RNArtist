@@ -75,6 +75,8 @@ class ProjectsPanel(val mediator: Mediator):BorderPane() {
             override fun call(): Any? {
                 val projects = File(RnartistConfig.projectsFolder).listFiles(FileFilter { it.isDirectory })
                 var i = 0.0
+                if (projects.isEmpty())
+                    updateProgress(0.0, projects.size.toDouble())
                 for (project in projects) {
                     Platform.runLater {
                         projectLoadeds.add(ProjectLoaded(project))
