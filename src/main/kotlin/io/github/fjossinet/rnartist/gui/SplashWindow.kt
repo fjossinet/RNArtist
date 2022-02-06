@@ -61,6 +61,7 @@ class SplashWindow(val mediator: Mediator) {
                 val dir = DirectoryChooser().showDialog(stage)
                 dir?.let {
                     projectsFolder = File(dir, "RNArtistProjects")
+                    textField.text = projectsFolder.absolutePath
                 }
             }
             ok.onAction = EventHandler { e ->
@@ -110,7 +111,7 @@ class SplashWindow(val mediator: Mediator) {
                     stage.hide()
                     val alert = Alert(Alert.AlertType.ERROR)
                     alert.title = "I got a problem"
-                    alert.headerText = "RNartist got a problem during stratup ."
+                    alert.headerText = "RNartist got a problem during startup ."
                     alert.contentText =
                         "You can send the exception stacktrace below to fjossinet@gmail.com"
                     val sw = StringWriter()
