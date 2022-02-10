@@ -1047,7 +1047,7 @@ class RNArtist : Application() {
         val paintSelectionin3D = Button(null, FontIcon("fas-fill:15"))
         paintSelectionin3D.disableProperty()
             .bind(Bindings.`when`(mediator.chimeraDriver.pdbFile.isNull()).then(true).otherwise(false))
-        paintSelectionin3D.setOnMouseClicked( { mediator.chimeraDriver.color3D(mediator.canvas2D.getSelectedResidues()) })
+        paintSelectionin3D.setOnMouseClicked( { mediator.chimeraDriver.color3D(if (mediator.canvas2D.getSelectedResidues().isNotEmpty()) mediator.canvas2D.getSelectedResidues() else mediator.drawingDisplayed.get()!!.drawing.residues) })
         paintSelectionin3D.setTooltip(Tooltip("Paint 3D selection"))
 
         leftToolBar.add(paintSelectionin3D, 0, row++)
@@ -1288,31 +1288,6 @@ class RNArtist : Application() {
 
         val release = Label(getRnartistRelease())
         statusBar.getChildren().add(release)
-
-        val status = isDockerInstalled() && isDockerImageInstalled()
-        val dockerStatus =
-            Label(null, if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15"))
-        dockerStatus.tooltip =
-            Tooltip(if (status) "I found RNAVIEW! You can open PDB files" else "RNAVIEW not found! You cannot open PDB files!")
-        if (status) (dockerStatus.graphic as FontIcon).fill = Color.GREEN else (dockerStatus.graphic as FontIcon).fill =
-            Color.RED
-        val checkDockerStatus = Timeline(
-            KeyFrame(Duration.seconds(30.0),
-                {
-                    val status = isDockerInstalled() && isDockerImageInstalled()
-                    dockerStatus.graphic =
-                        if (status) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
-                    dockerStatus.tooltip =
-                        Tooltip(if (status) "I found RNAVIEW! You can open PDB files" else "RNAVIEW not found! You cannot open PDB files!")
-                    if (status) (dockerStatus.graphic as FontIcon).fill =
-                        Color.GREEN else (dockerStatus.graphic as FontIcon).fill =
-                        Color.RED
-                })
-        )
-        checkDockerStatus.cycleCount = Timeline.INDEFINITE
-        checkDockerStatus.play()
-
-        statusBar.getChildren().add(dockerStatus)
 
         val shutdown = Button(null, FontIcon("fas-power-off:15"))
         shutdown.tooltip = Tooltip("Exit RNArtist")
