@@ -53,9 +53,6 @@ class RNArtist : Application() {
     private var scrollCounter = 0
     private val statusBar: FlowPane
     val swingNode = SwingNode()
-    val focus3D: Button
-    val reload3D: Button
-    val paintSelectionin3D: Button
     private val root: BorderPane
     var centerDisplayOnSelection = false
 
@@ -1030,28 +1027,31 @@ class RNArtist : Application() {
         leftToolBar.add(s, 0, row++, 2, 1)
         GridPane.setHalignment(s, HPos.CENTER)
 
-        this.reload3D = Button(null, FontIcon("fas-redo:15"))
-        this.reload3D.setDisable(true)
-        this.reload3D.onMouseClicked = EventHandler { mediator.chimeraDriver.reloadTertiaryStructure() }
-        this.reload3D.setTooltip(Tooltip("Reload 3D"))
+        val reload3D = Button(null, FontIcon("fas-redo:15"))
+        reload3D.disableProperty()
+            .bind(Bindings.`when`(mediator.chimeraDriver.pdbFile.isNull()).then(true).otherwise(false))
+        reload3D.onMouseClicked = EventHandler { mediator.chimeraDriver.reloadTertiaryStructure() }
+        reload3D.setTooltip(Tooltip("Reload 3D"))
 
-        this.focus3D = Button(null, FontIcon("fas-crosshairs:15"))
-        this.focus3D.setDisable(true)
-        this.focus3D.onMouseClicked = EventHandler { mediator.focusInChimera() }
-        this.focus3D.setTooltip(Tooltip("Focus 3D on Selection"))
+        val focus3D = Button(null, FontIcon("fas-crosshairs:15"))
+        focus3D.disableProperty()
+            .bind(Bindings.`when`(mediator.chimeraDriver.pdbFile.isNull()).then(true).otherwise(false))
+        focus3D.onMouseClicked = EventHandler { mediator.focusInChimera() }
+        focus3D.setTooltip(Tooltip("Focus 3D on Selection"))
 
-        leftToolBar.add(this.reload3D, 0, row)
-        GridPane.setHalignment(this.reload3D, HPos.CENTER)
-        leftToolBar.add(this.focus3D, 1, row++)
-        GridPane.setHalignment(this.focus3D, HPos.CENTER)
+        leftToolBar.add(reload3D, 0, row)
+        GridPane.setHalignment(reload3D, HPos.CENTER)
+        leftToolBar.add(focus3D, 1, row++)
+        GridPane.setHalignment(focus3D, HPos.CENTER)
 
-        this.paintSelectionin3D = Button(null, FontIcon("fas-fill:15"))
-        this.paintSelectionin3D.setDisable(true)
-        this.paintSelectionin3D.setOnMouseClicked( { mediator.chimeraDriver.color3D(mediator.canvas2D.getSelectedResidues()) })
-        this.paintSelectionin3D.setTooltip(Tooltip("Paint 3D selection"))
+        val paintSelectionin3D = Button(null, FontIcon("fas-fill:15"))
+        paintSelectionin3D.disableProperty()
+            .bind(Bindings.`when`(mediator.chimeraDriver.pdbFile.isNull()).then(true).otherwise(false))
+        paintSelectionin3D.setOnMouseClicked( { mediator.chimeraDriver.color3D(mediator.canvas2D.getSelectedResidues()) })
+        paintSelectionin3D.setTooltip(Tooltip("Paint 3D selection"))
 
-        leftToolBar.add(this.paintSelectionin3D, 0, row++)
-        GridPane.setHalignment(this.paintSelectionin3D, HPos.CENTER)
+        leftToolBar.add(paintSelectionin3D, 0, row++)
+        GridPane.setHalignment(paintSelectionin3D, HPos.CENTER)
 
         root.left = leftToolBar
 
@@ -1419,7 +1419,6 @@ class RNArtist : Application() {
                 //mediator.canvas2D.updateKnobs()
                 mediator.canvas2D.repaint()
             }
-
 
         val screen = Screen.getPrimary()
 

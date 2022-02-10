@@ -1,29 +1,22 @@
 package io.github.fjossinet.rnartist
 
-import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.core.io.getTmpDirectory
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
-import io.github.fjossinet.rnartist.io.ChimeraDriver
 import io.github.fjossinet.rnartist.io.ChimeraXDriver
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingsLoadedPanel
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.SideWindow
 import io.github.fjossinet.rnartist.model.editor.RfamKw
 import javafx.beans.property.SimpleObjectProperty
-import java.io.File
 
 class Mediator(val rnartist: RNArtist) {
 
     var drawingDisplayed: SimpleObjectProperty<DrawingLoaded?> = SimpleObjectProperty<DrawingLoaded?>(null)
 
     val embeddedDB = EmbeddedDB()
-    var chimeraDriver = if (RnartistConfig.isChimeraX)
-                            ChimeraXDriver(this)
-                        else
-                            ChimeraDriver(this)
+    var chimeraDriver = ChimeraXDriver(this)
     val scriptEditor = ScriptEditor(this)
     val drawingsLoadedPanel = DrawingsLoadedPanel(this)
     val settings = Settings(this)
@@ -67,10 +60,6 @@ class Mediator(val rnartist: RNArtist) {
 
         this.drawingDisplayed.addListener {
                 observableValue, oldValue, newValue ->
-
-            this.rnartist.focus3D.isDisable = true
-            this.rnartist.reload3D.isDisable = true
-            this.rnartist.paintSelectionin3D.isDisable = true
 
             if (newValue == null) { //this means that the menu of 2Ds loaded has been cleared
                 this.chimeraDriver.closeSession()

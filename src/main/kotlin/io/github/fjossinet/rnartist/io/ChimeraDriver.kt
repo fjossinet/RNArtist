@@ -9,6 +9,8 @@ import io.github.fjossinet.rnartist.core.io.getTmpDirectory
 import io.github.fjossinet.rnartist.core.io.parsePDB
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.*
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
+import javafx.beans.property.SimpleObjectProperty
 import java.io.*
 import java.net.MalformedURLException
 import java.net.URL
@@ -26,7 +28,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     var baseURL: String? = null
 
     //the pdbFile is given to Chimera to load and display the 3D structure
-    var pdbFile: File? = null
+    var pdbFile: SimpleObjectProperty<File?> = SimpleObjectProperty<File?>(null)
 
     //the pdbFile is given to Chimera to load and display the 3D structure
     var sessionFile: File? = null
@@ -99,7 +101,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     fun closeSession() {
-        pdbFile = null
+        pdbFile.set(null)
         sessionFile = null
         tertiaryStructures!!.clear()
         postCommand("close session")
@@ -109,7 +111,7 @@ open class ChimeraDriver(val mediator:Mediator) {
         try {
             postCommand("open " + sessionFile.absolutePath)
             this.sessionFile = sessionFile
-            this.pdbFile = pdbFile
+            this.pdbFile.set(pdbFile)
             tertiaryStructures!!.addAll(parsePDB(FileReader(pdbFile)))
         } catch (e: FileNotFoundException) {
             e.printStackTrace()
@@ -118,7 +120,7 @@ open class ChimeraDriver(val mediator:Mediator) {
 
     open fun loadTertiaryStructure(f: File) {
         try {
-            pdbFile = f
+            pdbFile.set(f)
             tertiaryStructures.addAll(parsePDB(FileReader(f)))
             postCommand("open " + f.absolutePath)
         } catch (e: FileNotFoundException) {
@@ -128,7 +130,7 @@ open class ChimeraDriver(val mediator:Mediator) {
 
     open fun loadTertiaryStructure(f: File, layer: Int) {
         try {
-            pdbFile = f
+            pdbFile.set(f)
             tertiaryStructures.addAll(parsePDB(FileReader(f)))
             postCommand("close $layer")
             postCommand("open " + layer + " " + f.absolutePath)
@@ -142,7 +144,7 @@ open class ChimeraDriver(val mediator:Mediator) {
             if (it.exists())
                 postCommand("open " + it.absolutePath)
         } ?: run {
-            pdbFile?.let {
+            pdbFile.get()?.let {
                 if (it.exists())
                     postCommand("open " + it.absolutePath)
             }
@@ -157,8 +159,11 @@ open class ChimeraDriver(val mediator:Mediator) {
     fun saveSession(sessionFile: File, pdbFile: File) {
         if (!tertiaryStructures!!.isEmpty() && this.pdbFile != null) {
             postCommand("save " + sessionFile.absolutePath)
-            if (this.pdbFile!!.absolutePath != pdbFile.absolutePath) //to avoid to clash with the same fiel id the project is updated (then no need to copy the file, it is already there
-                copyFile(this.pdbFile!!, pdbFile)
+            this.pdbFile.get()?.let {
+                if (it.absolutePath != pdbFile.absolutePath) //to avoid to clash with the same fiel id the project is updated (then no need to copy the file, it is already there
+                    copyFile(it, pdbFile)
+            }
+
         }
     }
 
