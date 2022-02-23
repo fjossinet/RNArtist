@@ -89,12 +89,8 @@ class Settings(val mediator: Mediator):VBox() {
             try {
                 chimeraHost = hostValue.text.trim { it <= ' ' }
                 chimeraPort = portValue.text.trim { it <= ' ' }.toInt()
-                val structures = mediator.chimeraDriver.tertiaryStructures
-                val pdbFile = mediator.chimeraDriver.pdbFile
                 val sessionFile = mediator.chimeraDriver.sessionFile
                 mediator.chimeraDriver = ChimeraXDriver(mediator)
-                mediator.chimeraDriver.tertiaryStructures = structures
-                mediator.chimeraDriver.pdbFile = pdbFile
                 mediator.chimeraDriver.sessionFile = sessionFile
                 mediator.chimeraDriver.connectToRestServer()
             } catch (e: Exception) {
@@ -133,12 +129,12 @@ class Settings(val mediator: Mediator):VBox() {
     }
 
     fun chimeraConnected(connected:Boolean) {
-        println(connected)
         chimeraXConnectionStatus.graphic =
             if (connected) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
         (chimeraXConnectionStatus.graphic as FontIcon).fill = if (connected) Color.GREEN else Color.RED
-        if (connected)
+        if (connected) {
             mediator.chimeraDriver.displayCurrent3D()
+        }
     }
 
 }

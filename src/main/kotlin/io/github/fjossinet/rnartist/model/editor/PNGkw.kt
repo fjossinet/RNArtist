@@ -2,10 +2,11 @@ package io.github.fjossinet.rnartist.model.editor
 
 import io.github.fjossinet.rnartist.gui.editor.Script
 
-class PNGKw (parent:RNArtistKw, script: Script, indentLevel:Int): OptionalDSLKeyword(parent, script,  "png", indentLevel) {
+class PNGKw(parent: RNArtistKw, script: Script, indentLevel: Int) :
+    OptionalDSLKeyword(parent, script, "png", indentLevel) {
 
-    var path:String? = null
-        get() = (this.children.get(0) as DSLParameter).value.text.text.replace("\"","")
+    var path: String? = null
+        get() = (this.children.get(0) as DSLParameter).value.text.text.replace("\"", "")
 
     var width: Double = 800.0
         get() = if ((this.children.get(1) as OptionalDSLParameter).inFinalScript)
@@ -19,9 +20,17 @@ class PNGKw (parent:RNArtistKw, script: Script, indentLevel:Int): OptionalDSLKey
         else
             800.0
 
+    var name: String? = null
+        get() =
+            if ((this.children.get(3) as OptionalDSLParameter).inFinalScript)
+                (this.children.get(3) as OptionalDSLParameter).value.text.text.replace("\"", "")
+            else
+                null
+
     init {
         this.children.add(
-            DSLParameter(this,
+            DSLParameter(
+                this,
                 script,
                 StringWithoutQuotes(this, script, "path"),
                 Operator(this, script, "="),
@@ -30,7 +39,8 @@ class PNGKw (parent:RNArtistKw, script: Script, indentLevel:Int): OptionalDSLKey
             )
         )
         this.children.add(
-            OptionalDSLParameter(this,
+            OptionalDSLParameter(
+                this,
                 script,
                 null,
                 StringWithoutQuotes(this, script, "width"),
@@ -40,7 +50,8 @@ class PNGKw (parent:RNArtistKw, script: Script, indentLevel:Int): OptionalDSLKey
             )
         )
         this.children.add(
-            OptionalDSLParameter(this,
+            OptionalDSLParameter(
+                this,
                 script,
                 null,
                 StringWithoutQuotes(this, script, "height"),
@@ -49,6 +60,18 @@ class PNGKw (parent:RNArtistKw, script: Script, indentLevel:Int): OptionalDSLKey
                 this.indentLevel + 1
             )
         )
+        this.children.add(
+            OptionalDSLParameter(
+                this,
+                script,
+                null,
+                StringWithoutQuotes(this, script, "name"),
+                Operator(this, script, "="),
+                StringValueWithQuotes(this, script, editable = true),
+                this.indentLevel + 1
+            )
+        )
+
         addButton.mouseReleased = {
             val p = this.searchFirst { it is DSLParameter } as DSLParameter
             val l = script.mediator.scriptEditor.currentScriptLocation
@@ -60,13 +83,20 @@ class PNGKw (parent:RNArtistKw, script: Script, indentLevel:Int): OptionalDSLKey
             script.initScript()
         }
 
-        removeButton.mouseReleased =  {
+        removeButton.mouseReleased = {
             this.inFinalScript = false
             val index = this.parent.children.indexOf(this)
             this.parent.children.remove(this)
             this.parent.children.add(index, PNGKw(this.parent as RNArtistKw, script, this.indentLevel))
             script.initScript()
         }
+    }
+
+    fun setChainName(chainName: String) {
+        val p = this.searchFirst { it is OptionalDSLParameter && "name".equals(it.key.text.text) } as OptionalDSLParameter
+        p.value.text.text = "${chainName}"
+        this.addButton.fire()
+        p.addButton.fire()
     }
 
 }

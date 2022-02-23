@@ -79,14 +79,27 @@ class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
             if (svgKw.inFinalScript) {
                 svgKw.path?.let { path ->
                     mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
-                        Platform.runLater {
-                            it.drawing.asSVG(
-                                Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
-                                null,
-                                Paths.get(path).resolve("${it.drawing.name}.svg").toFile()
-                            )
+                        svgKw.name?.let { chainName ->
+                            if (chainName.equals(it.drawing.secondaryStructure.rna.name)) {
+                                Platform.runLater {
+                                    it.drawing.asSVG(
+                                        Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
+                                        null,
+                                        Paths.get(path).resolve("${it.drawing.name}.svg").toFile()
+                                    )
+                                }
+                                Thread.sleep(100)
+                            }
+                        } ?: run {
+                            Platform.runLater {
+                                it.drawing.asSVG(
+                                    Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
+                                    null,
+                                    Paths.get(path).resolve("${it.drawing.name}.svg").toFile()
+                                )
+                            }
+                            Thread.sleep(100)
                         }
-                        Thread.sleep(100)
                     }
                 }
             }
@@ -94,14 +107,27 @@ class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
             if (pngKw.inFinalScript) {
                 pngKw.path?.let { path ->
                     mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
-                        Platform.runLater {
-                            it.drawing.asPNG(
-                                Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
-                                null,
-                                Paths.get(path).resolve("${it.drawing.name}.png").toFile()
-                            )
+                        pngKw.name?.let { chainName ->
+                            if (chainName.equals(it.drawing.secondaryStructure.rna.name)) {
+                                Platform.runLater {
+                                    it.drawing.asPNG(
+                                        Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
+                                        null,
+                                        Paths.get(path).resolve("${it.drawing.name}.png").toFile()
+                                    )
+                                }
+                                Thread.sleep(100)
+                            }
+                        } ?: run {
+                            Platform.runLater {
+                                it.drawing.asPNG(
+                                    Rectangle2D.Double(0.0, 0.0, svgKw.width, svgKw.height),
+                                    null,
+                                    Paths.get(path).resolve("${it.drawing.name}.png").toFile()
+                                )
+                            }
+                            Thread.sleep(100)
                         }
-                        Thread.sleep(100)
                     }
                 }
             }
@@ -109,12 +135,27 @@ class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
             if (chimeraKw.inFinalScript) {
                 chimeraKw.path?.let { path ->
                     mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
-                        Platform.runLater {
-                            it.drawing.asChimeraScript(
-                                Paths.get(path).resolve("${it.drawing.name}.cxc").toFile()
-                            )
+                        chimeraKw.name?.let { chainName ->
+                            if (chainName.equals(it.drawing.secondaryStructure.rna.name)) {
+                                Platform.runLater {
+                                    val outputFile = Paths.get(path).resolve("${it.drawing.name}.cxc").toFile()
+                                    it.drawing.asChimeraScript(
+                                        outputFile
+                                    )
+                                    mediator.chimeraDriver.loadChimeraScript(outputFile)
+                                }
+                                Thread.sleep(100)
+                            }
+                        } ?: run {
+                            Platform.runLater {
+                                val outputFile = Paths.get(path).resolve("${it.drawing.name}.cxc").toFile()
+                                it.drawing.asChimeraScript(
+                                    outputFile
+                                )
+                                mediator.chimeraDriver.loadChimeraScript(outputFile)
+                            }
+                            Thread.sleep(100)
                         }
-                        Thread.sleep(100)
                     }
                 }
             }

@@ -20,6 +20,13 @@ class SVGKw(parent: RNArtistKw, editor: Script, indentLevel: Int) :
         else
             800.0
 
+    var name: String? = null
+        get() =
+            if ((this.children.get(3) as OptionalDSLParameter).inFinalScript)
+                (this.children.get(3) as OptionalDSLParameter).value.text.text.replace("\"", "")
+            else
+                null
+
     init {
         this.children.add(
             DSLParameter(
@@ -53,6 +60,18 @@ class SVGKw(parent: RNArtistKw, editor: Script, indentLevel: Int) :
                 this.indentLevel + 1
             )
         )
+        this.children.add(
+            OptionalDSLParameter(
+                this,
+                script,
+                null,
+                StringWithoutQuotes(this, script, "name"),
+                Operator(this, script, "="),
+                StringValueWithQuotes(this, script, editable = true),
+                this.indentLevel + 1
+            )
+        )
+
         addButton.mouseReleased = {
             val p = this.searchFirst { it is DSLParameter } as DSLParameter
             val l = script.mediator.scriptEditor.currentScriptLocation
@@ -63,6 +82,13 @@ class SVGKw(parent: RNArtistKw, editor: Script, indentLevel: Int) :
             this.inFinalScript = true
             script.initScript()
         }
+    }
+
+    fun setChainName(chainName: String) {
+        val p = this.searchFirst { it is OptionalDSLParameter && "name".equals(it.key.text.text) } as OptionalDSLParameter
+        p.value.text.text = "${chainName}"
+        this.addButton.fire()
+        p.addButton.fire()
     }
 
 }

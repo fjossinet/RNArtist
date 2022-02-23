@@ -52,38 +52,10 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
         return null
     }
 
-    override fun loadTertiaryStructure(f: File) {
-        try {
-            pdbFile.set(f)
-            tertiaryStructures.addAll(parsePDB(FileReader(f)))
-            postCommand("open \"${f.absolutePath}\"")
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
-        }
-    }
-
-    override fun reloadTertiaryStructure() {
-        sessionFile?.let {
-            if (it.exists())
-                postCommand("open \"${it.absolutePath}\"")
-        } ?: run {
-            pdbFile.get()?.let {
-                if (it.exists())
-                    postCommand("open \"${it.absolutePath}\"")
-            }
-        }
-    }
-
     override fun selectResidues(positions: List<Int>) {
         mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
-            var numberingSystem: List<String>? = null
-            for (ts in tertiaryStructures) {
-                if (ts.rna.name == chainName) {
-                    numberingSystem = ts.getNumberingSystem()
-                    break
-                }
-            }
+            var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
                 val command =
                     StringBuffer("select /${chainName}:")
@@ -96,11 +68,7 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
     override fun setFocus(positions: List<Int>) {
         mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
-            var numberingSystem: List<String>? = null
-            for (ts in tertiaryStructures) if (ts.rna.name == chainName) {
-                numberingSystem = ts.getNumberingSystem()
-                break
-            }
+            var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
                 val command = StringBuffer("view /${chainName}:")
                 for (pos in positions) command.append(numberingSystem[pos - 1]+",")
@@ -112,11 +80,7 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
     override fun color3D(residues: List<ResidueDrawing>) {
         mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
-            var numberingSystem: List<String>? = null
-            for (ts in tertiaryStructures) if (ts.rna.name == chainName) {
-                numberingSystem = ts.getNumberingSystem()
-                break
-            }
+            var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
                 val colors2residues = mutableMapOf<String, MutableList<ResidueDrawing>>()
                 for (r in residues) {
@@ -136,6 +100,16 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
                 }
 
             }
+        }
+    }
+
+    open fun loadChimeraScript(scriptFile: File) {
+        try {
+            postCommand("open \"${scriptFile.absolutePath}\"")
+            var bldFile = File(scriptFile.parent, "${scriptFile.name.split(".cxc").first()}.bld")
+            postCommand("open \"${bldFile.absolutePath}\"")
+        } catch (e: FileNotFoundException) {
+            e.printStackTrace()
         }
     }
 

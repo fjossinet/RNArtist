@@ -64,23 +64,13 @@ class Mediator(val rnartist: RNArtist) {
             if (newValue == null) { //this means that the menu of 2Ds loaded has been cleared
                 this.chimeraDriver.closeSession()
             }
-            else {
-                var previousFile: String? = null
-                var previousPDBId: String? = null
-                if (oldValue != null && !this.chimeraDriver.tertiaryStructures.isEmpty() && this.chimeraDriver.pdbFile != null) { //we store a temporary chimera session to restore it when the user come back to this 2D loaded
-                    val tmpPdbFile = createTempFile(suffix = ".pdb")
-                    val tmpSessionFile = createTempFile(suffix = ".py")
-                    oldValue.tmpChimeraSession = Pair(tmpSessionFile, tmpPdbFile)
-                    this.chimeraDriver.saveSession(tmpSessionFile, tmpPdbFile)
-                }
-                this.canvas2D.repaint();
-            }
-            drawingDisplayed.get()?.drawing?.secondaryStructure?.let { ss ->
-                ss.source?.let { source ->
+            drawingDisplayed.get()?.drawing?.let {  drawing ->
+                drawing.secondaryStructure.source?.let { source ->
                     if (source.toString().startsWith("db:rfam")) { //we record in the script the molecule chosen for this Rfam alignment
-                        (scriptEditor.script.getScriptRoot().getSecondaryStructureKw().searchFirst  { it is RfamKw && it.inFinalScript && it.getId().equals(source.getId()) } as RfamKw).setName(ss.name)
-                    } else if (source.toString().startsWith("db:pdb") || source.toString().startsWith("local:file") && source.toString().endsWith("pdb"))
-                        this.chimeraDriver.displayCurrent3D()
+                        (scriptEditor.script.getScriptRoot().getSecondaryStructureKw().searchFirst  { it is RfamKw && it.inFinalScript && it.getId().equals(source.getId()) } as RfamKw).setName(drawing.secondaryStructure.name)
+                    } else if (source.toString().startsWith("db:pdb") || source.toString().startsWith("local:file") && source.toString().endsWith("pdb")) {
+                        chimeraDriver.displayCurrent3D()
+                    }
                 }
             }
         }

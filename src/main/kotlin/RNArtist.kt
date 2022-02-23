@@ -2,8 +2,6 @@ package io.github.fjossinet.rnartist
 
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.RnartistConfig.getRnartistRelease
-import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerImageInstalled
-import io.github.fjossinet.rnartist.core.RnartistConfig.isDockerInstalled
 import io.github.fjossinet.rnartist.core.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
 import io.github.fjossinet.rnartist.core.io.randomColor
@@ -12,8 +10,6 @@ import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
 import io.github.fjossinet.rnartist.io.javaFXToAwt
-import javafx.animation.KeyFrame
-import javafx.animation.Timeline
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
@@ -1028,14 +1024,10 @@ class RNArtist : Application() {
         GridPane.setHalignment(s, HPos.CENTER)
 
         val reload3D = Button(null, FontIcon("fas-redo:15"))
-        reload3D.disableProperty()
-            .bind(Bindings.`when`(mediator.chimeraDriver.pdbFile.isNull()).then(true).otherwise(false))
-        reload3D.onMouseClicked = EventHandler { mediator.chimeraDriver.reloadTertiaryStructure() }
+        reload3D.onMouseClicked = EventHandler { mediator.chimeraDriver.displayCurrent3D() }
         reload3D.setTooltip(Tooltip("Reload 3D"))
 
         val focus3D = Button(null, FontIcon("fas-crosshairs:15"))
-        focus3D.disableProperty()
-            .bind(Bindings.`when`(mediator.chimeraDriver.pdbFile.isNull()).then(true).otherwise(false))
         focus3D.onMouseClicked = EventHandler { mediator.focusInChimera() }
         focus3D.setTooltip(Tooltip("Focus 3D on Selection"))
 
@@ -1045,8 +1037,6 @@ class RNArtist : Application() {
         GridPane.setHalignment(focus3D, HPos.CENTER)
 
         val paintSelectionin3D = Button(null, FontIcon("fas-fill:15"))
-        paintSelectionin3D.disableProperty()
-            .bind(Bindings.`when`(mediator.chimeraDriver.pdbFile.isNull()).then(true).otherwise(false))
         paintSelectionin3D.setOnMouseClicked( { mediator.chimeraDriver.color3D(if (mediator.canvas2D.getSelectedResidues().isNotEmpty()) mediator.canvas2D.getSelectedResidues() else mediator.drawingDisplayed.get()!!.drawing.residues) })
         paintSelectionin3D.setTooltip(Tooltip("Paint 3D selection"))
 

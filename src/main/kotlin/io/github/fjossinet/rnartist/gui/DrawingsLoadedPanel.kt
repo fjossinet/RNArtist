@@ -1,6 +1,7 @@
 package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
+import io.github.fjossinet.rnartist.core.model.FileSource
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import io.github.fjossinet.rnartist.gui.JunctionKnob
 import io.github.fjossinet.rnartist.gui.SelectionShape
@@ -80,7 +81,7 @@ class DrawingsLoadedPanel(val mediator: Mediator): BorderPane() {
             graphic = null
             text = null
             if (!empty && drawingLoaded != null) {
-                drawingName.text = drawingLoaded.drawing.name
+                drawingName.text = "${drawingLoaded.drawing.name}${if (drawingLoaded.drawing.secondaryStructure.source != null) "(${if (drawingLoaded.drawing.secondaryStructure.source is FileSource) drawingLoaded.drawing.secondaryStructure.source?.getId()?.split(Regex("[\\/]"))?.last() else drawingLoaded.drawing.secondaryStructure.source?.getId()})" else ""}"
                 icon.image = drawingLoaded.thumbnail
                 graphic = content
             }
