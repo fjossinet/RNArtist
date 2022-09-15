@@ -25,20 +25,25 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
 
                     val url = URL("$baseURL?$data")
 
-                    var response:String ?
+                    var response:String? = null
                     with(url.openConnection() as HttpURLConnection) {
                         requestMethod = "GET"
-                        inputStream.bufferedReader().use {
-                            response = it.readText()
+                        try {
+                            if (command.trim().equals("version"))
+                                Thread.sleep(3000)
+                            inputStream.bufferedReader().use {
+                                response = it.readText()
+                            }
+                        } catch (e: Exception) {
+                            mediator.tertiaryStructureButtonsPanel.chimeraConnected(false)
                         }
                     }
-
                     if (command.trim().equals("version")) {
                         Platform.runLater {
                             response?.trim()?.let {
-                                mediator.settings.chimeraConnected(it.startsWith("UCSF ChimeraX version:"))
+                                mediator.tertiaryStructureButtonsPanel.chimeraConnected(it.startsWith("UCSF ChimeraX version:"))
                             } ?: run {
-                                mediator.settings.chimeraConnected(false)
+                                mediator.tertiaryStructureButtonsPanel.chimeraConnected(false)
                             }
                         }
                         Thread.sleep(100)

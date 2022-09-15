@@ -31,7 +31,7 @@ class ChimeraKw (parent:RNArtistKw, editor: Script, indentLevel:Int): OptionalDS
 
     fun setChainName(chainName: String) {
         val p = this.searchFirst { it is OptionalDSLParameter && "name".equals(it.key.text.text) } as OptionalDSLParameter
-        p.value.text.text = "${chainName}"
+        p.value.text.text = "\"${chainName}\""
         this.addButton.fire()
         p.addButton.fire()
     }

@@ -16,7 +16,7 @@ class FileField(parent: DSLElementInt, script: Script, value: String = "") :
         this.text.onMouseClicked = EventHandler {
             val fileChooser = FileChooser()
             fileChooser.initialDirectory = File(script.mediator.rnartist.getInstallDir(), "samples")
-            val file = fileChooser.showOpenDialog(script.mediator.sideWindow.stage)
+            val file = fileChooser.showOpenDialog(script.mediator.rnartist.stage)
             file?.let {
                 text.text = "\"${file.absolutePath.replace("\\", "/")}\""
             }
@@ -31,7 +31,7 @@ class FileField(parent: DSLElementInt, script: Script, value: String = "") :
             button.onMouseClicked = EventHandler {
                 val fileChooser = FileChooser()
                 fileChooser.initialDirectory = File(script.mediator.rnartist.getInstallDir(), "samples")
-                val file = fileChooser.showOpenDialog(script.mediator.sideWindow.stage)
+                val file = fileChooser.showOpenDialog(script.mediator.rnartist.stage)
                 file?.let {
                     text.text = "\"${file.absolutePath.replace("\\", "/")}\""
                 }

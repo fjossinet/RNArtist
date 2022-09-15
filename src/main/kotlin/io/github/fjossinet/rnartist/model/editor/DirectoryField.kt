@@ -22,7 +22,7 @@ class DirectoryField(parent:DSLElementInt, script: Script, value: String = "") :
             val directoryChooser = DirectoryChooser()
             directoryChooser.initialDirectory =
                 script.mediator.scriptEditor.currentScriptLocation ?: File(System.getProperty("user.home"))
-            val dir = directoryChooser.showDialog(script.mediator.sideWindow.stage)
+            val dir = directoryChooser.showDialog(script.mediator.rnartist.stage)
             dir?.let {
                 text.text = "\"${dir.absolutePath.replace("\\", "/")}\""
             }
@@ -38,7 +38,7 @@ class DirectoryField(parent:DSLElementInt, script: Script, value: String = "") :
                 val directoryChooser = DirectoryChooser()
                 directoryChooser.initialDirectory =
                     script.mediator.scriptEditor.currentScriptLocation ?: File(System.getProperty("user.home"))
-                val dir = directoryChooser.showDialog(script.mediator.sideWindow.stage)
+                val dir = directoryChooser.showDialog(script.mediator.rnartist.stage)
                 dir?.let {
                     text.text = "\"${dir.absolutePath.replace("\\", "/")}\""
                 }

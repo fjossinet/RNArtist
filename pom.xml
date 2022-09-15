@@ -38,13 +38,13 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <java.version>17</java.version>
-        <javafx.version>17.0.2</javafx.version>
+        <java.version>18</java.version>
+        <javafx.version>20-ea+2</javafx.version>
 
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
-        <kotlin.version>1.6.10</kotlin.version>
+        <kotlin.version>1.7.10</kotlin.version>
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
 
@@ -89,7 +89,7 @@
         <dependency>
             <groupId>org.dizitart</groupId>
             <artifactId>nitrite</artifactId>
-            <version>3.4.1</version>
+            <version>3.4.4</version>
         </dependency>
 
         <!--controlsfx -->
@@ -102,13 +102,13 @@
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-javafx</artifactId>
-            <version>12.2.0</version>
+            <version>12.3.1</version>
         </dependency>
 
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-fontawesome5-pack</artifactId>
-            <version>12.2.0</version>
+            <version>12.3.1</version>
         </dependency>
 
         <dependency>

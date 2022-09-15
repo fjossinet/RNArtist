@@ -1,10 +1,7 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.model.DrawingElement
-import io.github.fjossinet.rnartist.core.model.JunctionDrawing
-import io.github.fjossinet.rnartist.core.model.ResidueDrawing
-import io.github.fjossinet.rnartist.core.model.StructuralDomainDrawing
+import io.github.fjossinet.rnartist.core.model.*
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
@@ -68,9 +65,6 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
                 .draw(g2, at, Rectangle2D.Double(0.0, 0.0, this.size.getWidth(), this.size.getHeight()))
 
             if (!drawingDisplayed.drawing.quickDraw) {
-                drawingDisplayed.knobs.forEach {
-                    it.draw(g)
-                }
                 drawingDisplayed.selectionShapes.forEach {
                     it.draw(g, at)
                 }
@@ -98,7 +92,6 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
 
     fun clearSelection() {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            drawingDisplayed.knobs.clear()
             drawingDisplayed.selectionShapes.clear()
             mediator.chimeraDriver.selectionCleared()
             repaint()
@@ -158,21 +151,12 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
             el?.let { el ->
                 //we want to show only one knob and only if the junction is the only element selected (this is needed for the script editor to add a junction keyword that get precisely the junction location and not a location composed of several elements selected
-                if(mediator.canvas2D.getSelection().size != 0) {
-                    drawingDisplayed.knobs.clear()
-                }
-                else if (el is JunctionDrawing && drawingDisplayed.knobs.isEmpty()) {
-                    val knob = JunctionKnob(
-                        mediator, el)
-                    knob.setCenter(Point2D.Double(knob.connectorRadius*8.0, knob.connectorRadius*8.0))
-                    drawingDisplayed.knobs.add(knob)
-                }
                 drawingDisplayed.selectionShapes.add(SelectionShape(mediator, el))
                 repaint()
                 mediator.chimeraDriver.selectResidues(
                     getSelectedPositions()
                 )
-                if (mediator.rnartist.centerDisplayOnSelection)
+                if (mediator.actions2DButtonsPanel.centerDisplayOnSelection)
                     mediator.chimeraDriver.setFocus(
                         getSelectedPositions()
                     )
@@ -182,7 +166,6 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
 
     fun removeFromSelection(el: DrawingElement?) {
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            drawingDisplayed.knobs.removeIf { it.junction == el }
             drawingDisplayed.selectionShapes.removeIf { it.element == el }
             repaint()
         }
@@ -191,21 +174,11 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
     fun structuralDomainsSelected(): List<StructuralDomainDrawing> {
         val domains = mutableListOf<StructuralDomainDrawing>()
         this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            domains.addAll(drawingDisplayed.knobs.map { it.junction })
             domains.addAll(drawingDisplayed.selectionShapes.filter { it.element is StructuralDomainDrawing }
                 .map { it.element as StructuralDomainDrawing })
         }
         return domains
     }
-
-    fun updateKnobs() {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
-            drawingDisplayed.knobs.forEach {
-                it.setCenter(Point2D.Double(this.width-it.connectorRadius*8.0, this.height-it.connectorRadius*8.0))
-            }
-        }
-    }
-
 
     //code to animate the 2D
     /*

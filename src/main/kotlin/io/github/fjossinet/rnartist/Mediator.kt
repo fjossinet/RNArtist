@@ -5,23 +5,23 @@ import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import io.github.fjossinet.rnartist.io.ChimeraXDriver
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingsLoadedPanel
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.SideWindow
+import io.github.fjossinet.rnartist.gui.Actions2DButtonsPanel
+import io.github.fjossinet.rnartist.gui.DrawingLoaded
+import io.github.fjossinet.rnartist.gui.DrawingsLoadedPanel
+import io.github.fjossinet.rnartist.gui.Actions3DButtonsPanel
 import io.github.fjossinet.rnartist.model.editor.RfamKw
 import javafx.beans.property.SimpleObjectProperty
 
 class Mediator(val rnartist: RNArtist) {
 
     var drawingDisplayed: SimpleObjectProperty<DrawingLoaded?> = SimpleObjectProperty<DrawingLoaded?>(null)
-
     val embeddedDB = EmbeddedDB()
     var chimeraDriver = ChimeraXDriver(this)
     val scriptEditor = ScriptEditor(this)
     val drawingsLoadedPanel = DrawingsLoadedPanel(this)
-    val settings = Settings(this)
     val projectsPanel = ProjectsPanel(this)
-    var sideWindow = SideWindow(this)
+    lateinit var actions2DButtonsPanel:Actions2DButtonsPanel
+    lateinit var tertiaryStructureButtonsPanel:Actions3DButtonsPanel
     lateinit var canvas2D: Canvas2D
 
     //++++++ some shortcuts

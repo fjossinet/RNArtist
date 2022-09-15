@@ -2,27 +2,22 @@ package io.github.fjossinet.rnartist.gui.editor
 
 import com.google.gson.JsonParser
 import io.github.fjossinet.rnartist.Mediator
+import io.github.fjossinet.rnartist.RNArtist
 import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.core.model.JunctionDrawing
-import io.github.fjossinet.rnartist.core.model.Location
-import io.github.fjossinet.rnartist.core.model.getHTMLColorString
+import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
-import io.github.fjossinet.rnartist.io.javaFXToAwt
 import io.github.fjossinet.rnartist.model.editor.*
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.event.EventHandler
 import javafx.geometry.HPos
 import javafx.geometry.Insets
+import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.control.*
-import javafx.scene.control.ColorPicker
-import javafx.scene.layout.BorderPane
-import javafx.scene.layout.GridPane
-import javafx.scene.layout.Region
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
+import javafx.scene.paint.Color
+import javafx.scene.shape.Circle
 import javafx.scene.text.Font
 import javafx.scene.text.TextFlow
 import javafx.stage.DirectoryChooser
@@ -265,13 +260,26 @@ class RNArtistScript(mediator: Mediator) : Script(mediator) {
     }
 }
 
-class ScriptEditor(val mediator: Mediator):BorderPane() {
+class ScriptEditor(val mediator: Mediator): GridPane() {
 
     var currentScriptLocation: File? = null
     val script:RNArtistScript
     val engine: ScriptEngine
+    var buttonRadius = 15.0
 
     init {
+        val rConstraints1 = RowConstraints()
+        rConstraints1.vgrow = Priority.NEVER
+        val rConstraints2 = RowConstraints()
+        rConstraints2.vgrow = Priority.ALWAYS
+        this.rowConstraints.addAll(rConstraints1, rConstraints2)
+
+        val cConstraints1 = ColumnConstraints()
+        cConstraints1.hgrow = Priority.ALWAYS
+        val cConstraints2 = ColumnConstraints()
+        cConstraints2.hgrow = Priority.NEVER
+        this.columnConstraints.addAll(cConstraints1, cConstraints2)
+
         script = RNArtistScript(mediator)
         val manager = ScriptEngineManager()
         this.engine = manager.getEngineByExtension("kts")
@@ -282,15 +290,17 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         script.layout()
 
         val topToolBar = ToolBar()
-        topToolBar.padding = Insets(5.0, 5.0, 5.0, 5.0)
+        topToolBar.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        topToolBar.padding = Insets(10.0, 5.0, 10.0, 5.0)
 
         val loadScriptPane = GridPane()
+        loadScriptPane.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
         loadScriptPane.vgap = 5.0
         loadScriptPane.hgap = 5.0
 
         var l = Label("Load Script")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0)
+        setHalignment(l, HPos.CENTER)
+        setConstraints(l, 0, 0)
         loadScriptPane.children.add(l)
 
         val loadScript = MenuButton(null, FontIcon("fas-sign-in-alt:15"))
@@ -440,17 +450,18 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
 
         loadScript.items.addAll(newScript, openFile, openGist)
 
-        GridPane.setConstraints(loadScript, 0, 1)
-        GridPane.setHalignment(loadScript, HPos.CENTER)
+        setConstraints(loadScript, 0, 1)
+        setHalignment(loadScript, HPos.CENTER)
         loadScriptPane.children.add(loadScript)
 
         val exportScriptPane = GridPane()
+        exportScriptPane.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
         exportScriptPane.vgap = 5.0
         exportScriptPane.hgap = 5.0
 
         l = Label("Save/Export Script")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0)
+        setHalignment(l, HPos.CENTER)
+        setConstraints(l, 0, 0)
         exportScriptPane.children.add(l)
 
         val saveScript = MenuButton(null, FontIcon("fas-sign-out-alt:15"))
@@ -587,17 +598,18 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
 
         saveScript.getItems().addAll(saveProjectAs, updateProject, saveAsFile, saveAsGist)
 
-        GridPane.setHalignment(saveScript, HPos.CENTER)
-        GridPane.setConstraints(saveScript, 0, 1)
+        setHalignment(saveScript, HPos.CENTER)
+        setConstraints(saveScript, 0, 1)
         exportScriptPane.children.add(saveScript)
 
         val fontPane = GridPane()
+        fontPane.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
         fontPane.vgap = 5.0
         fontPane.hgap = 5.0
 
         l = Label("Script Font")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0, 2, 1)
+        setHalignment(l, HPos.CENTER)
+        setConstraints(l, 0, 0, 2, 1)
         fontPane.children.add(l)
 
         val fontFamilies = Font.getFamilies()
@@ -605,7 +617,7 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         val fontChooser = ComboBox<String>()
         fontChooser.items.addAll(fontFamilies)
         fontChooser.value = RnartistConfig.editorFontName
-        GridPane.setConstraints(fontChooser, 0, 1)
+        setConstraints(fontChooser, 0, 1)
 
         fontChooser.onAction = EventHandler {
             RnartistConfig.editorFontName = fontChooser.value
@@ -636,49 +648,57 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
             mediator.scriptEditor.script.initScript()
         }
 
-        GridPane.setConstraints(sizeFont, 1, 1)
+        setConstraints(sizeFont, 1, 1)
         fontPane.children.add(sizeFont)
 
         val runPane = GridPane()
+        runPane.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
         runPane.vgap = 5.0
         runPane.hgap = 5.0
 
         l = Label("Run Script")
-        GridPane.setHalignment(l, HPos.CENTER)
-        GridPane.setConstraints(l, 0, 0, 3, 1)
+        setHalignment(l, HPos.CENTER)
+        setConstraints(l, 0, 0, 3, 1)
         runPane.children.add(l)
+        var c = Circle(buttonRadius/2.0, buttonRadius/2.0, buttonRadius)
 
         val exportInFiles = Button(null, FontIcon("fas-file:15"))
-
+        exportInFiles.setShape(c)
+        exportInFiles.setMinSize(2 * buttonRadius, 2 * buttonRadius)
+        exportInFiles.setMaxSize(2 * buttonRadius, 2 * buttonRadius)
         exportInFiles.onAction = EventHandler {
             Platform.runLater {
                 RNArtistTaskWindow(mediator).task = ApplyExportInScript(mediator)
             }
         }
 
-        GridPane.setConstraints(exportInFiles, 0, 1)
+        setConstraints(exportInFiles, 0, 1)
         runPane.children.add(exportInFiles)
 
         val runThemeAndLayout = Button(null, FontIcon("fas-magic:15"))
-
+        runThemeAndLayout.setShape(c)
+        runThemeAndLayout.setMinSize(2 * buttonRadius, 2 * buttonRadius)
+        runThemeAndLayout.setMaxSize(2 * buttonRadius, 2 * buttonRadius)
         runThemeAndLayout.onAction = EventHandler {
             Platform.runLater {
                 RNArtistTaskWindow(mediator).task = ApplyThemeAndLayout(mediator)
             }
         }
 
-        GridPane.setConstraints(runThemeAndLayout, 1, 1)
+        setConstraints(runThemeAndLayout, 1, 1)
         runPane.children.add(runThemeAndLayout)
 
         val runEntireScript = Button(null, FontIcon("fas-play:15"))
-
+        runEntireScript.setShape(c)
+        runEntireScript.setMinSize(2 * buttonRadius, 2 * buttonRadius)
+        runEntireScript.setMaxSize(2 * buttonRadius, 2 * buttonRadius)
         runEntireScript.onAction = EventHandler {
             Platform.runLater {
                 RNArtistTaskWindow(mediator).task = RunEntireScript(mediator)
             }
         }
 
-        GridPane.setConstraints(runEntireScript, 2, 1)
+        setConstraints(runEntireScript, 2, 1)
         runPane.children.add(runEntireScript)
 
         val s1 = Separator()
@@ -691,33 +711,63 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
         s3.padding = Insets(0.0, 5.0, 0.0, 5.0)
 
         topToolBar.items.addAll(loadScriptPane, s1, exportScriptPane, s2, fontPane, s3, runPane)
+        this.add(topToolBar, 0, 0)
 
-        val bottomToolBar = ToolBar()
-        bottomToolBar.padding = Insets(5.0, 5.0, 5.0, 5.0)
+        var scrollpane = ScrollPane(script)
+        scrollpane.isFitToHeight = true
+        script.minWidthProperty().bind(scrollpane.widthProperty())
+        this.add(scrollpane, 0, 1)
 
-        val decreaseTab = Button(null, FontIcon("fas-outdent:15"))
+        val configurationPanel = VBox()
+        configurationPanel.minWidth = 180.0
+        configurationPanel.prefWidth = 180.0
+        configurationPanel.maxWidth = 180.0
+        configurationPanel.padding = Insets(10.0, 10.0, 10.0, 10.0)
+        configurationPanel.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        configurationPanel.alignment = Pos.TOP_CENTER
+        scrollpane = ScrollPane(configurationPanel)
+        scrollpane.isFitToWidth = true
+        scrollpane.isFitToHeight = true
+        scrollpane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
+        this.add(scrollpane, 1, 0, 1, 2)
+
+        l = Label("Script Layout")
+        l.textFill = Color.WHITE
+        l.maxWidth = 150.0
+        configurationPanel.children.add(l)
+        var s = Separator()
+        s.maxWidth = 150.0
+        configurationPanel.children.add(s)
+
+        val buttonsPanel = ButtonsPanel(mediator, panelRadius = 60.0, buttonRadius = 12.0, buttomsPerRow = 6)
+
+        val increaseTab = Button(null, FontIcon("fas-indent:12"))
+        increaseTab.onAction = EventHandler {
+            script.tabSize++
+        }
+        buttonsPanel.addButton(increaseTab)
+
+        val decreaseTab = Button(null, FontIcon("fas-outdent:12"))
         decreaseTab.onAction = EventHandler {
             if (script.tabSize > 1) {
                 script.tabSize--
             }
         }
+        buttonsPanel.addButton(decreaseTab)
 
-        val increaseTab = Button(null, FontIcon("fas-indent:15"))
-        increaseTab.onAction = EventHandler {
-            script.tabSize++
-        }
-
-        val decreaseLineSpacing = Button(null, FontIcon("fas-compress-alt:15"))
+        val decreaseLineSpacing = Button(null, FontIcon("fas-compress-alt:12"))
         decreaseLineSpacing.onAction = EventHandler {
             script.lineSpacing--
         }
+        buttonsPanel.addButton(decreaseLineSpacing)
 
-        val increaseLineSpacing = Button(null, FontIcon("fas-expand-alt:15"))
+        val increaseLineSpacing = Button(null, FontIcon("fas-expand-alt:12"))
         increaseLineSpacing.onAction = EventHandler {
             script.lineSpacing++
         }
+        buttonsPanel.addButton(increaseLineSpacing)
 
-        val expandAll = Button(null, FontIcon("fas-plus:15"))
+        val expandAll = Button(null, FontIcon("fas-plus:12"))
         expandAll.onAction = EventHandler {
             script.allowScriptInit = false
             script.children.filterIsInstance<DSLKeyword.KeywordNode>().map {
@@ -730,8 +780,9 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
             script.allowScriptInit = true
             script.initScript()
         }
+        buttonsPanel.addButton(expandAll)
 
-        val collapseAll = Button(null, FontIcon("fas-minus:15"))
+        val collapseAll = Button(null, FontIcon("fas-minus:12"))
         collapseAll.onAction = EventHandler {
             script.allowScriptInit = false
             script.children.filterIsInstance<DSLKeyword.KeywordNode>().map {
@@ -744,123 +795,20 @@ class ScriptEditor(val mediator: Mediator):BorderPane() {
             script.allowScriptInit = true
             script.initScript()
         }
+        buttonsPanel.addButton(collapseAll)
 
-        val bgColor = ColorPicker()
-        bgColor.value = awtColorToJavaFX(RnartistConfig.backgroundEditorColor)
-        bgColor.styleClass.add("button")
-        bgColor.style = "-fx-color-label-visible: false ;"
-        bgColor.onAction = EventHandler {
-            script.style = "-fx-background-color: ${getHTMLColorString(javaFXToAwt(bgColor.value))}"
-            RnartistConfig.backgroundEditorColor = javaFXToAwt(bgColor.value)
-        }
+        configurationPanel.children.add(buttonsPanel)
 
-        val kwColor = ColorPicker()
-        kwColor.value = awtColorToJavaFX(RnartistConfig.keywordEditorColor)
-        kwColor.styleClass.add("button")
-        kwColor.style = "-fx-color-label-visible: false ;"
-        kwColor.onAction = EventHandler {
-            val hits = mutableListOf<DSLElementInt>()
-            script.getScriptRoot()?.searchAll(hits) { it is DSLKeyword }
-            hits.forEach {
-                it.color = kwColor.value
-                (it as DSLKeyword).collapseButton.setColor(kwColor.value)
-                (it as? OptionalDSLKeyword)?.addButton?.setColor(kwColor.value)
-            }
-            RnartistConfig.keywordEditorColor = javaFXToAwt(kwColor.value)
-            script.initScript()
-        }
+        l = Label("Script Theme")
+        l.textFill = Color.WHITE
+        l.maxWidth = 150.0
+        configurationPanel.children.add(l)
+        s = Separator()
+        s.maxWidth = 150.0
+        configurationPanel.children.add(s)
 
-        val bracesColor = ColorPicker()
-        bracesColor.value = awtColorToJavaFX(RnartistConfig.bracesEditorColor)
-        bracesColor.styleClass.add("button")
-        bracesColor.style = "-fx-color-label-visible: false ;"
-        bracesColor.onAction = EventHandler {
-            val hits = mutableListOf<DSLElementInt>()
-            script.getScriptRoot()?.searchAll(hits) { it is OpenedCurly || it is ClosedCurly }
-            hits.forEach {
-                it.color = bracesColor.value
-            }
-            RnartistConfig.bracesEditorColor = javaFXToAwt(bracesColor.value)
-            script.initScript()
-        }
+        configurationPanel.children.add(ScriptEditorColorPicker(mediator))
 
-        val keyParamColor = ColorPicker()
-        keyParamColor.value = awtColorToJavaFX(RnartistConfig.keyParamEditorColor)
-        keyParamColor.styleClass.add("button")
-        keyParamColor.style = "-fx-color-label-visible: false ;"
-        keyParamColor.onAction = EventHandler {
-            val hits = mutableListOf<DSLElementInt>()
-            script.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
-            hits.forEach {
-                (it as DSLParameter).key.color = keyParamColor.value
-                (it as? OptionalDSLParameter)?.addButton?.setColor(keyParamColor.value)
-            }
-            RnartistConfig.keyParamEditorColor = javaFXToAwt(keyParamColor.value)
-            script.initScript()
-        }
-
-        val operatorParamColor = ColorPicker()
-        operatorParamColor.value = awtColorToJavaFX(RnartistConfig.operatorParamEditorColor)
-        operatorParamColor.styleClass.add("button")
-        operatorParamColor.style = "-fx-color-label-visible: false ;"
-        operatorParamColor.onAction = EventHandler {
-            val hits = mutableListOf<DSLElementInt>()
-            script.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
-            hits.forEach {
-                (it as DSLParameter).operator.color = operatorParamColor.value
-            }
-            RnartistConfig.operatorParamEditorColor = javaFXToAwt(operatorParamColor.value)
-            script.initScript()
-        }
-
-        val valueParamColor = ColorPicker()
-        valueParamColor.value = awtColorToJavaFX(RnartistConfig.valueParamEditorColor)
-        valueParamColor.styleClass.add("button")
-        valueParamColor.style = "-fx-color-label-visible: false ;"
-        valueParamColor.onAction = EventHandler {
-            val hits = mutableListOf<DSLElementInt>()
-            script.getScriptRoot()?.searchAll(hits) { it is DSLParameter }
-            hits.forEach {
-                (it as DSLParameter).value.color = valueParamColor.value
-            }
-            RnartistConfig.valueParamEditorColor = javaFXToAwt(valueParamColor.value)
-            script.initScript()
-        }
-
-        val spacer = Region()
-        spacer.prefHeight = 20.0
-        bottomToolBar.items.addAll(
-            expandAll,
-            collapseAll,
-            increaseLineSpacing,
-            decreaseLineSpacing,
-            increaseTab,
-            decreaseTab,
-            spacer,
-            Label("Bg"),
-            bgColor,
-            Label("Kw"),
-            kwColor,
-            Label("{ }"),
-            bracesColor,
-            Label("Key"),
-            keyParamColor,
-            Label("Op"),
-            operatorParamColor,
-            Label("Val"),
-            valueParamColor
-        )
-
-        val toolbars = VBox(topToolBar, bottomToolBar)
-
-        toolbars.spacing = 5.0
-
-        this.top = toolbars
-
-        var scrollpane = ScrollPane(script)
-        scrollpane.isFitToHeight = true
-        script.minWidthProperty().bind(scrollpane.widthProperty())
-        this.center = scrollpane
     }
 
     fun getEntireScriptAsText(useAbsolutePath: Boolean = false): String {

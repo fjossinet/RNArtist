@@ -1,24 +1,22 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui
+package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
+import io.github.fjossinet.rnartist.RNArtist
 import io.github.fjossinet.rnartist.core.model.FileSource
+import io.github.fjossinet.rnartist.core.model.JunctionDrawing
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
-import io.github.fjossinet.rnartist.gui.JunctionKnob
 import io.github.fjossinet.rnartist.gui.SelectionShape
 import javafx.beans.Observable
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
-import javafx.collections.ObservableList
 import javafx.event.EventHandler
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.*
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
-import javafx.scene.layout.BorderPane
-import javafx.scene.layout.HBox
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.stage.Modality
 import javafx.stage.Stage
@@ -38,13 +36,14 @@ class DrawingsLoadedPanel(val mediator: Mediator): BorderPane() {
     val gridview = GridView<DrawingLoaded>()
 
     init {
-        val items: ObservableList<DrawingLoaded> = FXCollections.observableArrayList(DrawingLoaded.extractor())
-        this.gridview.items = items
-        this.gridview.horizontalCellSpacing = 20.0
-        this.gridview.verticalCellSpacing = 20.0
-        this.gridview.cellWidth = 200.0
-        this.gridview.cellHeight = 200.0
-        this.gridview.style = "-fx-background-color: lightgray;"
+        this.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        gridview.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        gridview.padding = Insets(20.0, 20.0, 20.0, 20.0)
+        gridview.horizontalCellSpacing = 20.0
+        gridview.verticalCellSpacing = 20.0
+        gridview.cellWidth = 200.0
+        gridview.cellHeight = 200.0
+        this.gridview.style = "-fx-background-color: #333333;"
         this.gridview.setCellFactory { DrawingLoadedCell() }
         this.center = this.gridview
 
@@ -99,10 +98,10 @@ class DrawingsLoadedPanel(val mediator: Mediator): BorderPane() {
             titleBar.alignment = Pos.CENTER
             titleBar.children.add(drawingName)
             val deleteProject = Label(null, FontIcon("fas-trash:15"))
-            (deleteProject.graphic as FontIcon).fill = Color.BLACK
+            (deleteProject.graphic as FontIcon).fill = Color.WHITE
             titleBar.children.add(deleteProject)
             content.children.add(titleBar)
-            drawingName.textFill = Color.BLACK
+            drawingName.textFill = Color.WHITE
             drawingName.style = "-fx-font-weight: bold"
             deleteProject.onMouseClicked = EventHandler { event ->
                 val alert = Alert(Alert.AlertType.CONFIRMATION)
@@ -138,7 +137,6 @@ class DrawingsLoadedPanel(val mediator: Mediator): BorderPane() {
 class DrawingLoaded(val mediator: Mediator, val drawing: SecondaryStructureDrawing, val id:String) {
 
     val selectionShapes = FXCollections.observableArrayList<SelectionShape>()
-    val knobs = mutableListOf<JunctionKnob>()
     var tmpChimeraSession: Pair<File, File>? = null
     val layoutAndThemeUpdated = SimpleBooleanProperty()
     var thumbnail:Image? = null
@@ -172,6 +170,14 @@ class DrawingLoaded(val mediator: Mediator, val drawing: SecondaryStructureDrawi
                 Files.delete(it)
             }
         }
+
+        this.selectionShapes.addListener( ListChangeListener {
+            val junctionsSelected = this.selectionShapes.filter { it.element is JunctionDrawing }
+            if (junctionsSelected.isEmpty() || junctionsSelected.size > 1)
+                mediator.rnartist.junctionSelectionKnob.selectedJunction = null
+            else //only on junction has to be selected to change its layout
+                mediator.rnartist.junctionSelectionKnob.selectedJunction = junctionsSelected.first().element as JunctionDrawing
+        })
     }
 
 }

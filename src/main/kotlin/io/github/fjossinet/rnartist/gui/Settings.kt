@@ -128,13 +128,4 @@ class Settings(val mediator: Mediator):VBox() {
         GridPane.setConstraints(svgBrowserFix, 1, 2)
     }
 
-    fun chimeraConnected(connected:Boolean) {
-        chimeraXConnectionStatus.graphic =
-            if (connected) FontIcon("fas-check-circle:15") else FontIcon("fas-exclamation-circle:15")
-        (chimeraXConnectionStatus.graphic as FontIcon).fill = if (connected) Color.GREEN else Color.RED
-        if (connected) {
-            mediator.chimeraDriver.displayCurrent3D()
-        }
-    }
-
 }

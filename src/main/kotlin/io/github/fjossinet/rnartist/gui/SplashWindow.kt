@@ -138,9 +138,9 @@ class SplashWindow(val mediator: Mediator) {
                     alert.showAndWait()
                 }
                 stage.hide()
+
                 mediator.rnartist.stage.show()
                 mediator.rnartist.stage.toFront()
-                mediator.sideWindow.stage.show()
                 mediator.projectsPanel.loadProjects()
             }
         }

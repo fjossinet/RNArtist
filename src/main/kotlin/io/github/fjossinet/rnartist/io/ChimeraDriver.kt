@@ -7,7 +7,7 @@ import io.github.fjossinet.rnartist.core.io.createTemporaryFile
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.gui.ApplyExportInScript
 import io.github.fjossinet.rnartist.io.*
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
+import io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
 import javafx.application.Platform
 import java.io.*
 import java.net.MalformedURLException

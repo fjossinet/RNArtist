@@ -5,9 +5,6 @@ import io.github.fjossinet.rnartist.core.io.ScriptElement
 import io.github.fjossinet.rnartist.core.io.copyFile
 import io.github.fjossinet.rnartist.core.io.parseDSLScript
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.gui.editor.Script
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
 import io.github.fjossinet.rnartist.model.editor.*
 import javafx.application.Platform
 import javafx.concurrent.Task
@@ -1009,6 +1006,8 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                                                 } as OptionalDSLParameter)
                                             parameter.addButton.fire()
                                             parameter.value.text.text = tokens.last().trim()
+                                            if ("\"tertiary_interaction\"".equals(tokens.last().trim()))
+                                                mediator.actions2DButtonsPanel.showTertiaries.value = true
                                         }
                                         if (attribute.startsWith("data")) {
                                             tokens = attribute.split(" ")
@@ -1063,6 +1062,8 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
                                                 } as OptionalDSLParameter)
                                             parameter.addButton.fire()
                                             parameter.value.text.text = tokens.last().trim()
+                                            if ("\"tertiary_interaction\"".equals(tokens.last().trim()))
+                                                mediator.actions2DButtonsPanel.showTertiaries.value = false
                                         }
                                         if (attribute.startsWith("data")) {
                                             tokens = attribute.split(" ")

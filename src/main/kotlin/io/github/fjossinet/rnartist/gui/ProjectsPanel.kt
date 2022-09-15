@@ -1,9 +1,8 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
+import io.github.fjossinet.rnartist.RNArtist
 import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.DrawingLoaded
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
 import javafx.application.Platform
 import javafx.beans.Observable
 import javafx.beans.property.SimpleBooleanProperty
@@ -19,9 +18,7 @@ import javafx.scene.control.Label
 import javafx.scene.control.ProgressBar
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
-import javafx.scene.layout.BorderPane
-import javafx.scene.layout.HBox
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.stage.Modality
 import javafx.stage.Stage
@@ -37,12 +34,14 @@ class ProjectsPanel(val mediator: Mediator):BorderPane() {
     val progressBar = ProgressBar(0.0)
 
     init {
+        this.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        gridview.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
         gridview.padding = Insets(20.0, 20.0, 20.0, 20.0)
         gridview.horizontalCellSpacing = 20.0
         gridview.verticalCellSpacing = 20.0
         gridview.cellWidth = 200.0
         gridview.cellHeight = 200.0
-        gridview.style = "-fx-background-color: lightgray;"
+        gridview.style = "-fx-background-color: #333333;"
         gridview.setCellFactory { ProjectCell() }
         this.center = gridview
 
@@ -121,10 +120,10 @@ class ProjectsPanel(val mediator: Mediator):BorderPane() {
             titleBar.alignment = Pos.CENTER
             titleBar.children.add(projectName)
             val deleteProject = Label(null, FontIcon("fas-trash:15"))
-            (deleteProject.graphic as FontIcon).fill = Color.BLACK
+            (deleteProject.graphic as FontIcon).fill = Color.WHITE
             titleBar.children.add(deleteProject)
             content.children.add(titleBar)
-            projectName.textFill = Color.BLACK
+            projectName.textFill = Color.WHITE
             projectName.style = "-fx-font-weight: bold"
             deleteProject.onMouseClicked = EventHandler { event ->
                 val alert = Alert(Alert.AlertType.CONFIRMATION)
@@ -142,6 +141,7 @@ class ProjectsPanel(val mediator: Mediator):BorderPane() {
                     event.consume()
                 }
             }
+
             icon.onMouseClicked = EventHandler {
                 mediator.scriptEditor.currentScriptLocation = item!!.projectDir
                 RNArtistTaskWindow(mediator).task = LoadScript(

@@ -1,7 +1,6 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui
+package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.gui.RNArtistTask
 import javafx.geometry.Insets
 import javafx.scene.Scene
 import javafx.scene.control.Label
@@ -34,7 +33,6 @@ class RNArtistTaskWindow(val mediator: Mediator) {
     init {
         stage.initStyle(StageStyle.UNDECORATED)
         stage.initModality(Modality.WINDOW_MODAL)
-        stage.initOwner(mediator.sideWindow.stage)
         val form = GridPane()
         val constraints = ColumnConstraints()
         constraints.hgrow = Priority.ALWAYS

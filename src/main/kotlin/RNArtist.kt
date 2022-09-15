@@ -2,17 +2,12 @@ package io.github.fjossinet.rnartist
 
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.RnartistConfig.getRnartistRelease
-import io.github.fjossinet.rnartist.core.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
-import io.github.fjossinet.rnartist.core.io.randomColor
-import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.javaFXToAwt
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.*
 import javafx.application.Application
 import javafx.application.Platform
-import javafx.beans.binding.Bindings
+import javafx.beans.property.SimpleFloatProperty
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.embed.swing.SwingNode
@@ -24,22 +19,21 @@ import javafx.geometry.Orientation
 import javafx.geometry.Pos
 import javafx.scene.CacheHint
 import javafx.scene.Scene
+import javafx.scene.chart.AreaChart
+import javafx.scene.chart.NumberAxis
 import javafx.scene.control.*
+import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.input.MouseButton
 import javafx.scene.input.MouseEvent
 import javafx.scene.input.ScrollEvent
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
-import javafx.scene.shape.Line
 import javafx.scene.text.Font
 import javafx.stage.*
-import javafx.util.Duration
 import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
-import java.awt.geom.Rectangle2D
 import java.io.*
-import java.util.*
 import java.util.stream.Collectors
 
 class RNArtist : Application() {
@@ -50,7 +44,12 @@ class RNArtist : Application() {
     private val statusBar: FlowPane
     val swingNode = SwingNode()
     private val root: BorderPane
-    var centerDisplayOnSelection = false
+    val junctionSelectionKnob: JunctionKnob
+
+    companion object {
+        val RNArtistGUIColor = Color(51.0 / 255.0, 51.0 / 255.0, 51.0 / 255.0, 1.0)
+    }
+
 
     fun getInstallDir(): String {
         return File(
@@ -60,75 +59,132 @@ class RNArtist : Application() {
     }
 
     init {
-        load()
+        RnartistConfig.load()
         this.mediator = Mediator(this)
+
         this.root = BorderPane()
 
-        val toolbar = ToolBar()
-        toolbar.padding = Insets(10.0, 10.0, 10.0, 10.0)
+        val menuBar = MenuBar()
+        menuBar.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        menuBar.menus.add(Menu("File"))
 
-        toolbar.items.add(Label("Selection"))
+        root.top = menuBar
 
-        var selectionWidth = Button(null, null)
-        selectionWidth.maxWidth = Double.MAX_VALUE
-        var selectionLine = Line(0.0, 10.0, 10.0, 10.0)
-        selectionLine.strokeWidth = 1.0
-        selectionWidth.graphic = selectionLine
-        selectionWidth.onAction = EventHandler {
-            RnartistConfig.selectionWidth = 1
-            mediator.canvas2D.repaint()
-        }
-        toolbar.items.add(selectionWidth)
+        //Layouts Panel
+        val layoutsPanel = VBox()
+        layoutsPanel.alignment = Pos.TOP_CENTER
+        layoutsPanel.minWidth = 180.0
+        layoutsPanel.prefWidth = 180.0
+        layoutsPanel.maxWidth = 180.0
+        layoutsPanel.padding = Insets(20.0, 10.0, 20.0, 10.0)
+        layoutsPanel.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
 
-        selectionWidth = Button(null, null)
-        selectionWidth.maxWidth = Double.MAX_VALUE
-        selectionLine = Line(0.0, 10.0, 10.0, 10.0)
-        selectionLine.strokeWidth = 2.0
-        selectionWidth.graphic = selectionLine
-        selectionWidth.onAction = EventHandler {
-            RnartistConfig.selectionWidth = 2
-            mediator.canvas2D.repaint()
-        }
-        toolbar.items.add(selectionWidth)
+        var l = Label("2D Actions")
+        l.textFill = Color.WHITE
+        l.maxWidth = 180.0
+        layoutsPanel.children.add(l)
+        var s = Separator()
+        s.maxWidth = 180.0
+        layoutsPanel.children.add(s)
+        layoutsPanel.children.add(Actions2DButtonsPanel(mediator))
 
-        selectionWidth = Button(null, null)
-        selectionWidth.maxWidth = Double.MAX_VALUE
-        selectionLine = Line(0.0, 10.0, 10.0, 10.0)
-        selectionLine.strokeWidth = 4.0
-        selectionWidth.graphic = selectionLine
-        selectionWidth.onAction = EventHandler {
-            RnartistConfig.selectionWidth = 4
-            mediator.canvas2D.repaint()
-        }
-        toolbar.items.add(selectionWidth)
+        l = Label("3D Actions")
+        l.textFill = Color.WHITE
+        l.maxWidth = 180.0
+        layoutsPanel.children.add(l)
+        s = Separator()
+        s.maxWidth = 180.0
+        layoutsPanel.children.add(s)
+        layoutsPanel.children.add(Actions3DButtonsPanel(mediator))
 
-        selectionWidth = Button(null, null)
-        selectionWidth.maxWidth = Double.MAX_VALUE
-        selectionLine = Line(0.0, 10.0, 10.0, 10.0)
-        selectionLine.strokeWidth = 8.0
-        selectionWidth.graphic = selectionLine
-        selectionWidth.onAction = EventHandler {
-            RnartistConfig.selectionWidth = 8
-            mediator.canvas2D.repaint()
-        }
-        toolbar.items.add(selectionWidth)
+        l = Label("Details Level")
+        l.textFill = Color.WHITE
+        l.maxWidth = 180.0
+        layoutsPanel.children.add(l)
+        s = Separator()
+        s.maxWidth = 180.0
+        layoutsPanel.children.add(s)
+        layoutsPanel.children.add(DetailsLevelButtonsPanel(mediator))
 
-        val selectionColorPicker = ColorPicker(Color.RED)
-        selectionColorPicker.maxWidth = Double.MAX_VALUE
-        selectionColorPicker.styleClass.add("button")
-        selectionColorPicker.style = "-fx-color-label-visible: false ;"
-        selectionColorPicker.onAction = EventHandler {
-            RnartistConfig.selectionColor = javaFXToAwt(selectionColorPicker.value)
-            mediator.canvas2D.repaint()
-        }
-        toolbar.items.add(selectionColorPicker)
+        l = Label("Junctions Layout")
+        l.textFill = Color.WHITE
+        l.maxWidth = 180.0
+        layoutsPanel.children.add(l)
+        s = Separator()
+        s.maxWidth = 180.0
+        layoutsPanel.children.add(s)
+        this.junctionSelectionKnob = JunctionKnob("Selection", mediator)
+        layoutsPanel.children.add(this.junctionSelectionKnob)
 
-        toolbar.items.add(Separator(Orientation.VERTICAL))
+        var layoutsPanelScrollPane = ScrollPane(layoutsPanel)
+        layoutsPanelScrollPane.isFitToWidth = true
+        layoutsPanelScrollPane.isFitToHeight = true
+        layoutsPanelScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
 
-        toolbar.items.add(Label("Font"))
+        //Colors Panel
+        val colorsPanel = VBox()
+        colorsPanel.alignment = Pos.TOP_LEFT
+        colorsPanel.minWidth = 200.0
+        colorsPanel.prefWidth = 200.0
+        colorsPanel.maxWidth = 200.0
+        colorsPanel.padding = Insets(20.0, 10.0, 20.0, 10.0)
+        colorsPanel.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        var colorsPanelScrollPane = ScrollPane(colorsPanel)
+        colorsPanelScrollPane.isFitToWidth = true
+        colorsPanelScrollPane.isFitToHeight = true
+        colorsPanelScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
+
+        l = Label("Structural Domains")
+        l.textFill = Color.WHITE
+        l.maxWidth = 200.0
+        colorsPanel.children.add(l)
+        s = Separator()
+        s.maxWidth = 200.0
+        colorsPanel.children.add(s)
+        colorsPanel.children.add(StructuralDomainColorPicker(mediator))
+
+        l = Label("Interactions")
+        l.textFill = Color.WHITE
+        l.maxWidth = 200.0
+        colorsPanel.children.add(l)
+        s = Separator()
+        s.maxWidth = 200.0
+        colorsPanel.children.add(s)
+        colorsPanel.children.add(InteractionsColorPicker(mediator))
+
+        l = Label("Residue Shapes")
+        l.textFill = Color.WHITE
+        l.maxWidth = 200.0
+        GridPane.setHalignment(l, HPos.LEFT)
+        colorsPanel.children.add(l)
+        s = Separator()
+        s.maxWidth = 200.0
+        colorsPanel.children.add(s)
+        colorsPanel.children.add(ResidueShapesColorPicker(mediator))
+
+        l = Label("Residue Characters")
+        l.textFill = Color.WHITE
+        l.maxWidth = 200.0
+        GridPane.setHalignment(l, HPos.LEFT)
+        colorsPanel.children.add(l)
+        s = Separator()
+        s.maxWidth = 200.0
+        colorsPanel.children.add(s)
+        colorsPanel.children.add(ResidueCharactersColorPicker(mediator))
+
+        val topToolBar2D = HBox()
+        topToolBar2D.background =
+            Background(BackgroundFill(RNArtistGUIColor, CornerRadii(0.0, 0.0, 10.0, 10.0, false), Insets.EMPTY))
+        topToolBar2D.alignment = Pos.CENTER
+        topToolBar2D.padding = Insets(10.0)
+        topToolBar2D.spacing = 25.0
+
+        l = Label("Font")
+        l.textFill = Color.WHITE
 
         val fontNames = ComboBox(
-            FXCollections.observableList(Font.getFamilies().stream().distinct().collect(Collectors.toList())))
+            FXCollections.observableList(Font.getFamilies().stream().distinct().collect(Collectors.toList()))
+        )
         fontNames.onAction = EventHandler {
             mediator.drawingDisplayed.get()?.let { drawingLoaded ->
                 drawingLoaded.drawing.workingSession.fontName = fontNames.value
@@ -137,7 +193,11 @@ class RNArtist : Application() {
         }
         fontNames.maxWidth = Double.MAX_VALUE
 
-        toolbar.items.add(fontNames)
+        var g = HBox()
+        g.alignment = Pos.CENTER
+        g.spacing = 5.0
+        g.children.addAll(l, fontNames)
+        topToolBar2D.children.add(g)
 
         val deltaXRes = Spinner<Int>(Int.MIN_VALUE, Int.MAX_VALUE, 0)
         deltaXRes.prefWidth = 50.0
@@ -147,8 +207,13 @@ class RNArtist : Application() {
                 mediator.canvas2D.repaint()
             }
         }
-        toolbar.items.add(Label("x"))
-        toolbar.items.add(deltaXRes)
+        l = Label("x")
+        l.textFill = Color.WHITE
+        g = HBox()
+        g.alignment = Pos.CENTER
+        g.spacing = 5.0
+        g.children.addAll(l, deltaXRes)
+        topToolBar2D.children.add(g)
 
         val deltaYRes = Spinner<Int>(Int.MIN_VALUE, Int.MAX_VALUE, 0)
         deltaYRes.prefWidth = 50.0
@@ -158,8 +223,13 @@ class RNArtist : Application() {
                 mediator.canvas2D.repaint()
             }
         }
-        toolbar.items.add(Label("y"))
-        toolbar.items.add(deltaYRes)
+        l = Label("y")
+        l.textFill = Color.WHITE
+        g = HBox()
+        g.alignment = Pos.CENTER
+        g.spacing = 5.0
+        g.children.addAll(l, deltaYRes)
+        topToolBar2D.children.add(g)
 
         val deltaFontSize = Spinner<Int>(Int.MIN_VALUE, Int.MAX_VALUE, 0)
         deltaFontSize.prefWidth = 50.0
@@ -169,881 +239,13 @@ class RNArtist : Application() {
                 mediator.canvas2D.repaint()
             }
         }
-        toolbar.items.add(Label("s"))
-        toolbar.items.add(deltaFontSize)
-
-        root.top = toolbar
-
-        //++++++ left Toolbar
-        val leftToolBar = GridPane()
-        leftToolBar.alignment = Pos.TOP_CENTER
-        leftToolBar.padding = Insets(5.0)
-        leftToolBar.vgap = 5.0
-        leftToolBar.hgap = 5.0
-
-        var row = 0
-
-        var s = Separator()
-        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
-        s.styleClass.add("thick-separator")
-        leftToolBar.add(s, 0, row++, 2, 1)
-        GridPane.setHalignment(s, HPos.CENTER)
-
-        var l = Label("2D")
-        leftToolBar.add(l, 0, row++, 2, 1)
-        GridPane.setHalignment(l, HPos.CENTER)
-
-        s = Separator()
-        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
-        s.styleClass.add("thick-separator")
-        leftToolBar.add(s, 0, row++, 2, 1)
-        GridPane.setHalignment(s, HPos.CENTER)
-
-        val center2D = Button(null, FontIcon("fas-crosshairs:15"))
-        center2D.maxWidth = Double.MAX_VALUE
-        center2D.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull).then(true).otherwise(false))
-        center2D.onMouseClicked = EventHandler { mouseEvent ->
-            if (mouseEvent.isShiftDown) {
-                centerDisplayOnSelection = !centerDisplayOnSelection
-                if (centerDisplayOnSelection) center2D.graphic = FontIcon("fas-lock:15") else center2D.graphic =
-                    FontIcon("fas-crosshairs:15")
-            } else {
-                val selectionFrame: Rectangle2D? = mediator.canvas2D.getSelectionFrame()
-                mediator.drawingDisplayed.get()?.drawing?.let {
-                    mediator.canvas2D.centerDisplayOn(selectionFrame ?: it.getFrame())
-                }
-            }
-        }
-        center2D.tooltip = Tooltip("Focus 2D on Selection")
-
-        val fit2D = Button(null, FontIcon("fas-expand-arrows-alt:15"))
-        fit2D.maxWidth = Double.MAX_VALUE
-        fit2D.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull).then(true).otherwise(false))
-        fit2D.onMouseClicked = EventHandler {
-            if (mediator.canvas2D.getSelection().isNotEmpty()) {
-                mediator.canvas2D.fitStructure(mediator.canvas2D.getSelectionFrame(), 2.0)
-            } else
-                mediator.canvas2D.fitStructure(null)
-        }
-        fit2D.tooltip = Tooltip("Fit 2D")
-
-        leftToolBar.add(center2D, 0, row)
-        GridPane.setHalignment(center2D, HPos.CENTER)
-        leftToolBar.add(fit2D, 1, row++)
-        GridPane.setHalignment(fit2D, HPos.CENTER)
-
-        val showTertiaries = Button(null, FontIcon("fas-eye:15"))
-        showTertiaries.maxWidth = Double.MAX_VALUE
-        showTertiaries.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        showTertiaries.onMouseClicked = EventHandler {
-            val t = theme {
-                show {
-                    type = "tertiary_interaction"
-                }
-            }
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-        }
-        showTertiaries.tooltip = Tooltip("Show Tertiaries")
-
-        val hideTertiaries = Button(null, FontIcon("fas-eye-slash:15"))
-        hideTertiaries.maxWidth = Double.MAX_VALUE
-        hideTertiaries.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        hideTertiaries.onMouseClicked = EventHandler {
-            val t = theme {
-                hide {
-                    type = "tertiary_interaction"
-                }
-            }
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-        }
-
-        hideTertiaries.tooltip = Tooltip("Hide Tertiaries")
-
-        leftToolBar.add(showTertiaries, 0, row)
-        GridPane.setHalignment(showTertiaries, HPos.CENTER)
-        leftToolBar.add(hideTertiaries, 1, row++)
-        GridPane.setHalignment(hideTertiaries, HPos.CENTER)
-
-        s = Separator()
-        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
-        leftToolBar.add(s, 0, row++, 2, 1)
-        GridPane.setHalignment(s, HPos.CENTER)
-
-        val levelDetails1 = Button("1")
-        levelDetails1.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        levelDetails1.maxWidth = Double.MAX_VALUE
-        levelDetails1.onAction = EventHandler {
-            val t = theme {
-                details {
-                    value = 1
-                }
-            }
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-            mediator.scriptEditor.script.setDetailsLevel("1")
-        }
-
-        val levelDetails2 = Button("2")
-        levelDetails2.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        levelDetails2.maxWidth = Double.MAX_VALUE
-        levelDetails2.onAction = EventHandler {
-            val t = theme {
-                details {
-                    value = 2
-                }
-            }
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-            mediator.scriptEditor.script.setDetailsLevel("2")
-        }
-
-        leftToolBar.add(levelDetails1, 0, row)
-        GridPane.setHalignment(levelDetails1, HPos.CENTER)
-        leftToolBar.add(levelDetails2, 1, row++)
-        GridPane.setHalignment(levelDetails2, HPos.CENTER)
-
-        val levelDetails3 = Button("3")
-        levelDetails3.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        levelDetails3.maxWidth = Double.MAX_VALUE
-        levelDetails3.onAction = EventHandler {
-            val t = theme {
-                details {
-                    value = 3
-                }
-            }
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-            mediator.scriptEditor.script.setDetailsLevel("3")
-        }
-
-        val levelDetails4 = Button("4")
-        levelDetails4.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        levelDetails4.maxWidth = Double.MAX_VALUE
-        levelDetails4.onAction = EventHandler {
-            val t = theme {
-                details {
-                    value = 4
-                }
-            }
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-            mediator.scriptEditor.script.setDetailsLevel("4")
-        }
-        leftToolBar.add(levelDetails3, 0, row)
-        GridPane.setHalignment(levelDetails1, HPos.CENTER)
-        leftToolBar.add(levelDetails4, 1, row++)
-        GridPane.setHalignment(levelDetails2, HPos.CENTER)
-
-        val levelDetails5 = Button("5")
-        levelDetails5.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        levelDetails5.maxWidth = Double.MAX_VALUE
-        levelDetails5.onAction = EventHandler {
-            val t = theme {
-                details {
-                    value = 5
-                }
-            }
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-            mediator.scriptEditor.script.setDetailsLevel("5")
-        }
-
-        leftToolBar.add(levelDetails5, 0, row++)
-        GridPane.setHalignment(levelDetails5, HPos.CENTER)
-
-        s = Separator()
-        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
-        leftToolBar.add(s, 0, row++, 2, 1)
-        GridPane.setHalignment(s, HPos.CENTER)
-
-        val AColorPicker = ColorPicker()
-        AColorPicker.maxWidth = Double.MAX_VALUE
-        val UColorPicker = ColorPicker()
-        UColorPicker.maxWidth = Double.MAX_VALUE
-        val GColorPicker = ColorPicker()
-        GColorPicker.maxWidth = Double.MAX_VALUE
-        val CColorPicker = ColorPicker()
-        CColorPicker.maxWidth = Double.MAX_VALUE
-        val RColorPicker = ColorPicker()
-        RColorPicker.value = Color.BLACK
-        RColorPicker.maxWidth = Double.MAX_VALUE
-        val YColorPicker = ColorPicker()
-        YColorPicker.value = Color.BLACK
-        YColorPicker.maxWidth = Double.MAX_VALUE
-        val NColorPicker = ColorPicker()
-        NColorPicker.value = Color.BLACK
-        NColorPicker.maxWidth = Double.MAX_VALUE
-
-        val ALabel = Button("A")
-        ALabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        ALabel.maxWidth = Double.MAX_VALUE
-        ALabel.userData = "white"
-        ALabel.textFill = Color.WHITE
-        val ULabel = Button("U")
-        ULabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        ULabel.maxWidth = Double.MAX_VALUE
-        ULabel.userData = "white"
-        ULabel.textFill = Color.WHITE
-        val GLabel = Button("G")
-        GLabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        GLabel.userData = "white"
-        GLabel.textFill = Color.WHITE
-        GLabel.maxWidth = Double.MAX_VALUE
-        val CLabel = Button("C")
-        CLabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        CLabel.maxWidth = Double.MAX_VALUE
-        CLabel.userData = "white"
-        CLabel.textFill = Color.WHITE
-        val RLabel = Button("R")
-        RLabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        RLabel.maxWidth = Double.MAX_VALUE
-        RLabel.userData = "white"
-        RLabel.textFill = Color.WHITE
-        RLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(Color.BLACK))
-        val YLabel = Button("Y")
-        YLabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        YLabel.maxWidth = Double.MAX_VALUE
-        YLabel.userData = "white"
-        YLabel.textFill = Color.WHITE
-        YLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(Color.BLACK))
-        val NLabel = Button("N")
-        NLabel.disableProperty().bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        NLabel.maxWidth = Double.MAX_VALUE
-        NLabel.userData = "white"
-        NLabel.textFill = Color.WHITE
-        NLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(Color.BLACK))
-
-        val clearTheme = Button(null, FontIcon("fas-undo:15"))
-        clearTheme.tooltip = Tooltip("Clear Theme")
-        clearTheme.maxWidth = Double.MAX_VALUE
-        clearTheme.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        clearTheme.onAction = EventHandler {
-            mediator.drawingDisplayed.get()?.let {
-                it.drawing.clearTheme()
-                mediator.canvas2D.repaint()
-                mediator.scriptEditor.script.getScriptRoot().getThemeKw().removeButton.fire()
-            }
-        }
-
-        val clearLayout = Button(null, FontIcon("fas-undo-alt:15"))
-        clearLayout.tooltip = Tooltip("Clear Layout")
-        clearLayout.maxWidth = Double.MAX_VALUE
-        clearLayout.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        clearLayout.onAction = EventHandler {
-            mediator.drawingDisplayed.get()?.let {
-                mediator.scriptEditor.script.getScriptRoot().getLayoutKw().removeButton.fire()
-            }
-        }
-
-        leftToolBar.add(clearTheme, 0, row)
-        GridPane.setHalignment(clearTheme, HPos.CENTER)
-        leftToolBar.add(clearLayout, 1, row++)
-        GridPane.setHalignment(clearLayout, HPos.CENTER)
-
-        val pickColorScheme = Button(null, FontIcon("fas-dice-three:15"))
-        pickColorScheme.maxWidth = Double.MAX_VALUE
-        pickColorScheme.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-
-        val paintResidues = Button(null, FontIcon("fas-fill:15"))
-        paintResidues.maxWidth = Double.MAX_VALUE
-        paintResidues.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        paintResidues.onAction = EventHandler {
-            val t = theme {
-                color {
-                    type = "A"
-                    value = getHTMLColorString(javaFXToAwt(AColorPicker.value))
-                }
-                color {
-                    type = "a"
-                    value =
-                        getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE))
-                }
-                color {
-                    type = "U"
-                    value = getHTMLColorString(javaFXToAwt(UColorPicker.value))
-                }
-                color {
-                    type = "u"
-                    value =
-                        getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE))
-                }
-                color {
-                    type = "G"
-                    value = getHTMLColorString(javaFXToAwt(GColorPicker.value))
-                }
-                color {
-                    type = "g"
-                    value =
-                        getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE))
-                }
-                color {
-                    type = "C"
-                    value = getHTMLColorString(javaFXToAwt(CColorPicker.value))
-                }
-                color {
-                    type = "c"
-                    value =
-                        getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE))
-                }
-            }
-
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-            mediator.scriptEditor.script.setColor(
-                "A",
-                getHTMLColorString(javaFXToAwt(AColorPicker.value))
-            )
-            mediator.scriptEditor.script.setColor(
-                "a",
-                getHTMLColorString(javaFXToAwt(if (ALabel.userData == "black") Color.BLACK else Color.WHITE))
-            )
-            mediator.scriptEditor.script.setColor(
-                "U",
-                getHTMLColorString(javaFXToAwt(UColorPicker.value))
-            )
-            mediator.scriptEditor.script.setColor(
-                "u",
-                getHTMLColorString(javaFXToAwt(if (ULabel.userData == "black") Color.BLACK else Color.WHITE))
-            )
-            mediator.scriptEditor.script.setColor(
-                "G",
-                getHTMLColorString(javaFXToAwt(GColorPicker.value))
-            )
-            mediator.scriptEditor.script.setColor(
-                "g",
-                getHTMLColorString(javaFXToAwt(if (GLabel.userData == "black") Color.BLACK else Color.WHITE))
-            )
-            mediator.scriptEditor.script.setColor(
-                "C",
-                getHTMLColorString(javaFXToAwt(CColorPicker.value))
-            )
-            mediator.scriptEditor.script.setColor(
-                "c",
-                getHTMLColorString(javaFXToAwt(if (CLabel.userData == "black") Color.BLACK else Color.WHITE))
-            )
-        }
-
-        leftToolBar.add(pickColorScheme, 0, row)
-        GridPane.setHalignment(pickColorScheme, HPos.CENTER)
-        leftToolBar.add(paintResidues, 1, row++)
-        GridPane.setHalignment(paintResidues, HPos.CENTER)
-
-        ALabel.onAction = EventHandler {
-            if (ALabel.userData == "black") {
-                ALabel.userData = "white"
-                ALabel.textFill = Color.WHITE
-            } else {
-                ALabel.userData = "black"
-                ALabel.textFill = Color.BLACK
-            }
-        }
-
-        leftToolBar.add(ALabel, 0, row)
-        GridPane.setHalignment(ALabel, HPos.CENTER)
-        leftToolBar.add(AColorPicker, 1, row++)
-        GridPane.setHalignment(AColorPicker, HPos.CENTER)
-
-        AColorPicker.styleClass.add("button")
-        AColorPicker.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        AColorPicker.style = "-fx-color-label-visible: false ;"
-        AColorPicker.onAction = EventHandler {
-            ALabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(AColorPicker.value))
-        }
-
-        ULabel.onAction = EventHandler {
-            if (ULabel.userData == "black") {
-                ULabel.userData = "white"
-                ULabel.textFill = Color.WHITE
-            } else {
-                ULabel.userData = "black"
-                ULabel.textFill = Color.BLACK
-            }
-        }
-
-        leftToolBar.add(ULabel, 0, row)
-        GridPane.setHalignment(ULabel, HPos.CENTER)
-        leftToolBar.add(UColorPicker, 1, row++)
-        GridPane.setHalignment(UColorPicker, HPos.CENTER)
-
-        UColorPicker.styleClass.add("button")
-        UColorPicker.style = "-fx-color-label-visible: false ;"
-        UColorPicker.onAction = EventHandler {
-            ULabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(UColorPicker.value))
-        }
-
-        GLabel.onAction = EventHandler {
-            if (GLabel.userData == "black") {
-                GLabel.userData = "white"
-                GLabel.textFill = Color.WHITE
-            } else {
-                GLabel.userData = "black"
-                GLabel.textFill = Color.BLACK
-            }
-        }
-        leftToolBar.add(GLabel, 0, row)
-        GridPane.setHalignment(GLabel, HPos.CENTER)
-        leftToolBar.add(GColorPicker, 1, row++)
-        GridPane.setHalignment(GColorPicker, HPos.CENTER)
-
-        GColorPicker.styleClass.add("button")
-        GColorPicker.style = "-fx-color-label-visible: false ;"
-        GColorPicker.onAction = EventHandler {
-            GLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(GColorPicker.value))
-        }
-
-        CLabel.onAction = EventHandler {
-            if (CLabel.userData == "black") {
-                CLabel.userData = "white"
-                CLabel.textFill = Color.WHITE
-            } else {
-                CLabel.userData = "black"
-                CLabel.textFill = Color.BLACK
-            }
-        }
-        leftToolBar.add(CLabel, 0, row)
-        GridPane.setHalignment(CLabel, HPos.CENTER)
-        leftToolBar.add(CColorPicker, 1, row++)
-        GridPane.setHalignment(CColorPicker, HPos.CENTER)
-
-        CColorPicker.styleClass.add("button")
-        CColorPicker.style = "-fx-color-label-visible: false ;"
-        CColorPicker.onAction = EventHandler {
-            CLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(CColorPicker.value))
-        }
-
-        RLabel.onAction = EventHandler {
-            if (RLabel.userData == "black") {
-                RLabel.userData = "white"
-                RLabel.textFill = Color.WHITE
-                ALabel.userData = "white"
-                ALabel.textFill = Color.WHITE
-                GLabel.userData = "white"
-                GLabel.textFill = Color.WHITE
-            } else {
-                RLabel.userData = "black"
-                RLabel.textFill = Color.BLACK
-                ALabel.userData = "black"
-                ALabel.textFill = Color.BLACK
-                GLabel.userData = "black"
-                GLabel.textFill = Color.BLACK
-            }
-        }
-        leftToolBar.add(RLabel, 0, row)
-        GridPane.setHalignment(RLabel, HPos.CENTER)
-        leftToolBar.add(RColorPicker, 1, row++)
-        GridPane.setHalignment(RColorPicker, HPos.CENTER)
-
-        RColorPicker.styleClass.add("button")
-        RColorPicker.style = "-fx-color-label-visible: false ;"
-        RColorPicker.onAction = EventHandler {
-            RLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(RColorPicker.value))
-            AColorPicker.value = RColorPicker.value
-            ALabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(RColorPicker.value))
-            GColorPicker.value = RColorPicker.value
-            GLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(RColorPicker.value))
-        }
-
-        YLabel.onAction = EventHandler {
-            if (YLabel.userData == "black") {
-                YLabel.userData = "white"
-                YLabel.textFill = Color.WHITE
-                ULabel.userData = "white"
-                ULabel.textFill = Color.WHITE
-                CLabel.userData = "white"
-                CLabel.textFill = Color.WHITE
-            } else {
-                YLabel.userData = "black"
-                YLabel.textFill = Color.BLACK
-                ULabel.userData = "black"
-                ULabel.textFill = Color.BLACK
-                CLabel.userData = "black"
-                CLabel.textFill = Color.BLACK
-            }
-        }
-        leftToolBar.add(YLabel, 0, row)
-        GridPane.setHalignment(YLabel, HPos.CENTER)
-        leftToolBar.add(YColorPicker, 1, row++)
-        GridPane.setHalignment(YColorPicker, HPos.CENTER)
-
-        YColorPicker.styleClass.add("button")
-        YColorPicker.style = "-fx-color-label-visible: false ;"
-        YColorPicker.onAction = EventHandler {
-            YLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(YColorPicker.value))
-            UColorPicker.value = YColorPicker.value
-            ULabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(YColorPicker.value))
-            CColorPicker.value = YColorPicker.value
-            CLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(YColorPicker.value))
-        }
-
-        NLabel.onAction = EventHandler {
-            if (NLabel.userData == "black") {
-                NLabel.userData = "white"
-                NLabel.textFill = Color.WHITE
-                ALabel.userData = "white"
-                ALabel.textFill = Color.WHITE
-                GLabel.userData = "white"
-                GLabel.textFill = Color.WHITE
-                ULabel.userData = "white"
-                ULabel.textFill = Color.WHITE
-                CLabel.userData = "white"
-                CLabel.textFill = Color.WHITE
-            } else {
-                NLabel.userData = "black"
-                NLabel.textFill = Color.BLACK
-                ALabel.userData = "black"
-                ALabel.textFill = Color.BLACK
-                GLabel.userData = "black"
-                GLabel.textFill = Color.BLACK
-                ULabel.userData = "black"
-                ULabel.textFill = Color.BLACK
-                CLabel.userData = "black"
-                CLabel.textFill = Color.BLACK
-            }
-        }
-        leftToolBar.add(NLabel, 0, row)
-        GridPane.setHalignment(NLabel, HPos.CENTER)
-        leftToolBar.add(NColorPicker, 1, row++)
-        GridPane.setHalignment(NColorPicker, HPos.CENTER)
-
-        NColorPicker.styleClass.add("button")
-        NColorPicker.style = "-fx-color-label-visible: false ;"
-        NColorPicker.onAction = EventHandler {
-            NLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
-            AColorPicker.value = NColorPicker.value
-            ALabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
-            GColorPicker.value = NColorPicker.value
-            GLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
-            UColorPicker.value = NColorPicker.value
-            ULabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
-            CColorPicker.value = NColorPicker.value
-            CLabel.style = "-fx-background-color: " + getHTMLColorString(javaFXToAwt(NColorPicker.value))
-        }
-
-        //++++++++++ we init the color buttons with a random scheme
-        val random = Random()
-        var color = randomColor()
-        AColorPicker.value =
-            awtColorToJavaFX(
-                color
-            )
-        ALabel.style =
-            "-fx-background-color: " + getHTMLColorString(color)
-        if (random.nextInt(2) == 0) {
-            ALabel.userData = "white"
-            ALabel.textFill = Color.WHITE
-        } else {
-            ALabel.userData = "black"
-            ALabel.textFill = Color.BLACK
-        }
-
-        color = randomColor()
-        UColorPicker.value =
-            awtColorToJavaFX(
-                color
-            )
-        ULabel.style =
-            "-fx-background-color: " + getHTMLColorString(color)
-        if (random.nextInt(2) == 0) {
-            ULabel.userData = "white"
-            ULabel.textFill = Color.WHITE
-        } else {
-            ULabel.userData = "black"
-            ULabel.textFill = Color.BLACK
-        }
-
-        color = randomColor()
-        GColorPicker.value =
-            awtColorToJavaFX(
-                color
-            )
-        GLabel.style =
-            "-fx-background-color: " + getHTMLColorString(color)
-
-        if (random.nextInt(2) == 0) {
-            GLabel.userData = "white"
-            GLabel.textFill = Color.WHITE
-        } else {
-            GLabel.userData = "black"
-            GLabel.textFill = Color.BLACK
-        }
-
-        color = randomColor()
-        CColorPicker.value =
-            awtColorToJavaFX(
-                color
-            )
-
-        CLabel.style =
-            "-fx-background-color: " + getHTMLColorString(color)
-
-        if (random.nextInt(2) == 0) {
-            CLabel.userData = "white"
-            CLabel.textFill = Color.WHITE
-        } else {
-            CLabel.userData = "black"
-            CLabel.textFill = Color.BLACK
-        }
-
-        pickColorScheme.onAction = EventHandler {
-
-            val random = Random()
-            var color = randomColor()
-            AColorPicker.value =
-                awtColorToJavaFX(
-                    color
-                )
-            ALabel.style =
-                "-fx-background-color: " + getHTMLColorString(color)
-            if (random.nextInt(2) == 0) {
-                ALabel.userData = "white"
-                ALabel.textFill = Color.WHITE
-            } else {
-                ALabel.userData = "black"
-                ALabel.textFill = Color.BLACK
-            }
-
-            color = randomColor()
-            UColorPicker.value =
-                awtColorToJavaFX(
-                    color
-                )
-            ULabel.style =
-                "-fx-background-color: " + getHTMLColorString(color)
-            if (random.nextInt(2) == 0) {
-                ULabel.userData = "white"
-                ULabel.textFill = Color.WHITE
-            } else {
-                ULabel.userData = "black"
-                ULabel.textFill = Color.BLACK
-            }
-
-            color = randomColor()
-            GColorPicker.value =
-                awtColorToJavaFX(
-                    color
-                )
-            GLabel.style =
-                "-fx-background-color: " + getHTMLColorString(color)
-
-            if (random.nextInt(2) == 0) {
-                GLabel.userData = "white"
-                GLabel.textFill = Color.WHITE
-            } else {
-                GLabel.userData = "black"
-                GLabel.textFill = Color.BLACK
-            }
-
-            color = randomColor()
-            CColorPicker.value =
-                awtColorToJavaFX(
-                    color
-                )
-
-            CLabel.style =
-                "-fx-background-color: " + getHTMLColorString(color)
-
-            if (random.nextInt(2) == 0) {
-                CLabel.userData = "white"
-                CLabel.textFill = Color.WHITE
-            } else {
-                CLabel.userData = "black"
-                CLabel.textFill = Color.BLACK
-            }
-        }
-
-        s = Separator()
-        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
-        leftToolBar.add(s, 0, row++, 2, 1)
-        GridPane.setHalignment(s, HPos.CENTER)
-
-        val applyLineWidth = { lineWidth: Double ->
-            val t = theme {
-                line {
-                    type =
-                        "helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol"
-                    value = lineWidth
-                }
-            }
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-            mediator.scriptEditor.script.setLineWidth(
-                "helix junction single_strand N secondary_interaction phosphodiester_bond tertiary_interaction interaction_symbol",
-                "${lineWidth}"
-            )
-        }
-
-        val lineWidth1 = Button(null, null)
-        lineWidth1.maxWidth = Double.MAX_VALUE
-        var line = Line(0.0, 10.0, 10.0, 10.0)
-        line.strokeWidth = 0.25
-        lineWidth1.graphic = line
-        lineWidth1.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        lineWidth1.onAction = EventHandler {
-            applyLineWidth(0.25)
-        }
-
-        val lineWidth2 = Button(null, null)
-        lineWidth2.maxWidth = Double.MAX_VALUE
-        line = Line(0.0, 10.0, 10.0, 10.0)
-        line.strokeWidth = 0.5
-        lineWidth2.graphic = line
-        lineWidth2.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        lineWidth2.onAction = EventHandler {
-            applyLineWidth(0.5)
-        }
-        leftToolBar.add(lineWidth1, 0, row)
-        GridPane.setHalignment(lineWidth1, HPos.CENTER)
-        leftToolBar.add(lineWidth2, 1, row++)
-        GridPane.setHalignment(lineWidth2, HPos.CENTER)
-
-        val lineWidth3 = Button(null, null)
-        lineWidth3.maxWidth = Double.MAX_VALUE
-        line = Line(0.0, 10.0, 10.0, 10.0)
-        line.strokeWidth = 1.0
-        lineWidth3.graphic = line
-        lineWidth3.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        lineWidth3.onAction = EventHandler {
-            applyLineWidth(1.0)
-        }
-
-        val lineWidth4 = Button(null, null)
-        lineWidth4.maxWidth = Double.MAX_VALUE
-        line = Line(0.0, 10.0, 10.0, 10.0)
-        line.strokeWidth = 3.0
-        lineWidth4.graphic = line
-        lineWidth4.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        lineWidth4.onAction = EventHandler {
-            applyLineWidth(3.0)
-        }
-        leftToolBar.add(lineWidth3, 0, row)
-        GridPane.setHalignment(lineWidth3, HPos.CENTER)
-        leftToolBar.add(lineWidth4, 1, row++)
-        GridPane.setHalignment(lineWidth4, HPos.CENTER)
-
-        val lineWidth5 = Button(null, null)
-        lineWidth5.maxWidth = Double.MAX_VALUE
-        line = Line(0.0, 10.0, 10.0, 10.0)
-        line.strokeWidth = 5.0
-        lineWidth5.graphic = line
-        lineWidth5.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        lineWidth5.onAction = EventHandler {
-            applyLineWidth(5.0)
-        }
-
-        val lineColorPicker = ColorPicker(Color.BLACK)
-        lineColorPicker.disableProperty()
-            .bind(Bindings.`when`(mediator.drawingDisplayed.isNull()).then(true).otherwise(false))
-        lineColorPicker.maxWidth = Double.MAX_VALUE
-        lineColorPicker.styleClass.add("button")
-        lineColorPicker.style = "-fx-color-label-visible: false ;"
-        lineColorPicker.onAction = EventHandler {
-            val t = theme {
-                color {
-                    type =
-                        "helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction"
-                    value = getHTMLColorString(javaFXToAwt(lineColorPicker.value))
-                }
-            }
-
-            if (mediator.canvas2D.getSelection().isNotEmpty())
-                mediator.canvas2D.getSelection().map { it.applyTheme(t)}
-            else
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            mediator.canvas2D.repaint()
-            mediator.scriptEditor.script.setColor(
-                "helix junction single_strand secondary_interaction phosphodiester_bond interaction_symbol tertiary_interaction",
-                getHTMLColorString(javaFXToAwt(lineColorPicker.value))
-            )
-
-        }
-        leftToolBar.add(lineWidth5, 0, row)
-        GridPane.setHalignment(lineWidth5, HPos.CENTER)
-        leftToolBar.add(lineColorPicker, 1, row++)
-        GridPane.setHalignment(lineColorPicker, HPos.CENTER)
-
-        s = Separator()
-        s.padding = Insets(10.0, 0.0, 5.0, 0.0)
-        s.styleClass.add("thick-separator")
-        leftToolBar.add(s, 0, row++, 2, 1)
-        GridPane.setHalignment(s, HPos.CENTER)
-
-        l = Label("3D")
-        leftToolBar.add(l, 0, row++, 2, 1)
-        GridPane.setHalignment(l, HPos.CENTER)
-
-        s = Separator()
-        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
-        s.styleClass.add("thick-separator")
-        leftToolBar.add(s, 0, row++, 2, 1)
-        GridPane.setHalignment(s, HPos.CENTER)
-
-        val reload3D = Button(null, FontIcon("fas-redo:15"))
-        reload3D.onMouseClicked = EventHandler { mediator.chimeraDriver.displayCurrent3D() }
-        reload3D.setTooltip(Tooltip("Reload 3D"))
-
-        val focus3D = Button(null, FontIcon("fas-crosshairs:15"))
-        focus3D.onMouseClicked = EventHandler { mediator.focusInChimera() }
-        focus3D.setTooltip(Tooltip("Focus 3D on Selection"))
-
-        leftToolBar.add(reload3D, 0, row)
-        GridPane.setHalignment(reload3D, HPos.CENTER)
-        leftToolBar.add(focus3D, 1, row++)
-        GridPane.setHalignment(focus3D, HPos.CENTER)
-
-        val paintSelectionin3D = Button(null, FontIcon("fas-fill:15"))
-        paintSelectionin3D.setOnMouseClicked( { mediator.chimeraDriver.color3D(if (mediator.canvas2D.getSelectedResidues().isNotEmpty()) mediator.canvas2D.getSelectedResidues() else mediator.drawingDisplayed.get()!!.drawing.residues) })
-        paintSelectionin3D.setTooltip(Tooltip("Paint 3D selection"))
-
-        leftToolBar.add(paintSelectionin3D, 0, row++)
-        GridPane.setHalignment(paintSelectionin3D, HPos.CENTER)
-
-        root.left = leftToolBar
+        l = Label("size")
+        l.textFill = Color.WHITE
+        g = HBox()
+        g.alignment = Pos.CENTER
+        g.spacing = 5.0
+        g.children.addAll(l, deltaFontSize)
+        topToolBar2D.children.add(g)
 
         //++++++ Canvas2D
         swingNode.onMouseMoved = EventHandler { mouseEvent: MouseEvent? ->
@@ -1063,9 +265,6 @@ class RNArtist : Application() {
                         drawingLoaded.drawing.workingSession.zoomLevel,
                         drawingLoaded.drawing.workingSession.zoomLevel
                     )
-                    for (knob in drawingLoaded.knobs)
-                        if (knob.contains(mouseEvent.x, mouseEvent.y))
-                            return@mouseClicked
                     for (h in drawingLoaded.drawing.workingSession.helicesDrawn) {
                         var shape = h.selectionFrame
                         if (shape != null && at.createTransformedShape(shape)
@@ -1268,10 +467,106 @@ class RNArtist : Application() {
         }
         createSwingContent(swingNode)
 
-        root.center = swingNode
+        val verticalSplitPane = SplitPane()
+        verticalSplitPane.orientation = Orientation.VERTICAL
+
+        root.center = verticalSplitPane
+
+        val panel3D = GridPane()
+        val rConstraints = RowConstraints()
+        rConstraints.vgrow = Priority.ALWAYS
+        val _rConstraints = RowConstraints()
+        _rConstraints.vgrow = Priority.NEVER
+        panel3D.rowConstraints.addAll(rConstraints, _rConstraints)
+        //horizontalSplitPane.items.add(panel3D)
+        val cConstraints = ColumnConstraints()
+        cConstraints.hgrow = Priority.ALWAYS
+        panel3D.columnConstraints.add(cConstraints)
+        panel3D.add(Canvas3D(), 0, 0)
+
+        val panel2D = GridPane()
+        val rConstraints1 = RowConstraints()
+        rConstraints1.vgrow = Priority.NEVER
+        val rConstraints2 = RowConstraints()
+        rConstraints2.vgrow = Priority.ALWAYS
+        val rConstraints3 = RowConstraints()
+        rConstraints3.vgrow = Priority.NEVER
+
+        val cConstraints1 = ColumnConstraints()
+        cConstraints1.hgrow = Priority.NEVER
+        val cConstraints2 = ColumnConstraints()
+        cConstraints2.hgrow = Priority.ALWAYS
+        val cConstraints3 = ColumnConstraints()
+        cConstraints3.hgrow = Priority.NEVER
+
+        panel2D.rowConstraints.addAll(rConstraints1, rConstraints2, rConstraints3)
+        panel2D.columnConstraints.addAll(cConstraints1, cConstraints2, cConstraints3)
+
+        panel2D.add(layoutsPanelScrollPane, 0, 0, 1, 3)
+        panel2D.add(topToolBar2D, 1, 0)
+        panel2D.add(swingNode, 1, 1)
+        panel2D.add(colorsPanelScrollPane, 2, 0, 1, 3)
+        colorsPanelScrollPane.isFitToWidth = true
+
+        val lowerHorizontalSplitPane = SplitPane()
+        lowerHorizontalSplitPane.orientation = Orientation.HORIZONTAL
+        val tabPane = TabPane()
+        tabPane.tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
+
+        class Residue(val position: Int, vararg values: Float) {
+            val values = mutableListOf<ObservableValue<Float>>()
+
+            init {
+                this.values.addAll(values.map { SimpleFloatProperty(it) as ObservableValue<Float> })
+            }
+        }
+
+        val table = TableView<Residue>()
+        val positions = TableColumn<Residue, Int>("Position")
+        positions.setCellValueFactory(PropertyValueFactory("Position"))
+        val dataset1 = TableColumn<Residue, Float>("DataSet #1")
+        dataset1.setCellValueFactory { r -> r.value.values.get(0) }
+        val dataset2 = TableColumn<Residue, Float>("DataSet #2")
+        dataset2.setCellValueFactory { r -> r.value.values.get(1) }
+        val dataset3 = TableColumn<Residue, Float>("DataSet #3")
+        dataset3.setCellValueFactory { r -> r.value.values.get(2) }
+        val dataset4 = TableColumn<Residue, Float>("DataSet #4")
+        dataset4.setCellValueFactory { r -> r.value.values.get(3) }
+        table.columns.addAll(positions, dataset1, dataset2, dataset3, dataset4)
+
+        (1..50).forEach {
+            table.items.add(
+                Residue(
+                    it,
+                    kotlin.random.Random.nextFloat(),
+                    kotlin.random.Random.nextFloat(),
+                    kotlin.random.Random.nextFloat(),
+                    kotlin.random.Random.nextFloat()
+                )
+            )
+        }
+
+        lowerHorizontalSplitPane.items.add(table)
+        SplitPane.setResizableWithParent(table, false)
+        val xAxis = NumberAxis()
+        xAxis.label = "Position"
+
+        val yAxis = NumberAxis()
+        yAxis.label = "Values"
+        lowerHorizontalSplitPane.items.add(AreaChart(xAxis, yAxis))
+        lowerHorizontalSplitPane.setDividerPositions(0.3)
+        tabPane.tabs.add(Tab("Saved Projects", mediator.projectsPanel))
+        tabPane.tabs.add(Tab("Working Session", mediator.drawingsLoadedPanel))
+        tabPane.tabs.add(Tab("Data", lowerHorizontalSplitPane))
+        tabPane.tabs.add(Tab("Script", this.mediator.scriptEditor))
+
+        verticalSplitPane.items.add(panel2D)
+        verticalSplitPane.items.add(tabPane)
+        verticalSplitPane.setDividerPositions(0.7)
 
         //### Status Bar
         this.statusBar = FlowPane()
+        root.bottom = this.statusBar
         statusBar.setAlignment(Pos.CENTER_RIGHT)
         statusBar.setPadding(Insets(5.0, 10.0, 5.0, 10.0))
         statusBar.setHgap(20.0)
@@ -1312,16 +607,8 @@ class RNArtist : Application() {
         windowsBar.padding = Insets(5.0, 10.0, 5.0, 10.0)
         windowsBar.hgap = 10.0
 
-        val showTools = Button(null, FontIcon("fas-tools:15"))
-        showTools.tooltip = Tooltip("Show Tools")
-        showTools.onAction = EventHandler { actionEvent: ActionEvent? ->
-            mediator.sideWindow.stage.show()
-            mediator.sideWindow.stage.toFront()
-        }
-        windowsBar.children.add(showTools)
-
         val bar = GridPane()
-        val cc = ColumnConstraints()
+        var cc = ColumnConstraints()
         cc.hgrow = Priority.ALWAYS
         bar.columnConstraints.addAll(cc, ColumnConstraints())
 
@@ -1330,9 +617,7 @@ class RNArtist : Application() {
         GridPane.setHalignment(windowsBar, HPos.LEFT)
         bar.add(this.statusBar, 1, 0)
         GridPane.setHalignment(this.statusBar, HPos.RIGHT)
-        //root.bottom = bar
 
-        //root.right = RNAGallery(mediator)
     }
 
     override fun start(stage: Stage) {
@@ -1392,14 +677,11 @@ class RNArtist : Application() {
         stage.title = "RNArtist"
 
         val screenSize = Screen.getPrimary().bounds
-        val width = (screenSize.width * 0.5).toInt()
-        scene.window.width = screenSize.width - width
+        scene.window.width = screenSize.width
         scene.window.height = screenSize.height
         scene.window.x = 0.0
         scene.window.y = 0.0
-
         scene.stylesheets.add("io/github/fjossinet/rnartist/gui/css/main.css")
-
         SplashWindow(this.mediator)
     }
 
