@@ -5,7 +5,6 @@ import io.github.fjossinet.rnartist.RNArtist
 import io.github.fjossinet.rnartist.core.model.FileSource
 import io.github.fjossinet.rnartist.core.model.JunctionDrawing
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
-import io.github.fjossinet.rnartist.gui.SelectionShape
 import javafx.beans.Observable
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
@@ -18,6 +17,8 @@ import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
+import javafx.scene.shape.Circle
+import javafx.stage.DirectoryChooser
 import javafx.stage.Modality
 import javafx.stage.Stage
 import javafx.util.Callback
@@ -31,19 +32,21 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
-class DrawingsLoadedPanel(val mediator: Mediator): BorderPane() {
+
+class DatabaseExplorer(val mediator: Mediator): BorderPane() {
 
     val gridview = GridView<DrawingLoaded>()
+    var currentRootDB:String? = null
 
     init {
         this.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+
         gridview.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-        gridview.padding = Insets(20.0, 20.0, 20.0, 20.0)
+        gridview.padding = Insets(20.0)
         gridview.horizontalCellSpacing = 20.0
         gridview.verticalCellSpacing = 20.0
         gridview.cellWidth = 200.0
         gridview.cellHeight = 200.0
-        this.gridview.style = "-fx-background-color: #333333;"
         this.gridview.setCellFactory { DrawingLoadedCell() }
         this.center = this.gridview
 

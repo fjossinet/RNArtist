@@ -52,7 +52,7 @@
 .split-pane-divider {
     -fx-padding: 0 0.5 0 0.5;
     -fx-background-color: white;
-    -fx-background-insets: 0;
+    -fx-background-insets: 10;
 }
 
 .tab-pane .tab {

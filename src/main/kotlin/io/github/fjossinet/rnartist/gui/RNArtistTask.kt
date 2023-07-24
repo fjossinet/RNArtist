@@ -75,7 +75,7 @@ class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
             val svgKw = mediator.scriptEditor.script.getScriptRoot().getSVGKw()
             if (svgKw.inFinalScript) {
                 svgKw.path?.let { path ->
-                    mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
+                    mediator.databaseExplorer.drawingsLoaded().forEach {
                         svgKw.name?.let { chainName ->
                             if (chainName.equals(it.drawing.secondaryStructure.rna.name)) {
                                 Platform.runLater {
@@ -103,7 +103,7 @@ class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
             val pngKw = mediator.scriptEditor.script.getScriptRoot().getPNGKw()
             if (pngKw.inFinalScript) {
                 pngKw.path?.let { path ->
-                    mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
+                    mediator.databaseExplorer.drawingsLoaded().forEach {
                         pngKw.name?.let { chainName ->
                             if (chainName.equals(it.drawing.secondaryStructure.rna.name)) {
                                 Platform.runLater {
@@ -131,7 +131,7 @@ class ApplyExportInScript(mediator: Mediator) : RNArtistTask(mediator) {
             val chimeraKw = mediator.scriptEditor.script.getScriptRoot().getChimeraKw()
             if (chimeraKw.inFinalScript) {
                 chimeraKw.path?.let { path ->
-                    mediator.drawingsLoadedPanel.drawingsLoaded().forEach {
+                    mediator.databaseExplorer.drawingsLoaded().forEach {
                         chimeraKw.name?.let { chainName ->
                             if (chainName.equals(it.drawing.secondaryStructure.rna.name)) {
                                 Platform.runLater {
@@ -218,13 +218,13 @@ class ApplyThemeAndLayout(mediator: Mediator) : RNArtistTask(mediator) {
             val layout = mediator.scriptEditor.engine.eval(mediator.scriptEditor.getLayoutAsText(useAbsolutePath= true)) as? Layout
             //println(scriptContent)
             Thread.sleep(100)
-            var totalProgress = mediator.drawingsLoadedPanel.count().toDouble()
+            var totalProgress = mediator.databaseExplorer.count().toDouble()
             var progressStep = 0.0
             var loaded = 0
-            mediator.drawingsLoadedPanel.drawingsLoaded().forEach { drawingLoaded ->
+            mediator.databaseExplorer.drawingsLoaded().forEach { drawingLoaded ->
                 Platform.runLater {
                     updateProgress(++progressStep, totalProgress)
-                    updateMessage("Applying theme & layout to 2D ${++loaded}/${mediator.drawingsLoadedPanel.count()}")
+                    updateMessage("Applying theme & layout to 2D ${++loaded}/${mediator.databaseExplorer.count()}")
                     drawingLoaded.drawing.clearTheme()
                     theme?.let {
                         drawingLoaded.drawing.applyTheme(it)
@@ -291,7 +291,7 @@ class RunEntireScript(mediator: Mediator) : RNArtistTask(mediator) {
     override fun call(): Pair<Any?, Exception?> {
         try {
             Platform.runLater {
-                mediator.drawingsLoadedPanel.drawingsLoaded().clear()
+                mediator.databaseExplorer.drawingsLoaded().clear()
             }
             Thread.sleep(100)
             Platform.runLater {
@@ -313,7 +313,7 @@ class RunEntireScript(mediator: Mediator) : RNArtistTask(mediator) {
                 Platform.runLater {
                     updateProgress(++progressStep, totalProgress)
                     updateMessage("Loading 2D ${++loaded}/${structuresToBeLoaded.size}")
-                    mediator.drawingsLoadedPanel.addItem(
+                    mediator.databaseExplorer.addItem(
                         DrawingLoaded(
                             mediator,
                             it, mediator.scriptEditor.script.getScriptRoot().id
@@ -381,7 +381,7 @@ class LoadScript(mediator: Mediator, val script: Reader, val runScript:Boolean =
     override fun call(): Pair<Any?, Exception?> {
         try {
             Platform.runLater {
-                mediator.drawingsLoadedPanel.drawingsLoaded().clear()
+                mediator.databaseExplorer.drawingsLoaded().clear()
             }
             Thread.sleep(100)
             Platform.runLater {

@@ -2,6 +2,7 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.*
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Targetable
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import javafx.animation.RotateTransition
 import javafx.event.EventHandler
@@ -27,7 +28,7 @@ import javafx.util.Duration
 import kotlin.random.Random
 
 
-open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
+open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox(), Targetable  {
 
     val colorWheelGroup = Group()
     val lineWidthKnobGroup = Group()
@@ -45,6 +46,7 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
     abstract var behaviors:Map<String, (e:DrawingElement) -> Boolean>
 
     init {
+        this.mediator.colorsPickers.add(this)
         this.minWidth = 200.0
         this.prefWidth = 200.0
         this.maxWidth = 200.0
@@ -132,7 +134,13 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
                             else -> "1.0"
                         }
                     }
-                    mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                    if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                        mediator.canvas2D.getSelection().forEach {
+                            it.applyTheme(t)
+                        }
+                    } else {
+                        mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                    }
                     mediator.canvas2D.repaint()
                     break
                 }
@@ -166,7 +174,13 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
                             else -> "1.0"
                         }
                     }
-                    mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                    if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                        mediator.canvas2D.getSelection().forEach {
+                            it.applyTheme(t)
+                        }
+                    } else {
+                        mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                    }
                     mediator.canvas2D.repaint()
                     break
                 }
@@ -273,13 +287,29 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
                             javaFXToAwt(color)
                         )
                     }
-                    this.addLastColor(it.value)
+                    //we update the last colors for all the color pickers
+                    mediator.colorsPickers.forEach { colorPicker ->
+                        colorPicker.addLastColor(it.value)
+                    }
                     this.repaintBrightness(it.value)
                     this.repaintSaturation(it.value)
-                    mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                    if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                        mediator.canvas2D.getSelection().forEach {
+                            it.applyTheme(t)
+                        }
+                    } else {
+                        mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                    }
                     mediator.canvas2D.repaint()
+                    return@EventHandler
                 }
             }
+        }
+
+        mediator.targetables.add(this)
+        this.targetsComboBox.onAction = EventHandler {
+            //synchronization with the other targetable widgets
+            mediator.targetables.forEach { it.setTarget(this.targetsComboBox.value) }
         }
     }
 
@@ -295,7 +325,13 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
             }
             this.repaintBrightness(c)
             this.repaintSaturation(c)
-            mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                mediator.canvas2D.getSelection().forEach {
+                    it.applyTheme(t)
+                }
+            } else {
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            }
             mediator.canvas2D.repaint()
         }
         r.fill = color
@@ -327,7 +363,13 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
                         javaFXToAwt(color)
                     )
                 }
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                    mediator.canvas2D.getSelection().forEach {
+                        it.applyTheme(t)
+                    }
+                } else {
+                    mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                }
                 mediator.canvas2D.repaint()
             }
             r.fill = color
@@ -349,7 +391,13 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
                         javaFXToAwt(color)
                     )
                 }
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                    mediator.canvas2D.getSelection().forEach {
+                        it.applyTheme(t)
+                    }
+                } else {
+                    mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+                }
                 mediator.canvas2D.repaint()
             }
             r.fill = color
@@ -357,6 +405,16 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
             r.strokeWidth = 1.0
             this.saturationBar.children.add(r)
         }
+    }
+
+    override fun setTarget(target: String) {
+        this.targetsComboBox.items.forEach {
+            if (it.equals(target)) {
+                this.targetsComboBox.value = it
+                return
+            }
+        }
+
     }
 
 }

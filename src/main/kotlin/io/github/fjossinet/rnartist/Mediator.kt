@@ -7,8 +7,9 @@ import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import io.github.fjossinet.rnartist.io.ChimeraXDriver
 import io.github.fjossinet.rnartist.gui.Actions2DButtonsPanel
 import io.github.fjossinet.rnartist.gui.DrawingLoaded
-import io.github.fjossinet.rnartist.gui.DrawingsLoadedPanel
+import io.github.fjossinet.rnartist.gui.DatabaseExplorer
 import io.github.fjossinet.rnartist.gui.Actions3DButtonsPanel
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Targetable
 import io.github.fjossinet.rnartist.model.editor.RfamKw
 import javafx.beans.property.SimpleObjectProperty
 
@@ -18,9 +19,12 @@ class Mediator(val rnartist: RNArtist) {
     val embeddedDB = EmbeddedDB()
     var chimeraDriver = ChimeraXDriver(this)
     val scriptEditor = ScriptEditor(this)
-    val drawingsLoadedPanel = DrawingsLoadedPanel(this)
+    val databaseExplorer = DatabaseExplorer(this)
     val projectsPanel = ProjectsPanel(this)
+    val colorsPickers = mutableListOf<RNArtistColorPicker>()
+    val targetables = mutableListOf<Targetable>()
     lateinit var actions2DButtonsPanel:Actions2DButtonsPanel
+    lateinit var databaseButtonsPanel:DatabaseButtonsPanel
     lateinit var tertiaryStructureButtonsPanel:Actions3DButtonsPanel
     lateinit var canvas2D: Canvas2D
 
@@ -56,7 +60,7 @@ class Mediator(val rnartist: RNArtist) {
 
     init {
 
-        this.chimeraDriver.connectToRestServer() //to see if at start, RNArtist can connect to ChimeraX rest Server with the current parameters
+        //this.chimeraDriver.connectToRestServer() //to see if at start, RNArtist can connect to ChimeraX rest Server with the current parameters
 
         this.drawingDisplayed.addListener {
                 observableValue, oldValue, newValue ->

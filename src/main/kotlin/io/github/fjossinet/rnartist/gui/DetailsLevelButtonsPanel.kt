@@ -2,12 +2,13 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.*
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Targetable
 import javafx.event.EventHandler
 import javafx.scene.control.Button
 import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 
-class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = mediator, panelRadius = 60.0) {
+class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = mediator, panelRadius = 60.0), Targetable {
 
     var targetsComboBox: ComboBox<String> = ComboBox<String>()
 
@@ -17,16 +18,21 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
             maxWidth = 150.0
             items.addAll(
                 "Any",
-                "Selection",
                 "Helices",
                 "Junctions",
                 "Strands",
                 "Apical Loops",
                 "Inner Loops",
-                "3-Way",
-                "4-Way"
+                "3-Ways",
+                "4-Ways"
             )
             value = items.first()
+
+        }
+        mediator.targetables.add(this)
+        this.targetsComboBox.onAction = EventHandler {
+            //synchronization with the other targetable widgets
+            mediator.targetables.forEach { it.setTarget(this.targetsComboBox.value) }
         }
 
         val levelDetails1 = Button("1")
@@ -37,19 +43,6 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                 "Any" -> {
                     t.setConfigurationFor(
                         { el -> el.type != SecondaryStructureType.TertiaryInteraction }, //visibility of tertiaries are managed from the "2D actions" Panel
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                }
-                "Selection" -> {
-                    t.setConfigurationFor(
-                        { el ->
-                            el.inside(
-                                Location(
-                                    mediator.canvas2D.getSelection()
-                                        .flatMap { if (it is JunctionDrawing) it.junction.locationWithoutSecondaries.blocks else it.location.blocks })
-                            )
-                        },
                         ThemeParameter.fulldetails,
                         { el -> "false" }
                     )
@@ -398,7 +391,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.InnerLoop
                     }, ThemeParameter.fulldetails, { el -> "false" })
                 }
-                "3-Way" -> {
+                "3-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.ThreeWay
@@ -464,7 +457,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el.parent?.parent as JunctionDrawing).junctionType == JunctionType.ThreeWay
                     }, ThemeParameter.fulldetails, { el -> "false" })
                 }
-                "4-Way" -> {
+                "4-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.FourWay
@@ -534,7 +527,13 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
 
                 }
             }
-            mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                mediator.canvas2D.getSelection().forEach {
+                    it.applyTheme(t)
+                }
+            } else {
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            }
             mediator.canvas2D.repaint()
             mediator.scriptEditor.script.setDetailsLevel("1")
 
@@ -641,103 +640,6 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                     )
 
                 }
-                "Selection" -> {
-                    val selectedLocation = Location(
-                        mediator.canvas2D.getSelection()
-                            .flatMap { if (it is JunctionDrawing) it.junction.locationWithoutSecondaries.blocks else it.location.blocks })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.Helix && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.SecondaryInteraction && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.Junction && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.SingleStrand && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.PhosphodiesterBond && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.AShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.A && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "false" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.UShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.U && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "false" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.GShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.G && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "false" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.CShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.C && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "false" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.XShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.X && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "false" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.InteractionSymbol && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                }
                 "Helices" -> {
                     t.setConfigurationFor(
                         { el ->
@@ -1082,7 +984,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.InnerLoop
                     }, ThemeParameter.fulldetails, { el -> "false" })
                 }
-                "3-Way" -> {
+                "3-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.ThreeWay
@@ -1148,7 +1050,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el.parent?.parent as JunctionDrawing).junctionType == JunctionType.ThreeWay
                     }, ThemeParameter.fulldetails, { el -> "false" })
                 }
-                "4-Way" -> {
+                "4-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.FourWay
@@ -1218,7 +1120,13 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
 
                 }
             }
-            mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                mediator.canvas2D.getSelection().forEach {
+                    it.applyTheme(t)
+                }
+            } else {
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            }
             mediator.canvas2D.repaint()
             mediator.scriptEditor.script.setDetailsLevel("2")
         }
@@ -1327,107 +1235,6 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         { el -> "false" }
                     )
                 }
-                "Selection" -> {
-                    val selectedLocation = Location(
-                        mediator.canvas2D.getSelection()
-                            .flatMap { if (it is JunctionDrawing) it.junction.locationWithoutSecondaries.blocks else it.location.blocks })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.Helix && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.SecondaryInteraction && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.Junction && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.SingleStrand && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.PhosphodiesterBond && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.AShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.A && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "false" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.UShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.U && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "false" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.GShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.G && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "false" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.CShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.C && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "false" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.XShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.X && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.InteractionSymbol && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                }
                 "Helices" -> {
                     t.setConfigurationFor(
                         { el ->
@@ -1772,7 +1579,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.InnerLoop
                     }, ThemeParameter.fulldetails, { el -> "false" })
                 }
-                "3-Way" -> {
+                "3-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.ThreeWay
@@ -1838,7 +1645,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el.parent?.parent as JunctionDrawing).junctionType == JunctionType.ThreeWay
                     }, ThemeParameter.fulldetails, { el -> "false" })
                 }
-                "4-Way" -> {
+                "4-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.FourWay
@@ -1907,7 +1714,13 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                 else -> {
                 }
             }
-            mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                mediator.canvas2D.getSelection().forEach {
+                    it.applyTheme(t)
+                }
+            } else {
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            }
             mediator.canvas2D.repaint()
             mediator.scriptEditor.script.setDetailsLevel("3")
         }
@@ -2012,103 +1825,6 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         { el -> "false" }
                     )
                 }
-                "Selection" -> {
-                    val selectedLocation = Location(
-                        mediator.canvas2D.getSelection()
-                            .flatMap { if (it is JunctionDrawing) it.junction.locationWithoutSecondaries.blocks else it.location.blocks })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.Helix && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.SecondaryInteraction && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.Junction && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.SingleStrand && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.PhosphodiesterBond && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.AShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.A && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.UShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.U && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.GShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.G && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.CShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.C && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.XShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.X && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.InteractionSymbol && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "false" }
-                    )
-                }
                 "Helices" -> {
                     t.setConfigurationFor(
                         { el ->
@@ -2453,7 +2169,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.InnerLoop
                     }, ThemeParameter.fulldetails, { el -> "true" })
                 }
-                "3-Way" -> {
+                "3-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.ThreeWay
@@ -2519,7 +2235,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el.parent?.parent as JunctionDrawing).junctionType == JunctionType.ThreeWay
                     }, ThemeParameter.fulldetails, { el -> "true" })
                 }
-                "4-Way" -> {
+                "4-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.FourWay
@@ -2589,7 +2305,13 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
 
                 }
             }
-            mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                mediator.canvas2D.getSelection().forEach {
+                    it.applyTheme(t)
+                }
+            } else {
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            }
             mediator.canvas2D.repaint()
             mediator.scriptEditor.script.setDetailsLevel("4")
         }
@@ -2694,103 +2416,6 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         { el -> "true" }
                     )
                 }
-                "Selection" -> {
-                    val selectedLocation = Location(
-                        mediator.canvas2D.getSelection()
-                            .flatMap { if (it is JunctionDrawing) it.junction.locationWithoutSecondaries.blocks else it.location.blocks })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.Helix && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.SecondaryInteraction && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.Junction && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.SingleStrand && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.PhosphodiesterBond && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.AShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.A && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.UShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.U && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.GShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.G && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.CShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.C && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.XShape && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                    t.setConfigurationFor({ el ->
-                        el.type == SecondaryStructureType.X && el.inside(selectedLocation)
-                    }, ThemeParameter.fulldetails, { el -> "true" })
-                    t.setConfigurationFor(
-                        { el ->
-                            el.type == SecondaryStructureType.InteractionSymbol && el.inside(selectedLocation)
-                        },
-                        ThemeParameter.fulldetails,
-                        { el -> "true" }
-                    )
-                }
                 "Helices" -> {
                     t.setConfigurationFor(
                         { el ->
@@ -3135,7 +2760,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.InnerLoop
                     }, ThemeParameter.fulldetails, { el -> "true" })
                 }
-                "3-Way" -> {
+                "3-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.ThreeWay
@@ -3201,7 +2826,7 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                         el.type == SecondaryStructureType.X && el.parent?.parent?.type == SecondaryStructureType.Junction && (el.parent?.parent as JunctionDrawing).junctionType == JunctionType.ThreeWay
                     }, ThemeParameter.fulldetails, { el -> "true" })
                 }
-                "4-Way" -> {
+                "4-Ways" -> {
                     t.setConfigurationFor(
                         { el ->
                             el.type == SecondaryStructureType.Junction && (el as JunctionDrawing).junctionType == JunctionType.FourWay
@@ -3270,7 +2895,13 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
                 else -> {
                 }
             }
-            mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            if (mediator.canvas2D.getSelection().isNotEmpty()) {
+                mediator.canvas2D.getSelection().forEach {
+                    it.applyTheme(t)
+                }
+            } else {
+                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
+            }
             mediator.canvas2D.repaint()
             mediator.scriptEditor.script.setDetailsLevel("5")
         }
@@ -3278,6 +2909,11 @@ class DetailsLevelButtonsPanel(mediator: Mediator) : ButtonsPanel(mediator = med
 
         this.children.add(Label("Target"))
         this.children.add(targetsComboBox)
+    }
+
+    override fun setTarget(target: String) {
+        if (this.targetsComboBox.items.contains(target))
+            this.targetsComboBox.value = target
     }
 
 }

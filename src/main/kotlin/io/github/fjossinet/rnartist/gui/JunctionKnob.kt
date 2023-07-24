@@ -3,8 +3,8 @@ package io.github.fjossinet.rnartist.gui
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.layout
 import io.github.fjossinet.rnartist.core.model.*
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Targetable
 import javafx.beans.property.SimpleDoubleProperty
-import javafx.beans.property.SimpleIntegerProperty
 import javafx.event.EventHandler
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -22,7 +22,7 @@ import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 import java.awt.geom.Point2D
 
-class JunctionKnob(val label: String, val mediator: Mediator, junction: JunctionDrawing? = null) : VBox() {
+class JunctionKnob(val label: String, val mediator: Mediator, junction: JunctionDrawing? = null) : VBox(), Targetable {
 
     val connectors = mutableListOf<JunctionConnector>()
     var connectorRadius = 8.5
@@ -34,17 +34,7 @@ class JunctionKnob(val label: String, val mediator: Mediator, junction: Junction
     var selectedJunction: JunctionDrawing? = null
         set(value) {
             field = value
-            selectedJunction?.let { junction ->
-                targetsComboBox.value = targetsComboBox.items.first()
-                this.connectors.forEach {
-                    it.selected = junction.currentLayout.contains(it.connectorId)
-                }
-            } ?: run {
-                this.connectors.forEach {
-                    it.selected = false
-                    it.fill = Color.DARKGRAY
-                }
-            }
+            this.updateConnectors()
         }
 
     init {
@@ -116,7 +106,7 @@ class JunctionKnob(val label: String, val mediator: Mediator, junction: Junction
         this.children.add(v)
         this.children.add(Label("Target"))
 
-        val labels = listOf(KnobTarget("Selection"),
+        val labels = listOf(KnobTarget("Any", null),
                             KnobTarget("Apical Loops", JunctionType.ApicalLoop),
                             KnobTarget("Inner Loops", JunctionType.InnerLoop),
                             KnobTarget("3-Ways", JunctionType.ThreeWay),
@@ -126,10 +116,15 @@ class JunctionKnob(val label: String, val mediator: Mediator, junction: Junction
                             KnobTarget("7-Ways", JunctionType.SevenWay),
                             KnobTarget("8-Ways", JunctionType.EightWay))
         this.targetsComboBox.items.addAll(labels)
-        this.targetsComboBox.value = labels[1]
+        this.targetsComboBox.selectionModel.select(0)
         this.targetsComboBox.minWidth = 150.0
         this.targetsComboBox.maxWidth = 150.0
+        this.targetsComboBox.onAction = EventHandler {
+            //synchronization with the other targetable widgets
+            mediator.targetables.forEach { it.setTarget(this.targetsComboBox.value.name) }
+        }
         this.children.add(targetsComboBox)
+        mediator.targetables.add(this)
 
         this.selectedJunction = junction
     }
@@ -141,6 +136,30 @@ class JunctionKnob(val label: String, val mediator: Mediator, junction: Junction
                 layout.add(it.connectorId)
         }
         return layout
+    }
+
+    fun updateConnectors() {
+        selectedJunction?.let { junction ->
+            targetsComboBox.value = targetsComboBox.items.filter { it.junctionType == junction.junctionType }.first()
+            this.connectors.forEach {
+                it.selected = junction.currentLayout.contains(it.connectorId)
+            }
+        } ?: run {
+            this.connectors.forEach {
+                it.selected = false
+                it.fill = Color.DARKGRAY
+            }
+        }
+    }
+
+    override fun setTarget(target: String) {
+        this.targetsComboBox.items.forEach {
+            if (it.name.equals(target)) {
+                this.targetsComboBox.value = it
+                return
+            }
+        }
+
     }
 
 }
@@ -234,26 +253,23 @@ class Up(val knob: JunctionKnob) : Path() {
 
         this.onMousePressed = EventHandler {
             this.fill = Color.DARKORANGE
-            if ("Selection".equals(knob.targetsComboBox.value.name)) {
-                knob.mediator.canvas2D.getSelection().filterIsInstance<JunctionDrawing>().forEach { junction ->
-                    junction.radiusRatio += 0.1
-                    junction.applyLayout(layout {
-                        junction {
-                            name = junction.name
-                            radius = Math.round(junction.initialRadius * junction.radiusRatio * 100.0) / 100.0
-                        }
-                    }!!)
-                    this.knob.mediator.canvas2D.repaint()
-                    knob.mediator.scriptEditor.script.setJunctionRadius(
-                        junction.radius,
-                        "${(junction.currentLayout.size + 1)}",
-                        junction.location
-                    )
+            if (knob.mediator.canvas2D.getSelection().isNotEmpty()) {
+                knob.mediator.canvas2D.getSelection().filter {it is JunctionDrawing }.map { it as JunctionDrawing }.forEach { junction ->
+                    if (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
+                        junction.radiusRatio += 0.1
+                        junction.applyLayout(layout {
+                            junction {
+                                name = junction.name
+                                radius = Math.round(junction.initialRadius * junction.radiusRatio * 100.0) / 100.0
+                            }
+                        }!!)
+                        this.knob.mediator.canvas2D.repaint()
+                    }
                 }
             } else {
                 knob.mediator.drawingDisplayed.get()?.let {
                     it.drawing.allJunctions.forEach { junction ->
-                        if (junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
+                        if (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
                             junction.radiusRatio += 0.1
                             junction.applyLayout(layout {
                                 junction {
@@ -304,21 +320,23 @@ class Down(val knob: JunctionKnob) : Path() {
 
         this.onMousePressed = EventHandler {
             this.fill = Color.DARKORANGE
-            if ("Selection".equals(knob.targetsComboBox.value.name)) {
-                knob.mediator.canvas2D.getSelection().filterIsInstance<JunctionDrawing>().forEach { junction ->
-                    junction.radiusRatio -= 0.1
-                    junction.applyLayout(layout {
-                        junction {
-                            name = junction.name
-                            radius = Math.round(junction.initialRadius * junction.radiusRatio * 100.0) / 100.0
-                        }
-                    }!!)
-                    this.knob.mediator.canvas2D.repaint()
+            if (knob.mediator.canvas2D.getSelection().isNotEmpty()) {
+                knob.mediator.canvas2D.getSelection().filter {it is JunctionDrawing }.map { it as JunctionDrawing }.forEach { junction ->
+                    if (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
+                        junction.radiusRatio -= 0.1
+                        junction.applyLayout(layout {
+                            junction {
+                                name = junction.name
+                                radius = Math.round(junction.initialRadius * junction.radiusRatio * 100.0) / 100.0
+                            }
+                        }!!)
+                        this.knob.mediator.canvas2D.repaint()
+                    }
                 }
             } else {
                 knob.mediator.drawingDisplayed.get()?.let {
                     it.drawing.allJunctions.forEach { junction ->
-                        if (junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
+                        if (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
                             junction.radiusRatio -= 0.1
                             junction.applyLayout(layout {
                                 junction {
@@ -370,30 +388,30 @@ class Left(val knob: JunctionKnob) : Path() {
 
         this.onMousePressed = EventHandler {
             this.fill = Color.DARKORANGE
-            if ("Selection".equals(knob.targetsComboBox.value.name)) {
-                knob.selectedJunction?.let { junction ->
-                    if (!knob.connectors.first().selected /*cannot go further on the left*/ && junction.junctionType != JunctionType.ApicalLoop) {
-                        var i = 0
-                        while (i < 14) {
-                            if (knob.connectors[i + 1].selected) {
-                                knob.connectors[i].selected = true
-                                knob.connectors[i + 1].selected = false
+            if (knob.mediator.canvas2D.getSelection().isNotEmpty()) {
+                knob.mediator.canvas2D.getSelection().filter {it is JunctionDrawing }.map { it as JunctionDrawing }.forEach { junction ->
+                    if (junction.junction.junctionType != JunctionType.ApicalLoop && (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType)) {
+                        val currentLayout = junction.currentLayout
+                        if (currentLayout.first() != ConnectorId.ssw) {
+                            val newLayout = mutableListOf<ConnectorId>()
+                            currentLayout.forEach {
+                                newLayout.add(getConnectorId(it.value-1))
                             }
-                            i++
+                            junction.applyLayout(layout {
+                                junction {
+                                    name = junction.name
+                                    out_ids = newLayout.map { it.toString() }.joinToString(separator = " ")
+                                }
+                            }!!)
+                            this.knob.mediator.canvas2D.repaint()
+                            this.knob.updateConnectors()
                         }
-                        junction.applyLayout(layout {
-                            junction {
-                                name = junction.name
-                                out_ids = knob.getCurrentLayout().map { it.toString() }.joinToString(separator = " ")
-                            }
-                        }!!)
-                        this.knob.mediator.canvas2D.repaint()
                     }
                 }
             } else if (knob.targetsComboBox.value.junctionType != JunctionType.ApicalLoop) {
                 knob.mediator.drawingDisplayed.get()?.let {
                     it.drawing.allJunctions.forEach { junction ->
-                        if (junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
+                        if (junction.junction.junctionType != JunctionType.ApicalLoop && (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType)) {
                             val currentLayout = junction.currentLayout
                             if (currentLayout.first() != ConnectorId.ssw) {
                                 val newLayout = mutableListOf<ConnectorId>()
@@ -407,6 +425,7 @@ class Left(val knob: JunctionKnob) : Path() {
                                     }
                                 }!!)
                                 this.knob.mediator.canvas2D.repaint()
+                                this.knob.updateConnectors()
                             }
                         }
                     }
@@ -451,30 +470,30 @@ class Right(private val knob: JunctionKnob) : Path() {
 
         this.onMousePressed = EventHandler {
             this.fill = Color.DARKORANGE
-            if ("Selection".equals(knob.targetsComboBox.value.name)) {
-               knob.selectedJunction?.let { junction ->
-                        if (!knob.connectors.last().selected /*cannot go further on the right*/ && junction.junctionType != JunctionType.ApicalLoop) {
-                            var i = 15
-                            while (i > 1) {
-                                if (knob.connectors[i - 1].selected) {
-                                    knob.connectors[i - 1].selected = false
-                                    knob.connectors[i].selected = true
-                                }
-                                i--
-                            }
-                            junction.applyLayout(layout {
-                                junction {
-                                    name = junction.name
-                                    out_ids = knob.getCurrentLayout().map { it.toString() }.joinToString(separator = " ")
-                                }
-                            }!!)
-                            this.knob.mediator.canvas2D.repaint()
-                        }
+            if (knob.mediator.canvas2D.getSelection().isNotEmpty()) {
+                knob.mediator.canvas2D.getSelection().filter {it is JunctionDrawing }.map { it as JunctionDrawing }.forEach { junction ->
+                    if (junction.junction.junctionType != JunctionType.ApicalLoop && (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType)) {
+                       val currentLayout = junction.currentLayout
+                       if (currentLayout.last() != ConnectorId.sse) {
+                           val newLayout = mutableListOf<ConnectorId>()
+                           currentLayout.forEach {
+                               newLayout.add(getConnectorId(it.value+1))
+                           }
+                           junction.applyLayout(layout {
+                               junction {
+                                   name = junction.name
+                                   out_ids = newLayout.map { it.toString() }.joinToString(separator = " ")
+                               }
+                           }!!)
+                           this.knob.mediator.canvas2D.repaint()
+                           this.knob.updateConnectors()
+                       }
+                   }
                 }
             } else if (knob.targetsComboBox.value.junctionType != JunctionType.ApicalLoop) {
                 knob.mediator.drawingDisplayed.get()?.let {
                     it.drawing.allJunctions.forEach { junction ->
-                        if (junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
+                        if (junction.junction.junctionType != JunctionType.ApicalLoop && (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType)) {
                             val currentLayout = junction.currentLayout
                             if (currentLayout.last() != ConnectorId.sse) {
                                 val newLayout = mutableListOf<ConnectorId>()
@@ -488,6 +507,7 @@ class Right(private val knob: JunctionKnob) : Path() {
                                     }
                                 }!!)
                                 this.knob.mediator.canvas2D.repaint()
+                                this.knob.updateConnectors()
                             }
                         }
                     }

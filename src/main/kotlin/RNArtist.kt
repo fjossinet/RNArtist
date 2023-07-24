@@ -3,11 +3,10 @@ package io.github.fjossinet.rnartist
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.RnartistConfig.getRnartistRelease
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
+import io.github.fjossinet.rnartist.core.rnartist
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.*
 import javafx.application.Application
 import javafx.application.Platform
-import javafx.beans.property.SimpleFloatProperty
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.embed.swing.SwingNode
@@ -19,10 +18,7 @@ import javafx.geometry.Orientation
 import javafx.geometry.Pos
 import javafx.scene.CacheHint
 import javafx.scene.Scene
-import javafx.scene.chart.AreaChart
-import javafx.scene.chart.NumberAxis
 import javafx.scene.control.*
-import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.input.MouseButton
 import javafx.scene.input.MouseEvent
 import javafx.scene.input.ScrollEvent
@@ -64,12 +60,6 @@ class RNArtist : Application() {
 
         this.root = BorderPane()
 
-        val menuBar = MenuBar()
-        menuBar.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-        menuBar.menus.add(Menu("File"))
-
-        root.top = menuBar
-
         //Layouts Panel
         val layoutsPanel = VBox()
         layoutsPanel.alignment = Pos.TOP_CENTER
@@ -79,23 +69,32 @@ class RNArtist : Application() {
         layoutsPanel.padding = Insets(20.0, 10.0, 20.0, 10.0)
         layoutsPanel.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
 
-        var l = Label("2D Actions")
+        var l = Label("Database")
         l.textFill = Color.WHITE
         l.maxWidth = 180.0
         layoutsPanel.children.add(l)
         var s = Separator()
         s.maxWidth = 180.0
         layoutsPanel.children.add(s)
-        layoutsPanel.children.add(Actions2DButtonsPanel(mediator))
+        layoutsPanel.children.add(DatabaseButtonsPanel(mediator))
 
-        l = Label("3D Actions")
+        l = Label("2D Actions")
         l.textFill = Color.WHITE
         l.maxWidth = 180.0
         layoutsPanel.children.add(l)
         s = Separator()
         s.maxWidth = 180.0
         layoutsPanel.children.add(s)
-        layoutsPanel.children.add(Actions3DButtonsPanel(mediator))
+        layoutsPanel.children.add(Actions2DButtonsPanel(mediator))
+
+        /*l = Label("3D Actions")
+        l.textFill = Color.WHITE
+        l.maxWidth = 180.0
+        layoutsPanel.children.add(l)
+        s = Separator()
+        s.maxWidth = 180.0
+        layoutsPanel.children.add(s)
+        layoutsPanel.children.add(Actions3DButtonsPanel(mediator))*/
 
         l = Label("Details Level")
         l.textFill = Color.WHITE
@@ -472,18 +471,6 @@ class RNArtist : Application() {
 
         root.center = verticalSplitPane
 
-        val panel3D = GridPane()
-        val rConstraints = RowConstraints()
-        rConstraints.vgrow = Priority.ALWAYS
-        val _rConstraints = RowConstraints()
-        _rConstraints.vgrow = Priority.NEVER
-        panel3D.rowConstraints.addAll(rConstraints, _rConstraints)
-        //horizontalSplitPane.items.add(panel3D)
-        val cConstraints = ColumnConstraints()
-        cConstraints.hgrow = Priority.ALWAYS
-        panel3D.columnConstraints.add(cConstraints)
-        panel3D.add(Canvas3D(), 0, 0)
-
         val panel2D = GridPane()
         val rConstraints1 = RowConstraints()
         rConstraints1.vgrow = Priority.NEVER
@@ -499,13 +486,16 @@ class RNArtist : Application() {
         val cConstraints3 = ColumnConstraints()
         cConstraints3.hgrow = Priority.NEVER
 
-        panel2D.rowConstraints.addAll(rConstraints1, rConstraints2, rConstraints3)
         panel2D.columnConstraints.addAll(cConstraints1, cConstraints2, cConstraints3)
 
-        panel2D.add(layoutsPanelScrollPane, 0, 0, 1, 3)
-        panel2D.add(topToolBar2D, 1, 0)
-        panel2D.add(swingNode, 1, 1)
-        panel2D.add(colorsPanelScrollPane, 2, 0, 1, 3)
+        panel2D.add(layoutsPanelScrollPane, 0, 0)
+        //panel2D.add(topToolBar2D, 1, 0)
+        val centralSplitPane = SplitPane()
+        centralSplitPane.orientation = Orientation.HORIZONTAL
+        centralSplitPane.items.add(swingNode)
+        centralSplitPane.setDividerPositions(0.7)
+        panel2D.add(centralSplitPane, 1, 0)
+        panel2D.add(colorsPanelScrollPane, 2, 0)
         colorsPanelScrollPane.isFitToWidth = true
 
         val lowerHorizontalSplitPane = SplitPane()
@@ -513,52 +503,10 @@ class RNArtist : Application() {
         val tabPane = TabPane()
         tabPane.tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
 
-        class Residue(val position: Int, vararg values: Float) {
-            val values = mutableListOf<ObservableValue<Float>>()
-
-            init {
-                this.values.addAll(values.map { SimpleFloatProperty(it) as ObservableValue<Float> })
-            }
-        }
-
-        val table = TableView<Residue>()
-        val positions = TableColumn<Residue, Int>("Position")
-        positions.setCellValueFactory(PropertyValueFactory("Position"))
-        val dataset1 = TableColumn<Residue, Float>("DataSet #1")
-        dataset1.setCellValueFactory { r -> r.value.values.get(0) }
-        val dataset2 = TableColumn<Residue, Float>("DataSet #2")
-        dataset2.setCellValueFactory { r -> r.value.values.get(1) }
-        val dataset3 = TableColumn<Residue, Float>("DataSet #3")
-        dataset3.setCellValueFactory { r -> r.value.values.get(2) }
-        val dataset4 = TableColumn<Residue, Float>("DataSet #4")
-        dataset4.setCellValueFactory { r -> r.value.values.get(3) }
-        table.columns.addAll(positions, dataset1, dataset2, dataset3, dataset4)
-
-        (1..50).forEach {
-            table.items.add(
-                Residue(
-                    it,
-                    kotlin.random.Random.nextFloat(),
-                    kotlin.random.Random.nextFloat(),
-                    kotlin.random.Random.nextFloat(),
-                    kotlin.random.Random.nextFloat()
-                )
-            )
-        }
-
-        lowerHorizontalSplitPane.items.add(table)
-        SplitPane.setResizableWithParent(table, false)
-        val xAxis = NumberAxis()
-        xAxis.label = "Position"
-
-        val yAxis = NumberAxis()
-        yAxis.label = "Values"
-        lowerHorizontalSplitPane.items.add(AreaChart(xAxis, yAxis))
-        lowerHorizontalSplitPane.setDividerPositions(0.3)
-        tabPane.tabs.add(Tab("Saved Projects", mediator.projectsPanel))
-        tabPane.tabs.add(Tab("Working Session", mediator.drawingsLoadedPanel))
-        tabPane.tabs.add(Tab("Data", lowerHorizontalSplitPane))
-        tabPane.tabs.add(Tab("Script", this.mediator.scriptEditor))
+        //tabPane.tabs.add(Tab("Saved Projects", mediator.projectsPanel))
+        tabPane.tabs.add(Tab("Database", mediator.databaseExplorer))
+        //tabPane.tabs.add(Tab("Data", lowerHorizontalSplitPane))
+        //tabPane.tabs.add(Tab("Script", this.mediator.scriptEditor))
 
         verticalSplitPane.items.add(panel2D)
         verticalSplitPane.items.add(tabPane)
