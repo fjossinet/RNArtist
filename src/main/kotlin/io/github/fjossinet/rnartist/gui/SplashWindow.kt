@@ -39,62 +39,20 @@ class SplashWindow(val mediator: Mediator) {
         val im = ImageView()
         im.image = Image("/io/github/fjossinet/rnartist/io/images/logo.png")
         form.add(im, 0, 0, 3, 1)
-        if (RnartistConfig.projectsFolder == null || !File(RnartistConfig.projectsFolder).exists()) {
-            var projectsFolder = File(System.getProperty("user.home"), "RNArtistProjects")
-            val textField = TextField(projectsFolder.absolutePath)
-            textField.isEditable = false
-            GridPane.setHgrow(textField, Priority.ALWAYS)
-            form.add(textField, 0, 1)
-            val chooseFolder = Button("Choose Folder")
-            GridPane.setHgrow(chooseFolder, Priority.NEVER)
-            form.add(chooseFolder, 1, 1)
-            val ok = Button("Launch RNArtist")
-            GridPane.setHgrow(ok, Priority.NEVER)
-            val statusLabel = Label("Please choose the folder to store your RNArtist projects")
-            statusLabel.prefWidthProperty().bind(form.widthProperty().subtract(20))
-            form.add(statusLabel, 0, 2, 3, 1)
-            chooseFolder.onAction = EventHandler { e ->
-                val dir = DirectoryChooser().showDialog(stage)
-                dir?.let {
-                    projectsFolder = File(dir, "RNArtistProjects")
-                    textField.text = projectsFolder.absolutePath
-                }
-            }
-            ok.onAction = EventHandler { e ->
-                RnartistConfig.projectsFolder = projectsFolder.absolutePath
-                if (!projectsFolder.exists())
-                    projectsFolder.mkdir()
-                form.children.removeAll(textField, chooseFolder, ok)
-                val progressBar = ProgressBar(0.0)
-                progressBar.prefWidthProperty().bind(form.widthProperty().subtract(20))
-                form.add(progressBar, 0, 1, 3, 1)
-                form.layout()
-                val task = WarmUp(mediator, stage)
-                progressBar.progressProperty().unbind();
-                progressBar.progressProperty().bind(task.progressProperty());
-                statusLabel.textProperty().unbind();
-                statusLabel.textProperty().bind(task.messageProperty());
-                Thread(task).start();
-            }
-            GridPane.setHgrow(ok, Priority.NEVER)
-            form.add(ok, 2, 1)
-            stage.showAndWait()
-        } else {
-            val progressBar = ProgressBar(0.0)
-            progressBar.prefWidthProperty().bind(form.widthProperty().subtract(20))
-            form.add(progressBar, 0, 1, 3, 1)
-            val statusLabel = Label("")
-            statusLabel.prefWidthProperty().bind(form.widthProperty().subtract(20))
-            form.add(statusLabel, 0, 2, 3, 1)
-            form.layout()
-            val task = WarmUp(mediator, stage)
-            stage.show()
-            progressBar.progressProperty().unbind()
-            progressBar.progressProperty().bind(task.progressProperty())
-            statusLabel.textProperty().unbind()
-            statusLabel.textProperty().bind(task.messageProperty())
-            Thread(task).start()
-        }
+        val progressBar = ProgressBar(0.0)
+        progressBar.prefWidthProperty().bind(form.widthProperty().subtract(20))
+        form.add(progressBar, 0, 1, 3, 1)
+        val statusLabel = Label("")
+        statusLabel.prefWidthProperty().bind(form.widthProperty().subtract(20))
+        form.add(statusLabel, 0, 2, 3, 1)
+        form.layout()
+        val task = WarmUp(mediator, stage)
+        stage.show()
+        progressBar.progressProperty().unbind()
+        progressBar.progressProperty().bind(task.progressProperty())
+        statusLabel.textProperty().unbind()
+        statusLabel.textProperty().bind(task.messageProperty())
+        Thread(task).start()
 
     }
 
@@ -142,11 +100,6 @@ class SplashWindow(val mediator: Mediator) {
 
         override fun call(): Exception? {
             try {
-                if (mediator.embeddedDB.getProjects().size() != 0L && File(RnartistConfig.projectsFolder).listFiles(
-                        FileFilter { it.isDirectory }).isEmpty()
-                ) {
-
-                }
                 updateMessage("Checking configuration..")
                 Thread.sleep(2000)
                 var step = 0.0
