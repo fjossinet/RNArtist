@@ -52,8 +52,6 @@ class Settings(val mediator: Mediator):VBox() {
             dir?.let {
                 folderField.text = dir.absolutePath
                 RnartistConfig.projectsFolder = dir.absolutePath
-                mediator.projectsPanel.clearProjects()
-                mediator.projectsPanel.loadProjects()
             }
         }
 

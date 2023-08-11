@@ -4,7 +4,6 @@ import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.*
 import java.awt.*
 import java.awt.geom.AffineTransform
-import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
@@ -21,7 +20,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
     }
 
     fun centerDisplayOn(frame: Rectangle2D) {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             drawingDisplayed.drawing.workingSession.viewX = 0.0
             drawingDisplayed.drawing.workingSession.viewY = 0.0
             var at = AffineTransform()
@@ -36,7 +35,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
     }
 
     fun fitStructure(selectionFrame:Rectangle2D?, ratio:Double = 1.0) {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             selectionFrame?.let {
                 drawingDisplayed.drawing.fitViewTo(this.bounds, it, ratio)
             } ?: run {
@@ -55,7 +54,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
         g2.color = Color.white;
         g2.fillRect(0, 0, getWidth(), getHeight());
         g2.color = Color.BLACK
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             val start = System.currentTimeMillis()
             val at = AffineTransform()
             at.translate(drawingDisplayed.drawing.viewX, drawingDisplayed.drawing.viewY)
@@ -91,7 +90,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
     //++++++ Selection ++++++++++++
 
     fun clearSelection() {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             drawingDisplayed.selectionShapes.clear()
             mediator.chimeraDriver.selectionCleared()
             repaint()
@@ -100,7 +99,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
     }
 
     fun getSelection(): List<DrawingElement> {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             return drawingDisplayed.selectionShapes.map { it.element }
         }
         return listOf()
@@ -108,7 +107,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
 
     fun getSelectedPositions(): List<Int> {
         val absPositions = mutableSetOf<Int>()
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             drawingDisplayed.selectionShapes.map { it.element }.forEach {
                 absPositions.addAll(it.location.positions)
             }
@@ -117,14 +116,14 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
     }
 
     fun getSelectedResidues():List<ResidueDrawing> {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             return drawingDisplayed.drawing.getResiduesFromAbsPositions(*getSelectedPositions().toIntArray())
         }
         return listOf<ResidueDrawing>()
     }
 
     fun getSelectionFrame(): Rectangle2D? {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             val allSelectionPoints = drawingDisplayed.selectionShapes.flatMap { it.element.selectionPoints }
             allSelectionPoints.minByOrNull { it.x }?.x?.let { minX ->
                 allSelectionPoints.minByOrNull { it.y }?.y?.let { minY ->
@@ -141,14 +140,14 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
     }
 
     fun isSelected(el: DrawingElement?): Boolean {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             return drawingDisplayed.selectionShapes.any { it.element == el }
         }
         return false
     }
 
     fun addToSelection(el: DrawingElement?) {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             el?.let { el ->
                 //we want to show only one knob and only if the junction is the only element selected (this is needed for the script editor to add a junction keyword that get precisely the junction location and not a location composed of several elements selected
                 drawingDisplayed.selectionShapes.add(SelectionShape(mediator, el))
@@ -156,16 +155,12 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
                 mediator.chimeraDriver.selectResidues(
                     getSelectedPositions()
                 )
-                if (mediator.actions2DButtonsPanel.centerDisplayOnSelection)
-                    mediator.chimeraDriver.setFocus(
-                        getSelectedPositions()
-                    )
             }
         }
     }
 
     fun removeFromSelection(el: DrawingElement?) {
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             drawingDisplayed.selectionShapes.removeIf { it.element == el }
             repaint()
         }
@@ -173,7 +168,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
 
     fun structuralDomainsSelected(): List<StructuralDomainDrawing> {
         val domains = mutableListOf<StructuralDomainDrawing>()
-        this.mediator.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.mediator.currentDrawing.get()?.let { drawingDisplayed ->
             domains.addAll(drawingDisplayed.selectionShapes.filter { it.element is StructuralDomainDrawing }
                 .map { it.element as StructuralDomainDrawing })
         }

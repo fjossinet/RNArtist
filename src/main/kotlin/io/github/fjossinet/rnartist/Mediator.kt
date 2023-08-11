@@ -3,35 +3,27 @@ package io.github.fjossinet.rnartist
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.io.EmbeddedDB
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.gui.editor.ScriptEditor
 import io.github.fjossinet.rnartist.io.ChimeraXDriver
-import io.github.fjossinet.rnartist.gui.Actions2DButtonsPanel
-import io.github.fjossinet.rnartist.gui.DrawingLoaded
-import io.github.fjossinet.rnartist.gui.DatabaseExplorer
+import io.github.fjossinet.rnartist.gui.Full2DButtonsPanel
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistDrawing
+import io.github.fjossinet.rnartist.gui.DBExplorer
 import io.github.fjossinet.rnartist.gui.Actions3DButtonsPanel
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Targetable
-import io.github.fjossinet.rnartist.model.editor.RfamKw
 import javafx.beans.property.SimpleObjectProperty
 
 class Mediator(val rnartist: RNArtist) {
 
-    var drawingDisplayed: SimpleObjectProperty<DrawingLoaded?> = SimpleObjectProperty<DrawingLoaded?>(null)
+    var currentDrawing: SimpleObjectProperty<RNArtistDrawing?> = SimpleObjectProperty<RNArtistDrawing?>(null)
     val embeddedDB = EmbeddedDB()
     var chimeraDriver = ChimeraXDriver(this)
-    val scriptEditor = ScriptEditor(this)
-    val databaseExplorer = DatabaseExplorer(this)
-    val projectsPanel = ProjectsPanel(this)
+    val DBExplorer = DBExplorer(this)
     val colorsPickers = mutableListOf<RNArtistColorPicker>()
-    val targetables = mutableListOf<Targetable>()
-    lateinit var actions2DButtonsPanel:Actions2DButtonsPanel
-    lateinit var databaseButtonsPanel:DatabaseButtonsPanel
     lateinit var tertiaryStructureButtonsPanel:Actions3DButtonsPanel
     lateinit var canvas2D: Canvas2D
 
     //++++++ some shortcuts
     private val secondaryStructure: SecondaryStructure?
         get() {
-            return this.drawingDisplayed.get()?.drawing?.secondaryStructure
+            return this.currentDrawing.get()?.drawing?.secondaryStructure
         }
     val rna: RNA?
         get() {
@@ -39,7 +31,7 @@ class Mediator(val rnartist: RNArtist) {
         }
     val workingSession: WorkingSession?
         get() {
-            return this.drawingDisplayed.get()?.drawing?.workingSession
+            return this.currentDrawing.get()?.drawing?.workingSession
         }
 
     val viewX: Double?
@@ -59,30 +51,14 @@ class Mediator(val rnartist: RNArtist) {
 
 
     init {
-
-        //this.chimeraDriver.connectToRestServer() //to see if at start, RNArtist can connect to ChimeraX rest Server with the current parameters
-
-        this.drawingDisplayed.addListener {
+        this.currentDrawing.addListener {
                 observableValue, oldValue, newValue ->
-
-            if (newValue == null) { //this means that the menu of 2Ds loaded has been cleared
-                this.chimeraDriver.closeSession()
-            }
-            drawingDisplayed.get()?.drawing?.let {  drawing ->
-                drawing.secondaryStructure.source?.let { source ->
-                    if (source.toString().startsWith("db:rfam")) { //we record in the script the molecule chosen for this Rfam alignment
-                        (scriptEditor.script.getScriptRoot().getSecondaryStructureKw().searchFirst  { it is RfamKw && it.inFinalScript && it.getId().equals(source.getId()) } as RfamKw).setName(drawing.secondaryStructure.name)
-                    } else if (source.toString().startsWith("db:pdb") || source.toString().startsWith("local:file") && source.toString().endsWith("pdb")) {
-                        chimeraDriver.displayCurrent3D()
-                    }
-                }
-            }
+            canvas2D.repaint()
         }
-
     }
 
     fun focusInChimera() {
-        this.drawingDisplayed.get()?.let { drawingDisplayed ->
+        this.currentDrawing.get()?.let { drawingDisplayed ->
             chimeraDriver.setFocus(
                 canvas2D.getSelectedPositions()
             )
@@ -90,7 +66,7 @@ class Mediator(val rnartist: RNArtist) {
     }
 
     fun pivotInChimera() {
-        this.drawingDisplayed.get()?.let { drawingDisplayed->
+        this.currentDrawing.get()?.let { drawingDisplayed->
             chimeraDriver.setPivot(
                 canvas2D.getSelectedPositions()
             )

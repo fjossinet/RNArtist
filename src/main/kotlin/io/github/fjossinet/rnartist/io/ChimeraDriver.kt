@@ -5,10 +5,7 @@ import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraHost
 import io.github.fjossinet.rnartist.core.RnartistConfig.chimeraPort
 import io.github.fjossinet.rnartist.core.io.createTemporaryFile
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.gui.ApplyExportInScript
 import io.github.fjossinet.rnartist.io.*
-import io.github.fjossinet.rnartist.gui.RNArtistTaskWindow
-import javafx.application.Platform
 import java.io.*
 import java.net.MalformedURLException
 import java.net.URL
@@ -47,12 +44,8 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     fun displayCurrent3D() {
-        mediator.drawingDisplayed.get()?.drawing?.secondaryStructure?.let { ss ->
+        mediator.currentDrawing.get()?.drawing?.secondaryStructure?.let { ss ->
             this.closeSession()
-            mediator.scriptEditor.script.getScriptRoot().getChimeraKw().setChainName(ss.rna.name)
-            Platform.runLater {
-                RNArtistTaskWindow(mediator).task = ApplyExportInScript(mediator)
-            }
         }
     }
 
@@ -100,7 +93,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     fun represent(mode: RENDERING, positions: List<Int>) {
-        mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -133,7 +126,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     open fun selectResidues(positions: List<Int>) {
-        mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -150,7 +143,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     open fun color3D(residues: List<ResidueDrawing>) {
-        mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -164,7 +157,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     fun setPivot(positions: List<Int>) {
-        mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             val command = StringBuffer("cofr #0:")
@@ -174,7 +167,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     open fun setFocus(positions: List<Int>) {
-        mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             val command = StringBuffer("focus #0:")

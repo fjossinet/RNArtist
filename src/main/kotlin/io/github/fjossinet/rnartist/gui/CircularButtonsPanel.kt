@@ -6,8 +6,6 @@ import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Group
 import javafx.scene.control.Button
-import javafx.scene.control.ComboBox
-import javafx.scene.control.Label
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.shape.Arc
@@ -15,7 +13,7 @@ import javafx.scene.shape.Circle
 import java.awt.geom.Point2D
 import kotlin.math.min
 
-open class ButtonsPanel(val mediator: Mediator, val panelRadius:Double = 50.0, val buttonRadius:Double = 15.0, val buttomsPerRow:Int = 5):  VBox() {
+open class CircularButtonsPanel(val mediator: Mediator, val panelRadius:Double = 50.0, val buttonRadius:Double = 15.0, val buttomsPerRow:Int = 5):  VBox() {
 
     var panelCenterX = 50.0
     var panelCenterY = 50.0
@@ -88,7 +86,6 @@ open class ButtonsPanel(val mediator: Mediator, val panelRadius:Double = 50.0, v
                 this.group.children.add(row[i])
             }
         }
-
     }
 
 }

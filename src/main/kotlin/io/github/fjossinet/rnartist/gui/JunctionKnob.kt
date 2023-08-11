@@ -3,7 +3,6 @@ package io.github.fjossinet.rnartist.gui
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.layout
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Targetable
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.event.EventHandler
 import javafx.geometry.Insets
@@ -12,6 +11,7 @@ import javafx.scene.Group
 import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 import javafx.scene.effect.InnerShadow
+import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.paint.CycleMethod
@@ -22,7 +22,7 @@ import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 import java.awt.geom.Point2D
 
-class JunctionKnob(val label: String, val mediator: Mediator, junction: JunctionDrawing? = null) : VBox(), Targetable {
+class JunctionKnob(val label: String, val mediator: Mediator, junction: JunctionDrawing? = null) : VBox() {
 
     val connectors = mutableListOf<JunctionConnector>()
     var connectorRadius = 8.5
@@ -38,11 +38,8 @@ class JunctionKnob(val label: String, val mediator: Mediator, junction: Junction
         }
 
     init {
-        this.alignment = Pos.CENTER_LEFT
+        this.alignment = Pos.TOP_CENTER
         this.spacing = 5.0
-        this.minWidth = 180.0
-        this.prefWidth = 180.0
-        this.maxWidth = 180.0
         this.isFillWidth = true
         this.padding = Insets(10.0, 10.0, 20.0, 10.0)
 
@@ -104,7 +101,6 @@ class JunctionKnob(val label: String, val mediator: Mediator, junction: Junction
         this.group.children.add(l)
 
         this.children.add(v)
-        this.children.add(Label("Target"))
 
         val labels = listOf(KnobTarget("Any", null),
                             KnobTarget("Apical Loops", JunctionType.ApicalLoop),
@@ -120,11 +116,16 @@ class JunctionKnob(val label: String, val mediator: Mediator, junction: Junction
         this.targetsComboBox.minWidth = 150.0
         this.targetsComboBox.maxWidth = 150.0
         this.targetsComboBox.onAction = EventHandler {
-            //synchronization with the other targetable widgets
-            mediator.targetables.forEach { it.setTarget(this.targetsComboBox.value.name) }
+
         }
-        this.children.add(targetsComboBox)
-        mediator.targetables.add(this)
+
+        val hbox = HBox()
+        hbox.padding = Insets(5.0,0.0,0.0,0.0)
+        hbox.spacing = 5.0
+        hbox.alignment = Pos.CENTER_LEFT
+        hbox.children.add(Label("Target"))
+        hbox.children.add(targetsComboBox)
+        this.children.add(hbox)
 
         this.selectedJunction = junction
     }
@@ -150,16 +151,6 @@ class JunctionKnob(val label: String, val mediator: Mediator, junction: Junction
                 it.fill = Color.DARKGRAY
             }
         }
-    }
-
-    override fun setTarget(target: String) {
-        this.targetsComboBox.items.forEach {
-            if (it.name.equals(target)) {
-                this.targetsComboBox.value = it
-                return
-            }
-        }
-
     }
 
 }
@@ -267,7 +258,7 @@ class Up(val knob: JunctionKnob) : Path() {
                     }
                 }
             } else {
-                knob.mediator.drawingDisplayed.get()?.let {
+                knob.mediator.currentDrawing.get()?.let {
                     it.drawing.allJunctions.forEach { junction ->
                         if (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
                             junction.radiusRatio += 0.1
@@ -334,7 +325,7 @@ class Down(val knob: JunctionKnob) : Path() {
                     }
                 }
             } else {
-                knob.mediator.drawingDisplayed.get()?.let {
+                knob.mediator.currentDrawing.get()?.let {
                     it.drawing.allJunctions.forEach { junction ->
                         if (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType) {
                             junction.radiusRatio -= 0.1
@@ -409,7 +400,7 @@ class Left(val knob: JunctionKnob) : Path() {
                     }
                 }
             } else if (knob.targetsComboBox.value.junctionType != JunctionType.ApicalLoop) {
-                knob.mediator.drawingDisplayed.get()?.let {
+                knob.mediator.currentDrawing.get()?.let {
                     it.drawing.allJunctions.forEach { junction ->
                         if (junction.junction.junctionType != JunctionType.ApicalLoop && (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType)) {
                             val currentLayout = junction.currentLayout
@@ -491,7 +482,7 @@ class Right(private val knob: JunctionKnob) : Path() {
                    }
                 }
             } else if (knob.targetsComboBox.value.junctionType != JunctionType.ApicalLoop) {
-                knob.mediator.drawingDisplayed.get()?.let {
+                knob.mediator.currentDrawing.get()?.let {
                     it.drawing.allJunctions.forEach { junction ->
                         if (junction.junction.junctionType != JunctionType.ApicalLoop && (knob.targetsComboBox.value.junctionType == null /*meaning any*/ || junction.junction.junctionType == knob.targetsComboBox.value.junctionType)) {
                             val currentLayout = junction.currentLayout

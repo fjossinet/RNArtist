@@ -3,7 +3,6 @@ package io.github.fjossinet.rnartist.io
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.ResidueDrawing
 import io.github.fjossinet.rnartist.core.model.getHTMLColorString
-import io.github.fjossinet.rnartist.core.io.parsePDB
 import javafx.application.Platform
 import java.io.*
 import java.net.HttpURLConnection
@@ -58,7 +57,7 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
     }
 
     override fun selectResidues(positions: List<Int>) {
-        mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -71,7 +70,7 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
     }
 
     override fun setFocus(positions: List<Int>) {
-        mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -83,7 +82,7 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
     }
 
     override fun color3D(residues: List<ResidueDrawing>) {
-        mediator.drawingDisplayed.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.drawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {

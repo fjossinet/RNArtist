@@ -2,20 +2,20 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.Targetable
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import javafx.animation.RotateTransition
 import javafx.event.EventHandler
 import javafx.geometry.Insets
-import javafx.geometry.Orientation
 import javafx.geometry.Point2D
+import javafx.geometry.Pos
 import javafx.scene.Group
 import javafx.scene.Node
 import javafx.scene.canvas.Canvas
+import javafx.scene.control.Button
 import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 import javafx.scene.effect.InnerShadow
-import javafx.scene.layout.FlowPane
+import javafx.scene.layout.HBox
 import javafx.scene.layout.Pane
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
@@ -25,42 +25,42 @@ import javafx.scene.paint.Stop
 import javafx.scene.shape.Circle
 import javafx.scene.shape.SVGPath
 import javafx.util.Duration
+import org.kordamp.ikonli.javafx.FontIcon
 import kotlin.random.Random
 
 
-open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox(), Targetable  {
+open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox()  {
 
     val colorWheelGroup = Group()
     val lineWidthKnobGroup = Group()
     val colorsFromWheel = mutableMapOf<Point2D, DoubleArray>()
     val colorWheel = Canvas(120.0, 120.0)
-    val saturationBar = FlowPane()
-    val brightnessBar = FlowPane()
-    val lastColors = FlowPane()
+    val saturationBar = HBox()
+    val brightnessBar = HBox()
+    val lastColors = HBox()
     val targetsComboBox = ComboBox<String>()
-    var restrictedToSelection = false
     val lineWheel = SVGPath()
     val currentLineWidth = Circle(0.0, 0.0, 7.0)
     var currentAngle = 0.0
-
-    abstract var behaviors:Map<String, (e:DrawingElement) -> Boolean>
+    var applyOnFont = false
+    var lastNonFontColor: Color? = null
+    var lastFontColor: Color? = null
+    var lastLineWidth: Double? = null
 
     init {
+        this.alignment = Pos.TOP_CENTER
         this.mediator.colorsPickers.add(this)
-        this.minWidth = 200.0
-        this.prefWidth = 200.0
-        this.maxWidth = 200.0
         this.isFillWidth = true
         this.padding = Insets(15.0, 0.0, 15.0, 0.0)
 
         val knobPane = Pane()
-        knobPane.minWidth = 200.0
-        knobPane.prefWidth = 200.0
-        knobPane.maxWidth = 200.0
         knobPane.minHeight = 180.0
         knobPane.prefHeight = 180.0
         knobPane.maxHeight = 180.0
-        this.children.add(knobPane)
+        val hbox = HBox()
+        hbox.alignment = Pos.TOP_CENTER
+        hbox.children.add(knobPane)
+        this.children.add(hbox)
         knobPane.children.add(colorWheelGroup)
 
         colorWheel.layoutX = 30.0
@@ -101,93 +101,6 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox(), Target
             Stop(0.0, Color.DARKSLATEGREY),
             Stop(1.0, Color.WHITE))
         this.lineWheel.fill = radialGradient
-        this.colorWheelGroup.onMouseClicked = EventHandler {
-            var i = 0
-            while (i <= 6) {
-                var rotatedPoint = rotatePoint(
-                    java.awt.geom.Point2D.Double(90.0, 18.0),
-                    java.awt.geom.Point2D.Double(90.0, 85.0),
-                    currentAngle - 30.0 * i
-                )
-                var c = Circle(rotatedPoint.x, rotatedPoint.y, 7.0)
-                if (c.contains(Point2D(it.x, it.y))) {
-                    val rt = RotateTransition(Duration.millis(100.0), this.lineWidthKnobGroup)
-                    rt.byAngle = - 30.0 * i
-                    currentAngle -= 30.0 * i
-                    currentAngle = currentAngle%360
-                    rt.play()
-                    val t = Theme()
-                    t.setConfigurationFor(selection = behaviors[targetsComboBox.value]!!, ThemeParameter.linewidth) {
-                        when (currentAngle) {
-                            0.0 -> "0.0"
-                            30.0, -330.0 -> "0.5"
-                            60.0, -300.0 -> "1.0"
-                            90.0, -270.0 -> "2.0"
-                            120.0, -240.0 -> "3.0"
-                            150.0, -210.0 -> "4.0"
-                            180.0, -180.0 -> "5.0"
-                            210.0, -150.0 -> "6.0"
-                            240.0, -120.0 -> "7.0"
-                            270.0, -90.0 -> "8.0"
-                            300.0, -60.0 -> "9.0"
-                            330.0, -30.0 -> "10.0"
-                            else -> "1.0"
-                        }
-                    }
-                    if (mediator.canvas2D.getSelection().isNotEmpty()) {
-                        mediator.canvas2D.getSelection().forEach {
-                            it.applyTheme(t)
-                        }
-                    } else {
-                        mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-                    }
-                    mediator.canvas2D.repaint()
-                    break
-                }
-                rotatedPoint = rotatePoint(
-                    java.awt.geom.Point2D.Double(90.0, 18.0),
-                    java.awt.geom.Point2D.Double(90.0, 85.0),
-                    currentAngle + 30.0 * i
-                )
-                c = Circle(rotatedPoint.x, rotatedPoint.y, 7.0)
-                if (c.contains(Point2D(it.x, it.y))) {
-                    val rt = RotateTransition(Duration.millis(100.0), this.lineWidthKnobGroup)
-                    rt.byAngle = 30.0 * i
-                    currentAngle += 30.0 * i
-                    currentAngle = currentAngle%360
-                    rt.play()
-                    val t = Theme()
-                    t.setConfigurationFor(selection = behaviors[targetsComboBox.value]!!, ThemeParameter.linewidth) {
-                        when (currentAngle) {
-                            0.0 -> "0.0"
-                            30.0, -330.0 -> "0.5"
-                            60.0, -300.0 -> "1.0"
-                            90.0, -270.0 -> "2.0"
-                            120.0, -240.0 -> "3.0"
-                            150.0, -210.0 -> "4.0"
-                            180.0, -180.0 -> "5.0"
-                            210.0, -150.0 -> "6.0"
-                            240.0, -120.0 -> "7.0"
-                            270.0, -90.0 -> "8.0"
-                            300.0, -60.0 -> "9.0"
-                            330.0, -30.0 -> "10.0"
-                            else -> "1.0"
-                        }
-                    }
-                    if (mediator.canvas2D.getSelection().isNotEmpty()) {
-                        mediator.canvas2D.getSelection().forEach {
-                            it.applyTheme(t)
-                        }
-                    } else {
-                        mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-                    }
-                    mediator.canvas2D.repaint()
-                    break
-                }
-                i++
-            }
-
-        }
         lineWidthKnobGroup.children.add(this.lineWheel)
 
         this.currentLineWidth.fill = Color.WHITE
@@ -211,32 +124,23 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox(), Target
         colorWheelGroup.children.add(lineWidthKnobGroup)
 
         val optionsVBox = VBox()
-        optionsVBox.padding = Insets(10.0)
+        optionsVBox.alignment = Pos.TOP_LEFT
+        optionsVBox.padding = Insets(20.0, 0.0, 0.0, 0.0)
         optionsVBox.spacing = 5.0
-        optionsVBox.minWidth = 200.0
-        optionsVBox.prefWidth = 200.0
-        optionsVBox.maxWidth = 200.0
         this.children.add(optionsVBox)
 
         var l = Label("Saturation")
         optionsVBox.children.add(l)
-        this.saturationBar.hgap = 5.0
-        this.saturationBar.orientation = Orientation.HORIZONTAL
-        this.saturationBar.maxWidth = 200.0
+        saturationBar.spacing = 5.0
         optionsVBox.children.add(saturationBar)
 
         l = Label("Brightness")
         optionsVBox.children.add(l)
-        this.brightnessBar.hgap = 5.0
-        this.brightnessBar.orientation = Orientation.HORIZONTAL
-        this.brightnessBar.maxWidth = 200.0
+        brightnessBar.spacing = 5.0
         optionsVBox.children.add(brightnessBar)
 
         l = Label("Last Colors")
         optionsVBox.children.add(l)
-        this.lastColors.hgap = 5.0
-        this.lastColors.orientation = Orientation.HORIZONTAL
-        this.lastColors.maxWidth = 200.0
         (1..6).forEach {
             if (it == 1) {
                 val color = doubleArrayOf(Random.nextDouble(0.0,360.0), Random.nextDouble(), 1.0)
@@ -246,13 +150,14 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox(), Target
             } else
                 addLastColor(doubleArrayOf(Random.nextDouble(0.0,360.0), Random.nextDouble(), 1.0))
         }
+        lastColors.spacing = 5.0
         optionsVBox.children.add(lastColors)
 
         l = Label("Target")
-        optionsVBox.children.add(l)
+        //optionsVBox.children.add(l)
         this.targetsComboBox.minWidth = 150.0
         this.targetsComboBox.maxWidth = 150.0
-        optionsVBox.children.add(this.targetsComboBox)
+        //optionsVBox.children.add(this.targetsComboBox)
 
         var xOffset: Double
         var yOffset: Double
@@ -277,144 +182,46 @@ open abstract class RNArtistColorPicker(val mediator: Mediator) : VBox(), Target
         }
 
         colorWheel.graphicsContext2D.strokeOval(centerX-radius,centerX-radius, radius*2, radius*2)
-        colorWheel.onMouseClicked = EventHandler { event ->
-            colorsFromWheel.forEach {
-                val color = Color.hsb(it.value[0], it.value[1], it.value[2])
-                if (event.x >= it.key.x && event.x <= it.key.x + 1.0 && event.y >= it.key.y && event.y <= it.key.y + 1.0) {
-                    val t = Theme()
-                    t.setConfigurationFor(selection = behaviors[targetsComboBox.value]!!, ThemeParameter.color) {
-                        getHTMLColorString(
-                            javaFXToAwt(color)
-                        )
-                    }
-                    //we update the last colors for all the color pickers
-                    mediator.colorsPickers.forEach { colorPicker ->
-                        colorPicker.addLastColor(it.value)
-                    }
-                    this.repaintBrightness(it.value)
-                    this.repaintSaturation(it.value)
-                    if (mediator.canvas2D.getSelection().isNotEmpty()) {
-                        mediator.canvas2D.getSelection().forEach {
-                            it.applyTheme(t)
-                        }
-                    } else {
-                        mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-                    }
-                    mediator.canvas2D.repaint()
-                    return@EventHandler
-                }
-            }
-        }
 
-        mediator.targetables.add(this)
-        this.targetsComboBox.onAction = EventHandler {
-            //synchronization with the other targetable widgets
-            mediator.targetables.forEach { it.setTarget(this.targetsComboBox.value) }
-        }
-    }
-
-    fun addLastColor(c:DoubleArray) {
-        val r = Circle(0.0, 0.0, 10.0)
-        val color = Color.hsb(c[0], c[1], c[2])
-        r.onMouseClicked = EventHandler { event ->
-            val t = Theme()
-            t.setConfigurationFor(selection = behaviors[targetsComboBox.value]!!, ThemeParameter.color) {
-                getHTMLColorString(
-                    javaFXToAwt(color)
-                )
-            }
-            this.repaintBrightness(c)
-            this.repaintSaturation(c)
-            if (mediator.canvas2D.getSelection().isNotEmpty()) {
-                mediator.canvas2D.getSelection().forEach {
-                    it.applyTheme(t)
+        var c = Circle(0.0, 0.0, 20.0)
+        val applyOnFontB = Button(null, FontIcon("fas-font:15"))
+        applyOnFontB.style = "-fx-base: darkgray"
+        (applyOnFontB.graphic as FontIcon).fill = Color.WHITE
+        applyOnFontB.onMouseClicked = EventHandler {
+            this.applyOnFont = !this.applyOnFont
+            when(this.applyOnFont) {
+                true -> {
+                    applyOnFontB.style = "-fx-base: red"
+                    (applyOnFontB.graphic as FontIcon).fill = Color.WHITE
                 }
-            } else {
-                mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-            }
-            mediator.canvas2D.repaint()
-        }
-        r.fill = color
-        r.stroke = Color.BLACK
-        r.strokeWidth = 1.0
-        if (this.lastColors.children.size >= 6) {
-            val children = mutableListOf<Node>()
-            this.lastColors.children.forEach {
-                children.add(it)
-            }
-            children.removeAt(children.size-1)
-            children.add(0, r)
-            this.lastColors.children.clear()
-            this.lastColors.children.addAll(*children.toTypedArray())
-        }
-        else
-            this.lastColors.children.add(r)
-    }
-
-    private fun repaintBrightness(c:DoubleArray) {
-        this.brightnessBar.children.clear()
-        (0..5).reversed().forEach {
-            val r = Circle(0.0, 0.0, 10.0)
-            val color = Color.hsb(c[0], c[1], 0.2*it)
-            r.onMouseClicked = EventHandler { event ->
-                val t = Theme()
-                t.setConfigurationFor(selection = behaviors[targetsComboBox.value]!!, ThemeParameter.color) {
-                    getHTMLColorString(
-                        javaFXToAwt(color)
-                    )
+                false -> {
+                    applyOnFontB.style = "-fx-base: darkgray"
+                    (applyOnFontB.graphic as FontIcon).fill = Color.WHITE
                 }
-                if (mediator.canvas2D.getSelection().isNotEmpty()) {
-                    mediator.canvas2D.getSelection().forEach {
-                        it.applyTheme(t)
-                    }
-                } else {
-                    mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-                }
-                mediator.canvas2D.repaint()
-            }
-            r.fill = color
-            r.stroke = Color.BLACK
-            r.strokeWidth = 1.0
-            this.brightnessBar.children.add(r)
-        }
-    }
-
-    private fun repaintSaturation(c:DoubleArray) {
-        this.saturationBar.children.clear()
-        (0..5).reversed().forEach {
-            val r = Circle(0.0, 0.0, 10.0)
-            val color = Color.hsb(c[0], 0.2*it, c[2])
-            r.onMouseClicked = EventHandler { event ->
-                val t = Theme()
-                t.setConfigurationFor(selection = behaviors[targetsComboBox.value]!!, ThemeParameter.color) {
-                    getHTMLColorString(
-                        javaFXToAwt(color)
-                    )
-                }
-                if (mediator.canvas2D.getSelection().isNotEmpty()) {
-                    mediator.canvas2D.getSelection().forEach {
-                        it.applyTheme(t)
-                    }
-                } else {
-                    mediator.drawingDisplayed.get()?.drawing?.applyTheme(t)
-                }
-                mediator.canvas2D.repaint()
-            }
-            r.fill = color
-            r.stroke = Color.BLACK
-            r.strokeWidth = 1.0
-            this.saturationBar.children.add(r)
-        }
-    }
-
-    override fun setTarget(target: String) {
-        this.targetsComboBox.items.forEach {
-            if (it.equals(target)) {
-                this.targetsComboBox.value = it
-                return
             }
         }
+        applyOnFontB.shape = c
+        applyOnFontB.layoutX = 0.0
+        applyOnFontB.layoutY = 150.0
+        applyOnFontB.setMinSize(30.0, 30.0)
+        applyOnFontB.setMaxSize(30.0, 30.0)
+        colorWheelGroup.children.add(applyOnFontB)
 
     }
+
+    abstract fun addLastColor(c:DoubleArray)
+
+    abstract protected fun repaintBrightness(c:DoubleArray)
+
+    abstract protected fun repaintSaturation(c:DoubleArray)
+
+    protected fun getDrawingElementsSelector(): (DrawingElement) -> Boolean {
+        return if (this.applyOnFont) {
+            { el -> el.type == SecondaryStructureType.A || el.type == SecondaryStructureType.U || el.type == SecondaryStructureType.G || el.type == SecondaryStructureType.C || el.type == SecondaryStructureType.X }
+        } else
+            { el -> el.type != SecondaryStructureType.A && el.type != SecondaryStructureType.U && el.type != SecondaryStructureType.G && el.type != SecondaryStructureType.C && el.type != SecondaryStructureType.X }
+    }
+
+    abstract protected fun updateDSLScript()
 
 }

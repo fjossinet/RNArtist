@@ -1,5 +1,10 @@
 .separator *.line {
     -fx-border-style: solid;
+    -fx-border-width: 2px;
+}
+
+.separator *.line #sub {
+    -fx-border-style: solid;
     -fx-border-width: 1px;
 }
 

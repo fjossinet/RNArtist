@@ -14,7 +14,7 @@ import javafx.scene.paint.Color
 import javafx.util.Duration
 import org.kordamp.ikonli.javafx.FontIcon
 
-class Actions3DButtonsPanel(mediator: Mediator):ButtonsPanel(mediator = mediator, panelRadius = 60.0) {
+class Actions3DButtonsPanel(mediator: Mediator):CircularButtonsPanel(mediator = mediator, panelRadius = 60.0) {
 
     val linkChimeraX = Button(null, FontIcon("fas-link:15"))
     val waitingForConnection = Timeline()
@@ -57,7 +57,7 @@ class Actions3DButtonsPanel(mediator: Mediator):ButtonsPanel(mediator = mediator
             mediator.chimeraDriver.color3D(
                 if (mediator.canvas2D.getSelectedResidues()
                         .isNotEmpty()
-                ) mediator.canvas2D.getSelectedResidues() else mediator.drawingDisplayed.get()!!.drawing.residues
+                ) mediator.canvas2D.getSelectedResidues() else mediator.currentDrawing.get()!!.drawing.residues
             )
         }
         paintSelectionin3D.tooltip = Tooltip("Paint 3D selection")
@@ -72,10 +72,9 @@ class Actions3DButtonsPanel(mediator: Mediator):ButtonsPanel(mediator = mediator
         clearTheme.tooltip = Tooltip("Clear Theme")
         clearTheme.maxWidth = Double.MAX_VALUE
         clearTheme.onAction = EventHandler {
-            mediator.drawingDisplayed.get()?.let {
+            mediator.currentDrawing.get()?.let {
                 it.drawing.clearTheme()
                 mediator.canvas2D.repaint()
-                mediator.scriptEditor.script.getScriptRoot().getThemeKw().removeButton.fire()
             }
         }
         this.addButton(clearTheme)

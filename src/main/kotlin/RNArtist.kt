@@ -3,8 +3,10 @@ package io.github.fjossinet.rnartist
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.RnartistConfig.getRnartistRelease
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
-import io.github.fjossinet.rnartist.core.rnartist
 import io.github.fjossinet.rnartist.gui.*
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.SelectionColorPicker
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.SelectionButtonsPanel
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.SelectionDetailsLevelButtonsPanel
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.beans.value.ObservableValue
@@ -60,32 +62,21 @@ class RNArtist : Application() {
 
         this.root = BorderPane()
 
-        //Layouts Panel
-        val layoutsPanel = VBox()
-        layoutsPanel.alignment = Pos.TOP_CENTER
-        layoutsPanel.minWidth = 180.0
-        layoutsPanel.prefWidth = 180.0
-        layoutsPanel.maxWidth = 180.0
-        layoutsPanel.padding = Insets(20.0, 10.0, 20.0, 10.0)
-        layoutsPanel.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        val leftToolBar = VBox()
+        leftToolBar.alignment = Pos.TOP_CENTER
+        leftToolBar.padding = Insets(10.0, 10.0, 20.0, 10.0)
+        leftToolBar.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
 
-        var l = Label("Database")
+        var l = Label("Secondary Structure")
+        l.font = Font(l.font.size+3.0)
+        l.padding = Insets(10.0, 0.0, 0.0, 0.0)
         l.textFill = Color.WHITE
-        l.maxWidth = 180.0
-        layoutsPanel.children.add(l)
+        leftToolBar.children.add(l)
+
         var s = Separator()
-        s.maxWidth = 180.0
-        layoutsPanel.children.add(s)
-        layoutsPanel.children.add(DatabaseButtonsPanel(mediator))
-
-        l = Label("2D Actions")
-        l.textFill = Color.WHITE
-        l.maxWidth = 180.0
-        layoutsPanel.children.add(l)
-        s = Separator()
-        s.maxWidth = 180.0
-        layoutsPanel.children.add(s)
-        layoutsPanel.children.add(Actions2DButtonsPanel(mediator))
+        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
+        leftToolBar.children.add(s)
+        leftToolBar.children.add(Full2DButtonsPanel(mediator))
 
         /*l = Label("3D Actions")
         l.textFill = Color.WHITE
@@ -97,79 +88,77 @@ class RNArtist : Application() {
         layoutsPanel.children.add(Actions3DButtonsPanel(mediator))*/
 
         l = Label("Details Level")
+        l.padding = Insets(10.0, 0.0, 0.0, 0.0)
         l.textFill = Color.WHITE
-        l.maxWidth = 180.0
-        layoutsPanel.children.add(l)
+        leftToolBar.children.add(l)
         s = Separator()
-        s.maxWidth = 180.0
-        layoutsPanel.children.add(s)
-        layoutsPanel.children.add(DetailsLevelButtonsPanel(mediator))
+        s.id = "sub"
+        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
+        leftToolBar.children.add(s)
+        leftToolBar.children.add(Full2DDetailsLevelButtonsPanel(mediator))
+
+        l = Label("Lines & Colors")
+        l.padding = Insets(10.0, 0.0, 0.0, 0.0)
+        l.textFill = Color.WHITE
+        leftToolBar.children.add(l)
+        s = Separator()
+        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
+        leftToolBar.children.add(s)
+        leftToolBar.children.add(Full2DColorPicker(mediator))
 
         l = Label("Junctions Layout")
+        l.padding = Insets(10.0, 0.0, 0.0, 0.0)
         l.textFill = Color.WHITE
-        l.maxWidth = 180.0
-        layoutsPanel.children.add(l)
+        //leftToolBar.children.add(l)
         s = Separator()
-        s.maxWidth = 180.0
-        layoutsPanel.children.add(s)
+        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
+        //leftToolBar.children.add(s)
         this.junctionSelectionKnob = JunctionKnob("Selection", mediator)
-        layoutsPanel.children.add(this.junctionSelectionKnob)
+        //leftToolBar.children.add(this.junctionSelectionKnob)
 
-        var layoutsPanelScrollPane = ScrollPane(layoutsPanel)
-        layoutsPanelScrollPane.isFitToWidth = true
-        layoutsPanelScrollPane.isFitToHeight = true
-        layoutsPanelScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
+        var leftToolBarScrollPane = ScrollPane(leftToolBar)
+        leftToolBarScrollPane.isFitToWidth = true
+        leftToolBarScrollPane.isFitToHeight = true
+        leftToolBarScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
 
-        //Colors Panel
-        val colorsPanel = VBox()
-        colorsPanel.alignment = Pos.TOP_LEFT
-        colorsPanel.minWidth = 200.0
-        colorsPanel.prefWidth = 200.0
-        colorsPanel.maxWidth = 200.0
-        colorsPanel.padding = Insets(20.0, 10.0, 20.0, 10.0)
-        colorsPanel.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-        var colorsPanelScrollPane = ScrollPane(colorsPanel)
-        colorsPanelScrollPane.isFitToWidth = true
-        colorsPanelScrollPane.isFitToHeight = true
-        colorsPanelScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
+        val rightToolBar = VBox()
+        rightToolBar.alignment = Pos.TOP_CENTER
+        rightToolBar.padding = Insets(10.0, 10.0, 20.0, 10.0)
+        rightToolBar.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
 
-        l = Label("Structural Domains")
+        var rightToolBarScrollPane = ScrollPane(rightToolBar)
+        rightToolBarScrollPane.isFitToWidth = true
+        rightToolBarScrollPane.isFitToHeight = true
+        rightToolBarScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
+
+        l = Label("Selection")
+        l.font = Font(l.font.size+3.0)
+        l.padding = Insets(10.0, 0.0, 0.0, 0.0)
         l.textFill = Color.WHITE
-        l.maxWidth = 200.0
-        colorsPanel.children.add(l)
+        rightToolBar.children.add(l)
         s = Separator()
-        s.maxWidth = 200.0
-        colorsPanel.children.add(s)
-        colorsPanel.children.add(StructuralDomainColorPicker(mediator))
+        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
+        rightToolBar.children.add(s)
+        rightToolBar.children.add(SelectionButtonsPanel(mediator))
 
-        l = Label("Interactions")
+        l = Label("Details Level")
+        l.padding = Insets(10.0, 0.0, 0.0, 0.0)
         l.textFill = Color.WHITE
-        l.maxWidth = 200.0
-        colorsPanel.children.add(l)
+        rightToolBar.children.add(l)
         s = Separator()
-        s.maxWidth = 200.0
-        colorsPanel.children.add(s)
-        colorsPanel.children.add(InteractionsColorPicker(mediator))
+        s.id = "sub"
+        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
+        rightToolBar.children.add(s)
+        rightToolBar.children.add(SelectionDetailsLevelButtonsPanel(mediator))
 
-        l = Label("Residue Shapes")
+        l = Label("Lines & Colors")
+        l.padding = Insets(10.0, 0.0, 0.0, 0.0)
         l.textFill = Color.WHITE
-        l.maxWidth = 200.0
-        GridPane.setHalignment(l, HPos.LEFT)
-        colorsPanel.children.add(l)
+        rightToolBar.children.add(l)
         s = Separator()
-        s.maxWidth = 200.0
-        colorsPanel.children.add(s)
-        colorsPanel.children.add(ResidueShapesColorPicker(mediator))
-
-        l = Label("Residue Characters")
-        l.textFill = Color.WHITE
-        l.maxWidth = 200.0
-        GridPane.setHalignment(l, HPos.LEFT)
-        colorsPanel.children.add(l)
-        s = Separator()
-        s.maxWidth = 200.0
-        colorsPanel.children.add(s)
-        colorsPanel.children.add(ResidueCharactersColorPicker(mediator))
+        s.padding = Insets(5.0, 0.0, 5.0, 0.0)
+        rightToolBar.children.add(s)
+        rightToolBar.children.add(SelectionColorPicker(mediator))
 
         val topToolBar2D = HBox()
         topToolBar2D.background =
@@ -185,8 +174,8 @@ class RNArtist : Application() {
             FXCollections.observableList(Font.getFamilies().stream().distinct().collect(Collectors.toList()))
         )
         fontNames.onAction = EventHandler {
-            mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                drawingLoaded.drawing.workingSession.fontName = fontNames.value
+            mediator.currentDrawing.get()?.let { drawingLoaded ->
+                //drawingLoaded.drawing.workingSession.fontName = fontNames.value
                 mediator.canvas2D.repaint()
             }
         }
@@ -201,8 +190,8 @@ class RNArtist : Application() {
         val deltaXRes = Spinner<Int>(Int.MIN_VALUE, Int.MAX_VALUE, 0)
         deltaXRes.prefWidth = 50.0
         deltaXRes.valueProperty().addListener { observable, oldValue, newValue ->
-            mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                drawingLoaded.drawing.workingSession.deltafontx = deltaXRes.value
+            mediator.currentDrawing.get()?.let { drawingLoaded ->
+                //drawingLoaded.drawing.workingSession.deltafontx = deltaXRes.value
                 mediator.canvas2D.repaint()
             }
         }
@@ -217,8 +206,8 @@ class RNArtist : Application() {
         val deltaYRes = Spinner<Int>(Int.MIN_VALUE, Int.MAX_VALUE, 0)
         deltaYRes.prefWidth = 50.0
         deltaYRes.valueProperty().addListener { observable, oldValue, newValue ->
-            mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                drawingLoaded.drawing.workingSession.deltafonty = deltaYRes.value
+            mediator.currentDrawing.get()?.let { drawingLoaded ->
+                //drawingLoaded.drawing.workingSession.deltafonty = deltaYRes.value
                 mediator.canvas2D.repaint()
             }
         }
@@ -233,8 +222,8 @@ class RNArtist : Application() {
         val deltaFontSize = Spinner<Int>(Int.MIN_VALUE, Int.MAX_VALUE, 0)
         deltaFontSize.prefWidth = 50.0
         deltaFontSize.valueProperty().addListener { observable, oldValue, newValue ->
-            mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                drawingLoaded.drawing.workingSession.deltafontsize = deltaFontSize.value
+            mediator.currentDrawing.get()?.let { drawingLoaded ->
+                //drawingLoaded.drawing.workingSession.deltafontsize = deltaFontSize.value
                 mediator.canvas2D.repaint()
             }
         }
@@ -248,13 +237,13 @@ class RNArtist : Application() {
 
         //++++++ Canvas2D
         swingNode.onMouseMoved = EventHandler { mouseEvent: MouseEvent? ->
-            mediator.drawingDisplayed.get()?.drawing?.let {
+            mediator.currentDrawing.get()?.drawing?.let {
                 it.quickDraw = false //a trick if after the scroll event the quickdraw is still true
             }
         }
         swingNode.onMouseClicked = EventHandler { mouseEvent: MouseEvent ->
             if (mouseEvent.button == MouseButton.PRIMARY) {
-                mediator.drawingDisplayed.get()?.let mouseClicked@{ drawingLoaded ->
+                mediator.currentDrawing.get()?.let mouseClicked@{ drawingLoaded ->
                     val at = AffineTransform()
                     at.translate(
                         drawingLoaded.drawing.workingSession.viewX,
@@ -397,11 +386,11 @@ class RNArtist : Application() {
         }
         swingNode.onMouseDragged = EventHandler { mouseEvent: MouseEvent ->
             if (mouseEvent.button == MouseButton.SECONDARY) {
-                mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                    drawingLoaded.drawing.quickDraw = true
+                mediator.currentDrawing.get()?.drawing?.let {
+                    it.quickDraw = true
                     val transX: Double = mouseEvent.x - mediator.canvas2D.translateX
                     val transY: Double = mouseEvent.y - mediator.canvas2D.translateY
-                    drawingLoaded.drawing.workingSession.moveView(transX, transY)
+                    it.workingSession.moveView(transX, transY)
                     mediator.canvas2D.translateX = mouseEvent.x
                     mediator.canvas2D.translateY = mouseEvent.y
                     mediator.canvas2D.repaint()
@@ -410,8 +399,8 @@ class RNArtist : Application() {
         }
         swingNode.onMouseReleased = EventHandler { mouseEvent: MouseEvent ->
             if (mouseEvent.button == MouseButton.SECONDARY) {
-                mediator.drawingDisplayed.get()?.let { drawingLoaded ->
-                    drawingLoaded.drawing.quickDraw = false
+                mediator.currentDrawing.get()?.drawing?.let {
+                    it.quickDraw = false
                     mediator.canvas2D.translateX = 0.0
                     mediator.canvas2D.translateY = 0.0
                     mediator.canvas2D.repaint()
@@ -420,14 +409,14 @@ class RNArtist : Application() {
         }
         swingNode.onMousePressed = EventHandler { mouseEvent: MouseEvent ->
             if (mouseEvent.button == MouseButton.SECONDARY) {
-                mediator.drawingDisplayed.get()?.let { drawingLoaded ->
+                mediator.currentDrawing.get()?.let { drawingLoaded ->
                     mediator.canvas2D.translateX = mouseEvent.x
                     mediator.canvas2D.translateY = mouseEvent.y
                 }
             }
         }
         swingNode.onScroll = EventHandler { scrollEvent: ScrollEvent ->
-            mediator.drawingDisplayed.get()?.let { drawingLoaded ->
+            mediator.currentDrawing.get()?.let { drawingLoaded ->
                 drawingLoaded.drawing.quickDraw = true
                 scrollCounter++
                 val th = Thread {
@@ -472,12 +461,9 @@ class RNArtist : Application() {
         root.center = verticalSplitPane
 
         val panel2D = GridPane()
-        val rConstraints1 = RowConstraints()
-        rConstraints1.vgrow = Priority.NEVER
-        val rConstraints2 = RowConstraints()
-        rConstraints2.vgrow = Priority.ALWAYS
-        val rConstraints3 = RowConstraints()
-        rConstraints3.vgrow = Priority.NEVER
+
+        val rowConstraint = RowConstraints()
+        rowConstraint.vgrow = Priority.ALWAYS
 
         val cConstraints1 = ColumnConstraints()
         cConstraints1.hgrow = Priority.NEVER
@@ -487,26 +473,19 @@ class RNArtist : Application() {
         cConstraints3.hgrow = Priority.NEVER
 
         panel2D.columnConstraints.addAll(cConstraints1, cConstraints2, cConstraints3)
+        panel2D.rowConstraints.add(rowConstraint)
 
-        panel2D.add(layoutsPanelScrollPane, 0, 0)
-        //panel2D.add(topToolBar2D, 1, 0)
-        val centralSplitPane = SplitPane()
-        centralSplitPane.orientation = Orientation.HORIZONTAL
-        centralSplitPane.items.add(swingNode)
-        centralSplitPane.setDividerPositions(0.7)
-        panel2D.add(centralSplitPane, 1, 0)
-        panel2D.add(colorsPanelScrollPane, 2, 0)
-        colorsPanelScrollPane.isFitToWidth = true
+        panel2D.add(leftToolBarScrollPane, 0, 0)
+        panel2D.add(swingNode, 1, 0)
+        panel2D.add(rightToolBarScrollPane, 2, 0)
+        rightToolBarScrollPane.isFitToWidth = true
 
         val lowerHorizontalSplitPane = SplitPane()
         lowerHorizontalSplitPane.orientation = Orientation.HORIZONTAL
         val tabPane = TabPane()
         tabPane.tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
 
-        //tabPane.tabs.add(Tab("Saved Projects", mediator.projectsPanel))
-        tabPane.tabs.add(Tab("Database", mediator.databaseExplorer))
-        //tabPane.tabs.add(Tab("Data", lowerHorizontalSplitPane))
-        //tabPane.tabs.add(Tab("Script", this.mediator.scriptEditor))
+        tabPane.tabs.add(Tab("Database", mediator.DBExplorer))
 
         verticalSplitPane.items.add(panel2D)
         verticalSplitPane.items.add(tabPane)
