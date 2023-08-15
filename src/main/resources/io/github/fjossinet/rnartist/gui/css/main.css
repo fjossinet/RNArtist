@@ -56,17 +56,17 @@
 
 .split-pane-divider {
     -fx-padding: 0 0.5 0 0.5;
-    -fx-background-color: white;
+    -fx-background-color: transparent;
     -fx-background-insets: 10;
 }
 
 .tab-pane .tab {
     -fx-padding: 0.0 5.0 0.0 5.0;
-    -fx-background-color: #d3d3d3;
+    -fx-background-color: #565656;
 }
 
 .tab .tab-label {
-    -fx-text-fill: #565656;
+    -fx-text-fill: #d3d3d3;
 }
 
 .tab-pane .tab:selected {
@@ -86,32 +86,56 @@
     -fx-border-color: transparent;
 }
 
-.table-view {
+.tree-view .tree-cell {
+    -fx-background-color: #333333;
+    -fx-text-fill: #ffffff ;
+}
+
+.tree-view .tree-cell:selected {
+    -fx-background-color: lightgrey;
+}
+
+.tree-view .tree-cell:selected {
+    -fx-text-fill: #333333 ;
+}
+
+.tree-cell > .tree-disclosure-node > .arrow  {
+    -fx-background-color: #ffffff;
+}
+
+.tree-cell:expanded > .tree-disclosure-node > .arrow {
+    -fx-background-color: #ffffff;
+}
+
+/*for the corner of the scrollpane containing the treeview*/
+.tree-view > .virtual-flow > .corner{
     -fx-background-color: transparent;
 }
 
-.table-view .corner {
-    -fx-background-color: transparent;
-}
-
-.table-view .column-header-background .filler {
-    -fx-background-color: transparent;
-}
-
-.table-view .column-header {
-    -fx-background-color: transparent;
-}
-
-.table-view .column-header-background {
+.scroll-pane {
     -fx-background-color: #333333;
 }
 
-.table-view .column-header .label {
-    -fx-text-fill: white;
+.scroll-bar:horizontal, .scroll-bar:vertical{
+    -fx-background-color:transparent;
 }
 
-.table-view .column-header {
-    -fx-border-color: white;
-    -fx-border-width: 0.5 0.5 0 0.5;
+.increment-button, .decrement-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
 }
+
+.scroll-bar:horizontal .track,
+.scroll-bar:vertical .track{
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0em;
+}
+
+.scroll-bar:horizontal .thumb,
+.scroll-bar:vertical .thumb {
+    -fx-background-color: white;
+    -fx-background-radius: 5em;
+}
+
 

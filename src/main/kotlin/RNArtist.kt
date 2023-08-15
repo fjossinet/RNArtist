@@ -21,6 +21,7 @@ import javafx.geometry.Pos
 import javafx.scene.CacheHint
 import javafx.scene.Scene
 import javafx.scene.control.*
+import javafx.scene.effect.DropShadow
 import javafx.scene.input.MouseButton
 import javafx.scene.input.MouseEvent
 import javafx.scene.input.ScrollEvent
@@ -65,7 +66,8 @@ class RNArtist : Application() {
         val leftToolBar = VBox()
         leftToolBar.alignment = Pos.TOP_CENTER
         leftToolBar.padding = Insets(10.0, 10.0, 20.0, 10.0)
-        leftToolBar.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        leftToolBar.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets(5.0)))
+        leftToolBar.effect = DropShadow()
 
         var l = Label("Secondary Structure")
         l.font = Font(l.font.size+3.0)
@@ -117,19 +119,24 @@ class RNArtist : Application() {
         //leftToolBar.children.add(this.junctionSelectionKnob)
 
         var leftToolBarScrollPane = ScrollPane(leftToolBar)
+        leftToolBarScrollPane.padding = Insets.EMPTY
         leftToolBarScrollPane.isFitToWidth = true
         leftToolBarScrollPane.isFitToHeight = true
-        leftToolBarScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
+        leftToolBarScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
+        leftToolBarScrollPane.hbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
 
         val rightToolBar = VBox()
         rightToolBar.alignment = Pos.TOP_CENTER
         rightToolBar.padding = Insets(10.0, 10.0, 20.0, 10.0)
-        rightToolBar.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        rightToolBar.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets(5.0)))
+        rightToolBar.effect = DropShadow()
 
         var rightToolBarScrollPane = ScrollPane(rightToolBar)
+        rightToolBarScrollPane.padding = Insets.EMPTY
         rightToolBarScrollPane.isFitToWidth = true
         rightToolBarScrollPane.isFitToHeight = true
-        rightToolBarScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
+        rightToolBarScrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
+        rightToolBarScrollPane.hbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
 
         l = Label("Selection")
         l.font = Font(l.font.size+3.0)
@@ -460,7 +467,7 @@ class RNArtist : Application() {
 
         root.center = verticalSplitPane
 
-        val panel2D = GridPane()
+        val upperPanel = GridPane()
 
         val rowConstraint = RowConstraints()
         rowConstraint.vgrow = Priority.ALWAYS
@@ -472,23 +479,33 @@ class RNArtist : Application() {
         val cConstraints3 = ColumnConstraints()
         cConstraints3.hgrow = Priority.NEVER
 
-        panel2D.columnConstraints.addAll(cConstraints1, cConstraints2, cConstraints3)
-        panel2D.rowConstraints.add(rowConstraint)
+        upperPanel.columnConstraints.addAll(cConstraints1, cConstraints2, cConstraints3)
+        upperPanel.rowConstraints.add(rowConstraint)
 
-        panel2D.add(leftToolBarScrollPane, 0, 0)
-        panel2D.add(swingNode, 1, 0)
-        panel2D.add(rightToolBarScrollPane, 2, 0)
+        val vBox = VBox()
+        VBox.setVgrow(swingNode, Priority.ALWAYS)
+        vBox.padding = Insets(10.0, 10.0, 20.0, 10.0)
+        vBox.background = Background(BackgroundFill(Color.WHITE, CornerRadii(10.0), Insets(5.0)))
+        vBox.effect = DropShadow()
+        vBox.children.add(swingNode)
+        upperPanel.add(leftToolBarScrollPane, 0, 0)
+        leftToolBarScrollPane.isFitToWidth = true
+        upperPanel.add(vBox, 1, 0)
+        upperPanel.add(rightToolBarScrollPane, 2, 0)
         rightToolBarScrollPane.isFitToWidth = true
 
         val lowerHorizontalSplitPane = SplitPane()
         lowerHorizontalSplitPane.orientation = Orientation.HORIZONTAL
-        val tabPane = TabPane()
-        tabPane.tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
+        val lowerPanel = TabPane()
+        lowerPanel.tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
+        lowerPanel.padding = Insets(10.0, 10.0, 20.0, 10.0)
+        lowerPanel.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets(5.0)))
+        lowerPanel.effect = DropShadow()
 
-        tabPane.tabs.add(Tab("Database", mediator.DBExplorer))
+        lowerPanel.tabs.add(Tab("Database", mediator.DBExplorer))
 
-        verticalSplitPane.items.add(panel2D)
-        verticalSplitPane.items.add(tabPane)
+        verticalSplitPane.items.add(upperPanel)
+        verticalSplitPane.items.add(lowerPanel)
         verticalSplitPane.setDividerPositions(0.7)
 
         //### Status Bar

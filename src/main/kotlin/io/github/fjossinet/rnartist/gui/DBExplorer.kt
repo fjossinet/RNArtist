@@ -17,6 +17,7 @@ import javafx.geometry.Insets
 import javafx.geometry.Orientation
 import javafx.geometry.Pos
 import javafx.scene.control.*
+import javafx.scene.effect.DropShadow
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.layout.*
@@ -72,7 +73,7 @@ class DBExplorer(val mediator: Mediator) : VBox() {
     val dirsWithStructuralDataAlreadyIndexed = mutableListOf<String>()
 
     init {
-        this.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        this.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii(10.0), Insets(5.0)))
         this.reloadDB.isDisable = true
         this.viewRNAClass.isDisable = true
 
@@ -274,9 +275,11 @@ class DBExplorer(val mediator: Mediator) : VBox() {
 
         this.children.add(toolBar)
 
+        this.thumbnails.padding = Insets(10.0, 5.0, 5.0, 5.0)
         this.thumbnails.background =
             Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-        this.thumbnails.padding = Insets(0.0, 5.0, 5.0, 5.0)
+        this.thumbnails.border = Border(BorderStroke(Color.LIGHTGRAY,
+            BorderStrokeStyle.SOLID, CornerRadii(10.0), BorderWidths(1.5)))
         this.thumbnails.horizontalCellSpacing = 10.0
         this.thumbnails.verticalCellSpacing = 10.0
         this.thumbnails.cellWidth = 250.0
@@ -286,9 +289,11 @@ class DBExplorer(val mediator: Mediator) : VBox() {
         })
         this.thumbnails.setCellFactory { ThumbnailCell() }
 
-        this.treeView.padding = Insets(0.0, 5.0, 5.0, 5.0)
+        this.treeView.padding = Insets(10.0, 5.0, 5.0, 5.0)
         this.treeView.background =
             Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+        this.treeView.border = Border(BorderStroke(Color.LIGHTGRAY,
+            BorderStrokeStyle.SOLID, CornerRadii(10.0), BorderWidths(1.5)))
         this.treeView.isEditable = true
         this.treeView.root = TreeItem(StructuralClass("No database selected", ""))
         this.treeView.onMouseClicked = EventHandler {
@@ -296,15 +301,18 @@ class DBExplorer(val mediator: Mediator) : VBox() {
 
         val splitPane = SplitPane()
         splitPane.orientation = Orientation.HORIZONTAL
+        splitPane.background =
+            Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
         val s = ScrollPane(this.treeView)
         s.isFitToHeight = true
         s.isFitToWidth = true
+        s.vbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
+        s.hbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
         splitPane.items.add(s)
         splitPane.items.add(this.thumbnails)
-        splitPane.setDividerPositions(0.10)
+        splitPane.setDividerPositions(0.15)
         setVgrow(splitPane, Priority.ALWAYS)
         this.children.add(splitPane)
-
     }
 
     private fun containsStructuralData(path: Path): Boolean {
