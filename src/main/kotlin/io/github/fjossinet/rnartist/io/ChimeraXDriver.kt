@@ -34,15 +34,15 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
                                 response = it.readText()
                             }
                         } catch (e: Exception) {
-                            mediator.tertiaryStructureButtonsPanel.chimeraConnected(false)
+                            //mediator.tertiaryStructureButtonsPanel.chimeraConnected(false)
                         }
                     }
                     if (command.trim().equals("version")) {
                         Platform.runLater {
                             response?.trim()?.let {
-                                mediator.tertiaryStructureButtonsPanel.chimeraConnected(it.startsWith("UCSF ChimeraX version:"))
+                                //mediator.tertiaryStructureButtonsPanel.chimeraConnected(it.startsWith("UCSF ChimeraX version:"))
                             } ?: run {
-                                mediator.tertiaryStructureButtonsPanel.chimeraConnected(false)
+                                //mediator.tertiaryStructureButtonsPanel.chimeraConnected(false)
                             }
                         }
                         Thread.sleep(100)
@@ -57,7 +57,7 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
     }
 
     override fun selectResidues(positions: List<Int>) {
-        mediator.currentDrawing.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.secondaryStructureDrawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -70,7 +70,7 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
     }
 
     override fun setFocus(positions: List<Int>) {
-        mediator.currentDrawing.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.secondaryStructureDrawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -82,7 +82,7 @@ class ChimeraXDriver(mediator:Mediator):ChimeraDriver(mediator) {
     }
 
     override fun color3D(residues: List<ResidueDrawing>) {
-        mediator.currentDrawing.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.secondaryStructureDrawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {

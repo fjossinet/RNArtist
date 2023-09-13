@@ -44,7 +44,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     fun displayCurrent3D() {
-        mediator.currentDrawing.get()?.drawing?.secondaryStructure?.let { ss ->
+        mediator.currentDrawing.get()?.secondaryStructureDrawing?.secondaryStructure?.let { ss ->
             this.closeSession()
         }
     }
@@ -93,7 +93,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     fun represent(mode: RENDERING, positions: List<Int>) {
-        mediator.currentDrawing.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.secondaryStructureDrawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -126,7 +126,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     open fun selectResidues(positions: List<Int>) {
-        mediator.currentDrawing.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.secondaryStructureDrawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -143,7 +143,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     open fun color3D(residues: List<ResidueDrawing>) {
-        mediator.currentDrawing.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.secondaryStructureDrawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             if (numberingSystem != null) {
@@ -157,7 +157,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     fun setPivot(positions: List<Int>) {
-        mediator.currentDrawing.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.secondaryStructureDrawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             val command = StringBuffer("cofr #0:")
@@ -167,7 +167,7 @@ open class ChimeraDriver(val mediator:Mediator) {
     }
 
     open fun setFocus(positions: List<Int>) {
-        mediator.currentDrawing.get()?.drawing?.let { drawing ->
+        mediator.currentDrawing.get()?.secondaryStructureDrawing?.let { drawing ->
             val chainName: String = drawing.secondaryStructure.rna.name
             var numberingSystem: List<String>? =  drawing.secondaryStructure.tertiaryStructure?.getNumberingSystem()
             val command = StringBuffer("focus #0:")

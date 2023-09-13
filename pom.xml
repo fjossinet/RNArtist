@@ -54,7 +54,7 @@
 
     <repositories>
         <repository>
-            <id>oss-snapshots-repo</id>
+            <id>ossrh</id>
             <name>Sonatype OSS Maven Repository</name>
             <url>https://oss.sonatype.org/content/groups/public</url>
             <releases>
@@ -85,13 +85,6 @@
             <version>${javafx.version}</version>
         </dependency>
 
-        <!-- NitriteDB -->
-        <dependency>
-            <groupId>org.dizitart</groupId>
-            <artifactId>nitrite</artifactId>
-            <version>3.4.4</version>
-        </dependency>
-
         <!--controlsfx -->
         <dependency>
             <groupId>org.controlsfx</groupId>
@@ -112,6 +105,18 @@
         </dependency>
 
         <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-boxicons-pack</artifactId>
+            <version>12.3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-metrizeicons-pack</artifactId>
+            <version>12.3.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.jdesktop</groupId>
             <artifactId>swing-worker</artifactId>
             <version>1.1</version>
@@ -120,7 +125,7 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.3.2-SNAPSHOT</version>
+            <version>0.3.3-SNAPSHOT</version>
         </dependency>
 
     </dependencies>

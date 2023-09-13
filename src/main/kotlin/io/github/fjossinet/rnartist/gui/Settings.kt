@@ -18,13 +18,13 @@ import org.kordamp.ikonli.javafx.FontIcon
 
 class Settings(val mediator: Mediator):VBox() {
 
-    val chimeraXConnectionStatus:Label
+    //val chimeraXConnectionStatus:Label
 
     init {
         this.padding = Insets(10.0, 10.0, 10.0, 10.0)
         this.spacing = 5.0
 
-        val chimeraPane = GridPane()
+        /*val chimeraPane = GridPane()
         chimeraPane.padding = Insets(10.0, 5.0, 15.0, 5.0)
         chimeraPane.hgap = 5.0
         chimeraPane.vgap = 5.0
@@ -68,7 +68,7 @@ class Settings(val mediator: Mediator):VBox() {
         this.chimeraXConnectionStatus = Label(null, FontIcon("fas-exclamation-circle:15"))
         (this.chimeraXConnectionStatus.graphic as FontIcon).fill = Color.RED
         chimeraPane.children.add(this.chimeraXConnectionStatus)
-        GridPane.setConstraints(this.chimeraXConnectionStatus, 5, 2)
+        GridPane.setConstraints(this.chimeraXConnectionStatus, 5, 2)*/
 
         val optionsPane = GridPane()
         optionsPane.padding = Insets(10.0, 5.0, 15.0, 5.0)
@@ -80,7 +80,7 @@ class Settings(val mediator: Mediator):VBox() {
         l.style = "-fx-font-weight: bold"
         optionsPane.children.add(l)
         GridPane.setConstraints(l, 0, 0)
-        s = Separator(Orientation.HORIZONTAL)
+        val s = Separator(Orientation.HORIZONTAL)
         optionsPane.children.add(s)
         GridPane.setConstraints(s, 0, 1, 5, 1)
         l = Label("Apply Browser Compatibility")
