@@ -68,10 +68,6 @@ class RNArtist : Application() {
     val mediator: Mediator
     val verticalSplitPane: SplitPane
     private val upperPanel: UpperPanel
-
-    //private val leftComputingBar = ComputingBar()
-    //private val rightComputingBar =  ComputingBar()
-    //private val computingAnimation = Timer()
     lateinit var stage: Stage
     private val root: BorderPane
 
@@ -413,7 +409,7 @@ class RNArtist : Application() {
             hBox.children.add(NavigationBar())
             hBox.children.add(UndoRedoThemeBar())
             hBox.children.add(UndoRedoLayoutBar())
-            hBox.children.add(AnimationBar())
+            //hBox.children.add(AnimationBar())
             hBox.children.add(LateralPanelsBar())
             //hBox.children.add(rightComputingBar)
             this.add(hBox, 1, 1, 1, 1)
@@ -1864,7 +1860,6 @@ class RNArtist : Application() {
             private inner class JunctionPanel() : Panel() {
 
                 init {
-
                     val vbox = VBox()
                     vbox.children.add(NavigationSubPanel())
                     vbox.children.add(LayoutSubPanel())
@@ -2023,6 +2018,24 @@ class RNArtist : Application() {
                 private val treeView = TreeView<StructuralClass>()
                 private val drawingsDirName = "drawings"
                 var lastThumbnailCellClicked: ThumbnailCell? = null
+                val saveCurrentDrawing = {
+                    mediator.currentDrawing.get()?.let { currentDrawing ->
+                        //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
+                        with(File(currentDrawing.dslScriptAbsolutePath)) {
+                            val content = currentDrawing.rnArtistEl.dump().toString()
+                            this.writeText(content)
+                            mediator.scriptEngine.eval(content)
+
+                            lastThumbnailCellClicked?.let {
+                                Platform.runLater {
+                                    it.item.layoutAndThemeUpdated.value =
+                                        !it.item.layoutAndThemeUpdated.value
+                                }
+                            }
+                        }
+
+                    }
+                }
 
                 //we explicitly create the observable list of thumbnails to link it to an extractor that will automatically update the picture when the layout and/or theme of the current drawing is saved back in the DSL script.
                 private val thumbnailsList: ObservableList<Thumbnail> =
@@ -2071,7 +2084,7 @@ class RNArtist : Application() {
                     this.viewRNAClass = buttonsPanel.addButton("fas-eye:15", "Load Structures")
                     this.viewRNAClass.onMouseClicked = EventHandler { _ ->
                         this.treeView.selectionModel.selectedItem?.let { selectedItem ->
-                            class LoadThumbnailsTask(mediator: Mediator) : RNArtistTask(mediator) {
+                            class LoadDBFolder(mediator: Mediator) : RNArtistTask(mediator) {
                                 init {
                                     setOnSucceeded { _ ->
                                         this.resultNow().second?.printStackTrace()
@@ -2156,13 +2169,23 @@ class RNArtist : Application() {
                                                                 }
                                                             }
 
-                                                        dataDir.listFiles(FileFilter { it.name.endsWith(".ct") })?.let {
-                                                            if (it.isNotEmpty()) {
-                                                                val ctEl = ssEl.addCT()
-                                                                ctEl.setPath(dataDir.absolutePath)
-                                                                totalStructures += it.size
+                                                        dataDir.listFiles(FileFilter { it.name.endsWith(".ct") })
+                                                            ?.let {
+                                                                if (it.isNotEmpty()) {
+                                                                    val ctEl = ssEl.addCT()
+                                                                    ctEl.setPath(dataDir.absolutePath)
+                                                                    totalStructures += it.size
+                                                                }
                                                             }
-                                                        }
+
+                                                        dataDir.listFiles(FileFilter { it.name.endsWith(".pdb") })
+                                                            ?.let {
+                                                                if (it.isNotEmpty()) {
+                                                                    val pdbEl = ssEl.addPDB()
+                                                                    pdbEl.setPath(dataDir.absolutePath)
+                                                                    totalStructures += it.size
+                                                                }
+                                                            }
 
                                                         val themeEl = rnartistEl.addTheme()
                                                         themeEl.addDetails(4)
@@ -2175,10 +2198,7 @@ class RNArtist : Application() {
                                                     } else {
                                                         scriptContent = script.readText()
                                                         val structuralFiles = dataDir.listFiles(FileFilter {
-                                                            it.name.endsWith(".ct") || it.name.endsWith(".vienna") || it.name.endsWith(
-                                                                ".bpseq"
-                                                            )
-                                                        })?.size ?: 0
+                                                            it.name.endsWith(".ct") || it.name.endsWith(".vienna") || it.name.endsWith(".bpseq")  || it.name.endsWith(".pdb")})?.size ?: 0
                                                         val scripts =
                                                             dataDir.listFiles(FileFilter { it.name.endsWith(".kts") })?.size
                                                                 ?: 0
@@ -2187,9 +2207,9 @@ class RNArtist : Application() {
 
                                                     if (totalStructures > 0) {
                                                         Platform.runLater {
-                                                            updateMessage("Computing $totalStructures drawings for ${dataDir.name}, please wait...")
+                                                            updateMessage("Computing $totalStructures 2Ds for ${dataDir.name}, please wait...")
                                                         }
-                                                        Thread.sleep(2000)
+                                                        Thread.sleep(1000)
 
                                                         val manager = ScriptEngineManager()
                                                         val engine = manager.getEngineByExtension("kts")
@@ -2208,7 +2228,7 @@ class RNArtist : Application() {
                                                         Platform.runLater {
                                                             updateMessage("Computing done!")
                                                         }
-                                                        Thread.sleep(2000)
+                                                        Thread.sleep(1000)
 
                                                     }
                                                 }
@@ -2226,7 +2246,7 @@ class RNArtist : Application() {
                                                     ?.forEach {
                                                         Platform.runLater {
                                                             updateMessage(
-                                                                "Loading ${
+                                                                "Loading 2D for ${
                                                                     it.name.split(".png").first()
                                                                 } in ${dataDir.name}"
                                                             )
@@ -2255,216 +2275,20 @@ class RNArtist : Application() {
                             }
 
                             val w = RNArtistTaskDialog(mediator)
-                            w.task = LoadThumbnailsTask(mediator)
+                            w.task = LoadDBFolder(mediator)
 
                         }
                     }
 
-                    buttonsPanel.addSeparator()
-
-                    val save = buttonsPanel.addButton("fas-save:15")
-                    mediator.currentDrawing.addListener { _, _, newValue ->
-                        save.isDisable = newValue == null
-                    }
-                    save.onMouseClicked = EventHandler { _ ->
-                        class LoadThumbnailsTask(mediator: Mediator) : RNArtistTask(mediator) {
-                            init {
-                                setOnSucceeded { _ ->
-                                    this.rnartistTaskDialog.stage.hide()
-                                }
-                            }
-
-                            override fun call(): Pair<Any?, Exception?> {
-                                try {
-                                    mediator.currentDrawing.get()?.let { currentDrawing ->
-                                        //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
-                                        File(currentDrawing.dslScriptAbsolutePath).writeText(
-                                            currentDrawing.rnArtistEl.dump().toString()
-                                        )
-                                        mediator.scriptEngine.eval(
-                                            "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                                                System.getProperty(
-                                                    "line.separator"
-                                                )
-                                            } ${File(currentDrawing.dslScriptAbsolutePath).readText()}"
-                                        )
-                                        lastThumbnailCellClicked?.let {
-                                            Platform.runLater {
-                                                it.item.layoutAndThemeUpdated.value =
-                                                    !it.item.layoutAndThemeUpdated.value
-                                            }
-                                            Thread.sleep(100)
-                                        }
-
-                                    }
-                                    return Pair(null, null)
-                                } catch (e: Exception) {
-                                    return Pair(null, e)
-                                }
-                            }
-
-                        }
-
-                        val w = RNArtistTaskDialog(mediator)
-                        w.task = LoadThumbnailsTask(mediator)
-
-                    }
-
-                    val applyToAll = buttonsPanel.addButton("fas-th:15")
-                    mediator.currentDrawing.addListener { _, _, newValue ->
-                        applyToAll.isDisable = newValue == null
-                    }
-                    applyToAll.onMouseClicked = EventHandler { _ ->
-                        class LoadThumbnailsTask(mediator: Mediator) : RNArtistTask(mediator) {
-                            init {
-                                setOnSucceeded { _ ->
-                                    this.rnartistTaskDialog.stage.hide()
-                                }
-                            }
-
-                            override fun call(): Pair<Any?, Exception?> {
-                                try {
-                                    mediator.currentDrawing.get()?.let { currentDrawing ->
-                                        //first the thumbnail of the current drawing
-                                        //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
-                                        File(currentDrawing.dslScriptAbsolutePath).writeText(
-                                            currentDrawing.rnArtistEl.dump().toString()
-                                        )
-                                        mediator.scriptEngine.eval(
-                                            "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                                                System.getProperty(
-                                                    "line.separator"
-                                                )
-                                            } ${File(currentDrawing.dslScriptAbsolutePath).readText()}"
-                                        )
-
-                                        lastThumbnailCellClicked?.let {
-                                            Platform.runLater {
-                                                it.item.layoutAndThemeUpdated.value =
-                                                    !it.item.layoutAndThemeUpdated.value
-                                            }
-                                            Thread.sleep(100)
-                                        }
-
-                                        //then the other thumbnails
-                                        thumbnails.items.forEach { item ->
-                                            if (item != lastThumbnailCellClicked?.item) {
-                                                val rnartistEl = (mediator.scriptEngine.eval(
-                                                    "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                                                        System.getProperty(
-                                                            "line.separator"
-                                                        )
-                                                    } ${File(item.dslScriptAbsolutePath).readText()}"
-                                                ) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>)?.second
-
-                                                rnartistEl?.let {
-                                                    //we replace the theme and layout elements in the dsl script of this item with the ones from the current drawing
-                                                    rnartistEl.addTheme(currentDrawing.rnArtistEl.getThemeOrNew())
-                                                    rnartistEl.addLayout(currentDrawing.rnArtistEl.getLayoutOrNew())
-                                                    File(item.dslScriptAbsolutePath).writeText(
-                                                        rnartistEl.dump().toString()
-                                                    )
-                                                    mediator.scriptEngine.eval(
-                                                        "import io.github.fjossinet.rnartist.core.*${
-                                                            System.getProperty(
-                                                                "line.separator"
-                                                            )
-                                                        }${
-                                                            System.getProperty(
-                                                                "line.separator"
-                                                            )
-                                                        } ${File(item.dslScriptAbsolutePath).readText()}"
-                                                    )
-                                                    Platform.runLater {
-                                                        item.layoutAndThemeUpdated.value =
-                                                            !item.layoutAndThemeUpdated.value
-                                                    }
-                                                    Thread.sleep(100)
-                                                }
-                                            }
-                                        }
-
-                                    }
-                                    return Pair(null, null)
-                                } catch (e: Exception) {
-                                    return Pair(null, e)
-                                }
-                            }
-
-                        }
-
-                        val w = RNArtistTaskDialog(mediator)
-                        w.task = LoadThumbnailsTask(mediator)
-
-                    }
-
-                    val exportAsSVG = buttonsPanel.addButton("fas-file-download:15")
-                    mediator.currentDrawing.addListener { _, _, newValue ->
-                        exportAsSVG.isDisable = newValue == null
-                    }
-                    exportAsSVG.onMouseClicked = EventHandler { _ ->
-                        class ExportTask(mediator: Mediator, val file: File) : RNArtistTask(mediator) {
-                            init {
-                                setOnSucceeded { _ ->
-                                    mediator.currentDrawing.get()?.rnArtistEl?.removeSVG()
-                                    this.rnartistTaskDialog.stage.hide()
-                                }
-                            }
-
-                            override fun call(): Pair<Any?, Exception?> {
-                                try {
-                                    mediator.currentDrawing.get()?.let { currentDrawing ->
-                                        with(currentDrawing.rnArtistEl.addSVG()) {
-                                            this.setName(file.name.removeSuffix(".svg"))
-                                            this.setPath(file.parent)
-                                            currentDrawing.secondaryStructureDrawing.getFrame()?.let {
-                                                this.setWidth(it.width * 1.1)
-                                                this.setHeight(it.height * 1.1)
-                                            }
-
-                                        }
-                                        mediator.scriptEngine.eval(
-                                            "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                                                System.getProperty(
-                                                    "line.separator"
-                                                )
-                                            } ${currentDrawing.rnArtistEl.dump().toString()}"
-                                        )
-                                    }
-                                    return Pair(null, null)
-                                } catch (e: Exception) {
-                                    return Pair(null, e)
-                                }
-                            }
-
-                        }
-
-                        val fileChooser = FileChooser()
-                        fileChooser.getExtensionFilters().add(FileChooser.ExtensionFilter("SVG files (*.svg)", "*.svg"))
-                        val file = fileChooser.showSaveDialog(mediator.rnartist.stage)
-                        file?.let {
-                            val w = RNArtistTaskDialog(mediator)
-                            w.task = ExportTask(mediator, it)
-                        }
-
-                    }
+                    //buttonsPanel.addSeparator()
 
                     this.thumbnails.padding = Insets(10.0)
                     this.thumbnails.background =
-                        Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-                    this.thumbnails.border = Border(
-                        BorderStroke(
-                            Color.LIGHTGRAY,
-                            BorderStrokeStyle.SOLID, CornerRadii(10.0), BorderWidths(1.5)
-                        )
-                    )
-                    this.thumbnails.horizontalCellSpacing = 10.0
-                    this.thumbnails.verticalCellSpacing = 10.0
+                        Background(BackgroundFill(Color.WHITE, CornerRadii(10.0), Insets.EMPTY))
+                    this.thumbnails.horizontalCellSpacing = 5.0
+                    this.thumbnails.verticalCellSpacing = 5.0
                     this.thumbnails.cellWidth = 250.0
-                    this.thumbnails.cellHeight = 250.0
-                    this.thumbnails.items.addListener(ListChangeListener { _ ->
-
-                    })
+                    this.thumbnails.cellHeight = 350.0
                     this.thumbnails.setCellFactory { ThumbnailCell() }
 
                     this.treeView.padding = Insets(10.0)
@@ -2501,9 +2325,7 @@ class RNArtist : Application() {
                 private fun containsStructuralData(path: Path): Boolean {
                     var containsStructuralData = false
                     path.toFile().listFiles(FileFilter {
-                        it.name.endsWith(".vienna") || it.name.endsWith(".bpseq") || it.name.endsWith(
-                            ".ct"
-                        )
+                        it.name.endsWith(".vienna") || it.name.endsWith(".bpseq") || it.name.endsWith(".ct" ) || it.name.endsWith(".pdb" )
                     })?.let {
                         containsStructuralData = it.isNotEmpty()
                     }
@@ -2597,10 +2419,9 @@ class RNArtist : Application() {
 
                 private inner class ThumbnailCell : GridCell<Thumbnail>() {
                     private val icon = ImageView()
-                    private val drawingName = Label()
                     private val content: VBox = VBox()
-                    private val border: HBox
-                    private val titleBar: HBox
+                    private val titlePanel = TitlePanel()
+                    private val buttonsPanel = ButtonsPanel()
 
                     override fun updateItem(thumbnail: Thumbnail?, empty: Boolean) {
                         super.updateItem(thumbnail, empty)
@@ -2608,68 +2429,318 @@ class RNArtist : Application() {
                         text = null
                         if (!empty && thumbnail != null) {
                             icon.image = thumbnail.image
+                            val title = File(thumbnail.dslScriptAbsolutePath).name.removeSuffix(".kts")
+                            titlePanel.setTitle(title)
+                            buttonsPanel.buttons.subList(1,3).forEach {
+                                it.isDisable = !matchCurrentDrawing(mediator.currentDrawing.get())
+                            }
                             graphic = content
                         }
                     }
 
                     init {
-                        content.spacing = 5.0
-                        content.alignment = Pos.CENTER
-                        this.border = HBox()
-                        this.border.children.add(icon)
-                        this.border.style = "-fx-border-color: lightgray; -fx-border-width: 4px;"
-                        content.children.add(border)
-                        titleBar = HBox()
-                        titleBar.spacing = 5.0
-                        titleBar.alignment = Pos.CENTER
-                        titleBar.children.add(drawingName)
-                        val deleteProject = Label(null, FontIcon("fas-trash:15"))
-                        (deleteProject.graphic as FontIcon).fill = Color.WHITE
-                        titleBar.children.add(deleteProject)
-                        //content.children.add(titleBar)
-                        drawingName.textFill = Color.WHITE
-                        drawingName.style = "-fx-font-weight: bold"
-                        deleteProject.onMouseClicked = EventHandler { event ->
-                            val alert = Alert(Alert.AlertType.CONFIRMATION)
-                            alert.initModality(Modality.WINDOW_MODAL)
-                            alert.title = "Confirm Deletion"
-                            alert.headerText = null
-                            alert.contentText = "Are you sure to delete this 2D?"
-                            val alerttStage = alert.dialogPane.scene.window as Stage
-                            alerttStage.isAlwaysOnTop = true
-                            alerttStage.toFront()
-                            val result = alert.showAndWait()
-                            if (result.get() == ButtonType.OK) {
-                                removeItem(item)
-                            } else {
-                                event.consume()
-                            }
-                        }
-                        icon.onMouseClicked = EventHandler {
+                        content.alignment = Pos.BOTTOM_CENTER
+                        content.children.add(icon)
+                        content.children.add(titlePanel)
+                        content.children.add(buttonsPanel)
+                        buttonsPanel.addButton("fas-eye:15").onMouseClicked = EventHandler { event ->
                             lastThumbnailCellClicked = this
-                            val scriptContent = File(item.dslScriptAbsolutePath).readLines()
 
-                            val drawings = mediator.scriptEngine.eval(
-                                "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                                    System.getProperty(
-                                        "line.separator"
-                                    )
-                                } ${scriptContent.joinToString("\n")}"
-                            ) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
-                            drawings?.let {
-                                val drawing =
-                                    RNArtistDrawing(mediator, it.first.first(), item.dslScriptAbsolutePath, it.second)
-                                mediator.currentDrawing.set(drawing)
-                                if (drawing.secondaryStructureDrawing.viewX == 0.0 && drawing.secondaryStructureDrawing.viewY == 0.0 && drawing.secondaryStructureDrawing.zoomLevel == 1.0) {
-                                    //it seems it is a first opening, then we fit to the display
-                                    mediator.canvas2D.fitStructure(null)
+                            class LoadStructure(mediator: Mediator) : RNArtistTask(mediator) {
+                                init {
+                                    setOnSucceeded { _ ->
+                                        this.resultNow().second?.printStackTrace()
+                                        this.rnartistTaskDialog.stage.hide()
+                                    }
+                                }
+
+                                override fun call(): Pair<Any?, Exception?> {
+                                    try {
+                                        Platform.runLater {
+                                            updateMessage("Loading 2D for ${item.dslScriptAbsolutePath.removeSuffix(".kts").split(System.getProperty(
+                                                "file.separator"
+                                            )).last()}...")
+                                        }
+                                        Thread.sleep(100)
+
+                                        val scriptContent = File(item.dslScriptAbsolutePath).readLines()
+
+                                        val result = mediator.scriptEngine.eval(
+                                            "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
+                                                System.getProperty(
+                                                    "line.separator"
+                                                )
+                                            } ${scriptContent.joinToString("\n")}"
+                                        ) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
+                                        result?.let {
+                                            val drawing =
+                                                RNArtistDrawing(mediator, it.first.first(), item.dslScriptAbsolutePath, it.second)
+                                            mediator.currentDrawing.set(drawing)
+                                            if (drawing.secondaryStructureDrawing.viewX == 0.0 && drawing.secondaryStructureDrawing.viewY == 0.0 && drawing.secondaryStructureDrawing.zoomLevel == 1.0) {
+                                                //it seems it is a first opening, then we fit to the display
+                                                mediator.canvas2D.fitStructure(null)
+                                            }
+                                        }
+                                        return Pair(null, null)
+                                    } catch (e: Exception) {
+                                        return Pair(null, e)
+                                    }
+                                }
+
+                            }
+
+                            val w = RNArtistTaskDialog(mediator)
+                            w.task = LoadStructure(mediator)
+                        }
+
+                        val save = buttonsPanel.addButton("fas-save:15")
+                        save.isDisable = true
+                        mediator.currentDrawing.addListener { _, _, newValue ->
+                            save.isDisable = !matchCurrentDrawing(newValue)
+                        }
+                        save.onMouseClicked = EventHandler { _ ->
+                            class Save2D(mediator: Mediator) : RNArtistTask(mediator) {
+                                init {
+                                    setOnSucceeded { _ ->
+                                        this.rnartistTaskDialog.stage.hide()
+                                    }
+                                }
+
+                                override fun call(): Pair<Any?, Exception?> {
+                                    return try {
+                                        Platform.runLater {
+                                            updateMessage("Saving 2D for ${item.dslScriptAbsolutePath.removeSuffix(".kts").split(System.getProperty(
+                                                "file.separator"
+                                            )).last()}...")
+                                        }
+                                        Thread.sleep(100)
+                                        saveCurrentDrawing()
+                                        Pair(null, null)
+                                    } catch (e: Exception) {
+                                        Pair(null, e)
+                                    }
+                                }
+
+                            }
+
+                            val w = RNArtistTaskDialog(mediator)
+                            w.task = Save2D(mediator)
+
+                        }
+
+                        val applyToAll = buttonsPanel.addButton("fas-th:15")
+                        applyToAll.isDisable = true
+                        mediator.currentDrawing.addListener { _, _, newValue ->
+                            applyToAll.isDisable = !matchCurrentDrawing(newValue)
+                        }
+                        applyToAll.onMouseClicked = EventHandler { _ ->
+                            class UpdateAll2Ds(mediator: Mediator) : RNArtistTask(mediator) {
+                                init {
+                                    setOnSucceeded { _ ->
+                                        this.rnartistTaskDialog.stage.hide()
+                                    }
+                                }
+
+                                override fun call(): Pair<Any?, Exception?> {
+                                    try {
+                                        mediator.currentDrawing.get()?.let { currentDrawing ->
+                                            //first the thumbnail of the current drawing
+                                            //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
+                                            Platform.runLater {
+                                                updateMessage("Saving 2D for ${item.dslScriptAbsolutePath.removeSuffix(".kts").split(System.getProperty(
+                                                    "file.separator"
+                                                )).last()}...")
+                                            }
+                                            saveCurrentDrawing()
+
+                                            Thread.sleep(100)
+
+                                            //then the other thumbnails
+                                            thumbnails.items.forEach { item ->
+                                                if (item != lastThumbnailCellClicked?.item) {
+                                                    Platform.runLater {
+                                                        updateMessage("Updating 2D for ${item.dslScriptAbsolutePath.removeSuffix(".kts").split(System.getProperty(
+                                                            "file.separator"
+                                                        )).last()}...")
+                                                    }
+                                                    Thread.sleep(100)
+                                                    val rnartistEl = (mediator.scriptEngine.eval(File(item.dslScriptAbsolutePath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>)?.second
+
+                                                    rnartistEl?.let {
+                                                        //we replace the theme and layout elements in the dsl script for this thumbnail with the ones from the current drawing
+                                                        rnartistEl.addTheme(currentDrawing.rnArtistEl.getThemeOrNew())
+                                                        rnartistEl.addLayout(currentDrawing.rnArtistEl.getLayoutOrNew())
+
+                                                        with (File(item.dslScriptAbsolutePath)) {
+                                                            val content = rnartistEl.dump().toString()
+                                                            this.writeText(content)
+                                                            mediator.scriptEngine.eval(content)
+                                                            Platform.runLater {
+                                                                item.layoutAndThemeUpdated.value =
+                                                                    !item.layoutAndThemeUpdated.value
+                                                            }
+                                                            Thread.sleep(100)
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                        }
+                                        return Pair(null, null)
+                                    } catch (e: Exception) {
+                                        return Pair(null, e)
+                                    }
+                                }
+
+                            }
+
+                            val w = RNArtistTaskDialog(mediator)
+                            w.task = UpdateAll2Ds(mediator)
+
+                        }
+
+                        val exportAsSVG = buttonsPanel.addButton("fas-file-download:15")
+                        mediator.currentDrawing.addListener { _, _, newValue ->
+                            exportAsSVG.isDisable = newValue == null
+                        }
+                        exportAsSVG.onMouseClicked = EventHandler { _ ->
+                            class ExportTask(mediator: Mediator, val file: File) : RNArtistTask(mediator) {
+                                init {
+                                    setOnSucceeded { _ ->
+                                        mediator.currentDrawing.get()?.rnArtistEl?.removeSVG()
+                                        this.rnartistTaskDialog.stage.hide()
+                                    }
+                                }
+
+                                override fun call(): Pair<Any?, Exception?> {
+                                    try {
+                                        mediator.currentDrawing.get()?.let { currentDrawing ->
+                                            with(currentDrawing.rnArtistEl.addSVG()) {
+                                                this.setName(file.name.removeSuffix(".svg"))
+                                                this.setPath(file.parent)
+                                                currentDrawing.secondaryStructureDrawing.getFrame()?.let {
+                                                    this.setWidth(it.width * 1.1)
+                                                    this.setHeight(it.height * 1.1)
+                                                }
+                                            }
+                                            mediator.scriptEngine.eval(currentDrawing.rnArtistEl.dump().toString())
+                                        }
+                                        return Pair(null, null)
+                                    } catch (e: Exception) {
+                                        return Pair(null, e)
+                                    }
+                                }
+
+                            }
+
+                            with (FileChooser()) {
+                                this.getExtensionFilters()
+                                    .add(FileChooser.ExtensionFilter("SVG files (*.svg)", "*.svg"))
+                                val file = this.showSaveDialog(mediator.rnartist.stage)
+                                file?.let {
+                                    val w = RNArtistTaskDialog(mediator)
+                                    w.task = ExportTask(mediator, it)
                                 }
                             }
+
                         }
-                        this.onMouseEntered =
-                            EventHandler { border.style = "-fx-border-color: darkgray; -fx-border-width: 4px;" }
-                        this.onMouseExited =
-                            EventHandler { border.style = "-fx-border-color: lightgray; -fx-border-width: 4px;" }
+
+                    }
+
+                    /**
+                     * Test if this thumbnail cell (more precisely its title) matches the name of the drawing displayed.
+                     * Used to disable or not some stuff in this thumbnail cell
+                     */
+                    private fun matchCurrentDrawing(drawing: RNArtistDrawing?):Boolean {
+                        return drawing?.let {
+                            drawing.rnArtistEl.getSSOrNull()?.let { ssEl ->
+                                var match = false
+                                ssEl.getViennaOrNull()?.getFile()?.let { fileProperty ->
+                                    match = File(fileProperty.value).name.removeSuffix(".vienna").equals(titlePanel.getTitle())
+                                }
+                                ssEl.getBPSeqOrNull()?.getFile()?.let { fileProperty ->
+                                    match = File(fileProperty.value).name.removeSuffix(".bpseq").equals(titlePanel.getTitle())
+                                }
+                                ssEl.getCTOrNull()?.getFile()?.let { fileProperty ->
+                                    match = File(fileProperty.value).name.removeSuffix(".ct").equals(titlePanel.getTitle())
+                                }
+                                ssEl.getPDBOrNull()?.getFile()?.let { fileProperty ->
+                                    match = File(fileProperty.value).name.removeSuffix(".pdb").equals(titlePanel.getTitle())
+                                }
+                                match
+                            } ?: run {
+                                false
+                            }
+                        } ?: run {
+                            false
+                        }
+                    }
+
+                    private inner class TitlePanel() : VBox() {
+                        private val title = Label()
+
+                        init {
+                            this.alignment = Pos.CENTER
+                            this.padding = Insets(10.0)
+                            this.background =
+                                Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets(5.0, 0.0, 5.0, 0.0)))
+                            this.effect = DropShadow()
+                            this.children.add(this.title)
+                        }
+
+                        fun setTitle(title:String) {
+                            this.title.text = title
+                        }
+
+                        fun getTitle() = this.title.text
+
+                    }
+
+                    private inner class ButtonsPanel(val buttonRadius: Double = 15.0) : HBox() {
+                        val group = Group()
+                        val buttons = mutableListOf<Button>()
+                        var bottomPanel: Pair<Double, Node>? = null
+                        var leftPanelRemoved = false
+                        var rightPanelRemoved = false
+
+                        init {
+                            this.spacing = 0.0
+                            this.padding = Insets(
+                                0.0,
+                                buttonRadius,
+                                buttonRadius / 2.0,
+                                buttonRadius
+                            )
+                            this.alignment = Pos.CENTER
+                            this.children.add(this.group)
+                        }
+
+                        fun addButton(icon: String): Button {
+                            val button = Button(null, FontIcon(icon))
+                            button.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                            (button.graphic as FontIcon).iconColor = Color.WHITE
+                            val innerShadow = InnerShadow()
+                            innerShadow.offsetX = 0.0
+                            innerShadow.offsetY = 0.0
+                            innerShadow.color = Color.WHITE
+                            button.effect = innerShadow
+
+                            buttons.add(button)
+                            val p = if (this.buttons.size == 1)
+                                Point2D.Double(buttonRadius, buttonRadius)
+                            else {
+                                Point2D.Double(this.buttons[this.buttons.size - 2].layoutX + 3.5 * buttonRadius, buttonRadius)
+                            }
+                            val c = Circle(0.0, 0.0, buttonRadius)
+                            button.setShape(c)
+                            button.layoutX = p.x - buttonRadius
+                            button.layoutY = p.y - buttonRadius
+                            button.setMinSize(2 * buttonRadius, 2 * buttonRadius)
+                            button.setMaxSize(2 * buttonRadius, 2 * buttonRadius)
+                            this.group.children.add(button)
+
+                            return button
+                        }
                     }
                 }
 
@@ -3872,7 +3943,7 @@ class RNArtist : Application() {
             this.children.add(this.group)
         }
 
-        fun addButton(icon: String, clickable: Boolean = true, color:Color = Color.WHITE): Button {
+        fun addButton(icon: String, clickable: Boolean = true, color: Color = Color.WHITE): Button {
             val button = Button(null, FontIcon(icon))
             button.background = null
             (button.graphic as FontIcon).iconColor = color
@@ -3913,21 +3984,6 @@ class RNArtist : Application() {
         }
     }
 
-
-    private inner class ComputingBar : AlwaysVisibleBar() {
-
-        var isOn = true
-            set(value) {
-                field = value
-                ((this.group.children.first() as Button).graphic as Icon).iconColor =
-                    if (field) Color.GREEN else Color.WHITE
-            }
-
-        init {
-            (this.addButton("fas-circle:15").graphic as Icon).iconColor = Color.GREEN
-        }
-    }
-
     private inner class NavigationBar : AlwaysVisibleBar() {
 
         init {
@@ -3945,20 +4001,20 @@ class RNArtist : Application() {
                             mediator.lastDrawingHighlighted.set(null)
                             this.group.children.filterIsInstance<Button>()
                                 .subList(3, this.group.children.filterIsInstance<Button>().size).forEach {
-                                it.isDisable = true
-                            }
+                                    it.isDisable = true
+                                }
                         } else if (it.list.size == 1) {
                             mediator.lastDrawingHighlighted.set(it.list.first())
                             this.group.children.filterIsInstance<Button>()
                                 .subList(3, this.group.children.filterIsInstance<Button>().size).forEach {
-                                it.isDisable = false
-                            }
+                                    it.isDisable = false
+                                }
                         } else {
                             mediator.lastDrawingHighlighted.set(null)
                             this.group.children.filterIsInstance<Button>()
                                 .subList(3, this.group.children.filterIsInstance<Button>().size).forEach {
-                                it.isDisable = false
-                            }
+                                    it.isDisable = false
+                                }
                         }
                     })
                 }
@@ -4045,6 +4101,9 @@ class RNArtist : Application() {
 
     private inner class UndoRedoThemeBar : AlwaysVisibleBar() {
 
+        val playButton: Button
+        var animationRunning = false
+
         init {
 
             mediator.currentDrawing.addListener { _, _, newValue ->
@@ -4055,52 +4114,49 @@ class RNArtist : Application() {
 
             this.addButton("fas-angle-double-left:20").onMouseClicked = EventHandler { mouseEvent ->
                 mediator.currentDrawing.get()?.let { currentDrawing ->
-                    val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
-                    if (themeEl.undoRedoCursor > 0) {
-                        themeEl.undoRedoCursor = 0
-                        currentDrawing.secondaryStructureDrawing.clearTheme()
-                        mediator.canvas2D.repaint()
-                    }
+                    mediator.rollbackThemeHistoryToStart()
                 }
             }
 
             this.addButton("fas-angle-left:20").onMouseClicked = EventHandler { mouseEvent ->
                 mediator.currentDrawing.get()?.let { currentDrawing ->
-                    val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
-                    if (themeEl.undoRedoCursor > 0) {
-                        themeEl.decreaseUndoRedoCursor()
-                        mediator.reloadTheme()
-                    }
+                    mediator.rollbackToPreviousThemeInHistory()
                 }
             }
-            val b = this.addButton("fas-paint-brush:15", clickable = false)
 
-            b.background =
+            this.playButton = this.addButton("fas-paint-brush:15", clickable = false)
+
+            this.playButton.background =
                 Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-            (b.graphic as FontIcon).iconColor = Color.BLACK
+            (this.playButton.graphic as FontIcon).iconColor = Color.BLACK
             val innerShadow = InnerShadow()
             innerShadow.offsetX = 0.0
             innerShadow.offsetY = 0.0
             innerShadow.color = Color.WHITE
-            b.effect = innerShadow
+            this.playButton.effect = innerShadow
+
+            this.playButton.onMouseClicked = EventHandler<MouseEvent> {
+                if (animationRunning) {
+                    this.timer.stop()
+                    this.playButton.background =
+                        Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
+                    (this.playButton.graphic as FontIcon).iconColor = Color.BLACK
+                    animationRunning = false
+                } else {
+                    this.timer.start()
+                    animationRunning = true
+                }
+            }
 
             this.addButton("fas-angle-right:20").onMouseClicked = EventHandler { mouseEvent ->
                 mediator.currentDrawing.get()?.let { currentDrawing ->
-                    val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
-                    if (themeEl.undoRedoCursor < themeEl.children.size) {
-                        themeEl.increaseUndoRedoCursor()
-                        mediator.reloadTheme()
-                    }
+                    mediator.applyNextThemeInHistory()
                 }
             }
 
             this.addButton("fas-angle-double-right:20").onMouseClicked = EventHandler { mouseEvent ->
                 mediator.currentDrawing.get()?.let { currentDrawing ->
-                    val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
-                    if (themeEl.undoRedoCursor < themeEl.children.size) {
-                        themeEl.undoRedoCursor = themeEl.children.size
-                        mediator.reloadTheme()
-                    }
+                    mediator.applyThemeInHistoryFromNextToEnd()
                 }
             }
 
@@ -4109,27 +4165,51 @@ class RNArtist : Application() {
             }
         }
 
-        /*fun loadThemeStep(currentDrawing: RNArtistDrawing, themeEl: ThemeEl) {
-            val manager = ScriptEngineManager()
-            val engine = manager.getEngineByExtension("kts")
-            val newTheme = engine.eval(
-                "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                    System.getProperty(
-                        "line.separator"
-                    )
-                } ${themeEl.dump()}"
-            ) as? Theme
-            newTheme?.let {
-                currentDrawing.secondaryStructureDrawing.clearTheme()
-                currentDrawing.secondaryStructureDrawing.applyTheme(newTheme)
-                mediator.canvas2D.repaint()
+        private var timer: AnimationTimer = object : AnimationTimer() {
+            var count = 0
+            var increment = true
+
+            override fun handle(now: Long) {
+                count++
+                if (count % 30 == 0) {
+                    if (count / 30 % 2 == 0) {
+                        playButton.background = Background(
+                            BackgroundFill(
+                                if (increment) Color.GREEN else Color.ORANGE,
+                                CornerRadii.EMPTY,
+                                Insets.EMPTY
+                            )
+                        )
+                        (playButton.graphic as Icon).iconColor = Color.WHITE
+                    } else {
+                        playButton.background =
+                            Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
+                        (playButton.graphic as FontIcon).iconColor = Color.BLACK
+                    }
+
+                    mediator.currentDrawing.get()?.let { currentDrawing ->
+                        val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
+                        if (themeEl.undoRedoCursor == 0)
+                            increment = true
+                        else if (themeEl.undoRedoCursor == themeEl.historyLength)
+                            increment = false
+                        if (increment)
+                            mediator.applyNextThemeInHistory()
+                        else
+                            mediator.rollbackToPreviousThemeInHistory()
+                    }
+                }
             }
-        }*/
+
+        }
 
     }
 
     private inner class UndoRedoLayoutBar : AlwaysVisibleBar() {
 
+        val playButton: Button
+        var animationRunning = false
+
         init {
 
             mediator.currentDrawing.addListener { _, _, newValue ->
@@ -4140,53 +4220,45 @@ class RNArtist : Application() {
 
             this.addButton("fas-angle-double-left:20").onMouseClicked = EventHandler { mouseEvent ->
                 mediator.currentDrawing.get()?.let { currentDrawing ->
-                    val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
-                    if (layoutEl.undoRedoCursor > 0) {
-                        layoutEl.undoRedoCursor = 0
-                        currentDrawing.secondaryStructureDrawing.clearLayout()
-                        mediator.canvas2D.repaint()
-                    }
+                    mediator.rollbackLayoutHistoryToStart()
                 }
             }
 
             this.addButton("fas-angle-left:20").onMouseClicked = EventHandler { mouseEvent ->
-                mediator.currentDrawing.get()?.let { currentDrawing ->
-                    val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
-                    if (layoutEl.undoRedoCursor > 0) {
-                        layoutEl.undoRedoCursor--
-                        this.loadLayoutStep(currentDrawing, layoutEl)
-                    }
-                }
+                mediator.rollbackToPreviousJunctionLayoutInHistory()
             }
 
-            val b = this.addButton("fas-drafting-compass:15", clickable = false)
-            b.background =
+            this.playButton = this.addButton("fas-drafting-compass:15", clickable = false)
+
+            this.playButton.background =
                 Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-            (b.graphic as FontIcon).iconColor = Color.BLACK
+            (this.playButton.graphic as FontIcon).iconColor = Color.BLACK
             val innerShadow = InnerShadow()
             innerShadow.offsetX = 0.0
             innerShadow.offsetY = 0.0
             innerShadow.color = Color.WHITE
-            b.effect = innerShadow
+            this.playButton.effect = innerShadow
 
-            this.addButton("fas-angle-right:20").onMouseClicked = EventHandler { mouseEvent ->
-                mediator.currentDrawing.get()?.let { currentDrawing ->
-                    val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
-                    if (layoutEl.undoRedoCursor < layoutEl.children.size) {
-                        layoutEl.undoRedoCursor++
-                        mediator.reloadLayout()
-                    }
+            this.playButton.onMouseClicked = EventHandler<MouseEvent> {
+                if (animationRunning) {
+                    this.timer.stop()
+                    this.playButton.background =
+                        Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
+                    (this.playButton.graphic as FontIcon).iconColor = Color.BLACK
+                    animationRunning = false
+                } else {
+                    this.timer.start()
+                    animationRunning = true
                 }
             }
 
+
+            this.addButton("fas-angle-right:20").onMouseClicked = EventHandler { mouseEvent ->
+                mediator.applyNextLayoutInHistory()
+            }
+
             this.addButton("fas-angle-double-right:20").onMouseClicked = EventHandler { mouseEvent ->
-                mediator.currentDrawing.get()?.let { currentDrawing ->
-                    val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
-                    if (layoutEl.undoRedoCursor < layoutEl.children.size) {
-                        layoutEl.undoRedoCursor = layoutEl.children.size
-                        this.loadLayoutStep(currentDrawing, layoutEl)
-                    }
-                }
+                mediator.applyLayoutsInHistoryFromNextToEnd()
             }
 
             this.group.children.filterIsInstance<Button>().forEach {
@@ -4194,74 +4266,44 @@ class RNArtist : Application() {
             }
         }
 
-        fun loadLayoutStep(currentDrawing: RNArtistDrawing, layoutEl: LayoutEl) {
-            val newLayout = mediator.scriptEngine.eval(
-                "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                    System.getProperty(
-                        "line.separator"
-                    )
-                } ${layoutEl.dump()}"
-            ) as? Layout
-            newLayout?.let {
-                currentDrawing.secondaryStructureDrawing.clearLayout()
-                currentDrawing.secondaryStructureDrawing.applyLayout(newLayout)
-                mediator.canvas2D.repaint()
-            }
-        }
-
-    }
-
-    private inner class AnimationBar:AlwaysVisibleBar() {
-
-        val stopButton = this.addButton("fas-stop:15")
-        val playButton = this.addButton("fas-play:15")
-
-        private var timer: AnimationTimer = object: AnimationTimer() {
+        private var timer: AnimationTimer = object : AnimationTimer() {
             var count = 0
+            var increment = true
 
             override fun handle(now: Long) {
-                count ++
-                if (count%30 == 0) {
-                    if (count/30%2 == 0)
-                        (playButton.graphic as FontIcon).iconColor = Color.GREEN
-                    else
-                        (playButton.graphic as FontIcon).iconColor = Color.WHITE
+                count++
+                if (count % 30 == 0) {
+                    if (count / 30 % 2 == 0) {
+                        playButton.background = Background(
+                            BackgroundFill(
+                                if (increment) Color.GREEN else Color.ORANGE,
+                                CornerRadii.EMPTY,
+                                Insets.EMPTY
+                            )
+                        )
+                        (playButton.graphic as Icon).iconColor = Color.WHITE
+                    } else {
+                        playButton.background =
+                            Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
+                        (playButton.graphic as FontIcon).iconColor = Color.BLACK
+                    }
 
                     mediator.currentDrawing.get()?.let { currentDrawing ->
-                        val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
                         val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
-                        if (themeEl.undoRedoCursor == themeEl.children.size && layoutEl.undoRedoCursor == layoutEl.children.size) {
-                            layoutEl.undoRedoCursor = 0
-                            currentDrawing.secondaryStructureDrawing.clearLayout()
-                            themeEl.undoRedoCursor = 1
-                            mediator.reloadTheme()
-                        } else if (themeEl.undoRedoCursor < themeEl.children.size){
-                            themeEl.increaseUndoRedoCursor()
-                            mediator.reloadTheme()
-                        }
-                        else if (layoutEl.undoRedoCursor < layoutEl.children.size){
-                            layoutEl.increaseUndoRedoCursor()
-                            mediator.reloadLayout()
-                        }
+                        if (layoutEl.undoRedoCursor == 0)
+                            increment = true
+                        else if (layoutEl.undoRedoCursor == layoutEl.historyLength)
+                            increment = false
+                        if (increment)
+                            mediator.applyNextLayoutInHistory()
+                        else
+                            mediator.rollbackToPreviousJunctionLayoutInHistory()
                     }
                 }
             }
 
         }
-        init {
-            this.playButton.onMouseClicked = EventHandler<MouseEvent> {
-                this.timer.start()
-                (this.playButton.graphic as FontIcon).iconColor = Color.GREEN
-                (this.stopButton.graphic as FontIcon).iconColor = Color.WHITE
-            }
 
-            this.stopButton.onMouseClicked = EventHandler<MouseEvent> {
-                this.timer.stop()
-                (this.playButton.graphic as FontIcon).iconColor = Color.WHITE
-                (this.stopButton.graphic as FontIcon).iconColor = Color.RED
-            }
-
-        }
     }
 
     private inner class LateralPanelsBar : AlwaysVisibleBar() {

@@ -10,8 +10,9 @@ import javax.script.ScriptEngineManager
 class Mediator(val rnartist: RNArtist) {
 
     var currentDrawing: SimpleObjectProperty<RNArtistDrawing?> = SimpleObjectProperty<RNArtistDrawing?>(null)
+
     //var chimeraDriver = ChimeraXDriver(this)
-    val scriptEngine:ScriptEngine
+    val scriptEngine: ScriptEngine
     val lastDrawingHighlighted = SimpleObjectProperty<DrawingElement?>()
     lateinit var canvas2D: Canvas2D
 
@@ -46,43 +47,94 @@ class Mediator(val rnartist: RNArtist) {
 
 
     init {
-        this.currentDrawing.addListener {
-                _, _, _ ->
+        this.currentDrawing.addListener { _, _, _ ->
             canvas2D.repaint()
         }
         this.scriptEngine = ScriptEngineManager().getEngineByExtension("kts")
     }
 
-    fun reloadTheme() {
-        currentDrawing.get()?.let { currentDrawing ->
-            val newTheme = this.scriptEngine.eval(
-                "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                    System.getProperty(
-                        "line.separator"
-                    )
-                } ${currentDrawing.rnArtistEl.getThemeOrNew().dump()}"
-            ) as? Theme
-            newTheme?.let {
+    fun rollbackThemeHistoryToStart() {
+        this.currentDrawing.get()?.let { currentDrawing ->
+            val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
+            if (themeEl.undoRedoCursor != 0) {
+                themeEl.undoRedoCursor = 0
                 currentDrawing.secondaryStructureDrawing.clearTheme()
-                currentDrawing.secondaryStructureDrawing.applyTheme(newTheme)
                 this.canvas2D.repaint()
             }
         }
-
     }
 
-    fun reloadLayout() {
-        currentDrawing.get()?.let { currentDrawing ->
-            val newLayout = this.scriptEngine.eval(
-                "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                    System.getProperty(
-                        "line.separator"
-                    )
-                } ${currentDrawing.rnArtistEl.getLayoutOrNew().dump()}"
-            ) as? Layout
-            newLayout?.let {
+    fun rollbackToPreviousThemeInHistory() {
+        this.currentDrawing.get()?.let { currentDrawing ->
+            val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
+            themeEl.getPreviousThemeInHistory()?.let {
+                currentDrawing.secondaryStructureDrawing.clearTheme()
+                currentDrawing.secondaryStructureDrawing.applyTheme(it)
+                this.canvas2D.repaint()
+            }?: run {
+                currentDrawing.secondaryStructureDrawing.clearTheme()
+                this.canvas2D.repaint()
+            }
+
+        }
+    }
+
+    fun applyNextThemeInHistory() {
+        this.currentDrawing.get()?.let { currentDrawing ->
+            val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
+            themeEl.getNextThemeInHistory()?.let {
+                currentDrawing.secondaryStructureDrawing.applyTheme(it)
+                this.canvas2D.repaint()
+            }
+        }
+    }
+
+    fun applyThemeInHistoryFromNextToEnd() {
+        this.currentDrawing.get()?.let { currentDrawing ->
+            val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
+            themeEl.getThemeInHistoryFromNextToEnd()?.let {
+                currentDrawing.secondaryStructureDrawing.applyTheme(it)
+                this.canvas2D.repaint()
+            }
+        }
+    }
+
+    fun rollbackToPreviousJunctionLayoutInHistory() {
+        this.currentDrawing.get()?.let { currentDrawing ->
+            val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
+            layoutEl.rollbackToPreviousJunctionLayoutInHistory()?.let {
+                currentDrawing.secondaryStructureDrawing.applyLayout(it)
+                this.canvas2D.repaint()
+            }
+        }
+    }
+
+    fun rollbackLayoutHistoryToStart() {
+        this.currentDrawing.get()?.let { currentDrawing ->
+            val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
+            if (layoutEl.undoRedoCursor != 0) {
+                layoutEl.undoRedoCursor = 0
                 currentDrawing.secondaryStructureDrawing.clearLayout()
-                currentDrawing.secondaryStructureDrawing.applyLayout(newLayout)
+                this.canvas2D.repaint()
+            }
+        }
+    }
+
+    fun applyNextLayoutInHistory() {
+        this.currentDrawing.get()?.let { currentDrawing ->
+            val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
+            layoutEl.getNextJunctionLayoutInHistory()?.let {
+                currentDrawing.secondaryStructureDrawing.applyLayout(it)
+                this.canvas2D.repaint()
+            }
+        }
+    }
+
+    fun applyLayoutsInHistoryFromNextToEnd() {
+        this.currentDrawing.get()?.let { currentDrawing ->
+            val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
+            layoutEl.getJunctionLayoutInHistoryFromNextToEnd()?.let {
+                currentDrawing.secondaryStructureDrawing.applyLayout(it)
                 this.canvas2D.repaint()
             }
         }
