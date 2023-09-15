@@ -6,7 +6,7 @@
 
     <groupId>io.github.fjossinet.rnartist</groupId>
     <artifactId>rnartist</artifactId>
-    <version>1.0</version>
+    <version>1.0.2</version>
 
     <name>RNArtist</name>
     <url>https://github.com/fjossinet/RNArtist</url>
@@ -100,6 +100,12 @@
 
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-metrizeicons-pack</artifactId>
+            <version>12.3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-fontawesome5-pack</artifactId>
             <version>12.3.1</version>
         </dependency>
@@ -107,12 +113,6 @@
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-boxicons-pack</artifactId>
-            <version>12.3.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.kordamp.ikonli</groupId>
-            <artifactId>ikonli-metrizeicons-pack</artifactId>
             <version>12.3.1</version>
         </dependency>
 
@@ -166,7 +166,57 @@
                 </configuration>
             </plugin>
 
-            <!--final jar in /target/distribution -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer">
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>${main.class}</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--<plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <archive>
+                                <manifest>
+                                    <mainClass>${main.class}</mainClass>
+                                </manifest>
+                            </archive>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>-->
+
+            <!--&lt;!&ndash;final jar in /target/distribution &ndash;&gt;
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -183,7 +233,7 @@
                 </configuration>
             </plugin>
 
-            <!-- copy of runtime dependencies -->
+            &lt;!&ndash; copy of runtime dependencies &ndash;&gt;
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -206,7 +256,7 @@
                 </executions>
             </plugin>
 
-            <!-- copy of additional files in /target/RNArtist  -->
+            &lt;!&ndash; copy of additional files in /target/RNArtist  &ndash;&gt;
             <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>3.0.0</version>
@@ -231,7 +281,7 @@
                 </executions>
             </plugin>
 
-            <!-- to package app -->
+            &lt;!&ndash; to package app &ndash;&gt;
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -245,44 +295,44 @@
                         <configuration>
                             <executable>${java.home}/bin/jpackage</executable>
                             <arguments>
-                                <argument>--type</argument>
+                                <argument>&#45;&#45;type</argument>
                                 <argument>dmg</argument>
-                                <argument>--icon</argument>
+                                <argument>&#45;&#45;icon</argument>
                                 <argument>${project.basedir}/src/main/resources/io/github/fjossinet/rnartist/io/images/icon.icns</argument>
-                                <argument>--name</argument>
+                                <argument>&#45;&#45;name</argument>
                                 <argument>RNArtist</argument>
-                                <argument>--main-jar</argument>
+                                <argument>&#45;&#45;main-jar</argument>
                                 <argument>rnartist-1.0.jar</argument>
-                                <argument>--input</argument>
+                                <argument>&#45;&#45;input</argument>
                                 <argument>${project.basedir}/target/RNArtist/lib/</argument>
-                                <argument>--module-path</argument>
+                                <argument>&#45;&#45;module-path</argument>
                                 <argument>${project.basedir}/target/RNArtist/lib/</argument>
-                                <argument>--add-modules</argument>
+                                <argument>&#45;&#45;add-modules</argument>
                                 <argument>javafx.controls,javafx.swing</argument>
                             </arguments>
                         </configuration>
                     </execution>
                     <execution>
                         <id>package-windows</id>
-                        <!--will need the installation of the wix toolset (https://wixtoolset.org/)-->
+                        &lt;!&ndash;will need the installation of the wix toolset (https://wixtoolset.org/)&ndash;&gt;
                         <goals>
                             <goal>exec</goal>
                         </goals>
                         <configuration>
                             <executable>jpackage.exe</executable>
                             <arguments>
-                                <argument>--verbose</argument>
-                                <argument>--type</argument>
+                                <argument>&#45;&#45;verbose</argument>
+                                <argument>&#45;&#45;type</argument>
                                 <argument>msi</argument>
-                                <argument>--name</argument>
+                                <argument>&#45;&#45;name</argument>
                                 <argument>RNArtist</argument>
-                                <argument>--main-jar</argument>
+                                <argument>&#45;&#45;main-jar</argument>
                                 <argument>rnartist-1.0.jar</argument>
-                                <argument>--input</argument>
+                                <argument>&#45;&#45;input</argument>
                                 <argument>${project.basedir}/target/RNArtist/lib/</argument>
-                                <argument>--module-path</argument>
+                                <argument>&#45;&#45;module-path</argument>
                                 <argument>${project.basedir}/target/RNArtist/lib/</argument>
-                                <argument>--add-modules</argument>
+                                <argument>&#45;&#45;add-modules</argument>
                                 <argument>javafx.controls,javafx.swing</argument>
                             </arguments>
                         </configuration>
@@ -295,19 +345,19 @@
                         <configuration>
                             <executable>${java.home}/bin/jpackage</executable>
                             <arguments>
-                                <argument>--type</argument>
+                                <argument>&#45;&#45;type</argument>
                                 <argument>deb</argument>
-                                <argument>--icon</argument>
+                                <argument>&#45;&#45;icon</argument>
                                 <argument>${project.basedir}/src/main/resources/io/github/fjossinet/rnartist/io/images/icon.png</argument>
-                                <argument>--name</argument>
+                                <argument>&#45;&#45;name</argument>
                                 <argument>RNArtist</argument>
-                                <argument>--main-jar</argument>
+                                <argument>&#45;&#45;main-jar</argument>
                                 <argument>rnartist-1.0.jar</argument>
-                                <argument>--input</argument>
+                                <argument>&#45;&#45;input</argument>
                                 <argument>${project.basedir}/target/RNArtist/lib/</argument>
-                                <argument>--module-path</argument>
+                                <argument>&#45;&#45;module-path</argument>
                                 <argument>${project.basedir}/target/RNArtist/lib/</argument>
-                                <argument>--add-modules</argument>
+                                <argument>&#45;&#45;add-modules</argument>
                                 <argument>javafx.controls,javafx.swing</argument>
                             </arguments>
                         </configuration>
@@ -315,7 +365,7 @@
                 </executions>
             </plugin>
 
-            <!-- to run RNArtist -->
+            &lt;!&ndash; to run RNArtist &ndash;&gt;
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -325,15 +375,15 @@
                     <arguments>
                         <argument>-Xms500M</argument>
                         <argument>-Xmx500M</argument>
-                        <argument>--module-path</argument>
+                        <argument>&#45;&#45;module-path</argument>
                         <argument>${project.basedir}/target/RNArtist/lib</argument>
-                        <argument>--add-modules=javafx.controls,javafx.swing</argument>
-                        <argument>-Dprism.lcdtext=false</argument> <!--anti-aliasing to avoid to have scratched fonts-->
+                        <argument>&#45;&#45;add-modules=javafx.controls,javafx.swing</argument>
+                        <argument>-Dprism.lcdtext=false</argument> &lt;!&ndash;anti-aliasing to avoid to have scratched fonts&ndash;&gt;
                         <argument>-jar</argument>
                         <argument>${project.basedir}/target/RNArtist/lib/rnartist-1.0.jar</argument>
                     </arguments>
                 </configuration>
-            </plugin>
+            </plugin>-->
 
         </plugins>
     </build>

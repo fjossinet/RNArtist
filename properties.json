@@ -1,6 +1,0 @@
-{
-  "website": {
-    "dev": "localhost:5000/",
-    "prod": "rnartist.herokuapp.com/"
-  }
-}
