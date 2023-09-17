@@ -853,7 +853,9 @@ class RNArtist : Application() {
                         this.schemesComboBox.onAction = EventHandler {
                             mediator.currentDrawing.get()?.secondaryStructureDrawing?.applyTheme(theme {
                                 color {
-                                    scheme = schemesComboBox.value
+                                    scheme  {
+                                        value = schemesComboBox.value
+                                    }
                                 }
                             })
                             mediator.canvas2D.repaint()
@@ -2022,6 +2024,8 @@ class RNArtist : Application() {
                     mediator.currentDrawing.get()?.let { currentDrawing ->
                         //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
                         with(File(currentDrawing.dslScriptAbsolutePath)) {
+                            currentDrawing.rnArtistEl.getThemeOrNew().cleanHistory()
+                            currentDrawing.rnArtistEl.getLayoutOrNew().cleanHistory()
                             val content = currentDrawing.rnArtistEl.dump().toString()
                             this.writeText(content)
                             mediator.scriptEngine.eval(content)
@@ -2188,11 +2192,21 @@ class RNArtist : Application() {
                                                             }
 
                                                         val themeEl = rnartistEl.addTheme()
-                                                        themeEl.addDetails(4)
-                                                        themeEl.addScheme("Midnight Paradise")
+                                                        with (themeEl.addDetails()) {
+                                                            this.setValue(4)
+                                                            this.setStep(1)
+                                                        }
 
-                                                        val lineEl = themeEl.addLine()
-                                                        lineEl.setValue(2.5)
+                                                        with (themeEl.addScheme()) {
+                                                            this.setValue("Midnight Paradise")
+                                                            this.setStep(1)
+                                                        }
+
+                                                        with(themeEl.addLine()) {
+                                                            this.setValue(2.5)
+                                                            this.setStep(1)
+                                                        }
+
                                                         scriptContent = rnartistEl.dump().toString()
                                                         script.writeText(scriptContent)
                                                     } else {
@@ -3662,11 +3676,13 @@ class RNArtist : Application() {
                                     }
                                 })
                                 knob.mediator.currentDrawing.get()?.let { currentDrawing ->
+                                    val step = currentDrawing.rnArtistEl.getLayoutOrNew().lastStep + 1
                                     setJunction(
                                         currentDrawing.rnArtistEl,
                                         outIds = knob.getCurrentLayout().map { it.toString() }
                                             .joinToString(separator = " "),
-                                        location = junction.location)
+                                        location = junction.location,
+                                        step = step)
                                 }
                                 knob.mediator.canvas2D.repaint()
                             }
@@ -3722,10 +3738,12 @@ class RNArtist : Application() {
                             }
                         })
                         mediator.currentDrawing.get()?.let { currentDrawing ->
+                            val step = currentDrawing.rnArtistEl.getLayoutOrNew().lastStep + 1
                             setJunction(
                                 currentDrawing.rnArtistEl,
                                 radius = Math.round(it.initialRadius * it.radiusRatio * 100.0) / 100.0,
-                                location = it.location
+                                location = it.location,
+                                step = step
                             )
                         }
                         this.knob.mediator.canvas2D.repaint()
@@ -3778,10 +3796,12 @@ class RNArtist : Application() {
                             }
                         })
                         mediator.currentDrawing.get()?.let { currentDrawing ->
+                            val step = currentDrawing.rnArtistEl.getLayoutOrNew().lastStep + 1
                             setJunction(
                                 currentDrawing.rnArtistEl,
                                 radius = Math.round(it.initialRadius * it.radiusRatio * 100.0) / 100.0,
-                                location = it.location
+                                location = it.location,
+                                step = step
                             )
                         }
                         this.knob.mediator.canvas2D.repaint()
@@ -3841,8 +3861,12 @@ class RNArtist : Application() {
                                     }
                                 })
                                 mediator.currentDrawing.get()?.let { currentDrawing ->
-                                    setJunction(currentDrawing.rnArtistEl, outIds = newLayout.map { it.toString() }
-                                        .joinToString(separator = " "), location = it.location)
+                                    val step = currentDrawing.rnArtistEl.getLayoutOrNew().lastStep + 1
+                                    setJunction(currentDrawing.rnArtistEl,
+                                        outIds = newLayout.map { it.toString() }
+                                        .joinToString(separator = " "),
+                                        location = it.location,
+                                        step = step)
                                 }
                                 this.knob.mediator.canvas2D.repaint()
                                 this.knob.updateConnectors()
@@ -3904,8 +3928,12 @@ class RNArtist : Application() {
                                     }
                                 })
                                 mediator.currentDrawing.get()?.let { currentDrawing ->
-                                    setJunction(currentDrawing.rnArtistEl, outIds = newLayout.map { it.toString() }
-                                        .joinToString(separator = " "), location = it.location)
+                                    val step = currentDrawing.rnArtistEl.getLayoutOrNew().lastStep + 1
+                                    setJunction(currentDrawing.rnArtistEl,
+                                        outIds = newLayout.map { it.toString() }
+                                        .joinToString(separator = " "),
+                                        location = it.location,
+                                        step = step)
                                 }
                                 this.knob.mediator.canvas2D.repaint()
                                 this.knob.updateConnectors()

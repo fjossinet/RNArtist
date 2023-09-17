@@ -67,7 +67,7 @@ class Mediator(val rnartist: RNArtist) {
     fun rollbackToPreviousThemeInHistory() {
         this.currentDrawing.get()?.let { currentDrawing ->
             val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
-            themeEl.getPreviousThemeInHistory()?.let {
+            themeEl.getFormerThemeInHistory()?.let {
                 currentDrawing.secondaryStructureDrawing.clearTheme()
                 currentDrawing.secondaryStructureDrawing.applyTheme(it)
                 this.canvas2D.repaint()
@@ -102,7 +102,7 @@ class Mediator(val rnartist: RNArtist) {
     fun rollbackToPreviousJunctionLayoutInHistory() {
         this.currentDrawing.get()?.let { currentDrawing ->
             val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
-            layoutEl.rollbackToPreviousJunctionLayoutInHistory()?.let {
+            layoutEl.getFormerLayoutInHistory().forEach {
                 currentDrawing.secondaryStructureDrawing.applyLayout(it)
                 this.canvas2D.repaint()
             }
@@ -123,7 +123,7 @@ class Mediator(val rnartist: RNArtist) {
     fun applyNextLayoutInHistory() {
         this.currentDrawing.get()?.let { currentDrawing ->
             val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
-            layoutEl.getNextJunctionLayoutInHistory()?.let {
+            layoutEl.getNextLayoutInHistory()?.let {
                 currentDrawing.secondaryStructureDrawing.applyLayout(it)
                 this.canvas2D.repaint()
             }
@@ -133,7 +133,7 @@ class Mediator(val rnartist: RNArtist) {
     fun applyLayoutsInHistoryFromNextToEnd() {
         this.currentDrawing.get()?.let { currentDrawing ->
             val layoutEl = currentDrawing.rnArtistEl.getLayoutOrNew()
-            layoutEl.getJunctionLayoutInHistoryFromNextToEnd()?.let {
+            layoutEl.getLayoutInHistoryFromNextToEnd()?.let {
                 currentDrawing.secondaryStructureDrawing.applyLayout(it)
                 this.canvas2D.repaint()
             }
