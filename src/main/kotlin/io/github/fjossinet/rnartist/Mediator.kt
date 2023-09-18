@@ -10,7 +10,6 @@ import javax.script.ScriptEngineManager
 class Mediator(val rnartist: RNArtist) {
 
     var currentDrawing: SimpleObjectProperty<RNArtistDrawing?> = SimpleObjectProperty<RNArtistDrawing?>(null)
-
     //var chimeraDriver = ChimeraXDriver(this)
     val scriptEngine: ScriptEngine
     val lastDrawingHighlighted = SimpleObjectProperty<DrawingElement?>()
