@@ -100,13 +100,13 @@ class SplashWindow(val mediator: Mediator) {
 
         override fun call(): Exception? {
             try {
-                updateMessage("Checking configuration..")
+                updateMessage("Checking configuration...")
                 Thread.sleep(2000)
-                var step = 0.0
-                do {
-                    updateProgress(step++, 100.0)
-                    Thread.sleep(5)
-                } while (step < 100.0)
+                updateMessage("Warm up scripting engine...")
+                (mediator.scriptEngine.eval("1") as? Int)?.let {
+                    updateMessage("Scripting engine ready...")
+                    Thread.sleep(2000)
+                }
                 return null
             } catch (e: Exception) {
                 return e

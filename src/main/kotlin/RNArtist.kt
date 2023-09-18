@@ -2014,10 +2014,10 @@ class RNArtist : Application() {
             private inner class DBExplorerSubPanel() : SubPanel() {
 
                 private val loadDB: Button
-                private val newFolder: Button
+                private val createDBFolder: Button
                 private val reloadDB: Button
-                private val viewRNAClass: Button
-                private val treeView = TreeView<DBFolder>()
+                private val loadStructuresFromDBFolder: Button
+                private val dbTreeView = TreeView<DBFolder>()
                 var lastThumbnailCellClicked: ThumbnailCell? = null
                 val saveCurrentDrawing = {
                     mediator.currentDrawing.get()?.let { currentDrawing ->
@@ -2054,7 +2054,7 @@ class RNArtist : Application() {
                     set(value) {
                         field = value
                         currentDB?.let {
-                            this.treeView.root =
+                            this.dbTreeView.root =
                                 TreeItem(DBFolder(Path.of(it.rootAbsolutePath).name, it.rootAbsolutePath))
                         }
                     }
@@ -2075,9 +2075,9 @@ class RNArtist : Application() {
                     }
                     this.loadDB.isDisable = false
 
-                    this.newFolder = buttonsPanel.addButton("fas-folder-plus", "Create new folder")
-                    this.newFolder.onMouseClicked = EventHandler { _ ->
-                        this.treeView.selectionModel.selectedItem?.let { selectedItem ->
+                    this.createDBFolder = buttonsPanel.addButton("fas-folder-plus", "Create new folder")
+                    this.createDBFolder.onMouseClicked = EventHandler { _ ->
+                        this.dbTreeView.selectionModel.selectedItem?.let { selectedItem ->
                             val dialog = TextInputDialog()
                             dialog.setTitle("Create new folder in database")
                             dialog.setHeaderText(null)
@@ -2092,7 +2092,7 @@ class RNArtist : Application() {
                             }
                         }
                     }
-                    this.newFolder.isDisable = true
+                    this.createDBFolder.isDisable = true
 
                     this.reloadDB = buttonsPanel.addButton("fas-sync:15", "Reload database")
                     this.reloadDB.onMouseClicked = EventHandler { _ ->
@@ -2101,13 +2101,13 @@ class RNArtist : Application() {
                     }
                     this.reloadDB.isDisable = true
 
-                    this.viewRNAClass = buttonsPanel.addButton("fas-eye:15", "Load Structures")
-                    this.viewRNAClass.onMouseClicked = EventHandler { _ ->
+                    this.loadStructuresFromDBFolder = buttonsPanel.addButton("fas-eye:15", "Load Structures")
+                    this.loadStructuresFromDBFolder.onMouseClicked = EventHandler { _ ->
                         val w = RNArtistTaskDialog(mediator)
                         w.task = LoadDBFolder(mediator)
 
                     }
-                    this.viewRNAClass.isDisable = true
+                    this.loadStructuresFromDBFolder.isDisable = true
 
                     //buttonsPanel.addSeparator()
 
@@ -2120,24 +2120,24 @@ class RNArtist : Application() {
                     this.thumbnails.cellHeight = 350.0
                     this.thumbnails.setCellFactory { ThumbnailCell() }
 
-                    this.treeView.padding = Insets(10.0)
-                    this.treeView.background =
+                    this.dbTreeView.padding = Insets(10.0)
+                    this.dbTreeView.background =
                         Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-                    this.treeView.border = Border(
+                    this.dbTreeView.border = Border(
                         BorderStroke(
                             Color.LIGHTGRAY,
                             BorderStrokeStyle.SOLID, CornerRadii(10.0), BorderWidths(1.5)
                         )
                     )
-                    this.treeView.isEditable = true
-                    this.treeView.root = TreeItem(DBFolder("No database selected", ""))
-                    this.treeView.setCellFactory { DBFolderCell() }
+                    this.dbTreeView.isEditable = true
+                    this.dbTreeView.root = TreeItem(DBFolder("No database selected", ""))
+                    this.dbTreeView.setCellFactory { DBFolderCell() }
 
                     val splitPane = SplitPane()
                     splitPane.orientation = Orientation.HORIZONTAL
                     splitPane.background =
                         Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-                    val s = ScrollPane(this.treeView)
+                    val s = ScrollPane(this.dbTreeView)
                     s.isFitToHeight = true
                     s.isFitToWidth = true
                     s.vbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
@@ -2152,33 +2152,34 @@ class RNArtist : Application() {
 
                 private fun addFolderToTreeView(absolutePath2StructuralFiles: String) {
                     currentDB?.let { currentDB ->
-                        val intermediateDirs = currentDB.findIntermediateDirs(absolutePath2StructuralFiles)
-                        var currentParent = this.treeView.root
-                        for (i in 0 until intermediateDirs.size) {
-                            if (i == intermediateDirs.size - 1) {
-                                currentParent.children.find { intermediateDirs[i] == it.value.name }?.let {
+                        val inBetweenDirs = absolutePath2StructuralFiles.split(currentDB.rootAbsolutePath).last().removePrefix("/").removeSuffix("/")
+                            .split("/")
+                        var currentParent = this.dbTreeView.root
+                        for (i in 0 until inBetweenDirs.size) {
+                            if (i == inBetweenDirs.size - 1) {
+                                currentParent.children.find { inBetweenDirs[i] == it.value.name }?.let {
                                     //this child already exists in the treeview
                                 } ?: run {
                                     currentParent.children.add(
                                         TreeItem(
                                             DBFolder(
-                                                intermediateDirs[i],
+                                                inBetweenDirs[i],
                                                 absolutePath2StructuralFiles
                                             )
                                         )
                                     )
                                 }
                             } else {
-                                val item = currentParent.children.find { intermediateDirs[i] == it.value.name }
+                                val item = currentParent.children.find { inBetweenDirs[i] == it.value.name }
                                 item?.let {
                                     currentParent = item
                                 } ?: run {
                                     val treeItem = TreeItem(
                                         DBFolder(
-                                            intermediateDirs[i],
+                                            inBetweenDirs[i],
                                             Path.of(
-                                                absolutePath2StructuralFiles.split(intermediateDirs[i]).first(),
-                                                intermediateDirs[i]
+                                                absolutePath2StructuralFiles.split(inBetweenDirs[i]).first(),
+                                                inBetweenDirs[i]
                                             ).absolutePathString()
                                         )
                                     )
@@ -2295,15 +2296,7 @@ class RNArtist : Application() {
                                         }
                                         Thread.sleep(100)
 
-                                        val scriptContent = File(item.dslScriptAbsolutePath).readLines()
-
-                                        val result = mediator.scriptEngine.eval(
-                                            "import io.github.fjossinet.rnartist.core.*${System.getProperty("line.separator")}${
-                                                System.getProperty(
-                                                    "line.separator"
-                                                )
-                                            } ${scriptContent.joinToString("\n")}"
-                                        ) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
+                                        val result = mediator.scriptEngine.eval(File(item.dslScriptAbsolutePath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
                                         result?.let {
                                             val drawing =
                                                 RNArtistDrawing(
@@ -2637,9 +2630,9 @@ class RNArtist : Application() {
                         setOnSucceeded { _ ->
                             this.rnartistTaskDialog.stage.hide()
                             loadDB.isDisable = false
-                            newFolder.isDisable = false
+                            createDBFolder.isDisable = false
                             reloadDB.isDisable = false
-                            viewRNAClass.isDisable = false
+                            loadStructuresFromDBFolder.isDisable = false
                         }
                     }
 
@@ -2647,9 +2640,9 @@ class RNArtist : Application() {
                         return try {
                             Platform.runLater {
                                 loadDB.isDisable = true
-                                newFolder.isDisable = false
+                                createDBFolder.isDisable = false
                                 reloadDB.isDisable = true
-                                viewRNAClass.isDisable = true
+                                loadStructuresFromDBFolder.isDisable = true
                                 updateMessage("Loading database, please wait...")
                             }
                             Thread.sleep(100)
@@ -2696,9 +2689,9 @@ class RNArtist : Application() {
                             this.resultNow().second?.printStackTrace()
                             this.rnartistTaskDialog.stage.hide()
                             loadDB.isDisable = false
-                            newFolder.isDisable = false
+                            createDBFolder.isDisable = false
                             reloadDB.isDisable = false
-                            viewRNAClass.isDisable = false
+                            loadStructuresFromDBFolder.isDisable = false
                         }
                     }
 
@@ -2709,13 +2702,13 @@ class RNArtist : Application() {
                                 Platform.runLater {
                                     clearItems()
                                     loadDB.isDisable = true
-                                    newFolder.isDisable = true
+                                    createDBFolder.isDisable = true
                                     reloadDB.isDisable = true
-                                    viewRNAClass.isDisable = true
+                                    loadStructuresFromDBFolder.isDisable = true
                                 }
                                 Thread.sleep(100)
 
-                                treeView.selectionModel.selectedItem?.let { selectedDBFolder ->
+                                dbTreeView.selectionModel.selectedItem?.let { selectedDBFolder ->
 
                                     val dataDir = File(selectedDBFolder.value.absPath)
                                     val drawingsDir = rootDB.getDrawingsDirForDataDir(dataDir)
@@ -2795,9 +2788,9 @@ class RNArtist : Application() {
                         setOnSucceeded { _ ->
                             this.rnartistTaskDialog.stage.hide()
                             loadDB.isDisable = false
-                            newFolder.isDisable = false
+                            createDBFolder.isDisable = false
                             reloadDB.isDisable = false
-                            viewRNAClass.isDisable = false
+                            loadStructuresFromDBFolder.isDisable = false
                         }
                     }
 
@@ -2807,9 +2800,9 @@ class RNArtist : Application() {
                                 Platform.runLater {
                                     clearItems()
                                     loadDB.isDisable = true
-                                    newFolder.isDisable = true
+                                    createDBFolder.isDisable = true
                                     reloadDB.isDisable = true
-                                    viewRNAClass.isDisable = true
+                                    loadStructuresFromDBFolder.isDisable = true
                                 }
                                 Thread.sleep(100)
                                 rootDB.createNewFolder(uri)
