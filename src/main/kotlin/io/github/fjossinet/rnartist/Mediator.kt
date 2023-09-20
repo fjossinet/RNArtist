@@ -52,12 +52,12 @@ class Mediator(val rnartist: RNArtist) {
         this.scriptEngine = ScriptEngineManager().getEngineByExtension("kts")
     }
 
-    fun rollbackThemeHistoryToStart() {
+    fun rollbackToFirstThemeInHistory() {
         this.currentDrawing.get()?.let { currentDrawing ->
             val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
-            if (themeEl.undoRedoCursor != 0) {
-                themeEl.undoRedoCursor = 0
+            themeEl.getFirstThemeInHistory()?.let {
                 currentDrawing.secondaryStructureDrawing.clearTheme()
+                currentDrawing.secondaryStructureDrawing.applyTheme(it)
                 this.canvas2D.repaint()
             }
         }
@@ -69,9 +69,6 @@ class Mediator(val rnartist: RNArtist) {
             themeEl.getFormerThemeInHistory()?.let {
                 currentDrawing.secondaryStructureDrawing.clearTheme()
                 currentDrawing.secondaryStructureDrawing.applyTheme(it)
-                this.canvas2D.repaint()
-            }?: run {
-                currentDrawing.secondaryStructureDrawing.clearTheme()
                 this.canvas2D.repaint()
             }
 
@@ -88,10 +85,10 @@ class Mediator(val rnartist: RNArtist) {
         }
     }
 
-    fun applyThemeInHistoryFromNextToEnd() {
+    fun applyLastThemeInHistory() {
         this.currentDrawing.get()?.let { currentDrawing ->
             val themeEl = currentDrawing.rnArtistEl.getThemeOrNew()
-            themeEl.getThemeInHistoryFromNextToEnd()?.let {
+            themeEl.getLastThemeInHistory()?.let {
                 currentDrawing.secondaryStructureDrawing.applyTheme(it)
                 this.canvas2D.repaint()
             }

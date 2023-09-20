@@ -7,6 +7,7 @@ import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.*
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.AlertDialog
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistDrawing
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistTask
 import io.github.fjossinet.rnartist.io.javaFXToAwt
@@ -2150,7 +2151,7 @@ class RNArtist : Application() {
 
                 }
 
-                private fun addFolderToTreeView(absolutePath2StructuralFiles: String) {
+                private fun addFolderToTreeView(absolutePath2StructuralFiles: String): TreeItem<DBFolder>? {
                     currentDB?.let { currentDB ->
                         val inBetweenDirs = absolutePath2StructuralFiles.split(currentDB.rootAbsolutePath).last().removePrefix("/").removeSuffix("/")
                             .split("/")
@@ -2168,6 +2169,7 @@ class RNArtist : Application() {
                                             )
                                         )
                                     )
+                                    return currentParent.children.last()
                                 }
                             } else {
                                 val item = currentParent.children.find { inBetweenDirs[i] == it.value.name }
@@ -2185,10 +2187,19 @@ class RNArtist : Application() {
                                     )
                                     currentParent.children.add(treeItem)
                                     currentParent = treeItem
+                                    return treeItem
                                 }
                             }
                         }
 
+                    }
+                    return null
+                }
+
+                private fun expandTreeView(selectedItem: TreeItem<DBFolder>) {
+                    expandTreeView(selectedItem.getParent())
+                    if (!selectedItem.isLeaf()) {
+                        selectedItem.setExpanded(true)
                     }
                 }
 
@@ -2226,18 +2237,45 @@ class RNArtist : Application() {
                             this@DBFolderCell.startDragAndDrop(TransferMode.LINK)
                         }
                         this.onDragOver = EventHandler { event ->
-                            if (event.getDragboard().hasUrl()) {
-                                event.acceptTransferModes(TransferMode.LINK)
+                            this@DBFolderCell.treeItem?.let {
+                                if (!it.value.absPath.equals(currentDB!!.rootAbsolutePath)) {
+                                    this@DBFolderCell.text = null
+                                    val hbox = HBox()
+                                    hbox.alignment = Pos.CENTER_LEFT
+                                    val icon = FontIcon("far-arrow-alt-circle-down:20")
+                                    icon.iconColor = Color.WHITE
+                                    hbox.children.add(icon)
+                                    val label = Label("Drop in ${it.value.name}")
+                                    label.textFill = Color.WHITE
+                                    hbox.children.add(label)
+                                    this@DBFolderCell.graphic = hbox
+                                    if (event.getDragboard().hasUrl()) {
+                                        event.acceptTransferModes(TransferMode.LINK)
+                                    }
+                                }
+                            }
+                            event.consume();
+                        }
+                        this.onDragExited = EventHandler { event ->
+                            this@DBFolderCell.treeItem?.let {
+                                if (!it.value.absPath.equals(currentDB!!.rootAbsolutePath)) {
+                                    this@DBFolderCell.text = it.value.name
+                                    this@DBFolderCell.graphic = null
+                                }
                             }
                             event.consume();
                         }
                         this.onDragDropped = EventHandler { event ->
-                            val w = RNArtistTaskDialog(mediator)
-                            w.task = AddStructureFromURL(
-                                mediator,
-                                event.getDragboard().url,
-                                this@DBFolderCell.treeItem.value.absPath
-                            )
+                            this@DBFolderCell.treeItem?.let {
+                                if (!it.value.absPath.equals(currentDB!!.rootAbsolutePath)) {
+                                    val w = RNArtistTaskDialog(mediator)
+                                    w.task = AddStructureFromURL(
+                                        mediator,
+                                        event.getDragboard().url,
+                                        it.value.absPath
+                                    )
+                                }
+                            }
                             event.consume()
                         }
                     }
@@ -2276,8 +2314,10 @@ class RNArtist : Application() {
                             class LoadStructure(mediator: Mediator) : RNArtistTask(mediator) {
                                 init {
                                     setOnSucceeded { _ ->
-                                        this.resultNow().second?.printStackTrace()
                                         this.rnartistTaskDialog.stage.hide()
+                                        this.resultNow().second?.let { exception ->
+                                            AlertDialog(exception)
+                                        }
                                     }
                                 }
 
@@ -2639,6 +2679,7 @@ class RNArtist : Application() {
                     override fun call(): Pair<Any?, Exception?> {
                         return try {
                             Platform.runLater {
+                                clearItems()
                                 loadDB.isDisable = true
                                 createDBFolder.isDisable = false
                                 reloadDB.isDisable = true
@@ -2647,12 +2688,7 @@ class RNArtist : Application() {
                             }
                             Thread.sleep(100)
                             currentDB?.let { currentDB ->
-                                clearItems()
                                 val dbIndex = currentDB.indexFile
-                                Platform.runLater {
-                                    updateMessage("Found database index...")
-                                }
-                                Thread.sleep(1000)
                                 dbIndex.readLines().forEach {
                                     addFolderToTreeView(it)
                                 }
@@ -2806,7 +2842,10 @@ class RNArtist : Application() {
                                 }
                                 Thread.sleep(100)
                                 rootDB.createNewFolder(uri)
-                                addFolderToTreeView(uri.path)
+                               addFolderToTreeView(uri.path)?.let {
+                                   expandTreeView(it)
+                               }
+
                             }
                             return Pair(null, null)
                         } catch (e: Exception) {
@@ -2824,6 +2863,9 @@ class RNArtist : Application() {
                     init {
                         setOnSucceeded { _ ->
                             this.rnartistTaskDialog.stage.hide()
+                            this.resultNow().second?.let { exception ->
+                                AlertDialog(exception)
+                            }
                         }
                     }
 
@@ -2833,9 +2875,20 @@ class RNArtist : Application() {
                                 if (url.startsWith("https://rnacentral.org")) {
                                     val tokens = url.split("/")
                                     val entryID = tokens[tokens.size - 2]
+                                    Platform.runLater {
+                                        updateMessage("Downloading data....")
+                                    }
+                                    Thread.sleep(100)
                                     RNACentral().fetch(entryID)?.let { ss ->
+                                        Platform.runLater {
+                                            updateMessage("Saving data....")
+                                        }
+                                        Thread.sleep(100)
                                         val scriptFile = rootDB.addAndPlotViennaFile(entryID, File(dataDir), ss)
-
+                                        Platform.runLater {
+                                            updateMessage("Computing 2D....")
+                                        }
+                                        Thread.sleep(100)
                                         mediator.scriptEngine.eval(scriptFile.readText())
 
                                         val t = Thumbnail(
@@ -2847,6 +2900,8 @@ class RNArtist : Application() {
                                             thumbnails.items.add(t)
                                         }
                                         Thread.sleep(200)
+                                    } ?: run {
+                                        return Pair(null, RuntimeException("No 2D found in RNACentral entry $entryID"))
                                     }
                                 }
                             }
@@ -4151,7 +4206,7 @@ class RNArtist : Application() {
 
             this.addButton("fas-angle-double-left:20").onMouseClicked = EventHandler { mouseEvent ->
                 mediator.currentDrawing.get()?.let { currentDrawing ->
-                    mediator.rollbackThemeHistoryToStart()
+                    mediator.rollbackToFirstThemeInHistory()
                 }
             }
 
@@ -4193,7 +4248,7 @@ class RNArtist : Application() {
 
             this.addButton("fas-angle-double-right:20").onMouseClicked = EventHandler { mouseEvent ->
                 mediator.currentDrawing.get()?.let { currentDrawing ->
-                    mediator.applyThemeInHistoryFromNextToEnd()
+                    mediator.applyLastThemeInHistory()
                 }
             }
 

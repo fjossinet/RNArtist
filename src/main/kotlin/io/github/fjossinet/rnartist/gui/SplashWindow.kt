@@ -2,6 +2,7 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.RnartistConfig
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.AlertDialog
 import javafx.concurrent.Task
 import javafx.event.EventHandler
 import javafx.geometry.Insets
@@ -61,38 +62,10 @@ class SplashWindow(val mediator: Mediator) {
         init {
             setOnSucceeded { event ->
                 val result = get()
-                result?.let {
-                    stage.hide()
-                    val alert = Alert(Alert.AlertType.ERROR)
-                    alert.title = "I got a problem"
-                    alert.headerText = "RNartist got a problem during startup ."
-                    alert.contentText =
-                        "You can send the exception stacktrace below to fjossinet@gmail.com"
-                    val sw = StringWriter()
-                    val pw = PrintWriter(sw)
-                    it.printStackTrace(pw)
-                    val exceptionText = sw.toString()
-
-                    val label = Label("The exception stacktrace was:")
-
-                    val textArea = TextArea(exceptionText)
-                    textArea.isEditable = false
-                    textArea.isWrapText = true
-
-                    textArea.maxWidth = Double.MAX_VALUE
-                    textArea.maxHeight = Double.MAX_VALUE
-                    GridPane.setVgrow(textArea, Priority.ALWAYS)
-                    GridPane.setHgrow(textArea, Priority.ALWAYS)
-
-                    val expContent = GridPane()
-                    expContent.maxWidth = Double.MAX_VALUE
-                    expContent.add(label, 0, 0)
-                    expContent.add(textArea, 0, 1)
-                    alert.dialogPane.expandableContent = expContent
-                    alert.showAndWait()
-                }
                 stage.hide()
-
+                result?.let { exception ->
+                    AlertDialog(exception)
+                }
                 mediator.rnartist.stage.show()
                 mediator.rnartist.stage.toFront()
             }
