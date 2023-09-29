@@ -91,12 +91,12 @@ class CreateDBFolder(mediator: Mediator, val uri: URI) : RNArtistTask(mediator) 
                     mediator.rnartist.clearThumbnails()
                 }
                 Thread.sleep(100)
-                rootDB.createNewFolder(uri)
-                mediator.rnartist.addFolderToTreeView(uri.path)?.let {
-                    mediator.rnartist.expandTreeView(it)
-                    mediator.rnartist.selectInTreeView(it)
+                rootDB.createNewFolder(uri)?.let { newFolder ->
+                    mediator.rnartist.addFolderToTreeView(newFolder.absolutePath)?.let {
+                        mediator.rnartist.expandTreeView(it)
+                        mediator.rnartist.selectInTreeView(it)
+                    }
                 }
-
             }
             return Pair(null, null)
         } catch (e: Exception) {

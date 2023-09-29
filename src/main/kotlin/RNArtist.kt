@@ -203,8 +203,8 @@ class RNArtist : Application() {
 
     fun addFolderToTreeView(absolutePath2StructuralFiles: String): TreeItem<DBFolder>? {
         currentDB.get()?.let { currentDB ->
-            val inBetweenDirs = absolutePath2StructuralFiles.split(currentDB.rootAbsolutePath).last().removePrefix("/").removeSuffix("/")
-                .split("/")
+            val inBetweenDirs = absolutePath2StructuralFiles.split(currentDB.rootAbsolutePath).last().removePrefix(System.getProperty("file.separator")).removeSuffix(System.getProperty("file.separator"))
+                .split(System.getProperty("file.separator"))
             var currentParent = lowerPanel.dbExplorerPanel.dbExplorerSubPanel.dbTreeView.root
             for (i in 0 until inBetweenDirs.size) {
                 if (i == inBetweenDirs.size - 1) {
