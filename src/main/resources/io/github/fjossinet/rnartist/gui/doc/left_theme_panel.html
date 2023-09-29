@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="css/doc.css" rel="stylesheet">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+            <li>
+                <a href="toc.html">Table of contents</a>
+            </li>
+            <li>
+                <a href="quickstart.html">Quickstart</a>
+            </li>
+            <li>
+                <a href="rnartist_gui.html">The graphical interface</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main>
+    <section>
+    <h2>The theme panel for the full 2D</h2>
+    <div>
+        <div style="display: inline-block;vertical-align:top;">
+            <figure>
+                <img src="images/left_theme_panel.png" />
+            </figure>
+        </div>
+        <div style="display: inline-block;vertical-align:top; padding-left:10px; max-width: 800px">
+            <h3>Details level</h3>
+            <p>Each button defines the details level for the full 2D (from 1 to 5):</p>
+            <ul>
+                <li>level 1: all the objects in the current 2D are lowly rendered</li>
+                <li>level 2: helices, secondary-interactions, junctions, single-strands and phosphodiester bonds are highly rendered</li>
+                <li>level 3: residue shapes are highly rendered</li>
+                <li>level 4: residues letters are highly rendered</li>
+                <li>level 5: interaction symbols are highly rendered</li>
+            </ul>
+            <p>For more details about the concept of details level, check <a href="rna2d_concept.html">this documentation page</a></p>
+            <h3>Color & Lines</h3>
+            <ul>
+                <li><a href="#" onclick="return false;" id="choose_scheme" class="linkedToUI">the scheme menu</a> applies different color schemes to the full 2D</li>
+                <li>by clicking on <a href="#" onclick="return false;" id="full_2D_colorwheel" class="linkedToUI">the color wheel</a>, you define the default color for all the objects in the current 2D. This adds the color to the last colors panel below the wheel, along with colors with different levels of saturation and brightness.</li>
+                <li>click on <a href="#" onclick="return false;" id="full_2D_color_letters" class="linkedToUI">this button</a> before to choose the color to apply it to the residue characters/letters</li>
+                <li>click on <a href="#" onclick="return false;" id="color_for_unselected" class="linkedToUI">this button</a> before to choose the color to apply it to the rna objects that are not selected after a selection</li>
+                <li>by clicking on <a href="#" onclick="return false;" id="full_2D_lineWidth_knob" class="linkedToUI">the knob surrounding the color wheel</a>, you rotate it and define the default line width for all the objects in the current 2D</li>
+                <li>by clicking on <a href="#" onclick="return false;" id="full_2D_currentlineWidth_button" class="linkedToUI">this button on the knob</a>, you apply the line width corresponding to its current position.</li>
+            </ul>
+        </div>
+    </div>
+    </section>
+</main>
+</body>

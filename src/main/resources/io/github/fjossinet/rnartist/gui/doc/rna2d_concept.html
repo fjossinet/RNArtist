@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="css/doc.css" rel="stylesheet">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+            <li>
+                <a href="toc.html">Table of contents</a>
+            </li>
+            <li>
+                <a href="quickstart.html">Quickstart</a>
+            </li>
+            <li>
+                <a href="rnartist_gui.html">The graphical interface</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main>
+    <section>
+    <h2>The concept of RNA 2D in RNArtist</h2>
+    <p>In RNArtist, a secondary structure is a hierarchy of 2D objects (helices, junctions, residues,...). Each 2D object be associated to its own theme (colors, line width, details level) and a junction also have a specific layout.</p>
+    <h3>The theme</h3>
+    <h4>Color and Lines</h4>
+    <p>
+        The color and the width/thickness of the line can be defined.
+    </p>
+    <h4>Details level</h4>
+    <p>
+        The details level allows to define if a 2D object is displayed with a high or low level of details:
+    </p>
+    <ul>
+        <li>
+            low level: the 2D object doesn't allow its children to be displayed (whatever their own details level). The 2D object renders itself with a default representation (for exemple a circle for a junction)
+        </li>
+        <li>
+            high level: in general, the 2D object doesn't render itself and allows its children to be displayed (whatever their own details level).
+        </li>
+    </ul>
+    <h3>The layout</h3>
+    <p>
+        The layout of a junction is defined by:
+    </p>
+    <ul>
+        <li>its radius</li>
+        <li>the position of its connected helices according to a compass</li>
+    </ul>
+    <h3>The 2D objects</h3>
+        <dl>
+            <dt>Branch</dt>
+            <dd>A branch is a succession of helices and junctions, from an apical loop to a single-strand. Successive mouse-clicks on an apical loop allows to easily select an entire branch.</dd>
+            <dt>Helix</dt>
+            <dd></dd>
+            <dt>Junction</dt>
+            <dd></dd>
+            <dt>Single-Strand</dt>
+            <dd>Single-Strands link branches together or correspond to 5' and/or 3' terminal ends</dd>
+            <dt>Secondary Interaction</dt>
+            <dt>Tertiary Interaction</dt>
+            <dt>Interaction Symbol</dt>
+            <dt>Phosphodiester Bond</dt>
+            <dd>
+                Whatever the details level of a phosphodiester bond, it is always disaplyed as a single line. A phosphodiester bond has no children.
+            </dd>
+            <dt>Residue</dt>
+            <dt>Residue Letter</dt>
+        </dl>
+
+    </section>
+</main>
+
+</body>

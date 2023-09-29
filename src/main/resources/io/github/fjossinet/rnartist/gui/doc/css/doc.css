@@ -1,0 +1,378 @@
+nav a:link {
+    color: white;
+}
+
+nav a:visited {
+    color: white;
+}
+
+nav a:hover {
+    color: orangered;
+}
+
+nav a:active {
+    color: white;
+}
+
+a:link {
+    color: orangered;
+}
+
+a:visited {
+    color: orangered;
+}
+
+a:hover {
+    color: #614993;
+}
+
+a:active {
+    color: #696c6b;
+}
+
+select {
+    width: auto
+}
+
+code, pre {
+    background: #f2f2f2;
+    border: 1px solid #e8e8e8;
+    border-radius: 1px;
+    font-family: Consolas, Courier, monospace
+}
+
+html {
+    color: #111;
+    font-family: "PT Serif", Georgia, sans-serif;
+    font-size: 16px;
+    line-height: 1.5
+}
+
+body {
+    margin: 0px;
+}
+
+body > article, body > footer, body > main {
+    display: block;
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto
+}
+
+body > header {
+    margin-bottom: 2.5em;
+    text-align: center
+}
+
+body > footer {
+    margin-top: 4em;
+    color: #a3a39b;
+    font-size: .9em;
+    text-align: left
+}
+
+header p {
+    font-size: 18px
+}
+
+article, section {
+    margin-bottom: 4em
+}
+
+address {
+    font-style: normal
+}
+
+nav {
+    background-color: #333333;
+    padding: 20px;
+}
+
+nav ul {
+    padding: 0;
+    list-style: none
+}
+
+nav ul li {
+    margin: 0 5px
+}
+
+aside {
+    position: absolute;
+    right: -200px;
+    max-width: 150px;
+    padding-right: 1em;
+    font-style: italic
+}
+
+@media (max-width: 1066px) {
+    aside {
+        position: relative;
+        right: auto;
+        max-width: none;
+        padding: 0
+    }
+}
+
+a {
+    text-decoration: none;
+    -webkit-transition: color 300ms;
+    transition: color 300ms
+}
+
+h1, h2, h3 {
+    font-weight: 400
+}
+
+h1 {
+    line-height: 1.2;
+    margin-top: .5em;
+    margin-bottom: 0;
+    color: #070600;
+    font-size: 4em
+}
+
+h2 {
+    margin-top: .9em;
+    margin-bottom: .5em;
+    color: #25291c;
+    font-size: 2.1em
+}
+
+h3 {
+    margin-top: 1.8em;
+    margin-bottom: .2em;
+    font-size: 1.4em;
+    border: 3px solid rgba(232, 232, 232, .7);
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    display: list-item;
+    list-style-type: square;
+}
+
+h4 {
+    margin-top: 1.8em;
+    margin-bottom: .3em;
+    color: #63635e;
+    font-size: 1em;
+    display: list-item;
+    list-style-type: circle;
+}
+
+ul {
+    margin-top: 0.0em;
+}
+
+form {
+    max-width: 400px;
+    padding: 12px 10px;
+    margin: 0 auto
+}
+
+fieldset {
+    border: 1px solid #cfcfcf
+}
+
+aside, del, legend, nav ul li {
+    color: #7d7d77
+}
+
+img, label, output, pre > code, select {
+    display: block
+}
+
+select {
+    margin-bottom: 20px
+}
+
+nav ul, pre {
+    margin: 0
+}
+
+pre > code {
+    padding: 10px 15px;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    background: 0 0;
+    border: 0
+}
+
+code {
+    padding: .0625em .3125em
+}
+
+img {
+    max-width: 100%;
+    margin: 0 auto
+}
+
+p {
+    margin: .5em 0
+}
+
+p img {
+    margin: .3em 0 .3em .5em;
+    float: right;
+    border: 1px solid #e8e8e8
+}
+
+figure, nav ul li, table {
+    display: inline-block
+}
+
+details, figure {
+    border-radius: 1px
+}
+
+figure {
+    box-sizing: border-box;
+    padding: 6px 22px;
+    margin: .5em 0
+}
+
+figure img {
+    max-width: 100%;
+    margin: 10px 0 15px
+}
+
+figure img + figcaption {
+    margin-top: 0;
+    margin-bottom: 10px
+}
+
+figure figcaption {
+    font-style: italic;
+    text-align: center;
+    margin-top: 10px
+}
+
+figure figcaption + img {
+    margin: 15px 0 10px
+}
+
+dl {
+    margin: 1em 0 1.5em
+}
+
+dl dt {
+    font-weight: 700
+}
+
+dl dd {
+    margin-bottom: 1em
+}
+
+details {
+    display: block;
+    padding: 0 .5em;
+    margin: 20px 0;
+    background-color: #fafafa
+}
+
+details summary {
+    display: block;
+    padding: 0 .5em .1em;
+    margin: 0 -.5em;
+    background-color: #fff;
+    outline: 0;
+    font-weight: 700;
+    cursor: pointer
+}
+
+table {
+    -webkit-overflow-scrolling: touch;
+    vertical-align: top;
+    max-width: 100%;
+    width: 100%;
+    overflow-x: auto;
+    background: -webkit-radial-gradient(left, ellipse, rgba(0, 0, 0, .2) 0%, transparent 75%) 0 center, -webkit-radial-gradient(right, ellipse, rgba(0, 0, 0, .2) 0%, transparent 75%) 100% center;
+    background: radial-gradient(left, ellipse, rgba(0, 0, 0, .2) 0%, transparent 75%) 0 center, radial-gradient(right, ellipse, rgba(0, 0, 0, .2) 0%, transparent 75%) 100% center;
+    background-size: 10px 100%, 10px 100%;
+    background-attachment: scroll, scroll;
+    background-repeat: no-repeat;
+    border-spacing: 0;
+    border-collapse: collapse;
+    text-align: left
+}
+
+table caption {
+    padding: .5em 0;
+    background: #fff;
+    font-style: italic
+}
+
+table thead {
+    background: #e8e8e8
+}
+
+details, figure, table tr td {
+    border: 1px solid #e8e8e8
+}
+
+table tr td, table tr th {
+    padding: .3em .7em;
+    vertical-align: top
+}
+
+table tr td:first-child {
+    background-image: -webkit-linear-gradient(left, #fff 50%, rgba(255, 255, 255, 0) 100%);
+    background-image: linear-gradient(to right, #fff 50%, rgba(255, 255, 255, 0) 100%);
+    background-size: 20px 100%;
+    background-repeat: no-repeat
+}
+
+table tr td:last-child {
+    background-image: -webkit-linear-gradient(right, #fff 50%, rgba(255, 255, 255, 0) 100%);
+    background-image: linear-gradient(to left, #fff 50%, rgba(255, 255, 255, 0) 100%);
+    background-position: 100% 0;
+    background-size: 20px 100%;
+    background-repeat: no-repeat
+}
+
+table tr th {
+    border: 1px solid #cfcfcf
+}
+
+abbr {
+    font-size: .875em;
+    letter-spacing: .15em;
+    margin-right: -.15em
+}
+
+dfn {
+    letter-spacing: .05em
+}
+
+ins {
+    text-decoration: none;
+    background: #ededec
+}
+
+mark {
+    background: #ffeab9
+}
+
+hr {
+    margin: 25px 0;
+    border: 1px solid rgba(232, 232, 232, .7);
+    border-bottom: none
+}
+
+var {
+    font-family: monospace;
+    font-style: normal
+}
+
+noscript {
+    color: #d00000
+}
+
+kbd {
+    display: inline-block;
+    padding: 0 .6ex;
+    margin: 0 .4ex;
+    background: #f9f9f8;
+    border-radius: 5px;
+    box-shadow: 0 1px #e8e8e8
+}

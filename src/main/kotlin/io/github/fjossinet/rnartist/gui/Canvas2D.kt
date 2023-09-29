@@ -4,7 +4,6 @@ import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.*
 import java.awt.*
 import java.awt.geom.AffineTransform
-import java.awt.geom.GeneralPath
 import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
@@ -68,7 +67,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
 
             if (!rnArtistDrawing.secondaryStructureDrawing.quickDraw) {
                 rnArtistDrawing.selectedDrawings.forEach { selectedElement ->
-                    g2.stroke = mediator.lastDrawingHighlighted.get()?.let { highlightedElement ->
+                    g2.stroke = mediator.drawingHighlighted.get()?.let { highlightedElement ->
                         if (highlightedElement == selectedElement) BasicStroke(
                             2f*rnArtistDrawing.secondaryStructureDrawing.zoomLevel.toFloat(), BasicStroke.CAP_BUTT,
                             BasicStroke.JOIN_MITER
@@ -82,7 +81,7 @@ class Canvas2D(val mediator: Mediator) : JPanel() {
                             BasicStroke.JOIN_MITER
                         )
                     }
-                    g2.color = mediator.lastDrawingHighlighted.get()?.let { highlightedElement ->
+                    g2.color = mediator.drawingHighlighted.get()?.let { highlightedElement ->
                         if (highlightedElement == selectedElement) if (selectedElement is ResidueLetterDrawing) Color.BLACK else selectedElement.getColor() else Color.LIGHT_GRAY
                     } ?: run {
                         if (selectedElement is ResidueLetterDrawing) Color.BLACK else selectedElement.getColor()

@@ -1,21 +1,18 @@
 package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.core.RnartistConfig
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.AlertDialog
+import io.github.fjossinet.rnartist.RNArtist
 import javafx.concurrent.Task
-import javafx.event.EventHandler
 import javafx.geometry.Insets
 import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.layout.*
-import javafx.stage.DirectoryChooser
+import javafx.scene.paint.Color
+import javafx.stage.Modality
 import javafx.stage.Stage
 import javafx.stage.StageStyle
-import java.io.File
-import java.io.FileFilter
 import java.io.PrintWriter
 import java.io.StringWriter
 
@@ -35,7 +32,8 @@ class SplashWindow(val mediator: Mediator) {
         form.vgap = 10.0
         form.padding = Insets(10.0, 10.0, 10.0, 10.0)
 
-        stage.setScene(Scene(form));
+        stage.setScene(Scene(form))
+        //stage.scene.stylesheets.add("io/github/fjossinet/rnartist/gui/css/main.css")
 
         val im = ImageView()
         im.image = Image("/io/github/fjossinet/rnartist/io/images/logo.png")
@@ -44,6 +42,7 @@ class SplashWindow(val mediator: Mediator) {
         progressBar.prefWidthProperty().bind(form.widthProperty().subtract(20))
         form.add(progressBar, 0, 1, 3, 1)
         val statusLabel = Label("")
+        statusLabel.textFill = Color.BLACK
         statusLabel.prefWidthProperty().bind(form.widthProperty().subtract(20))
         form.add(statusLabel, 0, 2, 3, 1)
         form.layout()
@@ -64,7 +63,7 @@ class SplashWindow(val mediator: Mediator) {
                 val result = get()
                 stage.hide()
                 result?.let { exception ->
-                    AlertDialog(exception)
+                    ExceptionDialog(mediator, exception)
                 }
                 mediator.rnartist.stage.show()
                 mediator.rnartist.stage.toFront()
@@ -85,5 +84,50 @@ class SplashWindow(val mediator: Mediator) {
                 return e
             }
         }
+    }
+}
+
+class ExceptionDialog(val mediator: Mediator, exception: Exception): Alert(AlertType.ERROR) {
+
+    init {
+        this.initModality(Modality.WINDOW_MODAL)
+        this.initStyle(StageStyle.TRANSPARENT)
+        this.initOwner(mediator.rnartist.stage)
+        this.dialogPane.scene.fill = Color.TRANSPARENT
+
+        this.dialogPane.padding = Insets(10.0)
+        this.dialogPane.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii(10.0), Insets(10.0)))
+
+        val content = VBox()
+        content.background = Background(BackgroundFill(RNArtist.RNArtistGUIColor, CornerRadii(10.0), Insets(10.0)))
+        content.padding = Insets(10.0)
+        val l = Label("RNartist got a problem.")
+        l.textFill = Color.WHITE
+        content.children.add(l)
+
+        this.dialogPane.header = content
+
+        this.contentText =
+            "You can send the exception stacktrace below to fjossinet@gmail.com"
+
+        val sw = StringWriter()
+        val pw = PrintWriter(sw)
+        exception.printStackTrace(pw)
+        val exceptionText = sw.toString()
+
+        val textArea = TextArea(exceptionText)
+        textArea.isEditable = false
+        textArea.isWrapText = true
+
+        textArea.maxWidth = 800.0
+        textArea.maxHeight = Double.MAX_VALUE
+        GridPane.setVgrow(textArea, Priority.ALWAYS)
+        GridPane.setHgrow(textArea, Priority.ALWAYS)
+
+        val expContent = GridPane()
+        expContent.maxWidth = 800.0
+        expContent.add(textArea, 0, 0)
+        this.dialogPane.expandableContent = expContent
+        this.showAndWait()
     }
 }

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="css/doc.css" rel="stylesheet">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+            <li>
+                <a href="toc.html">Table of contents</a>
+            </li>
+            <li>
+                <a href="quickstart.html">Quickstart</a>
+            </li>
+            <li>
+                <a href="rnartist_gui.html">The graphical interface</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main>
+    <section id="main">
+        <h2>The canvas 2D</h2>
+        <p>
+            This graphical element is divided into:
+        </p>
+        <ul>
+            <li><a href="#drawing_surface">the drawing surface</a></li>
+            <li><a href="#toolbars">the toolbars</a></li>
+        </ul>
+        <figure>
+            <img src="images/canvas_panel.png"/>
+        </figure>
+        <h3>Quickstart</h3>
+        <ul>
+            <li>use the right mouse button to translate the full 2D</li>
+            <li>use the buttons panel on the left to zoom in/out and recenter on the full 2D</li>
+            <li>use the left mouse button to select a 2D object
+                <ul>
+                    <li>click on the center of an element to select it (residue, junctions, helices, interactions,
+                        phosphodiester bonds,...)
+                    </li>
+                    <li>successive clicks on a residue select the next parent element:
+                        <ul>
+                            <li>residue -> secondary interaction -> helix -> former structural domain in the branch</li>
+                            <li>residue -> junction -> former structural domain in the branch</li>
+                            <li>residue -> single-strand
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li>once a selection done, you can modify its theme with <a href="right_theme_panel.html">the right theme
+                panel</a></li>
+            <li>if you select junctions, you can modify their layout with <a href="junction_layout_panel.html">the
+                layout panel</a></li>
+        </ul>
+        <h3><a name="drawing_surface">The drawing surface</a></h3>
+        <h4>Select parts of an RNA 2D</h4>
+        <p>
+            You have two different ways to make a selection with RNArtist:
+        </p>
+        <ul>
+            <li>using <a href="#" onclick="return false;" id="all_selection_buttons"
+                         class="linkedToUI">these buttons</a> in the theme panel on the right</li>
+            <li>by clicking on the drawing surface</li>
+        </ul>
+        <p>
+            You can select any rna objects with a left-click inside its bounds to add it to the current selection. You can do successive left-click on the same residue to enlarge the selection (for example residue -> secondary interaction -> helix -> next structural domain along the branch).
+        </p>
+        <p>
+            To clear the selection, you can either double left-click on the blank surface or use <a href="#" onclick="return false;"
+                                                                                                    id="clear_selection_button"
+                                                                                                    class="linkedToUI">this button</a> in the theme panel on the right
+        </p>
+        <h4>The highlight of an rna object in the current selection</h4>
+        <p>
+            When several rna objects are selected, choosing theme parameters with <a href="right_theme_panel.html">the theme panel on the right</a> will target all of them at once.
+            But sometimes, you could need to:
+        </p>
+        <ul>
+            <li>target a single object while keeping the selection as it is</li>
+            <li>apply different theme parameters to each object in the selection.</li>
+        </ul>
+        <p>This is why RNArtist allows you to highlight an rna object in the selection in order to make it the sole target of your choices.
+            When several rna objects are selected without any one highlighted, all the shapes around them display the same color. When you use <a href="#" onclick="return false;" id="all_selection_buttons" class="linkedToUI">these buttons</a>, you're highlighting one selected object after another one.
+            The shape of the highlighted rna object gets its own color, while the other shapes are drawn with a lighter gray.</p>
+        <h3><a name="toolbars">The toolbars</a></h3>
+        <h4>The navigation bar</h4>
+        <figure>
+            <img src="images/canvas_toolbar_1.png"/>
+        </figure>
+        <ul>
+            <li>use <a href="#" onclick="return false;" id="zoom_in" class="linkedToUI">this button</a> to zoom in</li>
+            <li>use <a href="#" onclick="return false;" id="zoom_out" class="linkedToUI">this button</a> to zoom out
+            </li>
+            <li>use <a href="#" onclick="return false;" id="fit_structure" class="linkedToUI">this button</a> to fit the
+                full 2D into the current view
+            </li>
+            <li>use <a href="#" onclick="return false;" id="center_on_former_selection" class="linkedToUI">this
+                button</a> highlights and centers the view on the former selected element
+            </li>
+            <li>use <a href="#" onclick="return false;" id="center_on_next_selection" class="linkedToUI">this button</a>
+                highlights and centers the view on the next selected element
+            </li>
+        </ul>
+        <h4>The undo/redo bar for theme</h4>
+        <figure>
+            <img src="images/canvas_toolbar_2.png"/>
+        </figure>
+
+        <h4>The undo/redo bar for layout</h4>
+        <figure>
+            <img src="images/canvas_toolbar_3.png"/>
+        </figure>
+        <p>
+
+        </p>
+        <h4>The save/export bar</h4>
+        <figure>
+            <img src="images/canvas_toolbar_4.png"/>
+        </figure>
+        <ul>
+            <li>use <a href="#" onclick="return false;" id="save_2d" class="linkedToUI">this button</a> to save the current
+                theme and layout of your 2D. They become the new start in the undo/redo history for theme and
+                layout.
+            </li>
+            <li>use <a href="#" onclick="return false;" id="apply_theme_to_all" class="linkedToUI">this button</a> to
+                apply the theme of the current 2D to all the 2Ds displayed in the database explorer
+            </li>
+            <li>use <a href="#" onclick="return false;" id="export_2d_as_svg" class="linkedToUI">this button</a> to export
+                the current 2D in an SVG file.
+            </li>
+        </ul>
+        <h4>The lateral panels bar</h4>
+        <figure>
+            <img src="images/canvas_toolbar_5.png"/>
+        </figure>
+        <p>
+
+        </p>
+    </section>
+</main>
+</body>

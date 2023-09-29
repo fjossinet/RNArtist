@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="css/doc.css" rel="stylesheet">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+            <li>
+                <a href="toc.html">Table of contents</a>
+            </li>
+            <li>
+                <a href="quickstart.html">Quickstart</a>
+            </li>
+            <li>
+                <a href="rnartist_gui.html">The graphical interface</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main>
+    <section>
+    <h2>RNArtist databases</h2>
+    <h3>Quickstart</h3>
+    <ul>
+        <li>create a new folder on your computer</li>
+        <li>create one or several subfolders corresponding to different projects or RNA families</li>
+        <li>in each subfolder, add some data (vienna files)</li>
+        <li>choose the root folder as your new RNArtist database with <a href="#" onclick="return false;" id="load_database_button" class="linkedToUI">this button</a></li>
+        <li>once the database loaded, select a subfolder in the tree and use <a href="#" onclick="return false;" id="load_db_folder_button" class="linkedToUI">this button</a> to compute and load the 2Ds in the <a href="db_panel.html">database explorer</a></li>
+    </ul>
+
+    <h3>The structure of an RNArtist database</h3>
+    <div class="content">
+        <div>
+            <div style="display: inline-block;vertical-align:top;">
+                <figure>
+                    <img src="images/db_structure.png" />
+                </figure>
+            </div>
+            <div  style="display: inline-block;vertical-align:top; padding-left:10px">
+                <p>
+                    An RNArtist database is simply a folder containing subfolders with structural data (vienna/ct/bpseq/pdb/stockholm formatted files).
+                </p>
+                <p>When you choose a folder with <a href="#" onclick="return false;" id="load_database_button" class="linkedToUI">this button</a>, RNArtist will do the following tasks:</p>
+                <ul>
+                    <li>create an index file named &quot;.rnartist_db_index&quot; in this folder</li>
+                    <li>search for all subfolders containing structural data (vienna/bpseq/ct/stockholm formatted files). Each subfolder is recorded in the index file</li>
+                    <li>for each folder recorded, an RNArtist script file is created at the same level, with the same name and with a &quot;kts&quot; suffix.</li>
+                </ul>
+                <p>
+                    In an RNArtist database, you will find structural files (vienna/bpseq/ct/stockholm formatted files), RNArtist scripts (file whose name end with &quot;kts&quot;) and PNG files storing a preview of the 2D drawing for a given structural file.
+                </p>
+            </div>
+        </div>
+        <h3>Scripts</h3>
+        <div>
+            <p>
+                Scripts store the instructions to plot an RNA 2D (theme, layout, input/output details,...). An RNArtist databases contains scripts with two slightly different roles:
+            </p>
+            <ul>
+                <li><b>RNArtist scripts with the same name than folders</b>: they contains the default instructions to plot the first draft of any structure stored in this folder. They are used when the user loads a folder with <a href="#" onclick="return false;" id="load_db_folder_button" class="linkedToUI">this button</a></li>
+                <li><b>RNArtist scripts with the same name than vienna/bpseq/ct/stockholm formatted files</b>: they contains the isntructions to plot the last version of the 2D described in the structural file.</li>
+            </ul>
+        </div>
+        <h3>Drawings</h3>
+        <div>
+            <p>
+                RNArtist creates a folder named &quot;drawings&quot; to store as PNG files previews for each RNA 2D that has been loaded with RNArtist.
+            </p>
+        </div>
+    </div>
+
+    </section>
+</main>
+</body>

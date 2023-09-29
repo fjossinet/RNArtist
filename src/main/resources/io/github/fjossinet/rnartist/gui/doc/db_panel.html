@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="css/doc.css" rel="stylesheet">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+            <li>
+                <a href="toc.html">Table of contents</a>
+            </li>
+            <li>
+                <a href="quickstart.html">Quickstart</a>
+            </li>
+            <li>
+                <a href="rnartist_gui.html">The graphical interface</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<body>
+<main>
+    <section id="main">
+        <h2>The database explorer panel</h2>
+        <figure>
+            <img src="images/db_explorer_panel.png"/>
+            <figcaption>A dump of the Rfam database to be used with RNArtist.</figcaption>
+        </figure>
+
+        <h3>Quickstart</h3>
+        <ul>
+            <li>choose a folder as an RNArtist database with <a href="#" onclick="return false;"
+                                                                id="load_database_button" class="linkedToUI">this
+                button</a></li>
+            <li>once the database loaded, select a subfolder in the tree and use <a href="#" onclick="return false;"
+                                                                                    id="load_db_folder_button"
+                                                                                    class="linkedToUI">this button</a>
+                to compute and load the 2Ds. If you don't have any subfolder in your database, select the root folder,
+                and click on <a href="#" onclick="return false;" id="create_db_folder_button" class="linkedToUI">this
+                    button</a></li>
+            </li>
+            <li>left click on a thumbnail to load its 2D in the <a href="canvas.html">canvas</a></li>
+            <li>if you don't have any structural files in the subfolder selected, you can:
+                <ul>
+                    <li>download and add data outside of RNArtist, select this folder in RNArtist and load it with <a href="#" onclick="return false;" id="load_db_folder_button"
+                                                                                                                             class="linkedToUI">this button</a>. RNArtist will compute the drawings for the 2Ds found in the folder and preview them with thumbnails </li>
+                    <li>load an <a href="https://rnacentral.org/rna/URS0000569A4A/9606" onclick="return false;">RNACentral
+                        entry</a> in your browser, drag and drop the web address from your browser into the subfolder in
+                        RNArtist. The data will be automatically downloaded, added to the subfolder. The 2D drawing will be computed and displayed as a thumbnail.
+                    </li>
+                </ul>
+            </li>
+            <li>following the loading of your database, if you add new subfolders with structural data outside of RNArtist, you can index and display them in RNArtist using <a href="#" onclick="return false;" id="reload_database_button" class="linkedToUI">this
+                button</a></li>
+        </ul>
+    </section>
+</main>
+</body>

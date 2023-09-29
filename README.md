@@ -1,68 +1,49 @@
-![logo](media/logo.png)
 
-RNArtist allows you to design your RNA 2D structures interactively. To help you to be an RNArtist, this tool provides numerous graphical options to find your theme and to modify the 2D layout.
+# RNArtist: an interactive tool to construct and manage a collection of RNA 2D structures
 
-* [Screen Captures](#captures)
-* [Prerequisites](#prerequesites)
-* [Installation](#installation)
-* [Launch](#launch)
+![Screen Capture 1](media/screen_capture_1.png)
 
-## <a name="captures"></a>Screen captures
+Main features:
+* with RNArtist, you construct a collection of RNA structures that can be gathered into RNA families, projects,....
+* a database explorer allows you to visualize and browse your collections (in the screenshot above, I'm browsing  an "RNArtist-compliant" version of Rfam where each folder is an RNA family)
+* you feed your collections with RNA secondary structures (a.k.a. RNA 2Ds) described with standard file formats like Vienna, bpseq, ct, stockholm and even pdb.
+* you can also drag-and-drop structures described in RNA database entries (RNACentral for now) from your browser into your database in RNArtist. Data will be automatically downloaded, stored and plotted.
+* the RNA objects making the RNA 2Ds constructed with RNArtist integrates the last structural features from the field (Leontis-Westhof classification, classes of junctions (apical loops, inner loops, 3-Way, 4-way junctions,...), tertiary interactions)
+* RNArtist contains a built-in algorithm to produce a first draft of an RNA 2D based on a non-overlapping display
+* the layout (size and helices orientations) for any junction can be modified interactively afterwards
+* the display from a full 2D to single residues can be modified to fit your needs. RNArtist provides graphical widgets to choose the color and the line width (more options will be available soon)
+* each RNA object inside an RNA 2D can be lowly or highly rendered. This allows to simplify the display for entire domains in order to highlight important ones.  
+* you can easily undo/redo your modifications. RNArtist manages two different undo/redo histories: one for the theme and another one for the layout
+* the theme and the layout designed for a single 2D can be applied on an entire project or RNA family
+* the selection of RNA objects can be done graphically (mouse clicks) or automatically (search panel). Successive mouse clicks on the same residue allows to easily select its parents (for example residue -> secondary interaction -> helix -> branch containing this helix). Consequently, you can select entire branches of large RNAs in few clicks.
 
-* Any part of an RNA 2D can have different design, from single residues to entire branches
+* the work done on an RNA 2D is saved as a script based on the DSL syntax from [RNArtistCore](https://github.com/fjossinet/RNArtistCore). Consequently, the scripts produced with RNArtist are fully compatible with the command-line tool available with RNArtistCore. RNArtist can be seen as a graphical front-end for the design of RNArtistCore scripts.
+* the drawings can be exported into an SVG file compatible with tools like Affinity Designer, Inkscape or Adobe Illustrator
+* a documentation and an interactive tutorial are available from RNArtist (meaning up-to-date and linked to the graphical interface to better guide you)
 
-![Screen Capture](media/Capture%20d’écran%202020-12-27%20à%2020.48.24.png)
+More to come:
+* link with ChimeraX for RNA 2ds derived from pdb files
+* the ability to link experimental to your RNA 2Ds (like quantitative values from High throughput RNA structure determination). This will allow you to produce a dispaly for your 2D according to the values linked to its residues
+* the ability to produce animations
+* the ability to annotate your structure
+* more theme options (shape of a residue: circle, square, polygons,...)
+* a widget to construct and preview your own theme for the full 2D before to apply it
+* more interactive tutorials
+* databases browsable directly from RNArtist. Rfam is quite almost ready to be released.
 
-* RNArtist provides an interactive editor to load, modify and paint your 2D using the [RNArtistCore language](https://github.com/fjossinet/RNArtistCore)
+## Installation and launch
 
-![Screen Capture](media/Capture%20d’écran%202022-01-06%20125240.png)
-* 
-* [P4-P6 domain](https://www.rcsb.org/structure/1HR2) in RNArtist linked to UCSF chimera. You can easily apply colors in your 2D to the 3D architecture.
+RNArtist can be easily installed on MacOS, Linux and Windows thanks to the [jdeploy](https://www.jdeploy.com). Download the installer for your computer [at this address](https://www.jdeploy.com/~rnartist). These installers provide automatic updates. RNArtist downloads updates automatically at launch time so that you are always up-to-date.
 
-![Screen Capture](media/Capture%20d’écran%202021-01-26%20à%2015.15.27.png)
+## Quickstart
 
-* [tRNA crystal structure](https://www.rcsb.org/structure/1EHZ) in RNArtist linked to UCSF chimera. 
+After its launch, RNArtist shows you the documentation page to quickstart. It is an interactive tutorial to learn the basic use of RNArtist. You will create your first database and download
+your first RNA 2D. Then you will learn how to modify the theme and layout of this structure, how to save it and how to export it as an SVG file. 
 
-![Screen Capture](media/Capture%20d’écran%202021-01-28%20à%2007.56.07.png)
+You just need an empty folder to start with this tutorial. And there is no need to start each time from the beginning. The tutorial provides links to launch scripts that will produce a fresh start for any step you're interested in.
 
-* RNArtist embeds its own drawing algorihtm. Rough output for the yeast LSU RNA (more than 3200 nts, PDBID: 4V7R), with and without long-range tertiary interactions displayed.
+![Screen Capture 2](media/screen_capture_2.png)
 
-![Screen Capture](media/Capture%20d’écran%202021-02-24%20à%2014.18.16.png)
+## Disclaimer
 
-![Screen Capture](media/Capture%20d’écran%202021-02-24%20à%2012.37.53.png)
-
-## <a name="prerequesites"></a>Prerequisites
-
-You need the tool [maven](https://maven.apache.org) and a [Java distribution](https://www.oracle.com/java/technologies/javase-downloads.html) to be installed (type the commands ```mvn``` and ```java``` from a command line to check). 
-
-On Linux Systems, you can install maven with the command ``sudo apt get install maven``
-
-RNArtist has been developed with OpenJDK 15. To compile it with OpenJDK 11 (the most recent Long Term Support version available on computers), you just need to change the value of the property java.version in the pom file.
-
-## <a name="installation"></a>Installation
-
-Download the project as [a zip file](https://github.com/fjossinet/RNArtist/archive/master.zip) or with the command git (git clone https://github.com/fjossinet/RNArtist.git).
-
-From the project directory, type: 
-
-```
-mvn clean package
-```
-
-## <a name="launch"></a>Launch
-
-### Using Maven
-
-From the project directory, type:
-
-```
-mvn exec:exec
-```
-
-### Using the launch scripts directly
-
-From the subdirectory target/RNArtist, run the file for your operating system by typing: 
-
-```./launch_rnartist_for_...```
-
-You can find more details about this project on my [Twitter Account](https://twitter.com/rnartist_app)
+RNArtist is still under active development. Some features are subject to change. 

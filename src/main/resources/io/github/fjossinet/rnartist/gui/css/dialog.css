@@ -1,0 +1,55 @@
+.label {
+    -fx-text-fill: white;
+}
+
+.scroll-pane {
+    -fx-background-color: #333333;
+}
+
+.increment-button, .decrement-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar:horizontal .track,
+.scroll-bar:vertical .track{
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0em;
+}
+
+.scroll-bar:horizontal .thumb,
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #333333;
+    -fx-background-radius: 5em;
+}
+
+.titled-pane > .title {
+    -fx-background-color: #333333;
+    -fx-border-color: #333333;
+    /*-fx-font-family: 'Lucida Grande',Verdana,Geneva,Lucida,Arial,Helvetica,sans-serif;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;*/
+}
+
+.titled-pane > .title > .text {
+    -fx-fill: WHITE;
+}
+
+.progress-bar {
+    -fx-accent: #ffffff;
+}
+
+.progress-bar .bar {
+    -fx-padding: 8px;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+}
+
+.progress-bar > .track {
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+    -fx-text-box-border: transparent;
+    -fx-control-inner-background: transparent;
+    -fx-background-color: #333333;
+}
