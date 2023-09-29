@@ -63,6 +63,7 @@ import java.awt.geom.Point2D
 import java.io.*
 import java.nio.file.Path
 import kotlin.io.path.absolutePathString
+import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.name
 import kotlin.random.Random
 
@@ -232,7 +233,7 @@ class RNArtist : Application() {
                                 Path.of(
                                     absolutePath2StructuralFiles.split(inBetweenDirs[i]).first(),
                                     inBetweenDirs[i]
-                                ).absolutePathString()
+                                ).invariantSeparatorsPathString
                             )
                         )
                         currentParent.children.add(treeItem)
@@ -2485,9 +2486,9 @@ class RNArtist : Application() {
                                 val dialog = ConfirmationDialog(mediator,
                                     "Would you like to use the folder ${it.name} as an RNArtist database?")
                                 if (dialog.isConfirmed)
-                                    rootDBAbsPath = it.absolutePath
+                                    rootDBAbsPath = it.invariantSeparatorsPath
                             } else
-                                rootDBAbsPath = it.absolutePath
+                                rootDBAbsPath = it.invariantSeparatorsPath
                             rootDBAbsPath?.let {
                                 val w = TaskDialog(mediator)
                                 w.task = LoadDB(mediator, it)
@@ -4394,7 +4395,7 @@ class RNArtist : Application() {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
                                 with(currentDrawing.rnArtistEl.addSVG()) {
                                     this.setName(file.name.removeSuffix(".svg"))
-                                    this.setPath(file.parent)
+                                    this.setPath(file.parentFile.invariantSeparatorsPath)
                                     currentDrawing.secondaryStructureDrawing.getFrame()?.let {
                                         this.setWidth(it.width * 1.1)
                                         this.setHeight(it.height * 1.1)
@@ -4866,7 +4867,7 @@ class RNArtist : Application() {
         scene.window.y = 0.0
         scene.stylesheets.add("io/github/fjossinet/rnartist/gui/css/main.css")
 
-        this.displayDocPage("tutorial.html")
+        this.displayDocPage("quickstart.html")
         SplashWindow(this.mediator)
     }
 
