@@ -16,7 +16,6 @@ Main features:
 * you can easily undo/redo your modifications. RNArtist manages two different undo/redo histories: one for the theme and another one for the layout
 * the theme and the layout designed for a single 2D can be applied on an entire project or RNA family
 * the selection of RNA objects can be done graphically (mouse clicks) or automatically (search panel). Successive mouse clicks on the same residue allows to easily select its parents (for example residue -> secondary interaction -> helix -> branch containing this helix). Consequently, you can select entire branches of large RNAs in few clicks.
-
 * the work done on an RNA 2D is saved as a script based on the DSL syntax from [RNArtistCore](https://github.com/fjossinet/RNArtistCore). Consequently, the scripts produced with RNArtist are fully compatible with the command-line tool available with RNArtistCore. RNArtist can be seen as a graphical front-end for the design of RNArtistCore scripts.
 * the drawings can be exported into an SVG file compatible with tools like Affinity Designer, Inkscape or Adobe Illustrator
 * a documentation and an interactive tutorial are available from RNArtist (meaning up-to-date and linked to the graphical interface to better guide you)
