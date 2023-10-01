@@ -238,7 +238,6 @@ class RNArtist : Application() {
                         )
                         currentParent.children.add(treeItem)
                         currentParent = treeItem
-                        return treeItem
                     }
                 }
             }
@@ -2844,7 +2843,7 @@ class RNArtist : Application() {
                                         if (this.isCancelled)
                                             return Pair(null, null)
                                         Platform.runLater {
-                                            addFolderToTreeView(it.absolutePath)
+                                            addFolderToTreeView(it.invariantSeparatorsPath)
                                         }
                                         Thread.sleep(100)
                                     }

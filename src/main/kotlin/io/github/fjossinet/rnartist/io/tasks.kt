@@ -92,7 +92,7 @@ class CreateDBFolder(mediator: Mediator, val uri: URI) : RNArtistTask(mediator) 
                 }
                 Thread.sleep(100)
                 rootDB.createNewFolder(uri)?.let { newFolder ->
-                    mediator.rnartist.addFolderToTreeView(newFolder.absolutePath)?.let {
+                    mediator.rnartist.addFolderToTreeView(newFolder.invariantSeparatorsPath)?.let {
                         mediator.rnartist.expandTreeView(it)
                         mediator.rnartist.selectInTreeView(it)
                     }
