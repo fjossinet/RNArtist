@@ -260,7 +260,7 @@ class RNArtist : Application() {
     }
 
     fun displayDocPage(docPage:String) {
-        this.lowerPanel.displayPanel(this.lowerPanel.documentationPanel)
+        this.lowerPanel.documentationPanelButton.fire()
         this.lowerPanel.documentationPanel.loadDocPage(docPage)
     }
 
@@ -2437,10 +2437,14 @@ class RNArtist : Application() {
         val chartsPanel = ChartsPanel()
         val documentationPanel = DocumentationPanel()
 
+        val dbExplorerPanelButton:Button
+        val chartsPanelButton:Button
+        val documentationPanelButton:Button
+
         init {
-            this.addMenuBarButton("fas-database:15", dbExplorerPanel)
-            this.addMenuBarButton("fas-chart-area:15", chartsPanel)
-            this.addMenuBarButton("fas-book:15", documentationPanel)
+            this.dbExplorerPanelButton = this.addMenuBarButton("fas-database:15", dbExplorerPanel)
+            this.chartsPanelButton = this.addMenuBarButton("fas-chart-area:15", chartsPanel)
+            this.documentationPanelButton = this.addMenuBarButton("fas-book:15", documentationPanel)
         }
 
         fun blinkUINode(name:String) {
@@ -2604,19 +2608,19 @@ class RNArtist : Application() {
                 override fun blinkUINode(name:String) {
                     when (name) {
                         "load_database_button" -> {
-                            displayPanel((this.parent as Panel))
+                            lowerPanel.dbExplorerPanelButton.fire()
                             blinkWithColorBackGround(loadDB)
                         }
                         "reload_database_button" -> {
-                            displayPanel((this.parent as Panel))
+                            lowerPanel.dbExplorerPanelButton.fire()
                             blinkWithColorBackGround(reloadDB)
                         }
                         "load_db_folder_button" -> {
-                            displayPanel((this.parent as Panel))
+                            lowerPanel.dbExplorerPanelButton.fire()
                             blinkWithColorBackGround(loadStructuresFromDBFolder)
                         }
                         "create_db_folder_button" -> {
-                            displayPanel((this.parent as Panel))
+                            lowerPanel.dbExplorerPanelButton.fire()
                             blinkWithColorBackGround(createDBFolder)
                         }
                     }
@@ -3041,7 +3045,7 @@ class RNArtist : Application() {
         fun addMenuBarButton(icon: String, panel: Panel): Button {
             val b = this.menuBar.addButton(icon)
             setHgrow(panel, Priority.ALWAYS)
-            b.onMouseClicked = EventHandler { mouseEvent ->
+            b.onAction = EventHandler { mouseEvent ->
                 this.children.removeAt(1)
                 this.children.add(panel)
                 this.menuBar.switchSelectedButton(b)
