@@ -23,9 +23,33 @@
 <main>
     <section>
     <h2>The junction layout panel</h2>
-    <p>
-
-    </p>
+        <div>
+            <div style="display: inline-block;vertical-align:top;">
+                <figure>
+                    <img src="images/layout_panel.png" />
+                </figure>
+            </div>
+            <div style="display: inline-block;vertical-align:top; padding-left:30px; max-width: 800px">
+                <p>This panel allows you to change the layout (size and helices orientation) for junctions.</p>
+                <h3>Navigation</h3>
+                <p>This allows to scroll over the different junctions in the current selection and to highlight a different one. When a junction is highlighted, the knob below displays its current layout.</p>
+                <p>For more details about the highlighting of an RNA object, check <a href="canvas.html.html">this documentation page</a></p>
+                <h3>Layout Knob</h3>
+                <ul>
+                    <li>each circle is a direction for an helix according to a compass. If the circle is orange, this is the current orientation for one of the helices in this junction. Click on an orange circle to unselect it and choose another one to define a new direction.</li>
+                    <li>left/right arrows move helices in anti/clockwise direction</li>
+                    <li>up/down arrows increase/decrease the size of the junction</li>
+                </ul>
+                <figure>
+                    <img src="images/layout_example_1.png">
+                    <figcaption>The south direction without any circle in the knob is the helix through which you enter in the junction</figcaption>
+                </figure>
+                <figure>
+                    <img src="images/layout_example_2.png">
+                    <figcaption>The helix through which you enter in the junction is always at the same position in the knob whatever its orientation in the drawing</figcaption>
+                </figure>
+            </div>
+        </div>
     </section>
 </main>
 </body>
