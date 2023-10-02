@@ -522,11 +522,11 @@ class RNArtist : Application() {
                 if (mouseEvent.button == MouseButton.SECONDARY) {
                     mediator.currentDrawing.get()?.secondaryStructureDrawing?.let {
                         it.quickDraw = true
-                        val transX: Double = mouseEvent.x - mediator.canvas2D.translateX
-                        val transY: Double = mouseEvent.y - mediator.canvas2D.translateY
+                        val transX: Double = mouseEvent.x - mediator.canvas2D.transX
+                        val transY: Double = mouseEvent.y - mediator.canvas2D.transY
                         it.workingSession.moveView(transX, transY)
-                        mediator.canvas2D.translateX = mouseEvent.x
-                        mediator.canvas2D.translateY = mouseEvent.y
+                        mediator.canvas2D.transX = mouseEvent.x
+                        mediator.canvas2D.transY = mouseEvent.y
                         mediator.canvas2D.repaint()
                     }
                 }
@@ -535,8 +535,8 @@ class RNArtist : Application() {
                 if (mouseEvent.button == MouseButton.SECONDARY) {
                     mediator.currentDrawing.get()?.secondaryStructureDrawing?.let {
                         it.quickDraw = false
-                        mediator.canvas2D.translateX = 0.0
-                        mediator.canvas2D.translateY = 0.0
+                        mediator.canvas2D.transX = 0.0
+                        mediator.canvas2D.transY = 0.0
                         mediator.canvas2D.repaint()
                     }
                 }
@@ -544,8 +544,8 @@ class RNArtist : Application() {
             swingNode.onMousePressed = EventHandler { mouseEvent: MouseEvent ->
                 if (mouseEvent.button == MouseButton.SECONDARY) {
                     mediator.currentDrawing.get()?.let { drawingLoaded ->
-                        mediator.canvas2D.translateX = mouseEvent.x
-                        mediator.canvas2D.translateY = mouseEvent.y
+                        mediator.canvas2D.transX = mouseEvent.x
+                        mediator.canvas2D.transY = mouseEvent.y
                     }
                 }
             }
@@ -622,7 +622,7 @@ class RNArtist : Application() {
 
         private fun createSwingContent(swingNode: SwingNode) {
             Platform.runLater {
-                val canvas = Canvas2D(mediator)
+                val canvas = SwingCanvas2D(mediator)
                 swingNode.content = canvas
                 swingNode.isCache = true
                 swingNode.cacheHint = CacheHint.SPEED
@@ -742,8 +742,8 @@ class RNArtist : Application() {
 
                         buttonsPanel.addButton("fas-plus:15", "Zoom +").onMouseClicked = EventHandler {
                             mediator.workingSession?.zoomView(
-                                mediator.canvas2D.bounds.centerX,
-                                mediator.canvas2D.bounds.centerY,
+                                mediator.canvas2D.getCanvasBounds().centerX,
+                                mediator.canvas2D.getCanvasBounds().centerY,
                                 true
                             )
                             mediator.canvas2D.repaint()
@@ -751,8 +751,8 @@ class RNArtist : Application() {
 
                         buttonsPanel.addButton("fas-minus:15", "Zoom -").onMouseClicked = EventHandler {
                             mediator.workingSession?.zoomView(
-                                mediator.canvas2D.bounds.centerX,
-                                mediator.canvas2D.bounds.centerY,
+                                mediator.canvas2D.getCanvasBounds().centerX,
+                                mediator.canvas2D.getCanvasBounds().centerY,
                                 false
                             )
                             mediator.canvas2D.repaint()
@@ -4110,8 +4110,8 @@ class RNArtist : Application() {
             this.zoomInButton = addButton("fas-plus:15")
             this.zoomInButton.onMouseClicked = EventHandler {
                 mediator.workingSession?.zoomView(
-                    mediator.canvas2D.bounds.centerX,
-                    mediator.canvas2D.bounds.centerY,
+                    mediator.canvas2D.getCanvasBounds().centerX,
+                    mediator.canvas2D.getCanvasBounds().centerY,
                     true
                 )
                 mediator.canvas2D.repaint()
@@ -4120,8 +4120,8 @@ class RNArtist : Application() {
             this.zoomOutButton = this.addButton("fas-minus:15")
             this.zoomOutButton.onMouseClicked = EventHandler {
                 mediator.workingSession?.zoomView(
-                    mediator.canvas2D.bounds.centerX,
-                    mediator.canvas2D.bounds.centerY,
+                    mediator.canvas2D.getCanvasBounds().centerX,
+                    mediator.canvas2D.getCanvasBounds().centerY,
                     false
                 )
                 mediator.canvas2D.repaint()
