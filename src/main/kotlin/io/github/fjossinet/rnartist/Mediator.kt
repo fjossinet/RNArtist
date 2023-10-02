@@ -3,9 +3,9 @@ package io.github.fjossinet.rnartist
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.*
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistDrawing
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistTask
+import io.github.fjossinet.rnartist.io.*
+import io.github.fjossinet.rnartist.model.RNArtistDrawing
+import io.github.fjossinet.rnartist.model.RNArtistTask
 import javafx.application.Platform
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleObjectProperty
@@ -19,6 +19,7 @@ import javax.script.ScriptEngineManager
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
+import kotlin.io.path.invariantSeparatorsPathString
 
 class Mediator(val rnartist: RNArtist) {
 
@@ -227,7 +228,7 @@ class Mediator(val rnartist: RNArtist) {
             when (part) {
                 1 -> {
                     if (!dataDirPath.exists())
-                        tasks.add(CreateDBFolder(this, dataDirPath.toUri()))
+                        tasks.add(CreateDBFolder(this, dataDirPath.invariantSeparatorsPathString))
                     if (!File(dslScriptPath.absolutePathString()).exists())
                         tasks.add(
                             AddStructureFromURL(

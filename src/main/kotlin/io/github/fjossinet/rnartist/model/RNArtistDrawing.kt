@@ -1,11 +1,10 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model
+package io.github.fjossinet.rnartist.model
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.DrawingElement
 import io.github.fjossinet.rnartist.core.model.RNArtistEl
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import javafx.collections.FXCollections
-import java.io.FileReader
 
 /**
  * An RNArtistDrawing is a SecondaryStructureDrawing from rnartistcore linked to additional data (the tree of DSLElement to synchronize the user modifications with the dsl script in the database

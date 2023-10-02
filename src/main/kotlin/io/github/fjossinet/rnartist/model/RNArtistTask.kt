@@ -1,4 +1,4 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model
+package io.github.fjossinet.rnartist.model
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.gui.TaskDialog

@@ -2,7 +2,7 @@ package io.github.fjossinet.rnartist.gui
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.RNArtist
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistTask
+import io.github.fjossinet.rnartist.model.RNArtistTask
 import javafx.event.EventHandler
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -16,7 +16,6 @@ import javafx.stage.StageStyle
 import org.kordamp.ikonli.javafx.FontIcon
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.net.URI
 
 /**
  * A dialog displayed during a running task and following its progress

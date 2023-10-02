@@ -7,12 +7,12 @@ import io.github.fjossinet.rnartist.core.layout
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.*
+import io.github.fjossinet.rnartist.io.AddStructureFromURL
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.AddStructureFromURL
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.CreateDBFolder
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io.LoadStructure
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistDrawing
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistTask
+import io.github.fjossinet.rnartist.io.CreateDBFolder
+import io.github.fjossinet.rnartist.io.LoadStructure
+import io.github.fjossinet.rnartist.model.RNArtistDrawing
+import io.github.fjossinet.rnartist.model.RNArtistTask
 import io.github.fjossinet.rnartist.io.javaFXToAwt
 import javafx.animation.*
 import javafx.application.Application
@@ -204,8 +204,8 @@ class RNArtist : Application() {
 
     fun addFolderToTreeView(absolutePath2StructuralFiles: String): TreeItem<DBFolder>? {
         currentDB.get()?.let { currentDB ->
-            val inBetweenDirs = absolutePath2StructuralFiles.split(currentDB.rootAbsolutePath).last().removePrefix(System.getProperty("file.separator")).removeSuffix(System.getProperty("file.separator"))
-                .split(System.getProperty("file.separator"))
+            val inBetweenDirs = absolutePath2StructuralFiles.split(currentDB.rootAbsolutePath).last().removePrefix("/").removeSuffix("/")
+                .split("/")
             var currentParent = lowerPanel.dbExplorerPanel.dbExplorerSubPanel.dbTreeView.root
             for (i in 0 until inBetweenDirs.size) {
                 if (i == inBetweenDirs.size - 1) {
@@ -2512,7 +2512,7 @@ class RNArtist : Application() {
                                 val w = TaskDialog(mediator)
                                 w.task = CreateDBFolder(
                                     mediator,
-                                    Path.of(selectedItem.value.absPath, dialog.input.text).toUri()
+                                    Path.of(selectedItem.value.absPath, dialog.input.text).invariantSeparatorsPathString
                                 )
                             }
                         } ?: run {

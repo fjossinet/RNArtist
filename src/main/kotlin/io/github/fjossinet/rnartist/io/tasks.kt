@@ -1,20 +1,20 @@
-package io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.io
+package io.github.fjossinet.rnartist.io
 
 import io.github.fjossinet.rnartist.Mediator
 import io.github.fjossinet.rnartist.core.model.RNACentral
 import io.github.fjossinet.rnartist.core.model.RNArtistEl
 import io.github.fjossinet.rnartist.core.model.SecondaryStructureDrawing
 import io.github.fjossinet.rnartist.core.model.Theme
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistDrawing
-import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.model.RNArtistTask
+import io.github.fjossinet.rnartist.model.RNArtistDrawing
+import io.github.fjossinet.rnartist.model.RNArtistTask
 import javafx.application.Platform
 import java.io.File
 import java.net.URI
 
 class AddStructureFromURL(
-    mediator: Mediator,
-    val url: String,
-    val dataDir: String
+        mediator: Mediator,
+        val url: String,
+        val dataDir: String
 ) : RNArtistTask(mediator) {
     init {
         setOnSucceeded { _ ->
@@ -70,7 +70,7 @@ class AddStructureFromURL(
 
 }
 
-class CreateDBFolder(mediator: Mediator, val uri: URI) : RNArtistTask(mediator) {
+class CreateDBFolder(mediator: Mediator, val absPathFolder: String) : RNArtistTask(mediator) {
     init {
         setOnSucceeded { _ ->
             this.resultNow().second?.let { exception ->
@@ -91,7 +91,7 @@ class CreateDBFolder(mediator: Mediator, val uri: URI) : RNArtistTask(mediator) 
                     mediator.rnartist.clearThumbnails()
                 }
                 Thread.sleep(100)
-                rootDB.createNewFolder(uri)?.let { newFolder ->
+                rootDB.createNewFolder(absPathFolder)?.let { newFolder ->
                     mediator.rnartist.addFolderToTreeView(newFolder.invariantSeparatorsPath)?.let {
                         mediator.rnartist.expandTreeView(it)
                         mediator.rnartist.selectInTreeView(it)
