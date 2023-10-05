@@ -1,3 +1,8 @@
+### RNArtist 1.0.8
+
+* Fixed: all the file paths have been made compatible with Windows OS
+* Added: the last step for the quickstart tutorial 
+
 ### RNArtist 1.0.7
 
 * Added: the documentation page for the junction layout panel.
