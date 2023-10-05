@@ -62,7 +62,6 @@ import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
 import java.io.*
 import java.nio.file.Path
-import kotlin.io.path.absolutePathString
 import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.name
 import kotlin.random.Random
@@ -193,8 +192,8 @@ class RNArtist : Application() {
         blink.play()
     }
 
-    fun addThumbnail(pngFile: File, slScriptAbsolutePath: String) {
-        val t = Thumbnail(this.mediator,pngFile,slScriptAbsolutePath)
+    fun addThumbnail(pngFile: File, dslScriptInvariantSeparatorsPath: String) {
+        val t = Thumbnail(this.mediator,pngFile, dslScriptInvariantSeparatorsPath)
         thumbnails.items.add(t)
     }
 
@@ -202,9 +201,9 @@ class RNArtist : Application() {
         thumbnails.items.clear()
     }
 
-    fun addFolderToTreeView(absolutePath2StructuralFiles: String): TreeItem<DBFolder>? {
+    fun addFolderToTreeView(invariantSeparatorsPath2StructuralFiles: String): TreeItem<DBFolder>? {
         currentDB.get()?.let { currentDB ->
-            val inBetweenDirs = absolutePath2StructuralFiles.split(currentDB.rootAbsolutePath).last().removePrefix("/").removeSuffix("/")
+            val inBetweenDirs = invariantSeparatorsPath2StructuralFiles.split(currentDB.rootInvariantSeparatorsPath).last().removePrefix("/").removeSuffix("/")
                 .split("/")
             var currentParent = lowerPanel.dbExplorerPanel.dbExplorerSubPanel.dbTreeView.root
             for (i in 0 until inBetweenDirs.size) {
@@ -216,7 +215,7 @@ class RNArtist : Application() {
                             TreeItem(
                                 DBFolder(
                                     inBetweenDirs[i],
-                                    absolutePath2StructuralFiles
+                                    invariantSeparatorsPath2StructuralFiles
                                 )
                             )
                         )
@@ -231,7 +230,7 @@ class RNArtist : Application() {
                             DBFolder(
                                 inBetweenDirs[i],
                                 Path.of(
-                                    absolutePath2StructuralFiles.split(inBetweenDirs[i]).first(),
+                                    invariantSeparatorsPath2StructuralFiles.split(inBetweenDirs[i]).first(),
                                     inBetweenDirs[i]
                                 ).invariantSeparatorsPathString
                             )
@@ -274,7 +273,7 @@ class RNArtist : Application() {
     inner class Thumbnail(
         val mediator: Mediator,
         pngFile: File,
-        val dslScriptAbsolutePath: String
+        val dslScriptInvariantSeparatorsPath: String
     ) {
 
         var image: Image? = null
@@ -2528,7 +2527,7 @@ class RNArtist : Application() {
                             HelpDialog(mediator, "This button allows you to reload the current database in order to display and index new subfolders", "db_panel.html")
 
                         val w = TaskDialog(mediator)
-                        w.task = LoadDB(mediator, currentDB.get()!!.rootAbsolutePath) //we force since this button is enabled if we have loaded a DB before
+                        w.task = LoadDB(mediator, currentDB.get()!!.rootInvariantSeparatorsPath) //we force since this button is enabled if we have loaded a DB before
                     }
 
                     this.loadStructuresFromDBFolder = buttonsPanel.addButton("fas-eye:15", "Load Structures")
@@ -2555,7 +2554,7 @@ class RNArtist : Application() {
                             createDBFolder.isDisable = false
                             loadStructuresFromDBFolder.isDisable = false
                             dbTreeView.root =
-                                TreeItem(DBFolder(Path.of(newValue.rootAbsolutePath).name, newValue.rootAbsolutePath))
+                                TreeItem(DBFolder(Path.of(newValue.rootInvariantSeparatorsPath).name, newValue.rootInvariantSeparatorsPath))
                         }
                     }
 
@@ -2651,7 +2650,7 @@ class RNArtist : Application() {
                         this.onDragOver = EventHandler { event ->
                             this@DBFolderCell.treeItem?.let {
                                 currentDB.get()?.let { currentDB ->
-                                    if (!it.value.absPath.equals(currentDB.rootAbsolutePath)) {
+                                    if (!it.value.absPath.equals(currentDB.rootInvariantSeparatorsPath)) {
                                         this@DBFolderCell.text = null
                                         val hbox = HBox()
                                         hbox.alignment = Pos.CENTER_LEFT
@@ -2673,7 +2672,7 @@ class RNArtist : Application() {
                         this.onDragExited = EventHandler { event ->
                             this@DBFolderCell.treeItem?.let {
                                 currentDB.get()?.let { currentDB ->
-                                    if (!it.value.absPath.equals(currentDB.rootAbsolutePath)) {
+                                    if (!it.value.absPath.equals(currentDB.rootInvariantSeparatorsPath)) {
                                         this@DBFolderCell.text = it.value.name
                                         this@DBFolderCell.graphic = null
                                     }
@@ -2684,7 +2683,7 @@ class RNArtist : Application() {
                         this.onDragDropped = EventHandler { event ->
                             this@DBFolderCell.treeItem?.let {
                                 currentDB.get()?.let { currentDB ->
-                                    if (!it.value.absPath.equals(currentDB.rootAbsolutePath)) {
+                                    if (!it.value.absPath.equals(currentDB.rootInvariantSeparatorsPath)) {
                                         val w = TaskDialog(mediator)
                                         w.task = AddStructureFromURL(
                                             mediator,
@@ -2710,7 +2709,7 @@ class RNArtist : Application() {
                             lastThumbnailCellClicked = this
 
                             val w = TaskDialog(mediator)
-                            w.task = LoadStructure(mediator, item.dslScriptAbsolutePath)
+                            w.task = LoadStructure(mediator, item.dslScriptInvariantSeparatorsPath)
                         }
                     }
 
@@ -2720,7 +2719,7 @@ class RNArtist : Application() {
                         text = null
                         if (!empty && thumbnail != null) {
                             icon.image = thumbnail.image
-                            val title = File(thumbnail.dslScriptAbsolutePath).name.removeSuffix(".kts")
+                            val title = File(thumbnail.dslScriptInvariantSeparatorsPath).name.removeSuffix(".kts")
                             titlePanel.setTitle(title)
                             graphic = content
                         }
@@ -2792,14 +2791,14 @@ class RNArtist : Application() {
                     }
                 }
 
-                private inner class LoadDB(mediator: Mediator, rootDBAbsPath:String) : RNArtistTask(mediator) {
+                private inner class LoadDB(mediator: Mediator, rootDbInvariantSeparatorsPath:String) : RNArtistTask(mediator) {
 
                     val reload:Boolean
 
                     init {
-                        this.reload = (currentDB.get()?.rootAbsolutePath?.equals(rootDBAbsPath) ?: false) && File(kotlin.io.path.Path(rootDBAbsPath, ".rnartist_db.index").absolutePathString()).exists() /*we could open a new database with the same abspath whose former version has been removed*/
+                        this.reload = (currentDB.get()?.rootInvariantSeparatorsPath?.equals(rootDbInvariantSeparatorsPath) ?: false) && File(kotlin.io.path.Path(rootDbInvariantSeparatorsPath, ".rnartist_db.index").invariantSeparatorsPathString).exists() /*we could open a new database with the same abspath whose former version has been removed*/
                         if (!this.reload) {
-                            currentDB.set(RNArtistDB(rootDBAbsPath))
+                            currentDB.set(RNArtistDB(rootDbInvariantSeparatorsPath))
                         }
 
                         setOnSucceeded { _ ->
@@ -2975,7 +2974,7 @@ class RNArtist : Application() {
                                                         File(
                                                             dataDir,
                                                             "${it.name.split(".png").first()}.kts"
-                                                        ).absolutePath
+                                                        ).invariantSeparatorsPath
                                                     )
                                                     thumbnails.items.add(t)
                                                     updateProgress((++i).toDouble(), totalPNGFiles.toDouble())
@@ -4219,7 +4218,7 @@ class RNArtist : Application() {
         val saveCurrentDrawing = {
             mediator.currentDrawing.get()?.let { currentDrawing ->
                 //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
-                with(File(currentDrawing.dslScriptAbsolutePath)) {
+                with(File(currentDrawing.dslScriptInvariantSeparatorsPath)) {
                     currentDrawing.rnArtistEl.getThemeOrNew().cleanHistory()
                     currentDrawing.rnArtistEl.getLayoutOrNew().cleanHistory()
                     val content = currentDrawing.rnArtistEl.dump().toString()
@@ -4260,7 +4259,7 @@ class RNArtist : Application() {
                             Platform.runLater {
                                 updateMessage(
                                     "Saving 2D for ${
-                                        mediator.currentDrawing.get()!!.dslScriptAbsolutePath.removeSuffix(".kts").split(
+                                        mediator.currentDrawing.get()!!.dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
                                             System.getProperty(
                                                 "file.separator"
                                             )
@@ -4310,7 +4309,7 @@ class RNArtist : Application() {
                                 Platform.runLater {
                                     updateMessage(
                                         "Saving 2D for ${
-                                            currentDrawing.dslScriptAbsolutePath.removeSuffix(".kts").split(
+                                            currentDrawing.dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
                                                 System.getProperty(
                                                     "file.separator"
                                                 )
@@ -4328,7 +4327,7 @@ class RNArtist : Application() {
                                         Platform.runLater {
                                             updateMessage(
                                                 "Updating 2D for ${
-                                                    item.dslScriptAbsolutePath.removeSuffix(".kts").split(
+                                                    item.dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
                                                         System.getProperty(
                                                             "file.separator"
                                                         )
@@ -4338,14 +4337,14 @@ class RNArtist : Application() {
                                         }
                                         Thread.sleep(100)
                                         val rnartistEl =
-                                            (mediator.scriptEngine.eval(File(item.dslScriptAbsolutePath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>)?.second
+                                            (mediator.scriptEngine.eval(File(item.dslScriptInvariantSeparatorsPath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>)?.second
 
                                         rnartistEl?.let {
                                             //we replace the theme and layout elements in the dsl script for this thumbnail with the ones from the current drawing
                                             rnartistEl.addTheme(currentDrawing.rnArtistEl.getThemeOrNew())
                                             rnartistEl.addLayout(currentDrawing.rnArtistEl.getLayoutOrNew())
 
-                                            with(File(item.dslScriptAbsolutePath)) {
+                                            with(File(item.dslScriptInvariantSeparatorsPath)) {
                                                 val content = rnartistEl.dump().toString()
                                                 this.writeText(content)
                                                 mediator.scriptEngine.eval(content)

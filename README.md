@@ -34,6 +34,8 @@ More to come:
 
 RNArtist can be easily installed on MacOS, Linux and Windows thanks to the [jdeploy](https://www.jdeploy.com). Download the installer for your computer [at this address](https://www.jdeploy.com/~rnartist). These installers provide automatic updates. RNArtist downloads updates automatically at launch time so that you are always up-to-date.
 
+For a summary of what's new for the different releases, you can check [this page](Changelog.md)
+
 ## Quickstart and embedded documentation
 
 After its launch, RNArtist shows you the documentation page to quickstart. It is an interactive tutorial to learn the basic use of RNArtist. You will create your first database and download

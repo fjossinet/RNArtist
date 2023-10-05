@@ -17,7 +17,6 @@ import java.awt.Color
 import java.io.File
 import javax.script.ScriptEngineManager
 import kotlin.io.path.Path
-import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.invariantSeparatorsPathString
 
@@ -87,7 +86,7 @@ class Mediator(val rnartist: RNArtist) {
                                             "tutorial_part_1" -> {
                                                 (link as EventTarget).addEventListener("click", { event ->
                                                     this.rnartist.lastSelectedFolderAbsPathInDB?.let {
-                                                        if (it.equals(this.currentDB?.rootAbsolutePath)) {
+                                                        if (it.equals(this.currentDB?.rootInvariantSeparatorsPath)) {
                                                             HelpDialog(
                                                                 this,
                                                                 "You cannot select the root folder. You need to select a subfolder to pursue the tutorial"
@@ -176,7 +175,158 @@ class Mediator(val rnartist: RNArtist) {
                                             "tutorial_part_8" -> {
                                                 (link as EventTarget).addEventListener("click", { event ->
                                                     currentDB?.let { rnartistDB ->
+                                                        val tasks = mutableListOf<RNArtistTask>()
+                                                        var dataDirPath = Path(rnartistDB.rootInvariantSeparatorsPath, "tutorial")
+                                                        if (!dataDirPath.exists())
+                                                            tasks.add(CreateDBFolder(this, dataDirPath.invariantSeparatorsPathString))
 
+                                                        dataDirPath = Path(rnartistDB.rootInvariantSeparatorsPath, "tutorial", "small_cajal")
+                                                        if (!dataDirPath.exists())
+                                                            tasks.add(CreateDBFolder(this, dataDirPath.invariantSeparatorsPathString))
+
+                                                        var url = "https://rnacentral.org/rna/URS000026BDF0/9606"
+                                                        var entryID = "URS000026BDF0"
+                                                        var dslScriptPath = Path(dataDirPath.invariantSeparatorsPathString, "${entryID}.kts")
+
+                                                        if (!File(dslScriptPath.invariantSeparatorsPathString).exists())
+                                                            tasks.add(
+                                                                AddStructureFromURL(
+                                                                    this,
+                                                                    url,
+                                                                    dataDirPath.invariantSeparatorsPathString
+                                                                )
+                                                            )
+                                                        tasks.add(
+                                                            LoadStructure(
+                                                                this,
+                                                                dslScriptPath.invariantSeparatorsPathString
+                                                            )
+                                                        )
+
+                                                        url = "https://rnacentral.org/rna/URS000014FF3E/9606"
+                                                        entryID = "URS000014FF3E"
+                                                        dslScriptPath = Path(dataDirPath.invariantSeparatorsPathString, "${entryID}.kts")
+
+                                                        if (!File(dslScriptPath.invariantSeparatorsPathString).exists())
+                                                            tasks.add(
+                                                                AddStructureFromURL(
+                                                                    this,
+                                                                    url,
+                                                                    dataDirPath.invariantSeparatorsPathString
+                                                                )
+                                                            )
+                                                        tasks.add(
+                                                            LoadStructure(
+                                                                this,
+                                                                dslScriptPath.invariantSeparatorsPathString
+                                                            )
+                                                        )
+
+                                                        url = "https://rnacentral.org/rna/URS00005F3006/9606"
+                                                        entryID = "URS00005F3006"
+                                                        dslScriptPath = Path(dataDirPath.invariantSeparatorsPathString, "${entryID}.kts")
+
+                                                        if (!File(dslScriptPath.invariantSeparatorsPathString).exists())
+                                                            tasks.add(
+                                                                AddStructureFromURL(
+                                                                    this,
+                                                                    url,
+                                                                    dataDirPath.invariantSeparatorsPathString
+                                                                )
+                                                            )
+                                                        tasks.add(
+                                                            LoadStructure(
+                                                                this,
+                                                                dslScriptPath.invariantSeparatorsPathString
+                                                            )
+                                                        )
+
+                                                        dataDirPath = Path(rnartistDB.rootInvariantSeparatorsPath, "tutorial", "small_nucleolar_RNA")
+                                                        if (!dataDirPath.exists())
+                                                            tasks.add(CreateDBFolder(this, dataDirPath.invariantSeparatorsPathString))
+
+                                                        url = "https://rnacentral.org/rna/URS00008B2C89/9606"
+                                                        entryID = "URS00008B2C89"
+                                                        dslScriptPath = Path(dataDirPath.invariantSeparatorsPathString, "${entryID}.kts")
+
+                                                        if (!File(dslScriptPath.invariantSeparatorsPathString).exists())
+                                                            tasks.add(
+                                                                AddStructureFromURL(
+                                                                    this,
+                                                                    url,
+                                                                    dataDirPath.invariantSeparatorsPathString
+                                                                )
+                                                            )
+                                                        tasks.add(
+                                                            LoadStructure(
+                                                                this,
+                                                                dslScriptPath.invariantSeparatorsPathString
+                                                            )
+                                                        )
+
+                                                        url = "https://rnacentral.org/rna/URS00003F1BD0/9606"
+                                                        entryID = "URS00003F1BD0"
+                                                        dslScriptPath = Path(dataDirPath.invariantSeparatorsPathString, "${entryID}.kts")
+
+                                                        if (!File(dslScriptPath.invariantSeparatorsPathString).exists())
+                                                            tasks.add(
+                                                                AddStructureFromURL(
+                                                                    this,
+                                                                    url,
+                                                                    dataDirPath.invariantSeparatorsPathString
+                                                                )
+                                                            )
+                                                        tasks.add(
+                                                            LoadStructure(
+                                                                this,
+                                                                dslScriptPath.invariantSeparatorsPathString
+                                                            )
+                                                        )
+
+                                                        dataDirPath = Path(rnartistDB.rootInvariantSeparatorsPath, "tutorial", "RNAseP")
+                                                        if (!dataDirPath.exists())
+                                                            tasks.add(CreateDBFolder(this, dataDirPath.invariantSeparatorsPathString))
+
+                                                        url = "https://rnacentral.org/rna/URS00004FBCB7/224308"
+                                                        entryID = "URS00004FBCB7"
+                                                        dslScriptPath = Path(dataDirPath.invariantSeparatorsPathString, "${entryID}.kts")
+
+                                                        if (!File(dslScriptPath.invariantSeparatorsPathString).exists())
+                                                            tasks.add(
+                                                                AddStructureFromURL(
+                                                                    this,
+                                                                    url,
+                                                                    dataDirPath.invariantSeparatorsPathString
+                                                                )
+                                                            )
+                                                        tasks.add(
+                                                            LoadStructure(
+                                                                this,
+                                                                dslScriptPath.invariantSeparatorsPathString
+                                                            )
+                                                        )
+
+                                                        url = "https://rnacentral.org/rna/URS000013F331/9606"
+                                                        entryID = "URS000013F331"
+                                                        dslScriptPath = Path(dataDirPath.invariantSeparatorsPathString, "${entryID}.kts")
+
+                                                        if (!File(dslScriptPath.invariantSeparatorsPathString).exists())
+                                                            tasks.add(
+                                                                AddStructureFromURL(
+                                                                    this,
+                                                                    url,
+                                                                    dataDirPath.invariantSeparatorsPathString
+                                                                )
+                                                            )
+                                                        tasks.add(
+                                                            LoadStructure(
+                                                                this,
+                                                                dslScriptPath.invariantSeparatorsPathString
+                                                            )
+                                                        )
+
+                                                        constructPipeline(*tasks.toTypedArray())
+                                                        TaskDialog(this).task = tasks.first()
                                                     } ?: run {
                                                         HelpDialog(
                                                             this,
@@ -219,28 +369,28 @@ class Mediator(val rnartist: RNArtist) {
      */
     private fun createPipelineToComputeTutorialPrerequisites(rnartistDB: RNArtistDB, lastPart: Int): RNArtistTask {
         val tasks = mutableListOf<RNArtistTask>()
-        val dataDirPath = Path(rnartistDB.rootAbsolutePath, "tutorial")
+        val dataDirPath = Path(rnartistDB.rootInvariantSeparatorsPath, "tutorial")
         val url = "https://rnacentral.org/rna/URS000014FF3E/9606"
         val tokens = url.split("/")
         val entryID = tokens[tokens.size - 2]
-        val dslScriptPath = Path(dataDirPath.absolutePathString(), "${entryID}.kts")
+        val dslScriptPath = Path(dataDirPath.invariantSeparatorsPathString, "${entryID}.kts")
         (1..lastPart).forEach { part ->
             when (part) {
                 1 -> {
                     if (!dataDirPath.exists())
                         tasks.add(CreateDBFolder(this, dataDirPath.invariantSeparatorsPathString))
-                    if (!File(dslScriptPath.absolutePathString()).exists())
+                    if (!File(dslScriptPath.invariantSeparatorsPathString).exists())
                         tasks.add(
                             AddStructureFromURL(
                                 this,
                                 url,
-                                dataDirPath.absolutePathString()
+                                dataDirPath.invariantSeparatorsPathString
                             )
                         )
                     tasks.add(
                         LoadStructure(
                             this,
-                            dslScriptPath.absolutePathString()
+                            dslScriptPath.invariantSeparatorsPathString
                         )
                     )
                 }

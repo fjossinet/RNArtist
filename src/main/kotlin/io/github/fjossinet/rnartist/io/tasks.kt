@@ -9,7 +9,6 @@ import io.github.fjossinet.rnartist.model.RNArtistDrawing
 import io.github.fjossinet.rnartist.model.RNArtistTask
 import javafx.application.Platform
 import java.io.File
-import java.net.URI
 
 class AddStructureFromURL(
         mediator: Mediator,
@@ -54,7 +53,7 @@ class AddStructureFromURL(
 
                         Platform.runLater {
                             mediator.rnartist.addThumbnail(File(rootDB.getDrawingsDirForDataDir(File(dataDir)), "${entryID}.png"),
-                                scriptFile.absolutePath)
+                                scriptFile.invariantSeparatorsPath)
                         }
                         Thread.sleep(200)
                     } ?: run {
@@ -109,7 +108,7 @@ class CreateDBFolder(mediator: Mediator, val absPathFolder: String) : RNArtistTa
 /**
  * Load a structure abd display it in the canvas as described in the script whose absolute path is given as argument
  */
-class LoadStructure(mediator: Mediator, val dslScriptAbsolutePath:String) : RNArtistTask(mediator) {
+class LoadStructure(mediator: Mediator, val dslScriptInvariantSeparatorsPath:String) : RNArtistTask(mediator) {
     init {
         setOnSucceeded { _ ->
             this.resultNow().second?.let { exception ->
@@ -128,7 +127,7 @@ class LoadStructure(mediator: Mediator, val dslScriptAbsolutePath:String) : RNAr
             Platform.runLater {
                 updateMessage(
                     "Loading 2D for ${
-                        dslScriptAbsolutePath.removeSuffix(".kts").split(
+                        dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
                             System.getProperty(
                                 "file.separator"
                             )
@@ -138,13 +137,13 @@ class LoadStructure(mediator: Mediator, val dslScriptAbsolutePath:String) : RNAr
             }
             Thread.sleep(1000)
 
-            val result = mediator.scriptEngine.eval(File(dslScriptAbsolutePath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
+            val result = mediator.scriptEngine.eval(File(dslScriptInvariantSeparatorsPath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
             result?.let {
                 val drawing =
                     RNArtistDrawing(
                         mediator,
                         it.first.first(),
-                        dslScriptAbsolutePath,
+                        dslScriptInvariantSeparatorsPath,
                         it.second
                     )
                 mediator.currentDrawing.set(drawing)
