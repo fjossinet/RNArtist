@@ -1,3 +1,7 @@
+### RNArtist 1.0.9
+
+* Fixed: maximum memory increased for the java platform (-Xmx2048m)
+
 ### RNArtist 1.0.8
 
 * Fixed: all the file paths have been made compatible with Windows OS
