@@ -5,3 +5,8 @@ rnartist.iml
 logs/
 RNArtist-1.0.dmg
 RNArtist-1.0.msi
+/dependency-reduced-pom.xml
+/icon.png
+/package.json
+/jdeploy/
+/jdeploy-bundle/
