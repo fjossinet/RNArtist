@@ -51,19 +51,17 @@ class ConfirmationDialog(val mediator: Mediator, message:String, helpDocName: St
 
         content.children.add(buttonsPanel)
 
-        var button = buttonsPanel.addButton("fas-times:15")
-        button.isDisable = false
-        button.onMouseClicked = EventHandler {
+        var button = buttonsPanel.addButton("fas-times:15") {
             isConfirmed = false
             stage.close()
         }
-
-        button = buttonsPanel.addButton("fas-check:15")
         button.isDisable = false
-        button.onMouseClicked = EventHandler {
+
+        button = buttonsPanel.addButton("fas-check:15") {
             isConfirmed = true
             stage.close()
         }
+        button.isDisable = false
 
         helpDocName?.let {
             mediator.webView.engine.load({}.javaClass.getResource("doc/${helpDocName}").toURI().toString())

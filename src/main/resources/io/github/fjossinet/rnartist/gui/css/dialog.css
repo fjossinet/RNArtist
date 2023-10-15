@@ -53,3 +53,11 @@
     -fx-control-inner-background: transparent;
     -fx-background-color: #333333;
 }
+
+.text-field {
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-background-color: #333333;
+    -fx-text-inner-color: white;
+    -fx-border-color: white;
+}

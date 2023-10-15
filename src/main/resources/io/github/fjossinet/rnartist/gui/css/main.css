@@ -21,11 +21,9 @@
 }
 
 .text-field {
-    -fx-background-color: #565656 ;
-}
-
-.text-field {
-    -fx-background-color: #565656 ;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-background-color: #565656;
     -fx-text-inner-color: white;
 }
 
@@ -48,6 +46,11 @@
 .menu, .menu-item, .context-menu, .combo-box, .list-cell {
     -fx-background-color: #565656 ;
     -fx-text-fill: white;
+}
+
+.combo-box, .list-cell {
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
 }
 
 .menu-item:hover, .list-cell:hover  {

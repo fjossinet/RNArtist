@@ -3,6 +3,8 @@ package io.github.fjossinet.rnartist
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
+import io.github.fjossinet.rnartist.core.io.parseCT
+import io.github.fjossinet.rnartist.core.io.parseVienna
 import io.github.fjossinet.rnartist.core.layout
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.theme
@@ -11,6 +13,7 @@ import io.github.fjossinet.rnartist.io.AddStructureFromURL
 import io.github.fjossinet.rnartist.io.awtColorToJavaFX
 import io.github.fjossinet.rnartist.io.CreateDBFolder
 import io.github.fjossinet.rnartist.io.LoadStructure
+import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistButton
 import io.github.fjossinet.rnartist.model.RNArtistDrawing
 import io.github.fjossinet.rnartist.model.RNArtistTask
 import io.github.fjossinet.rnartist.io.javaFXToAwt
@@ -25,10 +28,10 @@ import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.embed.swing.SwingNode
+import javafx.event.ActionEvent
 import javafx.event.EventHandler
-import javafx.geometry.Insets
+import javafx.geometry.*
 import javafx.geometry.Orientation
-import javafx.geometry.Pos
 import javafx.scene.CacheHint
 import javafx.scene.Group
 import javafx.scene.Node
@@ -41,6 +44,8 @@ import javafx.scene.effect.Glow
 import javafx.scene.effect.InnerShadow
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
+import javafx.scene.input.Clipboard
+import javafx.scene.input.KeyCode
 import javafx.scene.input.MouseButton
 import javafx.scene.input.MouseEvent
 import javafx.scene.input.TransferMode
@@ -52,6 +57,7 @@ import javafx.scene.paint.Stop
 import javafx.scene.shape.*
 import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
+import javafx.scene.text.Text
 import javafx.stage.*
 import javafx.util.Duration
 import org.controlsfx.control.GridCell
@@ -64,6 +70,7 @@ import java.io.*
 import java.nio.file.Path
 import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.name
+import kotlin.io.path.writeText
 import kotlin.random.Random
 
 
@@ -173,13 +180,13 @@ class RNArtist : Application() {
         blink.play()
     }
 
-    private fun blinkWithColorBackGround(region:Region) {
+    private fun blinkWithColorBackGround(rnArtistButton:RNArtistButton) {
         val colorChange = SimpleObjectProperty<Color?>(null)
         colorChange.addListener { _, _, newValue ->
             newValue?.let {
-                region.background = Background(BackgroundFill(newValue, CornerRadii.EMPTY, Insets.EMPTY))
+                rnArtistButton.button.background = Background(BackgroundFill(newValue, CornerRadii.EMPTY, Insets.EMPTY))
             } ?: run {
-                region.background = null
+                rnArtistButton.button.background = null
             }
 
         }
@@ -294,6 +301,83 @@ class RNArtist : Application() {
             return this.name
         }
     }
+
+    /**
+     * A SmallButton is used inside panels and subpanels.
+     *
+     */
+
+    /*inner class SmallButton(icon: String, clickable: Boolean = true, iconColor: Color = Color.WHITE, buttonRadius:Double = 12.0, isClickedColor:Color? = null): Group() {
+        var isClicked: Boolean = false
+        val button = Button(null, FontIcon(icon))
+        init {
+            with(this.button) {
+                this.background = null
+                (this.graphic as FontIcon).iconColor = iconColor
+                val c = Circle(0.0, 0.0, buttonRadius)
+                c.fill = Color.TRANSPARENT
+                c.strokeWidth = 0.5
+                c.stroke = if (this.isDisable) Color.DARKGRAY else Color.WHITE
+                this.disableProperty().addListener { _, oldValue, newValue ->
+                    c.stroke = if (newValue) Color.DARKGRAY else Color.WHITE
+                }
+                this@SmallButton.children.add(c)
+                this.setShape(c)
+                button.layoutX = - buttonRadius
+                button.layoutY = - buttonRadius
+                this.setMinSize(2 * buttonRadius, 2 * buttonRadius)
+                this.setMaxSize(2 * buttonRadius, 2 * buttonRadius)
+                if (clickable) {
+                    this.onMouseEntered = EventHandler {
+                        this.background = Background(BackgroundFill(Color.LIGHTGRAY, CornerRadii.EMPTY, Insets.EMPTY))
+                        (this.graphic as FontIcon).iconColor = Color.BLACK
+                    }
+                    this.onMouseExited = EventHandler {
+                        (this.graphic as FontIcon).iconColor = iconColor
+                        isClickedColor?.let {
+                            if (isClicked) {
+                                this.background =
+                                    Background(BackgroundFill(isClickedColor, CornerRadii.EMPTY, Insets.EMPTY))
+                                val dropShadow = InnerShadow()
+                                dropShadow.offsetX = 0.0
+                                dropShadow.offsetY = 0.0
+                                dropShadow.color = Color.LIGHTGRAY
+                                this.effect = dropShadow
+                            } else {
+                                this.background = null
+                                this.effect = null
+                            }
+                        } ?: run {
+                            this.background = null
+                        }
+                    }
+                    this.onMousePressed = EventHandler {
+                        this.background = Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
+                        (this.graphic as FontIcon).iconColor = Color.BLACK
+                    }
+                    this.onMouseReleased = EventHandler {
+                        this.background = Background(BackgroundFill(Color.LIGHTGRAY, CornerRadii.EMPTY, Insets.EMPTY))
+                        (this.graphic as FontIcon).iconColor = Color.BLACK
+                    }
+                    this.onMouseClicked = EventHandler {
+                        isClicked = !isClicked
+                        isClickedColor?.let {
+                            when (isClicked) {
+                                true -> {
+                                    (this.graphic as FontIcon).iconColor = isClickedColor
+                                }
+
+                                false -> {
+                                    (this.graphic as FontIcon).iconColor = iconColor
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            this.children.add(this.button)
+        }
+    }*/
 
 
     private inner class UpperPanel() : GridPane() {
@@ -696,7 +780,7 @@ class RNArtist : Application() {
 
                         mediator.currentDrawing.addListener { _, _, newValue ->
                             buttonsPanel.buttons.forEach {
-                                if (it.tooltip.text in listOf("Zoom +", "Zoom -", "Fit 2D to View"))
+                                if (it.button.tooltip.text in listOf("Zoom +", "Zoom -", "Fit 2D to View"))
                                     it.isDisable = newValue == null
                             }
                         }
@@ -707,7 +791,7 @@ class RNArtist : Application() {
                                     if (it.list.isEmpty()) {
                                         mediator.drawingHighlighted.set(null)
                                         buttonsPanel.buttons.forEach {
-                                            if (it.tooltip.text in listOf(
+                                            if (it.button.tooltip.text in listOf(
                                                     "Highlight former Selection",
                                                     "Highlight next Selection"
                                                 )
@@ -717,7 +801,7 @@ class RNArtist : Application() {
                                     } else if (it.list.size == 1) {
                                         mediator.drawingHighlighted.set(it.list.first())
                                         buttonsPanel.buttons.forEach {
-                                            if (it.tooltip.text in listOf(
+                                            if (it.button.tooltip.text in listOf(
                                                     "Highlight former Selection",
                                                     "Highlight next Selection"
                                                 )
@@ -727,7 +811,7 @@ class RNArtist : Application() {
                                     } else {
                                         mediator.drawingHighlighted.set(null)
                                         buttonsPanel.buttons.forEach {
-                                            if (it.tooltip.text in listOf(
+                                            if (it.button.tooltip.text in listOf(
                                                     "Highlight former Selection",
                                                     "Highlight next Selection"
                                                 )
@@ -739,7 +823,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        buttonsPanel.addButton("fas-plus:15", "Zoom +").onMouseClicked = EventHandler {
+                        buttonsPanel.addButton("fas-plus:15", "Zoom +") {
                             mediator.workingSession?.zoomView(
                                 mediator.canvas2D.getCanvasBounds().centerX,
                                 mediator.canvas2D.getCanvasBounds().centerY,
@@ -748,7 +832,7 @@ class RNArtist : Application() {
                             mediator.canvas2D.repaint()
                         }
 
-                        buttonsPanel.addButton("fas-minus:15", "Zoom -").onMouseClicked = EventHandler {
+                        buttonsPanel.addButton("fas-minus:15", "Zoom -") {
                             mediator.workingSession?.zoomView(
                                 mediator.canvas2D.getCanvasBounds().centerX,
                                 mediator.canvas2D.getCanvasBounds().centerY,
@@ -757,13 +841,11 @@ class RNArtist : Application() {
                             mediator.canvas2D.repaint()
                         }
 
-                        buttonsPanel.addButton("fas-expand-arrows-alt:15", "Fit 2D to View").onMouseClicked =
-                            EventHandler {
+                        buttonsPanel.addButton("fas-expand-arrows-alt:15", "Fit 2D to View") {
                                 mediator.canvas2D.fitStructure(null)
                             }
 
-                        buttonsPanel.addButton("fas-chevron-left:15", "Highlight former Selection").onMouseClicked =
-                            EventHandler { mouseEvent ->
+                        buttonsPanel.addButton("fas-chevron-left:15", "Highlight former Selection") {
                                 val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
                                     ?.sortedBy { (it as? JunctionDrawing)?.junction?.location?.end ?: it.location.end }
                                 mediator.drawingHighlighted.get()?.let {
@@ -786,8 +868,7 @@ class RNArtist : Application() {
 
                             }
 
-                        buttonsPanel.addButton("fas-chevron-right:15", "Highlight next Selection").onMouseClicked =
-                            EventHandler { mouseEvent ->
+                        buttonsPanel.addButton("fas-chevron-right:15", "Highlight next Selection") {
                                 val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
                                     ?.sortedBy {
                                         (it as? JunctionDrawing)?.junction?.location?.start ?: it.location.start
@@ -815,17 +896,16 @@ class RNArtist : Application() {
 
                     override fun blinkUINode(name:String) {}
 
-
                 }
 
                 inner class DetailsLevelSubPanel() : SubPanel("Details Level") {
 
                     val buttonsPanel = LargeButtonsPanel()
-                    val detailsLvl1:Button
-                    val detailsLvl2:Button
-                    val detailsLvl3:Button
-                    val detailsLvl4:Button
-                    val detailsLvl5:Button
+                    val detailsLvl1:RNArtistButton
+                    val detailsLvl2:RNArtistButton
+                    val detailsLvl3:RNArtistButton
+                    val detailsLvl4:RNArtistButton
+                    val detailsLvl5:RNArtistButton
 
                     init {
 
@@ -837,8 +917,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        detailsLvl1 = buttonsPanel.addButton("met-number-one:25")
-                        detailsLvl1.onAction = EventHandler {
+                        detailsLvl1 = buttonsPanel.addButton("met-number-one:25") {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
                                 val t = Theme()
                                 t.addConfiguration(
@@ -852,8 +931,7 @@ class RNArtist : Application() {
 
                         }
 
-                        detailsLvl2 = buttonsPanel.addButton("met-number-two:25")
-                        detailsLvl2.onAction = EventHandler {
+                        detailsLvl2 = buttonsPanel.addButton("met-number-two:25") {
                             val t = Theme()
                             t.addConfiguration(
                                 ThemeProperty.fulldetails,
@@ -889,8 +967,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        detailsLvl3 = buttonsPanel.addButton("met-number-three:25")
-                        detailsLvl3.onAction = EventHandler {
+                        detailsLvl3 = buttonsPanel.addButton("met-number-three:25") {
                             val t = Theme()
                             t.addConfiguration(
                                 ThemeProperty.fulldetails,
@@ -929,8 +1006,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        detailsLvl4 = buttonsPanel.addButton("met-number-four:25")
-                        detailsLvl4.onAction = EventHandler {
+                        detailsLvl4 = buttonsPanel.addButton("met-number-four:25") {
                             val t = Theme()
                             t.addConfiguration(
                                 ThemeProperty.fulldetails,
@@ -967,8 +1043,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        detailsLvl5 = buttonsPanel.addButton("met-number-five:25")
-                        detailsLvl5.onAction = EventHandler {
+                        detailsLvl5 = buttonsPanel.addButton("met-number-five:25") {
                             val t = Theme()
                             t.addConfiguration(
                                 ThemeProperty.fulldetails,
@@ -1080,13 +1155,9 @@ class RNArtist : Application() {
 
                     val schemesComboBox = ComboBox<String>()
                     val schemeLabel:Label
-                    val unselectedColor:Button
-                    var setUnselectedColor:Boolean = false
+                    val unselectedColor = RNArtistButton("fas-search:12", isClickedColor = Color.DARKRED)
 
                     init {
-                        mediator.currentDrawing.addListener { _, _, newValue ->
-                            this.disableFontButton(newValue == null)
-                        }
 
                         val schemes = listOf(
                             "Persian Carolina",
@@ -1138,7 +1209,7 @@ class RNArtist : Application() {
                             colorsFromWheel.forEach {
                                 val color = Color.hsb(it.value[0], it.value[1], it.value[2])
                                 if (event.x >= it.key.x && event.x <= it.key.x + 1.0 && event.y >= it.key.y && event.y <= it.key.y + 1.0) {
-                                    if (setUnselectedColor){
+                                    if (unselectedColor.isClicked){
                                         RnartistConfig.nonSelectedColor = javaFXToAwt(color)
                                         mediator.canvas2D.repaint()
                                     } else {
@@ -1159,29 +1230,17 @@ class RNArtist : Application() {
                                 }
                             }
                         }
-
-                        var c = Circle(0.0, 0.0, 20.0)
-                        unselectedColor = Button(null, FontIcon("fas-search:15"))
-                        unselectedColor.background = null
-                        (unselectedColor.graphic as FontIcon).iconColor = Color.WHITE
-                        unselectedColor.onMouseClicked = EventHandler {
-                                this.setUnselectedColor = !this.setUnselectedColor
-                                when (this.setUnselectedColor) {
-                                    true -> {
-                                        (this.unselectedColor.graphic as FontIcon).iconColor = Color.DARKORANGE
-                                    }
-
-                                    false -> {
-                                        (this.unselectedColor.graphic as FontIcon).iconColor = Color.WHITE
-                                    }
-                                }
-                        }
-                        unselectedColor.shape = c
-                        unselectedColor.layoutX = 0.0
-                        unselectedColor.layoutY = 0.0
-                        unselectedColor.setMinSize(15.0, 15.0)
-                        unselectedColor.setMaxSize(15.0, 15.0)
                         colorWheelGroup.children.add(unselectedColor)
+
+                        fontButton.isDisable = true
+                        mediator.currentDrawing.addListener { _, _, newValue ->
+                            fontButton.isDisable = (newValue == null)
+                        }
+
+                        unselectedColor.isDisable = true
+                        mediator.currentDrawing.addListener { _, _, newValue ->
+                            unselectedColor.isDisable = (newValue == null)
+                        }
 
                         this.colorWheelGroup.onMouseClicked = EventHandler {
                             var i = 0
@@ -1267,7 +1326,7 @@ class RNArtist : Application() {
                         val r = Circle(0.0, 0.0, 10.0)
                         val color = Color.hsb(c[0], c[1], c[2])
                         r.onMouseClicked = EventHandler { event ->
-                            if (setUnselectedColor){
+                            if (unselectedColor.isClicked){
                                 RnartistConfig.nonSelectedColor = javaFXToAwt(color)
                                 mediator.canvas2D.repaint()
                             } else {
@@ -1306,7 +1365,7 @@ class RNArtist : Application() {
                             val r = Circle(0.0, 0.0, 10.0)
                             val color = Color.hsb(c[0], c[1], 0.2 * it)
                             r.onMouseClicked = EventHandler { event ->
-                                if (setUnselectedColor) {
+                                if (unselectedColor.isClicked) {
                                     RnartistConfig.nonSelectedColor = javaFXToAwt(color)
                                     mediator.canvas2D.repaint()
                                 } else {
@@ -1332,7 +1391,7 @@ class RNArtist : Application() {
                             val r = Circle(0.0, 0.0, 10.0)
                             val color = Color.hsb(c[0], 0.2 * it, c[2])
                             r.onMouseClicked = EventHandler { event ->
-                                if (setUnselectedColor) {
+                                if (unselectedColor.isClicked) {
                                     RnartistConfig.nonSelectedColor = javaFXToAwt(color)
                                     mediator.canvas2D.repaint()
                                 } else {
@@ -1370,7 +1429,7 @@ class RNArtist : Application() {
                                             ?.let { color -> //we extract the color to save in the script from the first element stored during the theming process
                                                 setColorForFull2D(
                                                     currentDrawing.rnArtistEl,
-                                                    applyThemeOnFont,
+                                                    fontButton.isClicked,
                                                     color,
                                                     step
                                                 )
@@ -1489,32 +1548,35 @@ class RNArtist : Application() {
 
                     val typesComboBox = ComboBox<String>()
                     val typeLabel = Label("Type")
-                    val select:Button
-                    val trashSelection:Button
-                    val reverseSelection:Button
-                    val addToSelection:Button
+                    val locationLabel = Label("Location")
+                    val select:RNArtistButton
+                    val trashSelection:RNArtistButton
+                    val reverseSelection:RNArtistButton
+                    val addToSelection:RNArtistButton
+                    val blocks = VBox()
 
                     init {
                         val buttonsPanel = LargeButtonsPanel()
+                        buttonsPanel.padding = Insets(0.0)
                         this.children.add(buttonsPanel)
 
                         mediator.currentDrawing.addListener { _, _, newValue ->
-                            buttonsPanel.buttons.forEach {
+                            buttonsPanel.children.forEach {
                                 it.isDisable = newValue == null
                             }
                         }
 
                         select = buttonsPanel.addButton(
                             icon = "fas-search:15"
-                        )
-                        select.onMouseClicked = EventHandler {
+                        ) {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
+                                // a potential former selection has the priority over the location defined in the selection panel
                                 val selectedLocation = with(mediator.canvas2D.getSelectedPositions()) {
                                     if (this.isEmpty())
                                         null
                                     else
                                         Location(this.toIntArray())
-                                }
+                                } ?:getUserLocation()
 
                                 val selector = getSelector(selectedLocation)
 
@@ -1554,8 +1616,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        addToSelection = buttonsPanel.addButton(icon = "fas-search-plus:15")
-                        addToSelection.onMouseClicked = EventHandler {
+                        addToSelection = buttonsPanel.addButton(icon = "fas-search-plus:15") {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
                                 val selector = getSelector()
                                 val allElements = mutableSetOf<DrawingElement>()
@@ -1592,8 +1653,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        reverseSelection = buttonsPanel.addButton(icon = "fas-exchange-alt:15")
-                        reverseSelection.onMouseClicked = EventHandler {
+                        reverseSelection = buttonsPanel.addButton(icon = "fas-exchange-alt:15") {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
                                 val selectedLocation = with(mediator.canvas2D.getSelectedPositions()) {
                                     if (this.isEmpty())
@@ -1645,10 +1705,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        trashSelection = buttonsPanel.addButton(
-                            icon = "fas-trash:15"
-                        )
-                        trashSelection.onMouseClicked = EventHandler {
+                        trashSelection = buttonsPanel.addButton(icon = "fas-trash:15") {
                             mediator.canvas2D.clearSelection()
                         }
 
@@ -1672,19 +1729,126 @@ class RNArtist : Application() {
                         this.typesComboBox.value = "Helices"
                         this.typesComboBox.items.addAll(types)
                         this.typesComboBox.selectionModel.select(0)
-                        this.typesComboBox.minWidth = 150.0
-                        this.typesComboBox.maxWidth = 150.0
                         this.typesComboBox.onAction = EventHandler {
 
                         }
-                        val hbox = HBox()
-                        hbox.padding = Insets(5.0, 0.0, 0.0, 0.0)
-                        hbox.spacing = 5.0
-                        hbox.alignment = Pos.CENTER_LEFT
-                        hbox.children.add(typeLabel)
-                        hbox.children.add(typesComboBox)
-                        this.children.add(hbox)
 
+                        val gridPane = GridPane()
+                        gridPane.hgap = 10.0
+                        gridPane.vgap = 10.0
+                        val columnConstraints1 = ColumnConstraints()
+                        columnConstraints1.halignment = HPos.RIGHT
+                        val columnConstraints2 = ColumnConstraints()
+                        columnConstraints2.halignment = HPos.LEFT
+                        gridPane.columnConstraints.addAll(columnConstraints1, columnConstraints2)
+                        val rowConstraints1 = RowConstraints()
+                        rowConstraints1.valignment = VPos.CENTER
+                        val rowConstraints2 = RowConstraints()
+                        rowConstraints2.valignment = VPos.TOP
+                        gridPane.rowConstraints.addAll(rowConstraints1, rowConstraints2)
+                        this.children.add(gridPane)
+                        gridPane.padding = Insets(5.0, 0.0, 5.0, 0.0)
+                        gridPane.add(typeLabel, 0, 0, 1, 1)
+                        gridPane.add(typesComboBox, 1, 0, 1, 1)
+
+                        this.blocks.alignment = Pos.TOP_LEFT
+                        this.blocks.spacing = 5.0
+                        this.blocks.background = Background(BackgroundFill(
+                            RNArtistGUIColor,
+                            CornerRadii.EMPTY,
+                            Insets.EMPTY
+                        ))
+
+                        val scrollPane = ScrollPane(this.blocks)
+                        scrollPane.isFitToWidth = true
+                        scrollPane.isFitToHeight = true
+                        scrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.ALWAYS
+                        scrollPane.minHeight = 100.0
+                        scrollPane.prefHeight = 100.0
+                        scrollPane.maxHeight = 100.0
+                        scrollPane.border = Border(BorderStroke(Color.WHITE, BorderStrokeStyle.SOLID, CornerRadii(5.0), BorderWidths(0.5)))
+                        scrollPane.padding = Insets(5.0)
+
+                        val locationHeader = HBox()
+                        locationHeader.alignment = Pos.CENTER_LEFT
+                        locationHeader.spacing = 5.0
+                        locationHeader.children.add(locationLabel)
+
+                        val addBlockButton = RNArtistButton("fas-plus:12") {
+                            this.addBlock()
+                        }
+                        locationHeader.children.add(addBlockButton)
+
+                        val getCurrentSelectionLocationButton = RNArtistButton("fas-eye-dropper:12") {
+                            Location(mediator.canvas2D.getSelectedPositions().toIntArray()).blocks.forEach {
+                                this.addBlock(it.start, it.end)
+                            }
+                        }
+                        getCurrentSelectionLocationButton.isDisable = true
+                        mediator.currentDrawing.addListener {  _, _, newValue ->
+                            newValue?.let {
+                                it.selectedDrawings.addListener(ListChangeListener {
+                                    if (it.list.isEmpty())
+                                        getCurrentSelectionLocationButton.isDisable = true
+                                    else
+                                        getCurrentSelectionLocationButton.isDisable = false
+                                })
+                            }
+                        }
+                        locationHeader.children.add(getCurrentSelectionLocationButton)
+
+                        val trashAllBlocksButton = RNArtistButton("fas-trash:12") {
+                            blocks.children.clear()
+                        }
+                        locationHeader.children.add(trashAllBlocksButton)
+
+                        gridPane.add(locationHeader, 0, 1, 2, 1)
+                        gridPane.add(scrollPane, 0, 2, 2, 1)
+
+                    }
+
+                    fun addBlock(startPos:Int?=null, endPos:Int?=null) {
+                        val block = HBox()
+                        block.alignment = Pos.CENTER
+                        block.background = Background(BackgroundFill(
+                            RNArtistGUIColor,
+                            CornerRadii.EMPTY,
+                            Insets.EMPTY
+                        ))
+                        block.spacing = 10.0
+                        val start = TextField(startPos?.toString() ?: "")
+                        start.maxWidth = 50.0
+                        block.children.add(start)
+                        val fi = FontIcon("fas-arrows-alt-h:20")
+                        fi.iconColor = Color.WHITE
+                        block.children.add(fi)
+                        val stop = TextField(endPos?.toString() ?: "")
+                        stop.maxWidth = 50.0
+                        block.children.add(stop)
+                        val trash = RNArtistButton( "fas-times:12", buttonRadius = 10.0) {
+                            blocks.children.remove(block)
+                        }
+                        block.children.add(trash)
+                        blocks.children.add(block)
+                    }
+
+                    fun getUserLocation():Location? {
+                        return if (blocks.children.isNotEmpty()) {
+                            val l = Location()
+                            blocks.children.forEach {
+                                val textFields = (it as HBox).children.filterIsInstance<TextField>()
+                                textFields.first().text.trim().toIntOrNull()?.let { start ->
+                                    textFields.last().text.trim().toIntOrNull()?.let { end ->
+                                        l.blocks.add(Block(start,end))
+                                    }
+                                }
+                            }
+                            if (l.length != 0)
+                                l
+                            else
+                                null
+                        } else
+                            null
                     }
 
                     override fun blinkUINode(name:String) {
@@ -1801,8 +1965,8 @@ class RNArtist : Application() {
                     SubPanel("Details Level") {
 
                     val buttonsPanel = LargeButtonsPanel()
-                    val lowlyRenderedButton:Button
-                    val highlyRenderedButton:Button
+                    val lowlyRenderedButton:RNArtistButton
+                    val highlyRenderedButton:RNArtistButton
 
                     init {
 
@@ -1813,11 +1977,11 @@ class RNArtist : Application() {
                             newValue?.let {
                                 it.selectedDrawings.addListener(ListChangeListener {
                                     if (it.list.isEmpty()) {
-                                        buttonsPanel.buttons.forEach {
+                                        buttonsPanel.children.forEach {
                                             it.isDisable = true
                                         }
                                     } else {
-                                        buttonsPanel.buttons.forEach {
+                                        buttonsPanel.children.forEach {
                                             it.isDisable = false
                                         }
                                     }
@@ -1825,8 +1989,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        this.lowlyRenderedButton = this.buttonsPanel.addButton("fas-minus:15")
-                        this.lowlyRenderedButton.onAction = EventHandler {
+                        this.lowlyRenderedButton = this.buttonsPanel.addButton("fas-minus:15") {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
                                 val elements = mutableListOf<DrawingElement>()
                                 mediator.drawingHighlighted.get()?.let {
@@ -1854,8 +2017,7 @@ class RNArtist : Application() {
                             mediator.canvas2D.repaint()
                         }
 
-                        this.highlyRenderedButton = this.buttonsPanel.addButton("fas-plus:15")
-                        this.highlyRenderedButton.onAction = EventHandler {
+                        this.highlyRenderedButton = this.buttonsPanel.addButton("fas-plus:15") {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
                                 val elements = mutableListOf<DrawingElement>()
                                 mediator.drawingHighlighted.get()?.let {
@@ -1968,40 +2130,35 @@ class RNArtist : Application() {
 
                 inner class ColorLineWidthSubPanel() : AbstractColorLineWidthSubPanel() {
 
-                    val pickColor:Button
-                    init {
-                        mediator.currentDrawing.addListener { _, _, newValue ->
-                            newValue?.let {
-                                it.selectedDrawings.addListener(ListChangeListener {
-                                    this.disableFontButton(it.list.flatMap { it.allChildren }
-                                        .count { it is ResidueLetterDrawing } == 0)
-                                })
-                            }
+                    val pickColor = RNArtistButton("fas-eye-dropper:13") {
+                        mediator.drawingHighlighted.get()?.let {
+                            val javafxColor = awtColorToJavaFX(it.getColor())
+                            val _c = doubleArrayOf(javafxColor.hue, javafxColor.saturation, javafxColor.brightness)
+                            this.repaintBrightness(_c)
+                            this.repaintSaturation(_c)
+                            addLastColor(_c)
                         }
 
-                        var c = Circle(0.0, 0.0, 20.0)
-                        pickColor = Button(null, FontIcon("fas-eye-dropper:15"))
+                    }
+
+                    init {
+                        fontButton.isDisable = true
+                        mediator.currentDrawing.addListener {  _, _, newValue ->
+                            newValue?.let {
+                                it.selectedDrawings.addListener(ListChangeListener {
+                                    if (it.list.isEmpty())
+                                        fontButton.isDisable = true
+                                    else
+                                        fontButton.isDisable = false
+                                })
+                            }
+
+                        }
+
                         pickColor.isDisable = true
                         mediator.drawingHighlighted.addListener { _, _, newValue ->
                             pickColor.isDisable = (newValue == null)
                         }
-                        pickColor.background = null
-                        (pickColor.graphic as FontIcon).iconColor = Color.WHITE
-                        pickColor.onMouseClicked = EventHandler {
-                            mediator.drawingHighlighted.get()?.let {
-                                val javafxColor = awtColorToJavaFX(it.getColor())
-                                val _c = doubleArrayOf(javafxColor.hue, javafxColor.saturation, javafxColor.brightness)
-                                this.repaintBrightness(_c)
-                                this.repaintSaturation(_c)
-                                addLastColor(_c)
-                            }
-
-                        }
-                        pickColor.shape = c
-                        pickColor.layoutX = 0.0
-                        pickColor.layoutY = 0.0
-                        pickColor.setMinSize(15.0, 15.0)
-                        pickColor.setMaxSize(15.0, 15.0)
                         colorWheelGroup.children.add(pickColor)
 
                         this.colorWheel.onMouseClicked = EventHandler { event ->
@@ -2221,7 +2378,7 @@ class RNArtist : Application() {
                                     when (configuration.propertyName) {
                                         ThemeProperty.color.toString() ->
                                             typesAndLocation.forEach {
-                                                if (applyThemeOnFont) { //the user cannot select ResidueLetter by himself, we search for the first ResidueLetter in the current selection to get the color
+                                                if (fontButton.isClicked) { //the user cannot select ResidueLetter by himself, we search for the first ResidueLetter in the current selection to get the color
                                                     mediator.canvas2D.getSelection()
                                                         .firstOrNull()?.allChildren?.firstOrNull { it is ResidueLetterDrawing }
                                                         ?.getColor()?.let { color ->
@@ -2317,7 +2474,7 @@ class RNArtist : Application() {
                                 it.selectedDrawings.addListener(ListChangeListener {
                                     if (it.list.isEmpty()) {
                                         buttonsPanel.buttons.forEach {
-                                            if (it.tooltip.text in listOf(
+                                            if (it.button.tooltip.text in listOf(
                                                     "Highlight former Junction",
                                                     "Highlight next Junction"
                                                 )
@@ -2326,7 +2483,7 @@ class RNArtist : Application() {
                                         }
                                     } else if (it.list.size == 1 && it.list.first() is JunctionDrawing) {
                                         buttonsPanel.buttons.forEach {
-                                            if (it.tooltip.text in listOf(
+                                            if (it.button.tooltip.text in listOf(
                                                     "Highlight former Junction",
                                                     "Highlight next Junction"
                                                 )
@@ -2335,7 +2492,7 @@ class RNArtist : Application() {
                                         }
                                     } else if (it.list.filter { it is JunctionDrawing }.size > 1) {
                                         buttonsPanel.buttons.forEach {
-                                            if (it.tooltip.text in listOf(
+                                            if (it.button.tooltip.text in listOf(
                                                     "Highlight former Junction",
                                                     "Highlight next Junction"
                                                 )
@@ -2347,8 +2504,7 @@ class RNArtist : Application() {
                             }
                         }
 
-                        buttonsPanel.addButton("fas-chevron-left:15", "Highlight former Junction").onMouseClicked =
-                            EventHandler { mouseEvent ->
+                        buttonsPanel.addButton("fas-chevron-left:15", "Highlight former Junction") {
                                 val sortedSelectedJunctions =
                                     mediator.currentDrawing.get()?.selectedDrawings?.filter { it is JunctionDrawing }
                                         ?.map { it }?.sortedBy { (it as JunctionDrawing).junction.location.end }
@@ -2375,8 +2531,7 @@ class RNArtist : Application() {
                                 }
                             }
 
-                        buttonsPanel.addButton("fas-chevron-right:15", "Highlight next Junction").onMouseClicked =
-                            EventHandler { mouseEvent ->
+                        buttonsPanel.addButton("fas-chevron-right:15", "Highlight next Junction") {
                                 val sortedSelectedJunctions =
                                     mediator.currentDrawing.get()?.selectedDrawings?.filter { it is JunctionDrawing }
                                         ?.map { it }?.sortedBy { (it as JunctionDrawing).junction.location.start }
@@ -2406,7 +2561,6 @@ class RNArtist : Application() {
 
                     override fun blinkUINode(name:String) {}
 
-
                 }
 
                 private inner class LayoutSubPanel() : SubPanel("Layout") {
@@ -2433,14 +2587,17 @@ class RNArtist : Application() {
     inner class LowerPanel() : HorizontalMainPanel() {
 
         val dbExplorerPanel = DBExplorerPanel()
+        val bracketNotationPanel = BracketNotationPanel()
         val chartsPanel = ChartsPanel()
         val documentationPanel = DocumentationPanel()
 
         val dbExplorerPanelButton:Button
+        val inputsPanelButton:Button
         val chartsPanelButton:Button
         val documentationPanelButton:Button
 
         init {
+            this.inputsPanelButton = this.addMenuBarButton("fas-file:15", bracketNotationPanel)
             this.dbExplorerPanelButton = this.addMenuBarButton("fas-database:15", dbExplorerPanel)
             this.chartsPanelButton = this.addMenuBarButton("fas-chart-area:15", chartsPanel)
             this.documentationPanelButton = this.addMenuBarButton("fas-book:15", documentationPanel)
@@ -2466,10 +2623,10 @@ class RNArtist : Application() {
 
             inner class DBExplorerSubPanel() : SubPanel() {
 
-                private val loadDB: Button
-                private val createDBFolder: Button
-                private val reloadDB: Button
-                private val loadStructuresFromDBFolder: Button
+                private val loadDB: RNArtistButton
+                private val createDBFolder: RNArtistButton
+                private val reloadDB: RNArtistButton
+                private val loadStructuresFromDBFolder: RNArtistButton
                 val dbTreeView = TreeView<DBFolder>()
                 private val buttonsPanel = LargeButtonsPanel()
 
@@ -2477,8 +2634,7 @@ class RNArtist : Application() {
                     this.spacing = 10.0
                     this.children.add(buttonsPanel)
 
-                    this.loadDB = buttonsPanel.addButton("fas-folder-open", "Load database")
-                    this.loadDB.onMouseClicked = EventHandler { _ ->
+                    this.loadDB = buttonsPanel.addButton("fas-folder-open", "Load database") {
                         if (mediator.helpModeOn)
                             HelpDialog(mediator, "This button allows you to choose a folder as the current RNArtist database", "rnartist_db.html")
                         val directoryChooser = DirectoryChooser()
@@ -2495,13 +2651,11 @@ class RNArtist : Application() {
                                 val w = TaskDialog(mediator)
                                 w.task = LoadDB(mediator, it)
                             }
-
                         }
                     }
                     this.loadDB.isDisable = false
 
-                    this.createDBFolder = buttonsPanel.addButton("fas-folder-plus", "Create new folder")
-                    this.createDBFolder.onMouseClicked = EventHandler { _ ->
+                    this.createDBFolder = buttonsPanel.addButton("fas-folder-plus", "Create new folder") {
                         if (mediator.helpModeOn)
                             HelpDialog(mediator, "This button allows you to create a new subfolder in your database", "db_panel.html")
 
@@ -2521,8 +2675,7 @@ class RNArtist : Application() {
                         }
                     }
 
-                    this.reloadDB = buttonsPanel.addButton("fas-sync:15", "Reload database")
-                    this.reloadDB.onMouseClicked = EventHandler { _ ->
+                    this.reloadDB = buttonsPanel.addButton("fas-sync:15", "Reload database") {
                         if (mediator.helpModeOn)
                             HelpDialog(mediator, "This button allows you to reload the current database in order to display and index new subfolders", "db_panel.html")
 
@@ -2530,14 +2683,12 @@ class RNArtist : Application() {
                         w.task = LoadDB(mediator, currentDB.get()!!.rootInvariantSeparatorsPath) //we force since this button is enabled if we have loaded a DB before
                     }
 
-                    this.loadStructuresFromDBFolder = buttonsPanel.addButton("fas-eye:15", "Load Structures")
-                    this.loadStructuresFromDBFolder.onMouseClicked = EventHandler { _ ->
+                    this.loadStructuresFromDBFolder = buttonsPanel.addButton("fas-eye:15", "Load Structures") {
                         if (mediator.helpModeOn)
                             HelpDialog(mediator, "This button allows you to compute and preview 2Ds stored in the subfolder selected", "db_panel.html")
 
                         val w = TaskDialog(mediator)
                         w.task = LoadDBFolder(mediator)
-
                     }
 
                     currentDB.addListener { _,_, newValue ->
@@ -2997,6 +3148,660 @@ class RNArtist : Application() {
 
         }
 
+        inner class BracketNotationPanel() : Panel() {
+
+            val bracketNotationSubPanel = BracketNotationSubPanel()
+            val globalOptionsSubPanel = GlobalOptionsSubPanel()
+
+            init {
+                val vbox = VBox()
+                vbox.background =
+                    Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                vbox.children.add(globalOptionsSubPanel)
+                vbox.children.add(bracketNotationSubPanel)
+
+                val sp = ScrollPane(vbox)
+                sp.background =
+                    Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                sp.padding = Insets.EMPTY
+                sp.isFitToWidth = true
+                sp.isFitToHeight = true
+                sp.vbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
+                sp.hbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
+
+                this.children.add(sp)
+            }
+            override fun blinkUINode(name:String) {}
+
+            inner class GlobalOptionsSubPanel():SubPanel() {
+
+                val buttonsPanel =  LargeButtonsPanel()
+                val loadFileButton:RNArtistButton
+                val random2dButton:RNArtistButton
+                val current2dAsBnButton:RNArtistButton
+                val plot2dButton:RNArtistButton
+                val trashEveythingButton:RNArtistButton
+
+                init {
+                    this.children.add(buttonsPanel)
+                    this.loadFileButton = buttonsPanel.addButton("fas-file:15") {
+                        with(FileChooser()) {
+                            this.getExtensionFilters()
+                                .add(FileChooser.ExtensionFilter("Structural Files", "*.bpseq", "*.ct", "*.vienna", "*.pdb"))
+                            val file = this.showOpenDialog(mediator.rnartist.stage)
+                            file?.let {
+                                 when (file.name.split(".").last()) {
+                                    "vienna" -> {
+                                        parseVienna(FileReader(it))
+                                    }
+                                    "ct" -> {
+                                        parseCT(FileReader(it))
+                                    }
+                                     else -> {
+                                        null
+                                    }
+                                }?.let { ss ->
+                                     bracketNotationSubPanel.nameField.text = ss.rna.name
+                                     bracketNotationSubPanel.seqField.setSequence(ss.rna.seq)
+                                     bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
+                                 }
+                            }
+                        }
+                    }
+                    this.loadFileButton.isDisable = false
+
+                    this.random2dButton = buttonsPanel.addButton("fas-dice-d20:15") {
+                        val rna = randomRNA(300)
+                        val ss = FoldingMatrix(rna.seq).randomFinalStructure()
+                        bracketNotationSubPanel.nameField.text = rna.name
+                        bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
+                        bracketNotationSubPanel.seqField.setSequence(rna.seq)
+                    }
+                    this.random2dButton.isDisable = false
+
+                    this.current2dAsBnButton = buttonsPanel.addButton("fas-arrow-down:15") {
+                        mediator.currentDrawing.get()?.let { drawing ->
+                            with (drawing.secondaryStructureDrawing) {
+                                bracketNotationSubPanel.nameField.text = this.secondaryStructure.name
+                                bracketNotationSubPanel.bnField.setBracketNotation(this.secondaryStructure.toBracketNotation())
+                                bracketNotationSubPanel.seqField.setSequence(this.secondaryStructure.rna.seq)
+                            }
+                        }
+                    }
+                    this.current2dAsBnButton.disableProperty().bind(mediator.currentDrawing.isNull)
+
+                    this.plot2dButton = buttonsPanel.addButton("fas-arrow-up:15") {
+                        val bn = bracketNotationSubPanel.bnField.toBracketNotation()
+                        if (bn.length > 1) {
+                            val rnArtistEl = RNArtistEl()
+                            with(rnArtistEl.addSS().addBracketNotation()) {
+                                this.setName(bracketNotationPanel.bracketNotationSubPanel.nameField.text)
+                                val seq = bracketNotationPanel.bracketNotationSubPanel.seqField.toSequence()
+                                if (seq.length > 1)
+                                    this.setSeq(seq)
+                                this.setValue(bn)
+                            }
+                            with(rnArtistEl.addTheme()) {
+                                this.addScheme().setValue("Persian Carolina")
+                                this.addDetails().setValue(3)
+                            }
+                            val tmpScriptFile = kotlin.io.path.createTempFile("script", "kts")
+                            tmpScriptFile.writeText(rnArtistEl.dump().toString())
+                            val dialog = TaskDialog(mediator)
+                            dialog.task =
+                                LoadStructure(mediator, tmpScriptFile.invariantSeparatorsPathString)
+                        }
+                    }
+
+                    this.trashEveythingButton = buttonsPanel.addButton("fas-trash:15") {
+                        bracketNotationSubPanel.nameField.text = "My RNA"
+                        bracketNotationSubPanel.bnField.clear()
+                        bracketNotationSubPanel.seqField.clear()
+
+                    }
+                    this.trashEveythingButton.isDisable = false
+                }
+
+                override fun blinkUINode(name: String) {
+                }
+            }
+
+            inner class BracketNotationSubPanel():SubPanel() {
+
+                val nameField = TextField("My RNA")
+                val bnField = BracketNotationField()
+                val seqField = SequenceField()
+                val mirrorCharacterButton = RNArtistButton("fas-arrows-alt-h:12", isClickedColor = Color.DARKRED)
+                val pasteBnButton = RNArtistButton("fas-paste:12") {
+                    with (Clipboard.getSystemClipboard()) {
+                        bnField.setBracketNotation(this.string)
+                    }
+                }
+                val trashBnButton = RNArtistButton("fas-trash:12") {
+                    bnField.clear()
+                    bnField.cursorPosition = null
+                }
+                val pasteSeqButton = RNArtistButton("fas-paste:12") {
+                    with (Clipboard.getSystemClipboard()) {
+                        seqField.setSequence(this.string)
+                    }
+                }
+                val randomSeqButton = RNArtistButton("fas-dice-d20:12")
+                val fixSeqButton = RNArtistButton("fas-wrench:12")
+                val trashSeqButton = RNArtistButton("fas-trash:12") {
+                    seqField.clear()
+                    seqField.cursorPosition = null
+                }
+
+                init {
+                    this.spacing = 15.0
+
+                    var vbox = VBox()
+                    vbox.spacing = 5.0
+                    var label = Label("Name")
+                    label.font = Font.font(label.font.name, 15.0)
+                    vbox.children.add(label)
+                    this.nameField.font = Font.font(this.nameField.font.name, 15.0)
+                    vbox.children.add(this.nameField)
+                    this.children.add(vbox)
+
+                    vbox = VBox()
+                    vbox.spacing = 5.0
+                    label = Label("Bracket notation")
+                    label.font = Font.font(label.font.name, 15.0)
+                    var titleBar = HBox()
+                    titleBar.alignment = Pos.CENTER_LEFT
+                    titleBar.spacing = 5.0
+                    titleBar.children.add(label)
+                    var buttonsBar = HBox()
+                    buttonsBar.alignment = Pos.CENTER_LEFT
+                    setHgrow(buttonsBar, Priority.ALWAYS)
+                    buttonsBar.spacing = 5.0
+                    buttonsBar.children.add(this.pasteBnButton)
+                    buttonsBar.children.add(this.mirrorCharacterButton)
+                    buttonsBar.children.add(this.trashBnButton)
+                    titleBar.children.add(buttonsBar)
+                    vbox.children.add(titleBar)
+                    vbox.children.add(this.bnField)
+                    this.children.add(vbox)
+
+                    vbox = VBox()
+                    vbox.spacing = 5.0
+                    label = Label("Sequence")
+                    label.font = Font.font(label.font.name, 15.0)
+                    titleBar = HBox()
+                    titleBar.alignment = Pos.CENTER_LEFT
+                    titleBar.spacing = 5.0
+                    titleBar.children.add(label)
+                    buttonsBar = HBox()
+                    buttonsBar.alignment = Pos.CENTER_LEFT
+                    setHgrow(buttonsBar, Priority.ALWAYS)
+                    buttonsBar.spacing = 5.0
+                    buttonsBar.children.add(this.pasteSeqButton)
+                    buttonsBar.children.add(this.randomSeqButton)
+                    buttonsBar.children.add(this.fixSeqButton)
+                    buttonsBar.children.add(this.trashSeqButton)
+                    titleBar.children.add(buttonsBar)
+                    vbox.children.add(titleBar)
+                    vbox.children.add(this.seqField)
+                    this.children.add(vbox)
+
+                    bnField.characters.children.addListener(ListChangeListener {
+                        globalOptionsSubPanel.plot2dButton.isDisable = bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
+                    })
+
+                    seqField.characters.children.addListener(ListChangeListener {
+                        globalOptionsSubPanel.plot2dButton.isDisable = bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
+                    })
+                }
+
+                override fun blinkUINode(name: String) {
+                }
+
+                inner abstract class Field():HBox() {
+
+                    val characters = FlowPane()
+
+                    var cursorPosition:Character? = null
+                        set(value) {
+                            field?.let { c ->
+                                timer.stop()
+                                c.cursor.stroke = Color.TRANSPARENT
+                            }
+                            field = value
+                            field?.let { c ->
+                                c.cursor.stroke = Color.WHITE
+                            }
+                        }
+
+                    val prompt = Prompt()
+
+                    var timer: AnimationTimer = object : AnimationTimer() {
+                        var count = 0
+
+                        override fun handle(now: Long) {
+                            cursorPosition?.let { c ->
+                                count++
+                                if (count / 30 % 2 == 0) {
+                                    c.cursor.stroke = Color.TRANSPARENT
+                                } else {
+                                    c.cursor.stroke = Color.WHITE
+                                }
+                            }
+                        }
+
+                        override fun start() {
+                            count = 0
+                            super.start()
+                        }
+
+                    }
+
+                    init {
+                        this.spacing = 2.0
+                        this.padding = Insets(10.0)
+                        this.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                        this.border = Border(BorderStroke(Color.WHITE, BorderStrokeStyle.SOLID, CornerRadii(5.0), BorderWidths(1.0)))
+                        this.alignment = Pos.TOP_LEFT
+                        this.children.add(prompt)
+                        this.children.add(this.characters)
+                        this.characters.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                        this.characters.prefHeight = 100.0
+                        setHgrow(this.characters, Priority.ALWAYS)
+
+                        this.characters.widthProperty().addListener { _, _, _ ->
+                            val charactersPerRow = (this.characters.width/20.0).toInt()
+                            val lines = (this.characters.children.size)/charactersPerRow
+                            this.characters.prefHeight = Math.max(100.0, (lines+1)*20.0+10.0)
+                            this.layout()
+                        }
+
+                        this.onMouseClicked = EventHandler {
+                            this.requestFocus()
+                            if (this.characters.children.isNotEmpty())
+                                cursorPosition = this.characters.children.last() as Character
+                            else
+                                cursorPosition = prompt
+                            timer.start()
+                        }
+
+                        this.focusedProperty().addListener { _, _, newValue ->
+                            if (!newValue)
+                                cursorPosition = null
+                        }
+
+                        this.onKeyReleased = EventHandler {
+                            cursorPosition?.let {
+                                timer.start()
+                            }
+                        }
+
+                        this.onKeyPressed = EventHandler {
+                            when (it.code) {
+                                KeyCode.LEFT -> {
+                                    cursorPosition?.let {
+                                        val pos = this.characters.children.indexOf(cursorPosition)
+                                        cursorPosition = if (pos > 0) {
+                                            this.characters.children.get(pos-1) as Character
+                                        } else
+                                            prompt
+                                    }
+                                }
+                                KeyCode.RIGHT -> {
+                                    cursorPosition?.let {
+                                        val pos = this.characters.children.indexOf(cursorPosition)
+                                        if (pos < this.characters.children.size-1) {
+                                            cursorPosition = this.characters.children.get(pos+1) as Character
+                                        }
+                                    }
+                                }
+                                KeyCode.BACK_SPACE -> {
+                                    cursorPosition?.let {
+                                        val pos = this.characters.children.indexOf(cursorPosition)
+                                        if (pos != -1)
+                                            this.characters.children.removeAt(pos)
+                                        if (pos > 0)
+                                            cursorPosition = this.characters.children.get(pos - 1) as Character
+                                        else
+                                            cursorPosition = prompt
+                                        if (this.characters.children.isEmpty())
+                                            this.clear()
+                                    }
+                                }
+                                KeyCode.ENTER -> {
+                                    val bn = bnField.toBracketNotation()
+                                    if (bn.length > 1) {
+                                        val rnArtistEl = RNArtistEl()
+                                        with(rnArtistEl.addSS().addBracketNotation()) {
+                                            this.setName(bracketNotationPanel.bracketNotationSubPanel.nameField.text)
+                                            val seq = bracketNotationPanel.bracketNotationSubPanel.seqField.toSequence()
+                                            if (seq.length > 1)
+                                                this.setSeq(seq)
+                                            this.setValue(bn)
+                                        }
+                                        with(rnArtistEl.addTheme()) {
+                                            this.addScheme().setValue("Persian Carolina")
+                                            this.addDetails().setValue(3)
+                                        }
+                                        val tmpScriptFile = kotlin.io.path.createTempFile("script", "kts")
+                                        tmpScriptFile.writeText(rnArtistEl.dump().toString())
+                                        val dialog = TaskDialog(mediator)
+                                        dialog.task =
+                                            LoadStructure(mediator, tmpScriptFile.invariantSeparatorsPathString)
+                                    }
+                                }
+                                else -> {
+
+                                }
+                            }
+                            this.characters.layout()
+                        }
+
+                        this.onKeyTyped = EventHandler {
+                            this.addCharacter(it.character)
+                        }
+                    }
+
+                    abstract fun addCharacter(character:String)
+
+                    abstract fun addCharacterAt(index:Int, character:String)
+
+                    fun clear() {
+                        this.characters.children.clear()
+                        cursorPosition = null
+                        this.characters.layout()
+                    }
+
+                    inner abstract class Character():Region() {
+
+                        var button:Button
+                        var cursor = Line(20.0, 0.0, 20.0, 20.0)
+
+                        init {
+                            this.prefHeight = 20.0
+                            this.prefWidth = 20.0
+                            this.button = Button(null, null)
+                            this.button.background = null
+                            this.button.setMinSize(20.0, 20.0)
+                            this.button.setMaxSize(20.0, 20.0)
+                            val c = Circle(10.0)
+                            c.centerX = 10.0
+                            c.centerY = 10.0
+                            this.button.shape = c
+                            this.children.add(this.button)
+
+                            this.cursor.strokeWidth = 2.0
+                            this.cursor.stroke = Color.TRANSPARENT
+                            this.children.add(this.cursor)
+
+                            this.button.onMouseClicked = EventHandler {
+                                this@Field.requestFocus()
+                                this@Field.cursorPosition = this
+                                this@Field.timer.start()
+                            }
+                        }
+                    }
+
+                    inner class Prompt():Character() {
+
+                        init {
+                            val prompt = FontIcon("fas-chevron-right")
+                            prompt.iconColor = Color.WHITE
+                            this.button.graphic = prompt
+                            this.minHeight = 20.0
+                        }
+                    }
+
+                }
+
+                inner class SequenceField(): Field() {
+
+                    init {
+                    }
+
+                    override fun addCharacterAt(index:Int, character: String) {
+                        val charactersPerRow = ((this.width-this.padding.left-this.padding.right)/20.0).toInt()
+                        val c =  when (character) {
+                            "A" -> {
+                                A()
+                            }
+                            "a" -> {
+                                A()
+                            }
+                            "U" -> {
+                                U()
+                            }
+                            "u" -> {
+                                U()
+                            }
+                            "G" -> {
+                                G()
+                            }
+                            "g" -> {
+                                G()
+                            }
+                            "C" -> {
+                                C()
+                            }
+                            "c" -> {
+                                C()
+                            }
+                            "X" -> {
+                                X()
+                            }
+                            "x" -> {
+                                X()
+                            }
+                            else -> {
+                                null
+                            }
+                        }
+                        c?.let {
+                            this.characters.children.add(index, c)
+                            cursorPosition = c
+                            val lines = (this.characters.children.size) / charactersPerRow
+                            this.characters.prefHeight = Math.max(100.0, (lines + 1) * 20.0 + 10.0)
+                            this.characters.layout()
+                        }
+                    }
+
+                    override fun addCharacter(character: String) {
+                        cursorPosition?.let {
+                            this.addCharacterAt(this.characters.children.indexOf(cursorPosition) + 1, character)
+                        } ?: run {
+                            this.addCharacterAt(this.characters.children.size, character)
+                        }
+                    }
+
+                    fun setSequence(seq:String) {
+                        this.clear()
+                        seq.forEach {
+                            this.addCharacter("$it")
+                        }
+                        cursorPosition = null
+                    }
+
+                    fun toSequence():String {
+                        return this.characters.children.map {
+                            when (it) {
+                                is A -> "A"
+                                is U -> "U"
+                                is G -> "G"
+                                is C -> "C"
+                                is Prompt -> ""
+                                else -> "X"
+                            }
+                        }.joinToString(separator = "")
+                    }
+
+                    inner class A(): Character() {
+                        init {
+                            val t = Text("A")
+                            t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
+                            t.fill = Color.web("#987284")
+                            this.button.graphic = t
+                        }
+                    }
+
+                    inner class U(): Character() {
+                        init {
+                            val t = Text("U")
+                            t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
+                            t.fill = Color.web("#75B9BE")
+                            this.button.graphic = t
+                        }
+                    }
+
+                    inner class G(): Character() {
+                        init {
+                            val t = Text("G")
+                            t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
+                            t.fill = Color.web("#D0D6B5")
+                            this.button.graphic = t
+                        }
+                    }
+
+                    inner class C(): Character() {
+                        init {
+                            val t = Text("C")
+                            t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
+                            t.fill = Color.web("#F9B5AC")
+                            this.button.graphic = t
+                        }
+                    }
+
+                    inner class X(): Character() {
+                        init {
+                            val t = Text("X")
+                            t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
+                            t.fill = Color.WHITE
+                            this.button.graphic = t
+                        }
+                    }
+
+                }
+
+
+                inner class BracketNotationField(): Field() {
+
+                    init {
+                        this.onKeyTyped = EventHandler {
+                            val before = this.characters.children.size
+                            this.addCharacter(it.character)
+                            if (this.characters.children.size > before) { //this means that a new character ahs been added (if this is not tested, an X is added to the sequence if BACK_SPACE is typed
+                                cursorPosition?.let { c ->
+                                    seqField.addCharacterAt(this.characters.children.indexOf(c), "X")
+                                    if (mirrorCharacterButton.isClicked && it.character == "(") {
+                                        seqField.addCharacterAt(
+                                            this.characters.children.indexOf(cursorPosition) + 1,
+                                            "X"
+                                        )
+                                    }
+                                    seqField.cursorPosition = null
+                                }
+                            }
+                        }
+                    }
+
+                    override fun addCharacterAt(index: Int, character: String) {
+                        val charactersPerRow = (this.characters.width/20.0).toInt()
+                        val c =  when (character) {
+                            "(" -> {
+                                LeftBasePair()
+                            }
+                            ")" -> {
+                                RightBasePair()
+                            }
+                            "." -> {
+                                SingleStrand()
+                            }
+                            else -> {
+                                null
+                            }
+                        }
+                        c?.let {
+                            this.characters.children.add(index, c)
+                            cursorPosition = c
+                            val lines = (this.characters.children.size) / charactersPerRow
+                            this.characters.prefHeight = Math.max(100.0, (lines + 1) * 20.0 + 10.0)
+                            this.characters.layout()
+                        }
+                    }
+
+                    override fun addCharacter(character:String) {
+                        cursorPosition?.let {
+                            this.addCharacterAt(this.characters.children.indexOf(cursorPosition) + 1, character)
+                            if (mirrorCharacterButton.isClicked && character == "(") {
+                                this.addCharacterAt(this.characters.children.indexOf(cursorPosition) + 1, ")")
+                                cursorPosition = characters.children.get(this.characters.children.indexOf(cursorPosition)-1) as Character
+                            }
+                        } ?: run {
+                            this.addCharacterAt(this.characters.children.size, character)
+                            if (mirrorCharacterButton.isClicked && character == "(") {
+                                this.addCharacterAt(this.characters.children.size, ")")
+                                cursorPosition = characters.children.get(this.characters.children.indexOf(cursorPosition)-1) as Character
+                            }
+                        }
+                    }
+
+                    fun setBracketNotation(bn:String) {
+                        this.clear()
+                        bn.forEach {
+                            this.addCharacter("$it")
+                        }
+                        cursorPosition = null
+                    }
+
+                    fun toBracketNotation():String {
+                        return this.characters.children.map {
+                            when (it) {
+                                is LeftBasePair -> "("
+                                is RightBasePair -> ")"
+                                is SingleStrand -> "."
+                                else -> ""
+                            }
+                        }.joinToString(separator = "")
+                    }
+
+                    inner class LeftBasePair(): Character() {
+
+                        var svgPath = SVGPath()
+
+                        init {
+                            svgPath.content = "M 3.5,0.5 C 3.5,0.5 -2.5,7.5 3.5,14.5"
+                            svgPath.strokeWidth = 2.5
+                            svgPath.stroke = Color.WHITE
+                            this.button.graphic = svgPath
+                        }
+                    }
+
+                    inner class RightBasePair():Character() {
+
+                        var svgPath = SVGPath()
+
+                        init {
+                            svgPath.content = "M 0.5,0.5 C 0.5,0.5 6.5,7.5 0.5,14.5"
+                            svgPath.strokeWidth = 2.5
+                            svgPath.stroke = Color.WHITE
+                            this.button.graphic = svgPath
+
+                        }
+                    }
+
+                    inner class SingleStrand():Character() {
+                        init {
+                            val circle = Circle(2.5)
+                            circle.fill = Color.WHITE
+                            this.button.graphic = circle
+                        }
+                    }
+
+                }
+
+
+            }
+        }
+
         inner class ChartsPanel() : Panel() {
             override fun blinkUINode(name:String) {}
         }
@@ -3309,10 +4114,8 @@ class RNArtist : Application() {
         val lineWheel = SVGPath()
         val currentLineWidth = Polygon(7.0, 3.0, 14.0, 15.0, 0.0, 15.0, 7.0, 3.0)
         var currentAngle = 0.0
-        val fontButton = FontButton()
+        val fontButton = RNArtistButton("fas-font:12", isClickedColor = Color.DARKRED)
         val knobPane = Pane()
-        var applyThemeOnFont: Boolean = false
-            get() = fontButton.applyThemeOnFont
 
         init {
             knobPane.minHeight = 180.0
@@ -3382,6 +4185,9 @@ class RNArtist : Application() {
             lineWidthKnobGroup.children.add(this.currentLineWidth)
 
             colorWheelGroup.children.add(lineWidthKnobGroup)
+            fontButton.layoutX = 0.0
+            fontButton.layoutY = 150.0
+            colorWheelGroup.children.add(fontButton)
 
             val optionsVBox = VBox()
             optionsVBox.alignment = Pos.TOP_LEFT
@@ -3435,9 +4241,7 @@ class RNArtist : Application() {
                     }
                 }
             }
-
             colorWheel.graphicsContext2D.strokeOval(centerX - radius, centerX - radius, radius * 2, radius * 2)
-
         }
 
         override fun blinkUINode(name:String) {
@@ -3473,7 +4277,7 @@ class RNArtist : Application() {
          */
         protected open fun getSecondaryStructureTypes(): List<SecondaryStructureType> {
             val types = mutableListOf<SecondaryStructureType>()
-            if (this.applyThemeOnFont) {
+            if (fontButton.isClicked) {
                 types.add(SecondaryStructureType.A)
                 types.add(SecondaryStructureType.U)
                 types.add(SecondaryStructureType.G)
@@ -3488,42 +4292,6 @@ class RNArtist : Application() {
         }
 
         abstract protected fun applyTheme(theme: Theme)
-
-        fun disableFontButton(disable: Boolean) {
-            this.fontButton.isDisable = disable
-        }
-
-        inner class FontButton() : Button(null, FontIcon("fas-font:15")) {
-
-            private var applyOnFont = false
-            var applyThemeOnFont: Boolean = false
-                get() = applyOnFont && !this.isDisable
-
-            init {
-                this.isDisable = true
-                var c = Circle(0.0, 0.0, 20.0)
-                this.background = null
-                (this.graphic as FontIcon).iconColor = Color.WHITE
-                this.onMouseClicked = EventHandler {
-                    this.applyOnFont = !this.applyOnFont
-                    when (this.applyOnFont) {
-                        true -> {
-                            (this.graphic as FontIcon).iconColor = Color.DARKORANGE
-                        }
-
-                        false -> {
-                            (this.graphic as FontIcon).iconColor = Color.WHITE
-                        }
-                    }
-                }
-                this.shape = c
-                this.layoutX = 0.0
-                this.layoutY = 150.0
-                this.setMinSize(15.0, 15.0)
-                this.setMaxSize(15.0, 15.0)
-                colorWheelGroup.children.add(this)
-            }
-        }
 
     }
 
@@ -4001,12 +4769,8 @@ class RNArtist : Application() {
 
     }
 
-    private abstract inner class AlwaysVisibleBar(val buttonRadius: Double = 15.0) : HBox() {
+    private abstract inner class Canvas2DToolBars(val buttonRadius: Double = 15.0) : HBox() {
         val group = Group()
-        private val buttons = mutableListOf<Button>()
-        var bottomPanel: Pair<Double, Node>? = null
-        var leftPanelRemoved = false
-        var rightPanelRemoved = false
 
         init {
             this.padding = Insets(
@@ -4024,58 +4788,32 @@ class RNArtist : Application() {
 
         abstract fun blinkUINode(name:String)
 
-        fun addButton(icon: String, clickable: Boolean = true, color: Color = Color.WHITE): Button {
-            val button = Button(null, FontIcon(icon))
-            button.background = null
-            (button.graphic as FontIcon).iconColor = color
-            buttons.add(button)
-            val p = if (this.buttons.size == 1)
-                Point2D.Double(buttonRadius, buttonRadius)
+        fun addButton(icon: String, clickable: Boolean = true, onActionEventHandler: EventHandler<ActionEvent>? = null): RNArtistButton {
+            val button = RNArtistButton("$icon:${buttonRadius.toInt()}", buttonRadius = this.buttonRadius, clickable = clickable, onActionEventHandler = onActionEventHandler)
+            val p = if (this.group.children.size == 0)
+                Point2D.Double(this.buttonRadius, this.buttonRadius)
             else {
-                Point2D.Double(this.buttons[this.buttons.size - 2].layoutX + 3.5 * buttonRadius, buttonRadius)
+                Point2D.Double(this.group.children[this.group.children.size - 1].layoutX + 3.5 * this.buttonRadius, this.buttonRadius)
             }
-            val c = Circle(0.0, 0.0, buttonRadius)
-            button.setShape(c)
-            button.layoutX = p.x - buttonRadius
-            button.layoutY = p.y - buttonRadius
-            button.setMinSize(2 * buttonRadius, 2 * buttonRadius)
-            button.setMaxSize(2 * buttonRadius, 2 * buttonRadius)
+            button.layoutX = p.x - this.buttonRadius
+            button.layoutY = p.y - this.buttonRadius
             this.group.children.add(button)
-
-            if (clickable) {
-                button.onMouseEntered = EventHandler {
-                    button.background = Background(BackgroundFill(Color.LIGHTGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-                    (button.graphic as FontIcon).iconColor = Color.BLACK
-                }
-                button.onMouseExited = EventHandler {
-                    button.background = null
-                    (button.graphic as FontIcon).iconColor = Color.WHITE
-                }
-                button.onMousePressed = EventHandler {
-                    button.background = Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-                    (button.graphic as FontIcon).iconColor = Color.BLACK
-                }
-                button.onMouseReleased = EventHandler {
-                    button.background = Background(BackgroundFill(Color.LIGHTGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-                    (button.graphic as FontIcon).iconColor = Color.BLACK
-                }
-            }
-
             return button
         }
+
     }
 
-    private inner class NavigationBar : AlwaysVisibleBar() {
+    private inner class NavigationBar : Canvas2DToolBars() {
 
-        val zoomInButton:Button
-        val zoomOutButton:Button
-        val fitStructureButton:Button
-        val centerViewOnFormerSelection:Button
-        val centerViewOnNextSelection:Button
+        val zoomInButton:RNArtistButton
+        val zoomOutButton:RNArtistButton
+        val fitStructureButton:RNArtistButton
+        val centerViewOnFormerSelection:RNArtistButton
+        val centerViewOnNextSelection:RNArtistButton
 
         init {
             mediator.currentDrawing.addListener { _, _, newValue ->
-                this.group.children.filterIsInstance<Button>().subList(0, 3).forEach {
+                this.group.children.filterIsInstance<RNArtistButton>().subList(0, 3).forEach {
                     it.isDisable = newValue == null
                 }
             }
@@ -4085,20 +4823,20 @@ class RNArtist : Application() {
                     it.selectedDrawings.addListener(ListChangeListener {
                         if (it.list.isEmpty()) {
                             mediator.drawingHighlighted.set(null)
-                            this.group.children.filterIsInstance<Button>()
-                                .subList(3, this.group.children.filterIsInstance<Button>().size).forEach {
+                            this.group.children.filterIsInstance<RNArtistButton>()
+                                .subList(3, this.group.children.filterIsInstance<RNArtistButton>().size).forEach {
                                     it.isDisable = true
                                 }
                         } else if (it.list.size == 1) {
                             mediator.drawingHighlighted.set(it.list.first())
-                            this.group.children.filterIsInstance<Button>()
-                                .subList(3, this.group.children.filterIsInstance<Button>().size).forEach {
+                            this.group.children.filterIsInstance<RNArtistButton>()
+                                .subList(3, this.group.children.filterIsInstance<RNArtistButton>().size).forEach {
                                     it.isDisable = false
                                 }
                         } else {
                             mediator.drawingHighlighted.set(null)
-                            this.group.children.filterIsInstance<Button>()
-                                .subList(3, this.group.children.filterIsInstance<Button>().size).forEach {
+                            this.group.children.filterIsInstance<RNArtistButton>()
+                                .subList(3, this.group.children.filterIsInstance<RNArtistButton>().size).forEach {
                                     it.isDisable = false
                                 }
                         }
@@ -4106,8 +4844,7 @@ class RNArtist : Application() {
                 }
             }
 
-            this.zoomInButton = addButton("fas-plus:15")
-            this.zoomInButton.onMouseClicked = EventHandler {
+            this.zoomInButton = addButton("fas-plus") {
                 mediator.workingSession?.zoomView(
                     mediator.canvas2D.getCanvasBounds().centerX,
                     mediator.canvas2D.getCanvasBounds().centerY,
@@ -4116,8 +4853,7 @@ class RNArtist : Application() {
                 mediator.canvas2D.repaint()
             }
 
-            this.zoomOutButton = this.addButton("fas-minus:15")
-            this.zoomOutButton.onMouseClicked = EventHandler {
+            this.zoomOutButton = addButton("fas-minus") {
                 mediator.workingSession?.zoomView(
                     mediator.canvas2D.getCanvasBounds().centerX,
                     mediator.canvas2D.getCanvasBounds().centerY,
@@ -4126,15 +4862,11 @@ class RNArtist : Application() {
                 mediator.canvas2D.repaint()
             }
 
-            this.fitStructureButton = this.addButton("fas-expand-arrows-alt:15")
-            this.fitStructureButton.onMouseClicked =
-                EventHandler {
+            this.fitStructureButton = addButton("fas-expand-arrows-alt") {
                     mediator.canvas2D.fitStructure(null)
                 }
 
-            this.centerViewOnFormerSelection = this.addButton("fas-chevron-left:15")
-            this.centerViewOnFormerSelection.onMouseClicked =
-                EventHandler { mouseEvent ->
+            this.centerViewOnFormerSelection = addButton("fas-chevron-left") { mouseEvent ->
                     val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
                         ?.sortedBy { (it as? JunctionDrawing)?.junction?.location?.end ?: it.location.end }
                     mediator.drawingHighlighted.get()?.let {
@@ -4157,9 +4889,7 @@ class RNArtist : Application() {
 
                 }
 
-            this.centerViewOnNextSelection = this.addButton("fas-chevron-right:15")
-            this.centerViewOnNextSelection.onMouseClicked =
-                EventHandler { mouseEvent ->
+            this.centerViewOnNextSelection = addButton("fas-chevron-right") { mouseEvent ->
                     val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
                         ?.sortedBy {
                             (it as? JunctionDrawing)?.junction?.location?.start ?: it.location.start
@@ -4209,11 +4939,11 @@ class RNArtist : Application() {
         }
     }
 
-    private inner class SaveBar : AlwaysVisibleBar() {
+    private inner class SaveBar : Canvas2DToolBars() {
 
-        val saveButton:Button
-        val applyToAllButton:Button
-        val toSVGButton:Button
+        val saveButton:RNArtistButton
+        val applyToAllButton:RNArtistButton
+        val toSVGButton:RNArtistButton
 
         val saveCurrentDrawing = {
             mediator.currentDrawing.get()?.let { currentDrawing ->
@@ -4238,11 +4968,7 @@ class RNArtist : Application() {
 
         init {
 
-            this.saveButton = this.addButton("fas-save:15")
-            mediator.currentDrawing.addListener { _, _, newValue ->
-                this.saveButton.isDisable = newValue == null
-            }
-            this.saveButton.onMouseClicked = EventHandler { _ ->
+            this.saveButton = addButton("fas-save") {
                 class Save2D(mediator: Mediator) : RNArtistTask(mediator) {
                     init {
                         setOnSucceeded { _ ->
@@ -4281,12 +5007,11 @@ class RNArtist : Application() {
                 w.task = Save2D(mediator)
 
             }
-
-            this.applyToAllButton = this.addButton("fas-th:15")
             mediator.currentDrawing.addListener { _, _, newValue ->
-                this.applyToAllButton.isDisable = newValue == null
+                this.saveButton.isDisable = newValue == null
             }
-            this.applyToAllButton.onMouseClicked = EventHandler { _ ->
+
+            this.applyToAllButton = addButton("fas-th") {
                 class UpdateAll2Ds(mediator: Mediator) : RNArtistTask(mediator) {
                     init {
                         setOnSucceeded { _ ->
@@ -4372,11 +5097,11 @@ class RNArtist : Application() {
 
             }
 
-            this.toSVGButton = this.addButton("fas-file-download:15")
             mediator.currentDrawing.addListener { _, _, newValue ->
-                this.toSVGButton.isDisable = newValue == null
+                this.applyToAllButton.isDisable = newValue == null
             }
-            this.toSVGButton.onMouseClicked = EventHandler { _ ->
+
+            this.toSVGButton = addButton("fas-file-download") {
                 class ExportTask(mediator: Mediator, val file: File) : RNArtistTask(mediator) {
                     init {
                         setOnSucceeded { _ ->
@@ -4424,6 +5149,9 @@ class RNArtist : Application() {
                 }
 
             }
+            mediator.currentDrawing.addListener { _, _, newValue ->
+                this.toSVGButton.isDisable = newValue == null
+            }
 
             this.group.children.filterIsInstance<Button>().forEach {
                 it.isDisable = true
@@ -4445,15 +5173,15 @@ class RNArtist : Application() {
         }
     }
 
-    private inner class UndoRedoThemeBar : AlwaysVisibleBar() {
+    private inner class UndoRedoThemeBar : Canvas2DToolBars() {
 
-        val playButton: Button
+        val playButton: RNArtistButton
         var animationRunning = false
 
-        val historyStart:Button
-        val historyFormer:Button
-        val historyNext:Button
-        val historyEnd:Button
+        val historyStart:RNArtistButton
+        val historyFormer:RNArtistButton
+        val historyNext:RNArtistButton
+        val historyEnd:RNArtistButton
 
         init {
 
@@ -4463,24 +5191,22 @@ class RNArtist : Application() {
                 }
             }
 
-            historyStart = this.addButton("fas-angle-double-left:20")
-            historyStart.onMouseClicked = EventHandler { mouseEvent ->
+            historyStart = addButton("fas-angle-double-left") {
                 mediator.currentDrawing.get()?.let { currentDrawing ->
                     mediator.rollbackToFirstThemeInHistory()
                 }
             }
 
-            historyFormer = this.addButton("fas-angle-left:20")
-            historyFormer.onMouseClicked = EventHandler { mouseEvent ->
+            historyFormer = addButton("fas-angle-left") {
                 mediator.currentDrawing.get()?.let { currentDrawing ->
                     mediator.rollbackToPreviousThemeInHistory()
                 }
             }
 
-            this.playButton = this.addButton("fas-paint-brush:15", clickable = false)
-            this.playButton.background =
+            this.playButton = addButton("fas-paint-brush", clickable = false)
+            this.playButton.button.background =
                 Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-            (this.playButton.graphic as FontIcon).iconColor = Color.BLACK
+            (this.playButton.button.graphic as FontIcon).iconColor = Color.BLACK
             val innerShadow = InnerShadow()
             innerShadow.offsetX = 0.0
             innerShadow.offsetY = 0.0
@@ -4489,9 +5215,9 @@ class RNArtist : Application() {
             this.playButton.onMouseClicked = EventHandler<MouseEvent> {
                 if (animationRunning) {
                     this.timer.stop()
-                    this.playButton.background =
+                    this.playButton.button.background =
                         Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-                    (this.playButton.graphic as FontIcon).iconColor = Color.BLACK
+                    (this.playButton.button.graphic as FontIcon).iconColor = Color.BLACK
                     animationRunning = false
                 } else {
                     this.timer.start()
@@ -4499,15 +5225,13 @@ class RNArtist : Application() {
                 }
             }
 
-            historyNext = this.addButton("fas-angle-right:20")
-            historyNext.onMouseClicked = EventHandler { mouseEvent ->
+            historyNext = addButton("fas-angle-right") {
                 mediator.currentDrawing.get()?.let { currentDrawing ->
                     mediator.applyNextThemeInHistory()
                 }
             }
 
-            historyEnd = this.addButton("fas-angle-double-right:20")
-            historyEnd.onMouseClicked = EventHandler { mouseEvent ->
+            historyEnd = addButton("fas-angle-double-right") {
                 mediator.currentDrawing.get()?.let { currentDrawing ->
                     mediator.applyLastThemeInHistory()
                 }
@@ -4546,18 +5270,18 @@ class RNArtist : Application() {
                 count++
                 if (count % 30 == 0) {
                     if (count / 30 % 2 == 0) {
-                        playButton.background = Background(
+                        playButton.button.background = Background(
                             BackgroundFill(
                                 if (increment) Color.GREEN else Color.ORANGE,
                                 CornerRadii.EMPTY,
                                 Insets.EMPTY
                             )
                         )
-                        (playButton.graphic as Icon).iconColor = Color.WHITE
+                        (playButton.button.graphic as Icon).iconColor = Color.WHITE
                     } else {
-                        playButton.background =
+                        playButton.button.background =
                             Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-                        (playButton.graphic as FontIcon).iconColor = Color.BLACK
+                        (playButton.button.graphic as FontIcon).iconColor = Color.BLACK
                     }
 
                     mediator.currentDrawing.get()?.let { currentDrawing ->
@@ -4578,15 +5302,15 @@ class RNArtist : Application() {
 
     }
 
-    private inner class UndoRedoLayoutBar : AlwaysVisibleBar() {
+    private inner class UndoRedoLayoutBar : Canvas2DToolBars() {
 
-        val playButton: Button
+        val playButton: RNArtistButton
         var animationRunning = false
 
-        val historyStart:Button
-        val historyFormer:Button
-        val historyNext:Button
-        val historyEnd:Button
+        val historyStart:RNArtistButton
+        val historyFormer:RNArtistButton
+        val historyNext:RNArtistButton
+        val historyEnd:RNArtistButton
 
         init {
 
@@ -4596,22 +5320,20 @@ class RNArtist : Application() {
                 }
             }
 
-            historyStart = this.addButton("fas-angle-double-left:20")
-            historyStart.onMouseClicked = EventHandler { mouseEvent ->
+            historyStart = addButton("fas-angle-double-left") {
                 mediator.currentDrawing.get()?.let { currentDrawing ->
                     mediator.rollbackLayoutHistoryToStart()
                 }
             }
 
-            historyFormer = this.addButton("fas-angle-left:20")
-            historyFormer.onMouseClicked = EventHandler { mouseEvent ->
+            historyFormer = addButton("fas-angle-left") {
                 mediator.rollbackToPreviousJunctionLayoutInHistory()
             }
 
-            this.playButton = this.addButton("fas-drafting-compass:15", clickable = false)
-            this.playButton.background =
+            this.playButton = addButton("fas-drafting-compass", clickable = false)
+            this.playButton.button.background =
                 Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-            (this.playButton.graphic as FontIcon).iconColor = Color.BLACK
+            (this.playButton.button.graphic as FontIcon).iconColor = Color.BLACK
             val innerShadow = InnerShadow()
             innerShadow.offsetX = 0.0
             innerShadow.offsetY = 0.0
@@ -4620,9 +5342,9 @@ class RNArtist : Application() {
             this.playButton.onMouseClicked = EventHandler<MouseEvent> {
                 if (animationRunning) {
                     this.timer.stop()
-                    this.playButton.background =
+                    this.playButton.button.background =
                         Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-                    (this.playButton.graphic as FontIcon).iconColor = Color.BLACK
+                    (this.playButton.button.graphic as FontIcon).iconColor = Color.BLACK
                     animationRunning = false
                 } else {
                     this.timer.start()
@@ -4630,13 +5352,11 @@ class RNArtist : Application() {
                 }
             }
 
-            historyNext = this.addButton("fas-angle-right:20")
-            historyNext.onMouseClicked = EventHandler { mouseEvent ->
+            historyNext = addButton("fas-angle-right") {
                 mediator.applyNextLayoutInHistory()
             }
 
-            historyEnd = this.addButton("fas-angle-double-right:20")
-            historyEnd.onMouseClicked = EventHandler { mouseEvent ->
+            historyEnd = addButton("fas-angle-double-right") {
                 mediator.applyLayoutsInHistoryFromNextToEnd()
             }
 
@@ -4673,18 +5393,18 @@ class RNArtist : Application() {
                 count++
                 if (count % 30 == 0) {
                     if (count / 30 % 2 == 0) {
-                        playButton.background = Background(
+                        playButton.button.background = Background(
                             BackgroundFill(
                                 if (increment) Color.GREEN else Color.ORANGE,
                                 CornerRadii.EMPTY,
                                 Insets.EMPTY
                             )
                         )
-                        (playButton.graphic as Icon).iconColor = Color.WHITE
+                        (playButton.button.graphic as Icon).iconColor = Color.WHITE
                     } else {
-                        playButton.background =
+                        playButton.button.background =
                             Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
-                        (playButton.graphic as FontIcon).iconColor = Color.BLACK
+                        (playButton.button.graphic as FontIcon).iconColor = Color.BLACK
                     }
 
                     mediator.currentDrawing.get()?.let { currentDrawing ->
@@ -4705,10 +5425,9 @@ class RNArtist : Application() {
 
     }
 
-    private inner class HelpBar:AlwaysVisibleBar() {
+    private inner class HelpBar:Canvas2DToolBars() {
         init {
-            val b = this.addButton("fas-question:20")
-            b.onMouseClicked = EventHandler { mouseEvent ->
+            addButton("fas-question") {
                 mediator.helpMode.value = !mediator.helpMode.value
             }
             mediator.helpMode.addListener { _, _, helpModeOn ->
@@ -4723,11 +5442,13 @@ class RNArtist : Application() {
         }
     }
 
-    private inner class LateralPanelsBar : AlwaysVisibleBar() {
+    private inner class LateralPanelsBar : Canvas2DToolBars() {
+        var bottomPanel: Pair<Double, Node>? = null
+        var leftPanelRemoved = false
+        var rightPanelRemoved = false
 
         init {
-            var b = this.addButton("bxs-dock-left:20")
-            b.onMouseClicked = EventHandler { mouseEvent ->
+            addButton("bxs-dock-left") {
                 if (leftPanelRemoved) {
                     upperPanel.restoreLeftPanel()
                     leftPanelRemoved = false
@@ -4737,8 +5458,7 @@ class RNArtist : Application() {
                 }
             }
 
-            b = this.addButton("bxs-dock-bottom:20")
-            b.onMouseClicked = EventHandler { mouseEvent ->
+            addButton("bxs-dock-bottom") {
                 bottomPanel?.let {
                     verticalSplitPane.items.add(it.second)
                     verticalSplitPane.setDividerPosition(0, it.first)
@@ -4749,8 +5469,7 @@ class RNArtist : Application() {
                 }
             }
 
-            b = this.addButton("bxs-dock-right:20")
-            b.onMouseClicked = EventHandler { mouseEvent ->
+            addButton("bxs-dock-right") {
                 if (rightPanelRemoved) {
                     upperPanel.restoreRightPanel()
                     rightPanelRemoved = false
