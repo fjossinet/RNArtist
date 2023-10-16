@@ -2,8 +2,6 @@ title: The RNArtist Blog
 email: fjossinetgmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   About RNA 2D and 3D architectures
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: rnartist_app
 github_username:  fjossinet
 
