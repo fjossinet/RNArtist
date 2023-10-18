@@ -5185,33 +5185,105 @@ class RNArtist : Application() {
 
                 }
 
-                mediator.currentDrawing.get()?.let { currentDrawing ->
-
-                    val alert =
-                        Alert(Alert.AlertType.CONFIRMATION)
-                    alert.initStyle(StageStyle.TRANSPARENT);
-                    alert.initOwner(stage)
-                    alert.initModality(Modality.WINDOW_MODAL)
-                    alert.dialogPane.background =
-                        Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets.EMPTY))
-                    alert.title = "Need Confirmation"
-                    alert.headerText = null
-                    if (!File(currentDrawing.dslScriptInvariantSeparatorsPath).parentFile.invariantSeparatorsPath.equals(
-                            currentDBFolderAbsPath.get()
-                        )
-                    ) {
-                        alert.contentText = "Are you sure make a copy of your 2D in this folder (it will become your working copy)?"
-                    } else {
-                        alert.contentText = "Are you sure to update your 2D?"
+                class Save2DSelection(mediator: Mediator) : RNArtistTask(mediator) {
+                    init {
+                        setOnSucceeded { _ ->
+                            this.resultNow().second?.let { exception ->
+                                this.rnartistDialog.displayException(exception)
+                            } ?: run {
+                                this.rnartistDialog.stage.close()
+                            }
+                        }
                     }
 
-                    val alerttStage = alert.dialogPane.scene.window as Stage
-                    alerttStage.isAlwaysOnTop = true
-                    alerttStage.toFront()
-                    val result = alert.showAndWait()
-                    if (result.get() == ButtonType.OK) {
-                val w = TaskDialog(mediator)
-                w.task = Save2D(mediator)
+                    override fun call(): Pair<Any?, Exception?> {
+                        return try {
+                            Platform.runLater {
+                                updateMessage(
+                                    "Saving 2D Selection ..."
+                                )
+                            }
+                            Thread.sleep(100)
+                            mediator.currentDrawing.get()?.let { currentDrawing ->
+                                val selectedPositions = mediator.canvas2D.getSelectedPositions()
+                                val currentBn =
+                                    currentDrawing.secondaryStructureDrawing.secondaryStructure.toBracketNotation()
+                                val currentSeq = currentDrawing.secondaryStructureDrawing.secondaryStructure.rna.seq
+                                val seqBuilder = StringBuilder()
+                                val bnBuilder = StringBuilder()
+                                selectedPositions.sorted().forEach { pos ->
+                                    seqBuilder.append(currentSeq.get(pos - 1))
+                                    bnBuilder.append(currentBn.get(pos - 1))
+                                }
+                                val dataDir = File(currentDBFolderAbsPath.get())
+                                val partsAlreadySaved = dataDir.listFiles().count { it.name.endsWith(".vienna") && it.name.startsWith("${currentDrawing.secondaryStructureDrawing.name}_part_") }
+                                val fileName = "${currentDrawing.secondaryStructureDrawing.name}_part_${partsAlreadySaved+1}"
+                                val ss = SecondaryStructure(
+                                    RNA(
+                                        fileName,
+                                        seqBuilder.toString()
+                                    ), bnBuilder.toString()
+                                )
+                                val scriptFile = mediator.currentDB!!.addAndPlot2D(
+                                    fileName,
+                                    dataDir,
+                                    ss
+                                )
+                                mediator.scriptEngine.eval(scriptFile.readText())
+
+                                Platform.runLater {
+                                    currentThumbnail = mediator.rnartist.addThumbnail(
+                                        File(
+                                            mediator.currentDB!!.getDrawingsDirForDataDir(File(currentDBFolderAbsPath.get())),
+                                            "${scriptFile.name.split(".kts").first()}.png"
+                                        ),
+                                        scriptFile.invariantSeparatorsPath
+                                    )
+                                }
+                            }
+                            Pair(null, null)
+                        } catch (e: Exception) {
+                            Pair(null, e)
+                        }
+                    }
+
+                }
+
+                mediator.currentDrawing.get()?.let { currentDrawing ->
+
+                    if (File(currentDrawing.dslScriptInvariantSeparatorsPath).parentFile.invariantSeparatorsPath.equals(
+                            currentDBFolderAbsPath.get()) && currentDrawing.selectedDrawings.isNotEmpty()) {
+                        val w = TaskDialog(mediator)
+                        w.task = Save2DSelection(mediator)
+                    }
+                    else {
+                        val alert =
+                            Alert(Alert.AlertType.CONFIRMATION)
+                        alert.initStyle(StageStyle.TRANSPARENT);
+                        alert.initOwner(stage)
+                        alert.initModality(Modality.WINDOW_MODAL)
+                        alert.dialogPane.background =
+                            Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets.EMPTY))
+                        alert.title = "Need Confirmation"
+                        alert.headerText = null
+                        if (!File(currentDrawing.dslScriptInvariantSeparatorsPath).parentFile.invariantSeparatorsPath.equals(
+                                currentDBFolderAbsPath.get()
+                            )
+                        ) {
+                            alert.contentText =
+                                "Are you sure to save a copy of your 2D in this folder (it will become your working copy)?"
+                        } else {
+                            alert.contentText = "Are you sure to update your 2D?"
+                        }
+
+                        val alerttStage = alert.dialogPane.scene.window as Stage
+                        alerttStage.isAlwaysOnTop = true
+                        alerttStage.toFront()
+                        val result = alert.showAndWait()
+                        if (result.get() == ButtonType.OK) {
+                            val w = TaskDialog(mediator)
+                            w.task = Save2D(mediator)
+                        }
                     }
                 }
             }
