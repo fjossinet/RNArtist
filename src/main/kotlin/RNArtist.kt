@@ -5,18 +5,15 @@ import io.github.fjossinet.rnartist.core.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
 import io.github.fjossinet.rnartist.core.io.parseCT
 import io.github.fjossinet.rnartist.core.io.parseVienna
+import io.github.fjossinet.rnartist.core.io.randomColor
 import io.github.fjossinet.rnartist.core.layout
 import io.github.fjossinet.rnartist.core.model.*
 import io.github.fjossinet.rnartist.core.theme
 import io.github.fjossinet.rnartist.gui.*
-import io.github.fjossinet.rnartist.io.AddStructureFromURL
-import io.github.fjossinet.rnartist.io.awtColorToJavaFX
-import io.github.fjossinet.rnartist.io.CreateDBFolder
-import io.github.fjossinet.rnartist.io.LoadStructure
+import io.github.fjossinet.rnartist.io.*
 import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistButton
 import io.github.fjossinet.rnartist.model.RNArtistDrawing
 import io.github.fjossinet.rnartist.model.RNArtistTask
-import io.github.fjossinet.rnartist.io.javaFXToAwt
 import javafx.animation.*
 import javafx.application.Application
 import javafx.application.Platform
@@ -27,6 +24,7 @@ import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
+import javafx.concurrent.Task
 import javafx.embed.swing.SwingNode
 import javafx.event.ActionEvent
 import javafx.event.EventHandler
@@ -44,11 +42,7 @@ import javafx.scene.effect.Glow
 import javafx.scene.effect.InnerShadow
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
-import javafx.scene.input.Clipboard
-import javafx.scene.input.KeyCode
-import javafx.scene.input.MouseButton
-import javafx.scene.input.MouseEvent
-import javafx.scene.input.TransferMode
+import javafx.scene.input.*
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.paint.CycleMethod
@@ -3152,12 +3146,14 @@ class RNArtist : Application() {
 
             val bracketNotationSubPanel = BracketNotationSubPanel()
             val globalOptionsSubPanel = GlobalOptionsSubPanel()
+            val structureParameters = StructureParameters()
 
             init {
                 val vbox = VBox()
                 vbox.background =
                     Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
                 vbox.children.add(globalOptionsSubPanel)
+                vbox.children.add(structureParameters)
                 vbox.children.add(bracketNotationSubPanel)
 
                 val sp = ScrollPane(vbox)
@@ -3175,7 +3171,7 @@ class RNArtist : Application() {
 
             inner class GlobalOptionsSubPanel():SubPanel() {
 
-                val buttonsPanel =  LargeButtonsPanel()
+                val buttonsPanel = LargeButtonsPanel()
                 val loadFileButton:RNArtistButton
                 val random2dButton:RNArtistButton
                 val current2dAsBnButton:RNArtistButton
@@ -3201,7 +3197,7 @@ class RNArtist : Application() {
                                         null
                                     }
                                 }?.let { ss ->
-                                     bracketNotationSubPanel.nameField.text = ss.rna.name
+                                     structureParameters.nameField.text = ss.rna.name
                                      bracketNotationSubPanel.seqField.setSequence(ss.rna.seq)
                                      bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
                                  }
@@ -3211,20 +3207,37 @@ class RNArtist : Application() {
                     this.loadFileButton.isDisable = false
 
                     this.random2dButton = buttonsPanel.addButton("fas-dice-d20:15") {
-                        val rna = randomRNA(300)
-                        val ss = FoldingMatrix(rna.seq).randomFinalStructure()
-                        bracketNotationSubPanel.nameField.text = rna.name
+                        val bn = randomBn(structureParameters.lengthField.text.toInt(), structureParameters.pairingDensityField.text.toDouble())
+                        println("remaining ${bn.second}")
+                        val ss = SecondaryStructure(
+                            randomRNA(structureParameters.lengthField.text.toInt()), bn.first)
+                        structureParameters.nameField.text = ss.rna.name
                         bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
-                        bracketNotationSubPanel.seqField.setSequence(rna.seq)
+                        ss.randomizeSeq() //to have a seq that fit the structural constraints
+                        bracketNotationSubPanel.seqField.setSequence(ss.rna.seq)
                     }
                     this.random2dButton.isDisable = false
 
                     this.current2dAsBnButton = buttonsPanel.addButton("fas-arrow-down:15") {
                         mediator.currentDrawing.get()?.let { drawing ->
                             with (drawing.secondaryStructureDrawing) {
-                                bracketNotationSubPanel.nameField.text = this.secondaryStructure.name
-                                bracketNotationSubPanel.bnField.setBracketNotation(this.secondaryStructure.toBracketNotation())
-                                bracketNotationSubPanel.seqField.setSequence(this.secondaryStructure.rna.seq)
+                                structureParameters.nameField.text = this.secondaryStructure.name
+                                val selectedPositions = mediator.canvas2D.getSelectedPositions()
+                                if (selectedPositions.isEmpty()) {
+                                    bracketNotationSubPanel.bnField.setBracketNotation(this.secondaryStructure.toBracketNotation())
+                                    bracketNotationSubPanel.seqField.setSequence(this.secondaryStructure.rna.seq)
+                                } else {
+                                    val currentBn = this.secondaryStructure.toBracketNotation()
+                                    val currentSeq = this.secondaryStructure.rna.seq
+                                    val seqBuilder = StringBuilder()
+                                    val bnBuilder = StringBuilder()
+                                    selectedPositions.sorted().forEach { pos ->
+                                        seqBuilder.append(currentSeq.get(pos-1))
+                                        bnBuilder.append(currentBn.get(pos-1))
+                                    }
+                                    bracketNotationSubPanel.bnField.setBracketNotation(bnBuilder.toString())
+                                    bracketNotationSubPanel.seqField.setSequence(seqBuilder.toString())
+                                }
                             }
                         }
                     }
@@ -3235,15 +3248,29 @@ class RNArtist : Application() {
                         if (bn.length > 1) {
                             val rnArtistEl = RNArtistEl()
                             with(rnArtistEl.addSS().addBracketNotation()) {
-                                this.setName(bracketNotationPanel.bracketNotationSubPanel.nameField.text)
+                                this.setName(structureParameters.nameField.text)
                                 val seq = bracketNotationPanel.bracketNotationSubPanel.seqField.toSequence()
                                 if (seq.length > 1)
                                     this.setSeq(seq)
                                 this.setValue(bn)
                             }
                             with(rnArtistEl.addTheme()) {
-                                this.addScheme().setValue("Persian Carolina")
-                                this.addDetails().setValue(3)
+                                bracketNotationSubPanel.helixColorPickers.helixColors.forEach {
+                                    it.second?.let { helixLocation ->
+                                        with (this.addColor()) {
+                                            this.setValue(getHTMLColorString(javaFXToAwt(it.first)))
+                                            with (this.addLocation()) {
+                                                this.setLocation(helixLocation)
+                                            }
+                                            this.setType("secondary_interaction helix N phosphodiester_bond interaction_symbol")
+                                            this.setStep(1)
+                                        }
+                                    }
+                                }
+                                with (this.addDetails()) {
+                                    this.setValue(4)
+                                    this.setStep(1)
+                                }
                             }
                             val tmpScriptFile = kotlin.io.path.createTempFile("script", "kts")
                             tmpScriptFile.writeText(rnArtistEl.dump().toString())
@@ -3254,7 +3281,7 @@ class RNArtist : Application() {
                     }
 
                     this.trashEveythingButton = buttonsPanel.addButton("fas-trash:15") {
-                        bracketNotationSubPanel.nameField.text = "My RNA"
+                        structureParameters.nameField.text = "My RNA"
                         bracketNotationSubPanel.bnField.clear()
                         bracketNotationSubPanel.seqField.clear()
 
@@ -3266,10 +3293,57 @@ class RNArtist : Application() {
                 }
             }
 
-            inner class BracketNotationSubPanel():SubPanel() {
+            inner class StructureParameters():HBox() {
 
                 val nameField = TextField("My RNA")
+                val lengthField = TextField("100")
+                val pairingDensityField = TextField("0.5")
+
+                init {
+                    this.alignment = Pos.CENTER_LEFT
+                    this.spacing = 10.0
+                    this.padding = Insets(0.0, 10.0, 10.0, 10.0)
+                    this.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+
+                    var field = HBox()
+                    field.alignment = Pos.CENTER_LEFT
+                    field.spacing = 5.0
+                    field.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                    var label = Label("Name")
+                    label.font = Font.font(label.font.name, 15.0)
+                    field.children.add(label)
+                    this.nameField.font = Font.font(this.nameField.font.name, 15.0)
+                    field.children.add(this.nameField)
+                    this.children.add(field)
+
+                    field = HBox()
+                    field.alignment = Pos.CENTER_LEFT
+                    field.spacing = 5.0
+                    field.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                    label = Label("Length")
+                    label.font = Font.font(label.font.name, 15.0)
+                    field.children.add(label)
+                    this.lengthField.font = Font.font(this.nameField.font.name, 15.0)
+                    field.children.add(lengthField)
+                    this.children.add(field)
+
+                    field = HBox()
+                    field.alignment = Pos.CENTER_LEFT
+                    field.spacing = 5.0
+                    field.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                    label = Label("Pairing density")
+                    label.font = Font.font(label.font.name, 15.0)
+                    field.children.add(label)
+                    this.lengthField.font = Font.font(this.nameField.font.name, 15.0)
+                    field.children.add(pairingDensityField)
+                    this.children.add(field)
+                }
+            }
+
+            inner class BracketNotationSubPanel():SubPanel() {
+
                 val bnField = BracketNotationField()
+                val helixColorPickers = HelixColorPickers()
                 val seqField = SequenceField()
                 val mirrorCharacterButton = RNArtistButton("fas-arrows-alt-h:12", isClickedColor = Color.DARKRED)
                 val pasteBnButton = RNArtistButton("fas-paste:12") {
@@ -3277,37 +3351,103 @@ class RNArtist : Application() {
                         bnField.setBracketNotation(this.string)
                     }
                 }
-                val trashBnButton = RNArtistButton("fas-trash:12") {
-                    bnField.clear()
-                    bnField.cursorPosition = null
-                }
                 val pasteSeqButton = RNArtistButton("fas-paste:12") {
                     with (Clipboard.getSystemClipboard()) {
                         seqField.setSequence(this.string)
                     }
                 }
-                val randomSeqButton = RNArtistButton("fas-dice-d20:12")
-                val fixSeqButton = RNArtistButton("fas-wrench:12")
-                val trashSeqButton = RNArtistButton("fas-trash:12") {
-                    seqField.clear()
+                val randomSeqButton = RNArtistButton("fas-dice-d20:12") {
+                    val bn = bnField.toBracketNotation()
+                    val ss = SecondaryStructure(randomRNA(bn.length), bracketNotation =  bn)
+                    ss.randomizeSeq()
+                    ss.rna.seq.forEachIndexed { index, c ->
+                        (seqField.characters.children.get(index) as SequenceField.Residue).residueLetter = c.toString()
+                    }
+
+                }
+                val fixSeqButton = RNArtistButton("fas-wrench:12") {
+                    val bn = bnField.toBracketNotation()
+                    val ss = SecondaryStructure(randomRNA(bn.length), bracketNotation =  bn)
+                    ss.randomizeSeq()
+                    seqField.characters.children.filter { (it as SequenceField.Residue).residueLetter == "X" }.forEach { c ->
+                        val index = seqField.characters.children.indexOf(c)
+                        (seqField.characters.children.get(index) as SequenceField.Residue).residueLetter = ss.rna.seq.get(index).toString()
+                    }
                     seqField.cursorPosition = null
                 }
+
+                inner class ColorHelicesTask: Task<Pair<Any?, Exception?>>() {
+
+                    init {
+                        setOnSucceeded {
+                            this.resultNow().second?.let { exception ->
+                            } ?: run {
+                            }
+                        }
+                    }
+                    override fun call(): Pair<Any?, Exception?> {
+                        bnField.characters.children.forEach {
+                            (it as Field.Character).background = null
+                        }
+                        (0 until helixColorPickers.helixColors.size).forEach { i ->
+                            helixColorPickers.helixColors[i] = Pair(helixColorPickers.helixColors[i].first, null)
+                        }
+
+                        Platform.runLater {
+                            val helices = SecondaryStructure(
+                                randomRNA(bnField.characters.children.size), bnField.toBracketNotation()
+                            ).helices
+                            helices.forEach { helix ->
+                                if (helices.indexOf(helix) >= helixColorPickers.helixColors.size)
+                                    helixColorPickers.add(awtColorToJavaFX(randomColor()), helix.location)
+                                else
+                                    helixColorPickers.helixColors[helices.indexOf(helix)] = Pair(helixColorPickers.helixColors.get(helices.indexOf(helix)).first, helix.location)
+                                val color = helixColorPickers.helixColors.get(helices.indexOf(helix)).first
+                                helix.location.positions.forEach { pos ->
+                                    (bnField.characters.children.get(pos - 1) as Field.Character).background =
+                                        Background(
+                                            BackgroundFill(
+                                                color,
+                                                CornerRadii(5.0),
+                                                Insets.EMPTY
+                                            )
+                                        )
+                                    (seqField.characters.children.get(pos - 1) as Field.Character).background =
+                                        Background(
+                                            BackgroundFill(
+                                                color,
+                                                CornerRadii(5.0),
+                                                Insets.EMPTY
+                                            )
+                                        )
+                                }
+                            }
+                        }
+                        Thread.sleep(100)
+                        return Pair(null, null)
+                    }
+
+                }
+
+                var colorHelicesTask:ColorHelicesTask? = null
+
+                val launchColorHelicesTask = Timeline(KeyFrame(
+                    Duration.millis(500.0),
+                    {e ->
+                        colorHelicesTask = ColorHelicesTask()
+                        colorHelicesTask?.run()
+                    }))
 
                 init {
                     this.spacing = 15.0
 
                     var vbox = VBox()
                     vbox.spacing = 5.0
-                    var label = Label("Name")
-                    label.font = Font.font(label.font.name, 15.0)
-                    vbox.children.add(label)
-                    this.nameField.font = Font.font(this.nameField.font.name, 15.0)
-                    vbox.children.add(this.nameField)
                     this.children.add(vbox)
 
                     vbox = VBox()
                     vbox.spacing = 5.0
-                    label = Label("Bracket notation")
+                    var label = Label("Bracket notation")
                     label.font = Font.font(label.font.name, 15.0)
                     var titleBar = HBox()
                     titleBar.alignment = Pos.CENTER_LEFT
@@ -3319,10 +3459,10 @@ class RNArtist : Application() {
                     buttonsBar.spacing = 5.0
                     buttonsBar.children.add(this.pasteBnButton)
                     buttonsBar.children.add(this.mirrorCharacterButton)
-                    buttonsBar.children.add(this.trashBnButton)
                     titleBar.children.add(buttonsBar)
                     vbox.children.add(titleBar)
                     vbox.children.add(this.bnField)
+                    vbox.children.add(this.helixColorPickers)
                     this.children.add(vbox)
 
                     vbox = VBox()
@@ -3338,9 +3478,10 @@ class RNArtist : Application() {
                     setHgrow(buttonsBar, Priority.ALWAYS)
                     buttonsBar.spacing = 5.0
                     buttonsBar.children.add(this.pasteSeqButton)
+                    this.randomSeqButton.isDisable = true
                     buttonsBar.children.add(this.randomSeqButton)
+                    this.fixSeqButton.isDisable = true
                     buttonsBar.children.add(this.fixSeqButton)
-                    buttonsBar.children.add(this.trashSeqButton)
                     titleBar.children.add(buttonsBar)
                     vbox.children.add(titleBar)
                     vbox.children.add(this.seqField)
@@ -3348,14 +3489,63 @@ class RNArtist : Application() {
 
                     bnField.characters.children.addListener(ListChangeListener {
                         globalOptionsSubPanel.plot2dButton.isDisable = bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
+                        randomSeqButton.isDisable = bnField.characters.children.isEmpty()
+                        structureParameters.lengthField.text = it.list.size.toString()
+                        structureParameters.pairingDensityField.text = "${(bnField.characters.children.size.toDouble()-bnField.characters.children.filterIsInstance<BracketNotationField.SingleStrand>().size.toDouble())/bnField.characters.children.size.toDouble()}"
                     })
 
                     seqField.characters.children.addListener(ListChangeListener {
                         globalOptionsSubPanel.plot2dButton.isDisable = bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
+                        fixSeqButton.isDisable = !seqField.toSequence().contains("X") && seqField.characters.children.size == bnField.characters.children.size
                     })
                 }
 
                 override fun blinkUINode(name: String) {
+                }
+
+                inner class HelixColorPickers():FlowPane() {
+
+                    val helixColors = mutableListOf<Pair<Color, Location?>>(*(1..10).map { Pair(awtColorToJavaFX(randomColor()), null) }.toTypedArray())
+
+                    init {
+                        this.alignment = Pos.TOP_LEFT
+                        this.hgap = 5.0
+                        helixColors.forEach {
+                            this.addCircle(it.first)
+                        }
+
+                        this.children.addListener(ListChangeListener {
+                            val circlesPerRow = (this.width/20.0+this.hgap).toInt()
+                            val lines = (this.children.size) / circlesPerRow
+                            this.prefHeight = Math.max(25.0, (lines + 1) * 25.0 + 10.0)
+                            this.layout()
+                        })
+
+
+                    }
+
+                    fun add(color:Color, location:Location?) {
+                        this.helixColors.add(Pair(color,location))
+                        this.addCircle(color)
+                    }
+
+                    private fun addCircle(color:Color) {
+                        val c = Circle(0.0, 0.0, 10.0)
+                        c.fill = color
+                        c.stroke = Color.BLACK
+                        c.strokeWidth = 1.0
+                        this.children.add(c)
+
+                        c.onMouseClicked = EventHandler {
+                             val color = awtColorToJavaFX(randomColor())
+                             c.fill = color
+                             val helixColor = helixColors.get(children.indexOf(c))
+                             helixColors[ helixColors.indexOf(helixColor)] = Pair(color, helixColor.second)
+                             helixColor.second?.let { //if a location was associated to this color, we recolor everything
+                                 launchColorHelicesTask.play()
+                             }
+                        }
+                    }
                 }
 
                 inner abstract class Field():HBox() {
@@ -3365,7 +3555,7 @@ class RNArtist : Application() {
                     var cursorPosition:Character? = null
                         set(value) {
                             field?.let { c ->
-                                timer.stop()
+                                cursorBlinkTimer.stop()
                                 c.cursor.stroke = Color.TRANSPARENT
                             }
                             field = value
@@ -3376,7 +3566,7 @@ class RNArtist : Application() {
 
                     val prompt = Prompt()
 
-                    var timer: AnimationTimer = object : AnimationTimer() {
+                    var cursorBlinkTimer: AnimationTimer = object : AnimationTimer() {
                         var count = 0
 
                         override fun handle(now: Long) {
@@ -3422,7 +3612,7 @@ class RNArtist : Application() {
                                 cursorPosition = this.characters.children.last() as Character
                             else
                                 cursorPosition = prompt
-                            timer.start()
+                            cursorBlinkTimer.start()
                         }
 
                         this.focusedProperty().addListener { _, _, newValue ->
@@ -3432,7 +3622,7 @@ class RNArtist : Application() {
 
                         this.onKeyReleased = EventHandler {
                             cursorPosition?.let {
-                                timer.start()
+                                cursorBlinkTimer.start()
                             }
                         }
 
@@ -3466,6 +3656,12 @@ class RNArtist : Application() {
                                             cursorPosition = prompt
                                         if (this.characters.children.isEmpty())
                                             this.clear()
+                                        (this as? BracketNotationField)?.let {
+                                            if (pos != -1)
+                                                seqField.characters.children.removeAt(pos)
+                                            if (seqField.characters.children.isEmpty())
+                                                seqField.clear()
+                                        }
                                     }
                                 }
                                 KeyCode.ENTER -> {
@@ -3473,7 +3669,7 @@ class RNArtist : Application() {
                                     if (bn.length > 1) {
                                         val rnArtistEl = RNArtistEl()
                                         with(rnArtistEl.addSS().addBracketNotation()) {
-                                            this.setName(bracketNotationPanel.bracketNotationSubPanel.nameField.text)
+                                            this.setName(structureParameters.nameField.text)
                                             val seq = bracketNotationPanel.bracketNotationSubPanel.seqField.toSequence()
                                             if (seq.length > 1)
                                                 this.setSeq(seq)
@@ -3537,7 +3733,7 @@ class RNArtist : Application() {
                             this.button.onMouseClicked = EventHandler {
                                 this@Field.requestFocus()
                                 this@Field.cursorPosition = this
-                                this@Field.timer.start()
+                                this@Field.cursorBlinkTimer.start()
                             }
                         }
                     }
@@ -3561,36 +3757,21 @@ class RNArtist : Application() {
 
                     override fun addCharacterAt(index:Int, character: String) {
                         val charactersPerRow = ((this.width-this.padding.left-this.padding.right)/20.0).toInt()
-                        val c =  when (character) {
+                        val c =  when (character.uppercase()) {
                             "A" -> {
-                                A()
-                            }
-                            "a" -> {
-                                A()
+                               Residue("A")
                             }
                             "U" -> {
-                                U()
-                            }
-                            "u" -> {
-                                U()
+                                Residue("U")
                             }
                             "G" -> {
-                                G()
-                            }
-                            "g" -> {
-                                G()
+                                Residue("G")
                             }
                             "C" -> {
-                                C()
-                            }
-                            "c" -> {
-                                C()
+                                Residue("C")
                             }
                             "X" -> {
-                                X()
-                            }
-                            "x" -> {
-                                X()
+                                Residue("X")
                             }
                             else -> {
                                 null
@@ -3617,62 +3798,29 @@ class RNArtist : Application() {
                         this.clear()
                         seq.forEach {
                             this.addCharacter("$it")
+                            cursorPosition = null
                         }
-                        cursorPosition = null
                     }
 
                     fun toSequence():String {
                         return this.characters.children.map {
                             when (it) {
-                                is A -> "A"
-                                is U -> "U"
-                                is G -> "G"
-                                is C -> "C"
+                                is Residue -> it.residueLetter
                                 is Prompt -> ""
                                 else -> "X"
                             }
                         }.joinToString(separator = "")
                     }
 
-                    inner class A(): Character() {
-                        init {
-                            val t = Text("A")
-                            t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
-                            t.fill = Color.web("#987284")
-                            this.button.graphic = t
-                        }
-                    }
+                    inner class Residue(residueLetter:String): Character() {
 
-                    inner class U(): Character() {
+                        var residueLetter:String
+                            get() = (this.button.graphic as Text).text
+                            set(value) {
+                                (this.button.graphic as Text).text = value
+                            }
                         init {
-                            val t = Text("U")
-                            t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
-                            t.fill = Color.web("#75B9BE")
-                            this.button.graphic = t
-                        }
-                    }
-
-                    inner class G(): Character() {
-                        init {
-                            val t = Text("G")
-                            t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
-                            t.fill = Color.web("#D0D6B5")
-                            this.button.graphic = t
-                        }
-                    }
-
-                    inner class C(): Character() {
-                        init {
-                            val t = Text("C")
-                            t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
-                            t.fill = Color.web("#F9B5AC")
-                            this.button.graphic = t
-                        }
-                    }
-
-                    inner class X(): Character() {
-                        init {
-                            val t = Text("X")
+                            val t = Text(residueLetter)
                             t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
                             t.fill = Color.WHITE
                             this.button.graphic = t
@@ -3681,11 +3829,12 @@ class RNArtist : Application() {
 
                 }
 
-
                 inner class BracketNotationField(): Field() {
 
                     init {
                         this.onKeyTyped = EventHandler {
+                            colorHelicesTask?.cancel()
+                            launchColorHelicesTask.stop()
                             val before = this.characters.children.size
                             this.addCharacter(it.character)
                             if (this.characters.children.size > before) { //this means that a new character ahs been added (if this is not tested, an X is added to the sequence if BACK_SPACE is typed
@@ -3700,6 +3849,7 @@ class RNArtist : Application() {
                                     seqField.cursorPosition = null
                                 }
                             }
+                            launchColorHelicesTask.play()
                         }
                     }
 
@@ -3745,11 +3895,20 @@ class RNArtist : Application() {
                     }
 
                     fun setBracketNotation(bn:String) {
+                        colorHelicesTask?.cancel()
+                        launchColorHelicesTask.stop()
+
+                        val isClicked = mirrorCharacterButton.isClicked
+                        mirrorCharacterButton.isClicked = false //to avoid to mirror some characters and then to modify the original bn
                         this.clear()
                         bn.forEach {
                             this.addCharacter("$it")
+                            cursorPosition = null
                         }
-                        cursorPosition = null
+
+                        mirrorCharacterButton.isClicked = isClicked
+
+                        launchColorHelicesTask.play()
                     }
 
                     fun toBracketNotation():String {
@@ -4234,7 +4393,7 @@ class RNArtist : Application() {
                     if (centreOffset <= radius) {
                         centreAngle = (Math.toDegrees(Math.atan2((yOffset), (xOffset))) + 360.0) % 360.0
                         val color = Color.hsb(centreAngle, (centreOffset / radius), 1.0)
-                        colorsFromWheel[javafx.geometry.Point2D(x.toDouble(), y.toDouble())] =
+                        colorsFromWheel[Point2D(x.toDouble(), y.toDouble())] =
                             doubleArrayOf(centreAngle, (centreOffset / radius), 1.0)
                         colorWheel.graphicsContext2D.fill = color
                         colorWheel.graphicsContext2D.fillOval(x.toDouble() - 0.5, y.toDouble() - 0.5, 1.0, 1.0)
