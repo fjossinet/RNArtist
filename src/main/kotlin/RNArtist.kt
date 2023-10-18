@@ -3209,9 +3209,9 @@ class RNArtist : Application() {
                         val bn = randomBn(structureParameters.lengthField.text.toInt(), structureParameters.pairingDensityField.text.toDouble(), structureParameters.meanHelixSizeField.text.toInt())
                         val ss = SecondaryStructure(
                             randomRNA(structureParameters.lengthField.text.toInt()), bn.first)
-                        structureParameters.nameField.text = ss.rna.name
                         bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
                         ss.randomizeSeq() //to have a seq that fit the structural constraints
+                        ss.rna.name = structureParameters.nameField.text
                         bracketNotationSubPanel.seqField.setSequence(ss.rna.seq)
                     }
                     this.random2dButton.isDisable = false
@@ -5185,11 +5185,38 @@ class RNArtist : Application() {
 
                 }
 
-                val w = TaskDialog(mediator)
-                w.task = Save2D(mediator)
+                mediator.currentDrawing.get()?.let { currentDrawing ->
 
+                    val alert =
+                        Alert(Alert.AlertType.CONFIRMATION)
+                    alert.initStyle(StageStyle.TRANSPARENT);
+                    alert.initOwner(stage)
+                    alert.initModality(Modality.WINDOW_MODAL)
+                    alert.dialogPane.background =
+                        Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets.EMPTY))
+                    alert.title = "Need Confirmation"
+                    alert.headerText = null
+                    if (!File(currentDrawing.dslScriptInvariantSeparatorsPath).parentFile.invariantSeparatorsPath.equals(
+                            currentDBFolderAbsPath.get()
+                        )
+                    ) {
+                        alert.contentText = "Are you sure make a copy of your 2D in this folder (it will become your working copy)?"
+                    } else {
+                        alert.contentText = "Are you sure to update your 2D?"
+                    }
+
+                    val alerttStage = alert.dialogPane.scene.window as Stage
+                    alerttStage.isAlwaysOnTop = true
+                    alerttStage.toFront()
+                    val result = alert.showAndWait()
+                    if (result.get() == ButtonType.OK) {
+                        val w = TaskDialog(mediator)
+                        w.task = Save2D(mediator)
+                    }
+                }
             }
             this.saveButton.isDisable = true
+
             currentDBFolderAbsPath.addListener { _, _, newValue ->
                 this.saveButton.isDisable = newValue == null
             }

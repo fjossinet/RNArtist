@@ -11,9 +11,9 @@ import javafx.application.Platform
 import java.io.File
 
 class AddStructureFromURL(
-        mediator: Mediator,
-        val url: String,
-        val dataDir: String
+    mediator: Mediator,
+    val url: String,
+    val dataDir: String
 ) : RNArtistTask(mediator) {
     init {
         setOnSucceeded { _ ->
@@ -52,8 +52,10 @@ class AddStructureFromURL(
                         mediator.scriptEngine.eval(scriptFile.readText())
 
                         Platform.runLater {
-                            mediator.rnartist.addThumbnail(File(rootDB.getDrawingsDirForDataDir(File(dataDir)), "${entryID}.png"),
-                                scriptFile.invariantSeparatorsPath)
+                            mediator.rnartist.addThumbnail(
+                                File(rootDB.getDrawingsDirForDataDir(File(dataDir)), "${entryID}.png"),
+                                scriptFile.invariantSeparatorsPath
+                            )
                         }
                         Thread.sleep(200)
                     } ?: run {
@@ -87,13 +89,10 @@ class CreateDBFolder(mediator: Mediator, val absPathFolder: String) : RNArtistTa
         try {
             mediator.currentDB?.let { rootDB ->
                 Platform.runLater {
-                    mediator.rnartist.clearThumbnails()
-                }
-                Thread.sleep(100)
-                rootDB.createNewFolder(absPathFolder)?.let { newFolder ->
-                    mediator.rnartist.addFolderToTreeView(newFolder.invariantSeparatorsPath)?.let {
-                        mediator.rnartist.expandTreeView(it)
-                        mediator.rnartist.selectInTreeView(it)
+                    rootDB.createNewFolder(absPathFolder)?.let { newFolder ->
+                        mediator.rnartist.addFolderToTreeView(newFolder.invariantSeparatorsPath)?.let {
+                            mediator.rnartist.expandTreeView(it)
+                        }
                     }
                 }
             }
@@ -108,7 +107,7 @@ class CreateDBFolder(mediator: Mediator, val absPathFolder: String) : RNArtistTa
 /**
  * Load a structure and display it in the canvas as described in the script whose absolute path is given as argument
  */
-class LoadStructure(mediator: Mediator, val dslScriptInvariantSeparatorsPath:String) : RNArtistTask(mediator) {
+class LoadStructure(mediator: Mediator, val dslScriptInvariantSeparatorsPath: String) : RNArtistTask(mediator) {
     init {
         setOnSucceeded { _ ->
             this.resultNow().second?.let { exception ->
@@ -137,7 +136,8 @@ class LoadStructure(mediator: Mediator, val dslScriptInvariantSeparatorsPath:Str
             }
             Thread.sleep(1000)
 
-            val result = mediator.scriptEngine.eval(File(dslScriptInvariantSeparatorsPath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
+            val result =
+                mediator.scriptEngine.eval(File(dslScriptInvariantSeparatorsPath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
             result?.let {
                 val drawing =
                     RNArtistDrawing(
@@ -196,21 +196,19 @@ class ApplyTheme(mediator: Mediator, val theme: Theme) : RNArtistTask(mediator) 
 }
 
 
-
 /**
  * Redefine the setOnSucceeded for each task to run the next one (if any) and to use the same TaskDialog.
  * To launch the pipeline, instanciate a TaskDialog and set its task with the first one of the pipeline.
  */
-fun constructPipeline(vararg tasks:RNArtistTask) {
+fun constructPipeline(vararg tasks: RNArtistTask) {
     tasks.forEachIndexed { i, task ->
         tasks[i].setOnSucceeded {
             task.resultNow().second?.let { exception ->
                 task.rnartistDialog.displayException(exception)
             } ?: run {
-                if (i < tasks.size-1) {
+                if (i < tasks.size - 1) {
                     task.rnartistDialog.task = tasks[i + 1]
-                }
-                else
+                } else
                     task.rnartistDialog.stage.close()
             }
         }
