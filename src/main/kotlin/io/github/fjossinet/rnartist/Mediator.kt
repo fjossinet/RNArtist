@@ -85,7 +85,7 @@ class Mediator(val rnartist: RNArtist) {
                                         when (it.nodeValue) {
                                             "tutorial_part_1" -> {
                                                 (link as EventTarget).addEventListener("click", { event ->
-                                                    this.rnartist.lastSelectedFolderAbsPathInDB?.let {
+                                                    this.rnartist.currentDBFolderAbsPath.get().let {
                                                         if (it.equals(this.currentDB?.rootInvariantSeparatorsPath)) {
                                                             HelpDialog(
                                                                 this,

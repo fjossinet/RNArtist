@@ -44,7 +44,7 @@ class AddStructureFromURL(
                             updateMessage("Saving data....")
                         }
                         Thread.sleep(100)
-                        val scriptFile = rootDB.addAndPlotViennaFile(entryID, File(dataDir), ss)
+                        val scriptFile = rootDB.addAndPlot2D(entryID, File(dataDir), ss)
                         Platform.runLater {
                             updateMessage("Computing 2D....")
                         }
@@ -106,7 +106,7 @@ class CreateDBFolder(mediator: Mediator, val absPathFolder: String) : RNArtistTa
 }
 
 /**
- * Load a structure abd display it in the canvas as described in the script whose absolute path is given as argument
+ * Load a structure and display it in the canvas as described in the script whose absolute path is given as argument
  */
 class LoadStructure(mediator: Mediator, val dslScriptInvariantSeparatorsPath:String) : RNArtistTask(mediator) {
     init {

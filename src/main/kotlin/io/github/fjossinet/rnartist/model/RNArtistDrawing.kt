@@ -12,7 +12,7 @@ import javafx.collections.FXCollections
 class RNArtistDrawing(
     val mediator: Mediator,
     val secondaryStructureDrawing: SecondaryStructureDrawing,
-    val dslScriptInvariantSeparatorsPath: String,
+    var dslScriptInvariantSeparatorsPath: String,
     val rnArtistEl:RNArtistEl
 ) {
 

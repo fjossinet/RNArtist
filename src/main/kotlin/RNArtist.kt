@@ -20,6 +20,7 @@ import javafx.application.Platform
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
@@ -81,7 +82,7 @@ class RNArtist : Application() {
     private val lateralPanelsBar: LateralPanelsBar
     lateinit var stage: Stage
     private val root: BorderPane
-    private var lastThumbnailCellClicked: LowerPanel.DBExplorerPanel.DBExplorerSubPanel.ThumbnailCell? = null
+    private var currentThumbnail: Thumbnail? = null
     var currentDB: SimpleObjectProperty<RNArtistDB?> = SimpleObjectProperty(null)
     //we explicitly create the observable list of thumbnails to link it to an extractor that will automatically update the picture when the layout and/or theme of the current drawing is saved back in the DSL script.
     private val thumbnailsList: ObservableList<Thumbnail> =
@@ -92,7 +93,7 @@ class RNArtist : Application() {
         }
 
     val thumbnails = GridView<Thumbnail>(thumbnailsList)
-    var lastSelectedFolderAbsPathInDB:String? = null
+    var currentDBFolderAbsPath = SimpleStringProperty(null)
 
 
     companion object {
@@ -193,9 +194,10 @@ class RNArtist : Application() {
         blink.play()
     }
 
-    fun addThumbnail(pngFile: File, dslScriptInvariantSeparatorsPath: String) {
-        val t = Thumbnail(this.mediator,pngFile, dslScriptInvariantSeparatorsPath)
+    fun addThumbnail(pngFile: File, dslScriptInvariantSeparatorsPath: String): Thumbnail {
+        val t = Thumbnail(this.mediator, pngFile, dslScriptInvariantSeparatorsPath)
         thumbnails.items.add(t)
+        return t
     }
 
     fun clearThumbnails() {
@@ -2620,7 +2622,6 @@ class RNArtist : Application() {
                 private val loadDB: RNArtistButton
                 private val createDBFolder: RNArtistButton
                 private val reloadDB: RNArtistButton
-                private val loadStructuresFromDBFolder: RNArtistButton
                 val dbTreeView = TreeView<DBFolder>()
                 private val buttonsPanel = LargeButtonsPanel()
 
@@ -2677,14 +2678,6 @@ class RNArtist : Application() {
                         w.task = LoadDB(mediator, currentDB.get()!!.rootInvariantSeparatorsPath) //we force since this button is enabled if we have loaded a DB before
                     }
 
-                    this.loadStructuresFromDBFolder = buttonsPanel.addButton("fas-eye:15", "Load Structures") {
-                        if (mediator.helpModeOn)
-                            HelpDialog(mediator, "This button allows you to compute and preview 2Ds stored in the subfolder selected", "db_panel.html")
-
-                        val w = TaskDialog(mediator)
-                        w.task = LoadDBFolder(mediator)
-                    }
-
                     currentDB.addListener { _,_, newValue ->
                         //first we clean
                         clearThumbnails()
@@ -2692,14 +2685,23 @@ class RNArtist : Application() {
                             TreeItem(DBFolder("No database selected", ""))
                         reloadDB.isDisable = true
                         createDBFolder.isDisable = true
-                        loadStructuresFromDBFolder.isDisable = true
 
                         newValue?.let {
                             reloadDB.isDisable = false
                             createDBFolder.isDisable = false
-                            loadStructuresFromDBFolder.isDisable = false
                             dbTreeView.root =
                                 TreeItem(DBFolder(Path.of(newValue.rootInvariantSeparatorsPath).name, newValue.rootInvariantSeparatorsPath))
+                            dbTreeView.selectionModel.selectedItemProperty().addListener { _, _, newSelectedItem ->
+
+                                newSelectedItem?.let {
+                                    if (newSelectedItem.value.absPath != currentDB.get()!!.rootInvariantSeparatorsPath) { //we dont load the root folder of a DB (no structural data are allowed)
+                                        currentDBFolderAbsPath.set(newSelectedItem.value.absPath)
+                                        val w = TaskDialog(mediator)
+                                        w.task = LoadDBFolder(mediator)
+                                    }
+                                }
+
+                            }
                         }
                     }
 
@@ -2726,11 +2728,6 @@ class RNArtist : Application() {
                     this.dbTreeView.isEditable = true
                     this.dbTreeView.root = TreeItem(DBFolder("No database selected", ""))
                     this.dbTreeView.setCellFactory { DBFolderCell() }
-                    this.dbTreeView.selectionModel.selectedItems.addListener (ListChangeListener {
-                        if (it.list.size == 1) {
-                            lastSelectedFolderAbsPathInDB = it.list.first().value.absPath
-                        }
-                    })
 
                     val splitPane = SplitPane()
                     splitPane.orientation = Orientation.HORIZONTAL
@@ -2758,10 +2755,6 @@ class RNArtist : Application() {
                         "reload_database_button" -> {
                             lowerPanel.dbExplorerPanelButton.fire()
                             blinkWithColorBackGround(reloadDB)
-                        }
-                        "load_db_folder_button" -> {
-                            lowerPanel.dbExplorerPanelButton.fire()
-                            blinkWithColorBackGround(loadStructuresFromDBFolder)
                         }
                         "create_db_folder_button" -> {
                             lowerPanel.dbExplorerPanelButton.fire()
@@ -2851,8 +2844,7 @@ class RNArtist : Application() {
 
                     init {
                         this.onMouseClicked = EventHandler { event ->
-                            lastThumbnailCellClicked = this
-
+                            currentThumbnail = this.item
                             val w = TaskDialog(mediator)
                             w.task = LoadStructure(mediator, item.dslScriptInvariantSeparatorsPath)
                         }
@@ -2864,7 +2856,14 @@ class RNArtist : Application() {
                         text = null
                         if (!empty && thumbnail != null) {
                             icon.image = thumbnail.image
-                            val title = File(thumbnail.dslScriptInvariantSeparatorsPath).name.removeSuffix(".kts")
+                            val scriptName = thumbnail.dslScriptInvariantSeparatorsPath.split("/").last()
+                            val scriptDir = thumbnail.dslScriptInvariantSeparatorsPath.split(scriptName).first()
+                            //the title in the thumbnail will be the name stored in the header of the vienna file
+                            val title = File(File(scriptDir), "${scriptName.removeSuffix(".kts")}.vienna").useLines { it.firstOrNull() }
+                                ?.split(">")?.last()
+                                ?: run {
+                                "?"
+                            }
                             titlePanel.setTitle(title)
                             graphic = content
                         }
@@ -2941,6 +2940,7 @@ class RNArtist : Application() {
                     val reload:Boolean
 
                     init {
+                        currentDBFolderAbsPath.set(null)
                         this.reload = (currentDB.get()?.rootInvariantSeparatorsPath?.equals(rootDbInvariantSeparatorsPath) ?: false) && File(kotlin.io.path.Path(rootDbInvariantSeparatorsPath, ".rnartist_db.index").invariantSeparatorsPathString).exists() /*we could open a new database with the same abspath whose former version has been removed*/
                         if (!this.reload) {
                             currentDB.set(RNArtistDB(rootDbInvariantSeparatorsPath))
@@ -3023,8 +3023,8 @@ class RNArtist : Application() {
                                     this.rnartistDialog.stage.close()
                                     (it as? Int)?.let {
                                         if (it == 0) {
-                                            HelpDialog(mediator, "RNArtist was not able to find any structural data!",
-                                                "db_panel.html"
+                                            HelpDialog(mediator, "This folder is empty. You can create and save 2D structures from the bracket notation panel",
+                                                "bracket_notation_panel.html"
                                             )
                                         }
                                     }
@@ -3050,12 +3050,10 @@ class RNArtist : Application() {
 
                                 dbTreeView.selectionModel.selectedItem?.let { selectedDBFolder ->
 
-                                    rootDB.indexedDirs.filter { it.startsWith(selectedDBFolder.value.absPath) }.forEach {
-
                                         if (this.isCancelled)
                                             return Pair(null, null)
 
-                                        val dataDir = File(it)
+                                        val dataDir = File(selectedDBFolder.value.absPath)
                                         Platform.runLater {
                                             updateMessage("Loading folder ${dataDir.name}")
                                         }
@@ -3127,7 +3125,6 @@ class RNArtist : Application() {
                                                 }
                                                 Thread.sleep(100)
                                             }
-                                    }
                                 }
                             }
                             return Pair(fullTotalStructures, null)
@@ -3207,8 +3204,9 @@ class RNArtist : Application() {
                     this.loadFileButton.isDisable = false
 
                     this.random2dButton = buttonsPanel.addButton("fas-dice-d20:15") {
-                        val bn = randomBn(structureParameters.lengthField.text.toInt(), structureParameters.pairingDensityField.text.toDouble())
-                        println("remaining ${bn.second}")
+                        if (structureParameters.meanHelixSizeField.text.toInt() < 2) //an helix size cannot be lower than 2 (2 stacked bps)
+                            structureParameters.meanHelixSizeField.text = "2"
+                        val bn = randomBn(structureParameters.lengthField.text.toInt(), structureParameters.pairingDensityField.text.toDouble(), structureParameters.meanHelixSizeField.text.toInt())
                         val ss = SecondaryStructure(
                             randomRNA(structureParameters.lengthField.text.toInt()), bn.first)
                         structureParameters.nameField.text = ss.rna.name
@@ -3272,7 +3270,7 @@ class RNArtist : Application() {
                                     this.setStep(1)
                                 }
                             }
-                            val tmpScriptFile = kotlin.io.path.createTempFile("script", "kts")
+                            val tmpScriptFile = kotlin.io.path.createTempFile(suffix= ".kts")
                             tmpScriptFile.writeText(rnArtistEl.dump().toString())
                             val dialog = TaskDialog(mediator)
                             dialog.task =
@@ -3298,6 +3296,7 @@ class RNArtist : Application() {
                 val nameField = TextField("My RNA")
                 val lengthField = TextField("100")
                 val pairingDensityField = TextField("0.5")
+                val meanHelixSizeField = TextField("5")
 
                 init {
                     this.alignment = Pos.CENTER_LEFT
@@ -3334,8 +3333,19 @@ class RNArtist : Application() {
                     label = Label("Pairing density")
                     label.font = Font.font(label.font.name, 15.0)
                     field.children.add(label)
-                    this.lengthField.font = Font.font(this.nameField.font.name, 15.0)
+                    this.pairingDensityField.font = Font.font(this.pairingDensityField.font.name, 15.0)
                     field.children.add(pairingDensityField)
+                    this.children.add(field)
+
+                    field = HBox()
+                    field.alignment = Pos.CENTER_LEFT
+                    field.spacing = 5.0
+                    field.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                    label = Label("Mean Helix Size")
+                    label.font = Font.font(label.font.name, 15.0)
+                    field.children.add(label)
+                    this.meanHelixSizeField.font = Font.font(this.meanHelixSizeField.font.name, 15.0)
+                    field.children.add(meanHelixSizeField)
                     this.children.add(field)
                 }
             }
@@ -3491,7 +3501,7 @@ class RNArtist : Application() {
                         globalOptionsSubPanel.plot2dButton.isDisable = bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
                         randomSeqButton.isDisable = bnField.characters.children.isEmpty()
                         structureParameters.lengthField.text = it.list.size.toString()
-                        structureParameters.pairingDensityField.text = "${(bnField.characters.children.size.toDouble()-bnField.characters.children.filterIsInstance<BracketNotationField.SingleStrand>().size.toDouble())/bnField.characters.children.size.toDouble()}"
+                        //structureParameters.pairingDensityField.text = "${(bnField.characters.children.size.toDouble()-bnField.characters.children.filterIsInstance<BracketNotationField.SingleStrand>().size.toDouble())/bnField.characters.children.size.toDouble()}"
                     })
 
                     seqField.characters.children.addListener(ListChangeListener {
@@ -5106,18 +5116,31 @@ class RNArtist : Application() {
 
         val saveCurrentDrawing = {
             mediator.currentDrawing.get()?.let { currentDrawing ->
-                //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
-                with(File(currentDrawing.dslScriptInvariantSeparatorsPath)) {
-                    currentDrawing.rnArtistEl.getThemeOrNew().cleanHistory()
-                    currentDrawing.rnArtistEl.getLayoutOrNew().cleanHistory()
-                    val content = currentDrawing.rnArtistEl.dump().toString()
-                    this.writeText(content)
-                    mediator.scriptEngine.eval(content)
+                //if the dslScriptInvariantSeparatorsPath for this 2D doesn't start with the current DB folder, this means that the user wants to add a 2D coming from elsewhere
+                if (!File(currentDrawing.dslScriptInvariantSeparatorsPath).parentFile.invariantSeparatorsPath.equals(currentDBFolderAbsPath.get())) {
+                    val scriptFile = mediator.currentDB!!.addAndPlot2D(currentDrawing.secondaryStructureDrawing.name, File(currentDBFolderAbsPath.get()), currentDrawing.secondaryStructureDrawing.secondaryStructure, currentDrawing.rnArtistEl)
+                    mediator.scriptEngine.eval(scriptFile.readText())
+                    currentDrawing.dslScriptInvariantSeparatorsPath = scriptFile.invariantSeparatorsPath
 
-                    lastThumbnailCellClicked?.let {
-                        Platform.runLater {
-                            it.item.layoutAndThemeUpdated.value =
-                                !it.item.layoutAndThemeUpdated.value
+                    Platform.runLater {
+                        currentThumbnail = mediator.rnartist.addThumbnail(File(mediator.currentDB!!.getDrawingsDirForDataDir(File(currentDBFolderAbsPath.get())), "${scriptFile.name.split(".kts").first()}.png"),
+                            scriptFile.invariantSeparatorsPath)
+                    }
+                    Thread.sleep(200)
+                } else { //otherwise it is an update of a 2D already in the current DB folder
+                    //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
+                    with(File(currentDrawing.dslScriptInvariantSeparatorsPath)) {
+                        currentDrawing.rnArtistEl.getThemeOrNew().cleanHistory()
+                        currentDrawing.rnArtistEl.getLayoutOrNew().cleanHistory()
+                        val content = currentDrawing.rnArtistEl.dump().toString()
+                        this.writeText(content)
+                        mediator.scriptEngine.eval(content)
+
+                        currentThumbnail?.let {
+                            Platform.runLater {
+                                it.layoutAndThemeUpdated.value =
+                                    !it.layoutAndThemeUpdated.value
+                            }
                         }
                     }
                 }
@@ -5166,7 +5189,8 @@ class RNArtist : Application() {
                 w.task = Save2D(mediator)
 
             }
-            mediator.currentDrawing.addListener { _, _, newValue ->
+            this.saveButton.isDisable = true
+            currentDBFolderAbsPath.addListener { _, _, newValue ->
                 this.saveButton.isDisable = newValue == null
             }
 
@@ -5207,7 +5231,7 @@ class RNArtist : Application() {
 
                                 //then the other thumbnails
                                 thumbnails.items.forEach { item ->
-                                    if (item != lastThumbnailCellClicked?.item) {
+                                    if (item != currentThumbnail) {
                                         Platform.runLater {
                                             updateMessage(
                                                 "Updating 2D for ${
@@ -5256,7 +5280,8 @@ class RNArtist : Application() {
 
             }
 
-            mediator.currentDrawing.addListener { _, _, newValue ->
+            this.applyToAllButton.isDisable = true
+            currentDBFolderAbsPath.addListener { _, _, newValue ->
                 this.applyToAllButton.isDisable = newValue == null
             }
 
@@ -5308,6 +5333,7 @@ class RNArtist : Application() {
                 }
 
             }
+            this.toSVGButton.isDisable = true
             mediator.currentDrawing.addListener { _, _, newValue ->
                 this.toSVGButton.isDisable = newValue == null
             }

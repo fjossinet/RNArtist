@@ -26,10 +26,10 @@
     <h3>Quickstart</h3>
     <ul>
         <li>create a new folder on your computer</li>
-        <li>create one or several subfolders corresponding to different projects or RNA families</li>
+        <li>create one or several folders corresponding to different projects or RNA families</li>
         <li>in each subfolder, add some data (vienna files)</li>
         <li>choose the root folder as your new RNArtist database with <a href="#" onclick="return false;" id="load_database_button" class="linkedToUI">this button</a></li>
-        <li>once the database loaded, select a subfolder in the tree and use <a href="#" onclick="return false;" id="load_db_folder_button" class="linkedToUI">this button</a> to compute and load the 2Ds in the <a href="db_panel.html">database explorer</a></li>
+        <li>once the database loaded, select a subfolder in the tree to compute and load the 2Ds in the <a href="db_panel.html">database explorer</a></li>
     </ul>
 
     <h3>The structure of an RNArtist database</h3>
@@ -61,7 +61,7 @@
                 Scripts store the instructions to plot an RNA 2D (theme, layout, input/output details,...). An RNArtist database contains scripts with two slightly different roles:
             </p>
             <ul>
-                <li><b>RNArtist scripts with the same name than folders</b>: they contains the default instructions to plot the first draft of any structure stored in this folder. They are used when you load a folder with <a href="#" onclick="return false;" id="load_db_folder_button" class="linkedToUI">this button</a></li>
+                <li><b>RNArtist scripts with the same name than folders</b>: they contains the default instructions to plot the first draft of any structure stored in this folder. They are used when you load a folder by clicking on it in the <a href="db_panel.html">database explorer panel</a></li>
                 <li><b>RNArtist scripts with the same name than vienna/bpseq/ct/stockholm formatted files</b>: they contain the instructions to plot the last version of the 2D described in the structural file.</li>
             </ul>
         </div>
