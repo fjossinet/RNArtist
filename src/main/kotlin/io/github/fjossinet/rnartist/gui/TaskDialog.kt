@@ -29,7 +29,7 @@ class TaskDialog(val mediator: Mediator) {
     val content = VBox()
     val messageBox = HBox()
     var thread:Thread? = null
-    var task: RNArtistTask? = null
+    var task: RNArtistTask<*>? = null
         set(value) {
             field = value
             field?.rnartistDialog = this

@@ -73,8 +73,8 @@ class RNArtist : Application() {
 
     val mediator: Mediator
     val verticalSplitPane: SplitPane
-    private val upperPanel: UpperPanel
-    private val lowerPanel: LowerPanel
+    val upperPanel: UpperPanel
+    val lowerPanel: LowerPanel
     private val navigationBar: NavigationBar
     private val undoredoThemeBar: UndoRedoThemeBar
     private val undoredoLayoutBar: UndoRedoLayoutBar
@@ -82,8 +82,8 @@ class RNArtist : Application() {
     private val lateralPanelsBar: LateralPanelsBar
     lateinit var stage: Stage
     private val root: BorderPane
-    private var currentThumbnail: Thumbnail? = null
-    var currentDB: SimpleObjectProperty<RNArtistDB?> = SimpleObjectProperty(null)
+
+    var currentThumbnail: Thumbnail? = null
     //we explicitly create the observable list of thumbnails to link it to an extractor that will automatically update the picture when the layout and/or theme of the current drawing is saved back in the DSL script.
     private val thumbnailsList: ObservableList<Thumbnail> =
         FXCollections.observableArrayList { thumbnail: Thumbnail ->
@@ -93,8 +93,9 @@ class RNArtist : Application() {
         }
 
     val thumbnails = GridView<Thumbnail>(thumbnailsList)
-    var currentDBFolderAbsPath = SimpleStringProperty(null)
 
+    var currentDB: SimpleObjectProperty<RNArtistDB?> = SimpleObjectProperty(null)
+    var currentDBFolderAbsPath = SimpleStringProperty(null)
 
     companion object {
         val RNArtistGUIColor = Color(51.0 / 255.0, 51.0 / 255.0, 51.0 / 255.0, 1.0)
@@ -273,24 +274,6 @@ class RNArtist : Application() {
         ).parentFile.parent
     }
 
-    inner class Thumbnail(
-        val mediator: Mediator,
-        pngFile: File,
-        val dslScriptInvariantSeparatorsPath: String
-    ) {
-
-        var image: Image? = null
-        val layoutAndThemeUpdated = SimpleBooleanProperty()
-
-        init {
-            image = Image(pngFile.toPath().toUri().toString())
-            this.layoutAndThemeUpdated.addListener { _, _, _ ->
-                image = Image(pngFile.toPath().toUri().toString())
-            }
-        }
-
-    }
-
     inner class DBFolder(var name: String, var absPath: String) {
 
         override fun toString(): String {
@@ -376,7 +359,7 @@ class RNArtist : Application() {
     }*/
 
 
-    private inner class UpperPanel() : GridPane() {
+    inner class UpperPanel() : GridPane() {
 
         //private var scrollCounter = 0
         private val upl: UpperLeftPanel
@@ -1540,7 +1523,7 @@ class RNArtist : Application() {
                 }
 
 
-                private inner class SelectionSubPanel() : SubPanel("Selection") {
+                inner class SelectionSubPanel() : SubPanel("Selection") {
 
                     val typesComboBox = ComboBox<String>()
                     val typeLabel = Label("Type")
@@ -1957,7 +1940,7 @@ class RNArtist : Application() {
                     }
                 }
 
-                private inner class DetailsLevelSubPanel() :
+                inner class DetailsLevelSubPanel() :
                     SubPanel("Details Level") {
 
                     val buttonsPanel = LargeButtonsPanel()
@@ -2432,7 +2415,7 @@ class RNArtist : Application() {
 
             }
 
-            private inner class JunctionPanel() : Panel() {
+            inner class JunctionPanel() : Panel() {
 
                 val navigationSubPanel = NavigationSubPanel()
                 val layoutSubPanel = LayoutSubPanel()
@@ -2458,7 +2441,7 @@ class RNArtist : Application() {
                     this.layoutSubPanel.blinkUINode(name)
                 }
 
-                private inner class NavigationSubPanel() : SubPanel("Navigation") {
+                inner class NavigationSubPanel() : SubPanel("Navigation") {
 
                     init {
                         val buttonsPanel = LargeButtonsPanel()
@@ -2559,7 +2542,7 @@ class RNArtist : Application() {
 
                 }
 
-                private inner class LayoutSubPanel() : SubPanel("Layout") {
+                inner class LayoutSubPanel() : SubPanel("Layout") {
                     init {
                         val knob = JunctionKnob(mediator)
                         this.children.add(knob)
@@ -2696,6 +2679,7 @@ class RNArtist : Application() {
                                 newSelectedItem?.let {
                                     if (newSelectedItem.value.absPath != currentDB.get()!!.rootInvariantSeparatorsPath) { //we dont load the root folder of a DB (no structural data are allowed)
                                         currentDBFolderAbsPath.set(newSelectedItem.value.absPath)
+                                        clearThumbnails()
                                         val w = TaskDialog(mediator)
                                         w.task = LoadDBFolder(mediator)
                                     }
@@ -2935,215 +2919,15 @@ class RNArtist : Application() {
                     }
                 }
 
-                private inner class LoadDB(mediator: Mediator, rootDbInvariantSeparatorsPath:String) : RNArtistTask(mediator) {
-
-                    val reload:Boolean
-
-                    init {
-                        currentDBFolderAbsPath.set(null)
-                        this.reload = (currentDB.get()?.rootInvariantSeparatorsPath?.equals(rootDbInvariantSeparatorsPath) ?: false) && File(kotlin.io.path.Path(rootDbInvariantSeparatorsPath, ".rnartist_db.index").invariantSeparatorsPathString).exists() /*we could open a new database with the same abspath whose former version has been removed*/
-                        if (!this.reload) {
-                            currentDB.set(RNArtistDB(rootDbInvariantSeparatorsPath))
-                        }
-
-                        setOnSucceeded { _ ->
-                            this.resultNow().second?.let { exception ->
-                                this.rnartistDialog.displayException(exception)
-                            } ?: run {
-                                this.rnartistDialog.stage.close()
-                            }
-                        }
-
-                        setOnCancelled {
-                            this.rnartistDialog.stage.close()
-                        }
-                    }
-
-                    override fun call(): Pair<Any?, Exception?> {
-                        return try {
-                            Platform.runLater {
-                                updateMessage(
-                                    if (this.reload)
-                                        "Reloading database, please wait..."
-                                    else
-                                        "Loading database, please wait..."
-                                )
-                            }
-                            Thread.sleep(1000)
-
-                            currentDB.get()?.let { currentDB ->
-                                val dbIndex = currentDB.indexFile
-                                dbIndex.readLines().forEach {
-                                    addFolderToTreeView(it)
-                                }
-
-                                Platform.runLater {
-                                    updateMessage("Searching for non-indexed folders, please wait...")
-                                }
-                                Thread.sleep(1000)
-                                val nonIndexedDirs = currentDB.indexDatabase()
-                                if (nonIndexedDirs.isNotEmpty()) {
-                                    Platform.runLater {
-                                        updateMessage("Found ${nonIndexedDirs.size} folders!")
-                                    }
-                                    Thread.sleep(1000)
-                                    nonIndexedDirs.forEach {
-                                        if (this.isCancelled)
-                                            return Pair(null, null)
-                                        Platform.runLater {
-                                            addFolderToTreeView(it.invariantSeparatorsPath)
-                                        }
-                                        Thread.sleep(100)
-                                    }
-                                    Platform.runLater {
-                                        updateMessage("Indexing done!")
-                                    }
-                                    Thread.sleep(1000)
-                                } else {
-                                    Platform.runLater {
-                                        updateMessage("No new folders found!")
-                                    }
-                                    Thread.sleep(1000)
-                                }
-                            }
-                            Pair(null, null)
-                        } catch (e: Exception) {
-                            Pair(null, e)
-                        }
-                    }
-                }
-
-                private inner class LoadDBFolder(mediator: Mediator) : RNArtistTask(mediator) {
-                    init {
-                        setOnSucceeded { _ ->
-                            this.resultNow().second?.let {
-                                this.rnartistDialog.displayException(it)
-                            } ?: run {
-                                this.resultNow().first?.let {
-                                    this.rnartistDialog.stage.close()
-                                    (it as? Int)?.let {
-                                        if (it == 0) {
-                                            HelpDialog(mediator, "This folder is empty. You can create and save 2D structures from the bracket notation panel",
-                                                "bracket_notation_panel.html"
-                                            )
-                                        }
-                                    }
-                                }
-
-                            }
-                        }
-                        setOnCancelled {
-                            this.rnartistDialog.stage.close()
-                        }
-                    }
-
-                    override fun call(): Pair<Any?, Exception?> {
-                        try {
-                            var fullTotalStructures = 0
-
-                            currentDB.get()?.let { rootDB ->
-
-                                Platform.runLater {
-                                    clearThumbnails()
-                                }
-                                Thread.sleep(100)
-
-                                dbTreeView.selectionModel.selectedItem?.let { selectedDBFolder ->
-
-                                        if (this.isCancelled)
-                                            return Pair(null, null)
-
-                                        val dataDir = File(selectedDBFolder.value.absPath)
-                                        Platform.runLater {
-                                            updateMessage("Loading folder ${dataDir.name}")
-                                        }
-
-                                        Thread.sleep(1000)
-                                        val drawingsDir = rootDB.getDrawingsDirForDataDir(dataDir)
-                                        val script = rootDB.getScriptFileForDataDir(dataDir)
-
-                                        var scriptContent = script.readText()
-                                        val totalStructures = dataDir.listFiles(FileFilter {
-                                            it.name.endsWith(".ct") || it.name.endsWith(".vienna") || it.name.endsWith(
-                                                ".bpseq"
-                                            ) || it.name.endsWith(".pdb")
-                                        })?.size ?: 0
-
-                                        fullTotalStructures += totalStructures
-
-                                        var totalPNGFiles =
-                                            drawingsDir.listFiles(FileFilter { it.name.endsWith(".png") })?.size
-                                                ?: 0
-
-                                        val structures2Compute = totalStructures - totalPNGFiles
-
-                                        if (structures2Compute > 0) {
-                                            Platform.runLater {
-                                                updateMessage("Computing $structures2Compute 2Ds for ${dataDir.name}, please wait...")
-                                            }
-                                            Thread.sleep(100)
-
-                                            mediator.scriptEngine.eval(scriptContent)
-
-                                            Platform.runLater {
-                                                updateMessage("Computing done!")
-                                            }
-                                            Thread.sleep(2000)
-
-                                        }
-
-                                        totalPNGFiles =
-                                            drawingsDir.listFiles(FileFilter { it.name.endsWith(".png") })?.size
-                                                ?: 0
-
-                                        var i = 0
-                                        Platform.runLater {
-                                            updateProgress(i.toDouble(), totalPNGFiles.toDouble())
-                                        }
-                                        Thread.sleep(100)
-                                        drawingsDir.listFiles(FileFilter { it.name.endsWith(".png") })
-                                            ?.forEach {
-                                                if (this.isCancelled)
-                                                    return Pair(null, null)
-                                                Platform.runLater {
-                                                    updateMessage(
-                                                        "Loading 2D for ${
-                                                            it.name.split(".png").first()
-                                                        } in ${dataDir.name}"
-                                                    )
-                                                    val t = Thumbnail(
-                                                        this.mediator,
-                                                        it,
-                                                        File(
-                                                            dataDir,
-                                                            "${it.name.split(".png").first()}.kts"
-                                                        ).invariantSeparatorsPath
-                                                    )
-                                                    thumbnails.items.add(t)
-                                                    updateProgress((++i).toDouble(), totalPNGFiles.toDouble())
-                                                    stepProperty.value = Pair(i, totalPNGFiles)
-                                                }
-                                                Thread.sleep(100)
-                                            }
-                                }
-                            }
-                            return Pair(fullTotalStructures, null)
-                        } catch (e: Exception) {
-                            return Pair(null, e)
-                        }
-                    }
-
-                }
-
             }
 
         }
 
         inner class BracketNotationPanel() : Panel() {
 
-            val bracketNotationSubPanel = BracketNotationSubPanel()
             val globalOptionsSubPanel = GlobalOptionsSubPanel()
             val structureParameters = StructureParameters()
+            val bracketNotationSubPanel = BracketNotationSubPanel()
 
             init {
                 val vbox = VBox()
@@ -3222,19 +3006,12 @@ class RNArtist : Application() {
                                 structureParameters.nameField.text = this.secondaryStructure.name
                                 val selectedPositions = mediator.canvas2D.getSelectedPositions()
                                 if (selectedPositions.isEmpty()) {
-                                    bracketNotationSubPanel.bnField.setBracketNotation(this.secondaryStructure.toBracketNotation())
                                     bracketNotationSubPanel.seqField.setSequence(this.secondaryStructure.rna.seq)
+                                    bracketNotationSubPanel.bnField.setBracketNotation(this.secondaryStructure.toBracketNotation())
                                 } else {
-                                    val currentBn = this.secondaryStructure.toBracketNotation()
-                                    val currentSeq = this.secondaryStructure.rna.seq
-                                    val seqBuilder = StringBuilder()
-                                    val bnBuilder = StringBuilder()
-                                    selectedPositions.sorted().forEach { pos ->
-                                        seqBuilder.append(currentSeq.get(pos-1))
-                                        bnBuilder.append(currentBn.get(pos-1))
-                                    }
-                                    bracketNotationSubPanel.bnField.setBracketNotation(bnBuilder.toString())
-                                    bracketNotationSubPanel.seqField.setSequence(seqBuilder.toString())
+                                    val selectedLocation = Location(selectedPositions.toIntArray())
+                                    bracketNotationSubPanel.seqField.setSequence(this.secondaryStructure.rna.subSequence(selectedLocation))
+                                    bracketNotationSubPanel.bnField.setBracketNotation(this.secondaryStructure.toBracketNotation(selectedLocation))
                                 }
                             }
                         }
@@ -3973,6 +3750,24 @@ class RNArtist : Application() {
 
         inner class ChartsPanel() : Panel() {
             override fun blinkUINode(name:String) {}
+        }
+
+    }
+
+    class Thumbnail(
+        val mediator: Mediator,
+        pngFile: File,
+        val dslScriptInvariantSeparatorsPath: String
+    ) {
+
+        var image: Image? = null
+        val layoutAndThemeUpdated = SimpleBooleanProperty()
+
+        init {
+            image = Image(pngFile.toPath().toUri().toString())
+            this.layoutAndThemeUpdated.addListener { _, _, _ ->
+                image = Image(pngFile.toPath().toUri().toString())
+            }
         }
 
     }
@@ -5114,140 +4909,10 @@ class RNArtist : Application() {
         val applyToAllButton:RNArtistButton
         val toSVGButton:RNArtistButton
 
-        val saveCurrentDrawing = {
-            mediator.currentDrawing.get()?.let { currentDrawing ->
-                //if the dslScriptInvariantSeparatorsPath for this 2D doesn't start with the current DB folder, this means that the user wants to add a 2D coming from elsewhere
-                if (!File(currentDrawing.dslScriptInvariantSeparatorsPath).parentFile.invariantSeparatorsPath.equals(currentDBFolderAbsPath.get())) {
-                    val scriptFile = mediator.currentDB!!.addAndPlot2D(currentDrawing.secondaryStructureDrawing.name, File(currentDBFolderAbsPath.get()), currentDrawing.secondaryStructureDrawing.secondaryStructure, currentDrawing.rnArtistEl)
-                    mediator.scriptEngine.eval(scriptFile.readText())
-                    currentDrawing.dslScriptInvariantSeparatorsPath = scriptFile.invariantSeparatorsPath
-
-                    Platform.runLater {
-                        currentThumbnail = mediator.rnartist.addThumbnail(File(mediator.currentDB!!.getDrawingsDirForDataDir(File(currentDBFolderAbsPath.get())), "${scriptFile.name.split(".kts").first()}.png"),
-                            scriptFile.invariantSeparatorsPath)
-                    }
-                    Thread.sleep(200)
-                } else { //otherwise it is an update of a 2D already in the current DB folder
-                    //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
-                    with(File(currentDrawing.dslScriptInvariantSeparatorsPath)) {
-                        currentDrawing.rnArtistEl.getThemeOrNew().cleanHistory()
-                        currentDrawing.rnArtistEl.getLayoutOrNew().cleanHistory()
-                        val content = currentDrawing.rnArtistEl.dump().toString()
-                        this.writeText(content)
-                        mediator.scriptEngine.eval(content)
-
-                        currentThumbnail?.let {
-                            Platform.runLater {
-                                it.layoutAndThemeUpdated.value =
-                                    !it.layoutAndThemeUpdated.value
-                            }
-                        }
-                    }
-                }
-
-            }
-        }
 
         init {
 
             this.saveButton = addButton("fas-save") {
-                class Save2D(mediator: Mediator) : RNArtistTask(mediator) {
-                    init {
-                        setOnSucceeded { _ ->
-                            this.resultNow().second?.let { exception ->
-                                this.rnartistDialog.displayException(exception)
-                            } ?: run {
-                                this.rnartistDialog.stage.close()
-                            }
-                        }
-                    }
-
-                    override fun call(): Pair<Any?, Exception?> {
-                        return try {
-                            Platform.runLater {
-                                updateMessage(
-                                    "Saving 2D for ${
-                                        mediator.currentDrawing.get()!!.dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
-                                            System.getProperty(
-                                                "file.separator"
-                                            )
-                                        ).last()
-                                    }..."
-                                )
-                            }
-                            Thread.sleep(100)
-                            saveCurrentDrawing()
-                            Pair(null, null)
-                        } catch (e: Exception) {
-                            Pair(null, e)
-                        }
-                    }
-
-                }
-
-                class Save2DSelection(mediator: Mediator) : RNArtistTask(mediator) {
-                    init {
-                        setOnSucceeded { _ ->
-                            this.resultNow().second?.let { exception ->
-                                this.rnartistDialog.displayException(exception)
-                            } ?: run {
-                                this.rnartistDialog.stage.close()
-                            }
-                        }
-                    }
-
-                    override fun call(): Pair<Any?, Exception?> {
-                        return try {
-                            Platform.runLater {
-                                updateMessage(
-                                    "Saving 2D Selection ..."
-                                )
-                            }
-                            Thread.sleep(100)
-                            mediator.currentDrawing.get()?.let { currentDrawing ->
-                                val selectedPositions = mediator.canvas2D.getSelectedPositions()
-                                val currentBn =
-                                    currentDrawing.secondaryStructureDrawing.secondaryStructure.toBracketNotation()
-                                val currentSeq = currentDrawing.secondaryStructureDrawing.secondaryStructure.rna.seq
-                                val seqBuilder = StringBuilder()
-                                val bnBuilder = StringBuilder()
-                                selectedPositions.sorted().forEach { pos ->
-                                    seqBuilder.append(currentSeq.get(pos - 1))
-                                    bnBuilder.append(currentBn.get(pos - 1))
-                                }
-                                val dataDir = File(currentDBFolderAbsPath.get())
-                                val partsAlreadySaved = dataDir.listFiles().count { it.name.endsWith(".vienna") && it.name.startsWith("${currentDrawing.secondaryStructureDrawing.name}_part_") }
-                                val fileName = "${currentDrawing.secondaryStructureDrawing.name}_part_${partsAlreadySaved+1}"
-                                val ss = SecondaryStructure(
-                                    RNA(
-                                        fileName,
-                                        seqBuilder.toString()
-                                    ), bnBuilder.toString()
-                                )
-                                val scriptFile = mediator.currentDB!!.addAndPlot2D(
-                                    fileName,
-                                    dataDir,
-                                    ss
-                                )
-                                mediator.scriptEngine.eval(scriptFile.readText())
-
-                                Platform.runLater {
-                                    currentThumbnail = mediator.rnartist.addThumbnail(
-                                        File(
-                                            mediator.currentDB!!.getDrawingsDirForDataDir(File(currentDBFolderAbsPath.get())),
-                                            "${scriptFile.name.split(".kts").first()}.png"
-                                        ),
-                                        scriptFile.invariantSeparatorsPath
-                                    )
-                                }
-                            }
-                            Pair(null, null)
-                        } catch (e: Exception) {
-                            Pair(null, e)
-                        }
-                    }
-
-                }
 
                 mediator.currentDrawing.get()?.let { currentDrawing ->
 
@@ -5289,102 +4954,47 @@ class RNArtist : Application() {
             }
             this.saveButton.isDisable = true
             currentDBFolderAbsPath.addListener { _, _, newValue ->
-                this.saveButton.isDisable = newValue == null
+                this.saveButton.isDisable = newValue == null || mediator.currentDrawing.get() == null
+            }
+
+            mediator.currentDrawing.addListener { _, _, newValue ->
+                this.saveButton.isDisable = newValue == null || currentDBFolderAbsPath.get() == null
             }
 
             this.applyToAllButton = addButton("fas-th") {
-                class UpdateAll2Ds(mediator: Mediator) : RNArtistTask(mediator) {
-                    init {
-                        setOnSucceeded { _ ->
-                            this.resultNow().second?.let { exception ->
-                                this.rnartistDialog.displayException(exception)
-                            } ?: run {
-                                this.rnartistDialog.stage.close()
-                            }
-                        }
-                        setOnCancelled {
-                            this.rnartistDialog.stage.close()
-                        }
-                    }
+                val alert =
+                    Alert(Alert.AlertType.CONFIRMATION)
+                alert.initStyle(StageStyle.TRANSPARENT);
+                alert.initOwner(stage)
+                alert.initModality(Modality.WINDOW_MODAL)
+                alert.dialogPane.background =
+                    Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets.EMPTY))
+                alert.title = "Need Confirmation"
+                alert.headerText = null
+                alert.contentText = "Are you sure to update all the other 2Ds in this folder?"
 
-                    override fun call(): Pair<Any?, Exception?> {
-                        try {
-                            mediator.currentDrawing.get()?.let { currentDrawing ->
-                                //first the thumbnail of the current drawing
-                                //we replace the dsl script in the file of the currentDrawing with the dsl script in memory
-                                Platform.runLater {
-                                    updateMessage(
-                                        "Saving 2D for ${
-                                            currentDrawing.dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
-                                                System.getProperty(
-                                                    "file.separator"
-                                                )
-                                            ).last()
-                                        }..."
-                                    )
-                                }
-                                saveCurrentDrawing()
+                val alerttStage = alert.dialogPane.scene.window as Stage
+                alerttStage.isAlwaysOnTop = true
+                alerttStage.toFront()
+                val result = alert.showAndWait()
 
-                                Thread.sleep(100)
-
-                                //then the other thumbnails
-                                thumbnails.items.forEach { item ->
-                                    if (item != currentThumbnail) {
-                                        Platform.runLater {
-                                            updateMessage(
-                                                "Updating 2D for ${
-                                                    item.dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
-                                                        System.getProperty(
-                                                            "file.separator"
-                                                        )
-                                                    ).last()
-                                                }..."
-                                            )
-                                        }
-                                        Thread.sleep(100)
-                                        val rnartistEl =
-                                            (mediator.scriptEngine.eval(File(item.dslScriptInvariantSeparatorsPath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>)?.second
-
-                                        rnartistEl?.let {
-                                            //we replace the theme and layout elements in the dsl script for this thumbnail with the ones from the current drawing
-                                            rnartistEl.addTheme(currentDrawing.rnArtistEl.getThemeOrNew())
-                                            rnartistEl.addLayout(currentDrawing.rnArtistEl.getLayoutOrNew())
-
-                                            with(File(item.dslScriptInvariantSeparatorsPath)) {
-                                                val content = rnartistEl.dump().toString()
-                                                this.writeText(content)
-                                                mediator.scriptEngine.eval(content)
-                                                javafx.application.Platform.runLater {
-                                                    item.layoutAndThemeUpdated.value =
-                                                        !item.layoutAndThemeUpdated.value
-                                                }
-                                                java.lang.Thread.sleep(100)
-                                            }
-                                        }
-                                    }
-                                }
-
-                            }
-                            return Pair(null, null)
-                        } catch (e: Exception) {
-                            return Pair(null, e)
-                        }
-                    }
-
+                if (result.get() == ButtonType.OK) {
+                    val task = UpdateAll2Ds(mediator)
+                    TaskDialog(mediator).task = task
                 }
-
-                val w = TaskDialog(mediator)
-                w.task = UpdateAll2Ds(mediator)
-
             }
 
             this.applyToAllButton.isDisable = true
             currentDBFolderAbsPath.addListener { _, _, newValue ->
-                this.applyToAllButton.isDisable = newValue == null
+                this.applyToAllButton.isDisable = newValue == null || mediator.currentDrawing.get() == null
+            }
+
+            mediator.currentDrawing.addListener { _, _, newValue ->
+                this.applyToAllButton.isDisable = newValue == null || currentDBFolderAbsPath.get() == null
             }
 
             this.toSVGButton = addButton("fas-file-download") {
-                class ExportTask(mediator: Mediator, val file: File) : RNArtistTask(mediator) {
+                class ExportTask(mediator: Mediator, val file: File) : RNArtistTask<Any?>(mediator) {
                     init {
                         setOnSucceeded { _ ->
                             mediator.currentDrawing.get()?.rnArtistEl?.removeSVG()

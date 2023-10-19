@@ -5,7 +5,7 @@ import io.github.fjossinet.rnartist.gui.TaskDialog
 import javafx.beans.property.SimpleObjectProperty
 import javafx.concurrent.Task
 
-abstract class RNArtistTask(val mediator: Mediator) : Task<Pair<Any?, Exception?>>() {
+abstract class RNArtistTask<T>(val mediator: Mediator) : Task<Pair<T?, Exception?>>() {
     lateinit var rnartistDialog: TaskDialog
     var stepProperty = SimpleObjectProperty<Pair<Int,Int>?>()
 }

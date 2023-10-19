@@ -175,7 +175,7 @@ class Mediator(val rnartist: RNArtist) {
                                             "tutorial_part_8" -> {
                                                 (link as EventTarget).addEventListener("click", { event ->
                                                     currentDB?.let { rnartistDB ->
-                                                        val tasks = mutableListOf<RNArtistTask>()
+                                                        val tasks = mutableListOf<RNArtistTask<*>>()
                                                         var dataDirPath = Path(rnartistDB.rootInvariantSeparatorsPath, "tutorial")
                                                         if (!dataDirPath.exists())
                                                             tasks.add(CreateDBFolder(this, dataDirPath.invariantSeparatorsPathString))
@@ -367,8 +367,8 @@ class Mediator(val rnartist: RNArtist) {
      * Return the first task of the pipeline. When this task is linked to a TaskDialog, the pipeline starts.
      * @param lastPart the part of the tutorial until which we need to compute the prerequisites (for example a value of 3 means all the prerequisites from part 1 to part 3)
      */
-    private fun createPipelineToComputeTutorialPrerequisites(rnartistDB: RNArtistDB, lastPart: Int): RNArtistTask {
-        val tasks = mutableListOf<RNArtistTask>()
+    private fun createPipelineToComputeTutorialPrerequisites(rnartistDB: RNArtistDB, lastPart: Int): RNArtistTask<*> {
+        val tasks = mutableListOf<RNArtistTask<*>>()
         val dataDirPath = Path(rnartistDB.rootInvariantSeparatorsPath, "tutorial")
         val url = "https://rnacentral.org/rna/URS000014FF3E/9606"
         val tokens = url.split("/")
@@ -400,7 +400,7 @@ class Mediator(val rnartist: RNArtist) {
                 }
 
                 3 -> {
-                    tasks.add(object: RNArtistTask(this) {
+                    tasks.add(object: RNArtistTask<Any?>(this) {
                         init {
                             setOnSucceeded { _ ->
                                 this.resultNow().second?.let { exception ->
