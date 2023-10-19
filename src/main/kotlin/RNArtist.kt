@@ -75,6 +75,7 @@ class RNArtist : Application() {
     val verticalSplitPane: SplitPane
     val upperPanel: UpperPanel
     val lowerPanel: LowerPanel
+    private val manageCurrent2DBar:ManageCurrentDrawing
     private val navigationBar: NavigationBar
     private val undoredoThemeBar: UndoRedoThemeBar
     private val undoredoLayoutBar: UndoRedoLayoutBar
@@ -83,7 +84,7 @@ class RNArtist : Application() {
     lateinit var stage: Stage
     private val root: BorderPane
 
-    var currentThumbnail: Thumbnail? = null
+    var currentThumbnail: SimpleObjectProperty<Thumbnail?> = SimpleObjectProperty(null)
     //we explicitly create the observable list of thumbnails to link it to an extractor that will automatically update the picture when the layout and/or theme of the current drawing is saved back in the DSL script.
     private val thumbnailsList: ObservableList<Thumbnail> =
         FXCollections.observableArrayList { thumbnail: Thumbnail ->
@@ -123,6 +124,7 @@ class RNArtist : Application() {
     fun blinkUINode(name:String) {
         this.upperPanel.blinkUINode(name)
         this.lowerPanel.blinkUINode(name)
+        this.manageCurrent2DBar.blinkUINode(name)
         this.navigationBar.blinkUINode(name)
         this.undoredoThemeBar.blinkUINode(name)
         this.undoredoLayoutBar.blinkUINode(name)
@@ -203,6 +205,15 @@ class RNArtist : Application() {
 
     fun clearThumbnails() {
         thumbnails.items.clear()
+    }
+
+    fun searchFolder(path:String, start:TreeItem<DBFolder> = lowerPanel.dbExplorerPanel.dbExplorerSubPanel.dbTreeView.root):TreeItem<DBFolder>? {
+        return if (start.value.absPath.equals(path))
+            start
+        else if (start.children.isNotEmpty())
+            start.children.map { searchFolder(path, it) }.filter { it != null }.firstOrNull()
+        else
+            null
     }
 
     fun addFolderToTreeView(invariantSeparatorsPath2StructuralFiles: String): TreeItem<DBFolder>? {
@@ -662,6 +673,7 @@ class RNArtist : Application() {
             this.add(vBox, 1, 0, 1, 1)
             val hBox = HBox()
             hBox.alignment = Pos.CENTER
+            hBox.children.add(manageCurrent2DBar)
             hBox.children.add(navigationBar)
             hBox.children.add(undoredoThemeBar)
             hBox.children.add(undoredoLayoutBar)
@@ -2828,7 +2840,7 @@ class RNArtist : Application() {
 
                     init {
                         this.onMouseClicked = EventHandler { event ->
-                            currentThumbnail = this.item
+                            currentThumbnail.set(this.item)
                             val w = TaskDialog(mediator)
                             w.task = LoadStructure(mediator, item.dslScriptInvariantSeparatorsPath)
                         }
@@ -4767,6 +4779,88 @@ class RNArtist : Application() {
 
     }
 
+    private inner class ManageCurrentDrawing : Canvas2DToolBars() {
+
+        val trashCurrentDrawingButton:RNArtistButton
+        val showDBFolderForCurrentDrawingButton:RNArtistButton
+
+        init {
+            this.showDBFolderForCurrentDrawingButton = addButton("fas-folder") {
+                mediator.currentDrawing.get()?.let {
+                    searchFolder(File(it.dslScriptInvariantSeparatorsPath).parentFile.invariantSeparatorsPath)?.let {
+                        mediator.rnartist.expandTreeView(it)
+                        mediator.rnartist.selectInTreeView(it)
+                    }
+                }
+            }
+
+            //this button is enables if the currentThumnail is not null. The current thumbnail becomes not null if:
+            // it has been clicked, meaning that its 2D is now the current drawing
+            // a 2D has been saved in the current folder
+            currentThumbnail.addListener { _,_,newValue ->
+                showDBFolderForCurrentDrawingButton.isDisable = newValue == null
+            }
+
+            //this button is enable if we have a currentDB, a currentDrawing and if the currentDrawing dsl script path starts with the root DB path
+            mediator.currentDrawing.addListener { _, _, newValue ->
+                this.showDBFolderForCurrentDrawingButton.isDisable = mediator.currentDB?.let { currentDB ->
+                    newValue?.let { current2D ->
+                        !current2D.dslScriptInvariantSeparatorsPath.startsWith(currentDB.rootInvariantSeparatorsPath)
+                    } ?: run {
+                        true
+                    }
+                } ?: run {
+                    true
+                }
+            }
+
+            mediator.rnartist.currentDB.addListener { _, _, newValue ->
+                this.showDBFolderForCurrentDrawingButton.isDisable = mediator.currentDrawing.get()?.let { current2D ->
+                    newValue?.let { currentDB ->
+                        !current2D.dslScriptInvariantSeparatorsPath.startsWith(currentDB.rootInvariantSeparatorsPath)
+                    } ?: run {
+                        true
+                    }
+                } ?: run {
+                    true
+                }
+            }
+
+            this.showDBFolderForCurrentDrawingButton.isDisable = true
+
+            this.trashCurrentDrawingButton = addButton("fas-trash") {
+                val alert =
+                    Alert(Alert.AlertType.CONFIRMATION)
+                alert.initStyle(StageStyle.TRANSPARENT);
+                alert.initOwner(stage)
+                alert.initModality(Modality.WINDOW_MODAL)
+                alert.dialogPane.background =
+                    Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets.EMPTY))
+                alert.title = "Need Confirmation"
+                alert.headerText = null
+                alert.contentText = "Are you sure to delete your current 2D?"
+
+                val alerttStage = alert.dialogPane.scene.window as Stage
+                alerttStage.isAlwaysOnTop = true
+                alerttStage.toFront()
+                val result = alert.showAndWait()
+                if (result.get() == ButtonType.OK) {
+                    mediator.currentDrawing.set(null)
+                }
+            }
+
+            mediator.currentDrawing.addListener { _, _, newValue ->
+                trashCurrentDrawingButton.isDisable = newValue == null
+            }
+
+            this.trashCurrentDrawingButton.isDisable = true
+        }
+
+        override fun blinkUINode(name: String) {
+        }
+
+    }
+
     private inner class NavigationBar : Canvas2DToolBars() {
 
         val zoomInButton:RNArtistButton
@@ -5381,6 +5475,7 @@ class RNArtist : Application() {
         load()
         this.mediator = Mediator(this)
 
+        this.manageCurrent2DBar = ManageCurrentDrawing()
         this.navigationBar = NavigationBar()
         this.undoredoThemeBar = UndoRedoThemeBar()
         this.undoredoLayoutBar = UndoRedoLayoutBar()
@@ -5481,7 +5576,7 @@ class RNArtist : Application() {
         scene.window.y = 0.0
         scene.stylesheets.add("io/github/fjossinet/rnartist/gui/css/main.css")
 
-        this.displayDocPage("quickstart.html")
+        //this.displayDocPage("quickstart.html")
         SplashWindow(this.mediator)
     }
 

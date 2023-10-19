@@ -22,11 +22,11 @@ class Save2D(mediator: Mediator) : RNArtistTask<File?>(mediator) {
                 this.rnartistDialog.displayException(exception)
             } ?: run {
                 this.resultNow().first?.let { scriptFile ->
-                    //it was a copy of the current 2D in the current folder
-                    mediator.rnartist.currentThumbnail = mediator.rnartist.addThumbnail(File(mediator.currentDB!!.getDrawingsDirForDataDir(File(mediator.rnartist.currentDBFolderAbsPath.get())), "${scriptFile.name.split(".kts").first()}.png"),
-                        scriptFile.invariantSeparatorsPath)
+                    //it is a copy of the current 2D in the current folder
+                    mediator.rnartist.currentThumbnail.set(mediator.rnartist.addThumbnail(File(mediator.currentDB!!.getDrawingsDirForDataDir(File(mediator.rnartist.currentDBFolderAbsPath.get())), "${scriptFile.name.split(".kts").first()}.png"),
+                        scriptFile.invariantSeparatorsPath))
                 } ?: run {
-                    //it xas an update of the current 2D in the current folder
+                    //it is an update of the current 2D in the current folder
                     mediator.rnartist.thumbnails.items.forEach {
                         if (it.dslScriptInvariantSeparatorsPath.equals(mediator.currentDrawing.get()?.dslScriptInvariantSeparatorsPath)) {
                             it.layoutAndThemeUpdated.value = !it.layoutAndThemeUpdated.value
@@ -87,13 +87,13 @@ class Save2DSelection(mediator: Mediator) : RNArtistTask<File?>(mediator) {
                 this.rnartistDialog.displayException(exception)
             } ?: run {
                 this.resultNow().first?.let { scriptFile ->
-                    mediator.rnartist.currentThumbnail = mediator.rnartist.addThumbnail(
+                    mediator.rnartist.currentThumbnail.set(mediator.rnartist.addThumbnail(
                         File(
                             mediator.currentDB!!.getDrawingsDirForDataDir(File(mediator.rnartist.currentDBFolderAbsPath.get())),
                             "${scriptFile.name.split(".kts").first()}.png"
                         ),
                         scriptFile.invariantSeparatorsPath
-                    )
+                    ))
                 }
                 this.rnartistDialog.stage.close()
             }
@@ -478,7 +478,7 @@ class UpdateAll2Ds(mediator: Mediator) : RNArtistTask<Any?>(mediator) {
                 this.rnartistDialog.displayException(exception)
             } ?: run {
                 mediator.rnartist.thumbnails.items.forEach { item ->
-                    if (item != mediator.rnartist.currentThumbnail) {
+                    if (item != mediator.rnartist.currentThumbnail.get()) {
                         item.layoutAndThemeUpdated.value = !item.layoutAndThemeUpdated.value
                     }
                 }
@@ -497,7 +497,7 @@ class UpdateAll2Ds(mediator: Mediator) : RNArtistTask<Any?>(mediator) {
 
                 //then the other thumbnails
                 mediator.rnartist.thumbnails.items.forEach { item ->
-                    if (item !=  mediator.rnartist.currentThumbnail) {
+                    if (item !=  mediator.rnartist.currentThumbnail.get()) {
                         updateMessage(
                             "Updating 2D for ${
                                 item.dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
