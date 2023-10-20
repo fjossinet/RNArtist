@@ -3061,7 +3061,7 @@ class RNArtist : Application() {
                 val random2dButton: RNArtistButton
                 val current2dAsBnButton: RNArtistButton
                 val plot2dButton: RNArtistButton
-                val trashEveythingButton: RNArtistButton
+                val trashEverythingButton: RNArtistButton
 
                 init {
                     this.children.add(buttonsPanel)
@@ -3096,8 +3096,8 @@ class RNArtist : Application() {
                                     }
                                 }?.let { ss ->
                                     structureParameters.nameField.text = ss.rna.name
-                                    bracketNotationSubPanel.seqField.setSequence(ss.rna.seq)
-                                    bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
+                                    bracketNotationSubPanel.seqField.setString(ss.rna.seq)
+                                    bracketNotationSubPanel.bnField.setString(ss.toBracketNotation())
                                 }
                             }
                         }
@@ -3115,10 +3115,10 @@ class RNArtist : Application() {
                         val ss = SecondaryStructure(
                             randomRNA(structureParameters.lengthField.text.toInt()), bn.first
                         )
-                        bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
+                        bracketNotationSubPanel.bnField.setString(ss.toBracketNotation())
                         ss.randomizeSeq() //to have a seq that fit the structural constraints
                         ss.rna.name = structureParameters.nameField.text
-                        bracketNotationSubPanel.seqField.setSequence(ss.rna.seq)
+                        bracketNotationSubPanel.seqField.setString(ss.rna.seq)
                     }
                     this.random2dButton.isDisable = false
 
@@ -3131,16 +3131,16 @@ class RNArtist : Application() {
                                 structureParameters.nameField.text = this.secondaryStructure.name
                                 val selectedPositions = mediator.canvas2D.getSelectedPositions()
                                 if (selectedPositions.isEmpty()) {
-                                    bracketNotationSubPanel.seqField.setSequence(this.secondaryStructure.rna.seq)
-                                    bracketNotationSubPanel.bnField.setBracketNotation(this.secondaryStructure.toBracketNotation())
+                                    bracketNotationSubPanel.seqField.setString(this.secondaryStructure.rna.seq)
+                                    bracketNotationSubPanel.bnField.setString(this.secondaryStructure.toBracketNotation())
                                 } else {
                                     val selectedLocation = Location(selectedPositions.toIntArray())
-                                    bracketNotationSubPanel.seqField.setSequence(
+                                    bracketNotationSubPanel.seqField.setString(
                                         this.secondaryStructure.rna.subSequence(
                                             selectedLocation
                                         )
                                     )
-                                    bracketNotationSubPanel.bnField.setBracketNotation(
+                                    bracketNotationSubPanel.bnField.setString(
                                         this.secondaryStructure.toBracketNotation(
                                             selectedLocation
                                         )
@@ -3188,14 +3188,14 @@ class RNArtist : Application() {
                         }
                     }
 
-                    this.trashEveythingButton =
+                    this.trashEverythingButton =
                         buttonsPanel.addButton("fas-trash:15", "Erase bracket notation and sequence") {
                             structureParameters.nameField.text = "My RNA"
                             bracketNotationSubPanel.bnField.clear()
                             bracketNotationSubPanel.seqField.clear()
 
                         }
-                    this.trashEveythingButton.isDisable = true
+                    this.trashEverythingButton.isDisable = true
                 }
 
                 override fun blinkUINode(name: String) {
@@ -3222,7 +3222,7 @@ class RNArtist : Application() {
 
                         "trash_everything_in_bn_button" -> {
                             lowerPanel.bracketNotationPanelButton.fire()
-                            blinkWithColorBackGround(this.trashEveythingButton)
+                            blinkWithColorBackGround(this.trashEverythingButton)
                         }
 
                     }
@@ -3297,19 +3297,19 @@ class RNArtist : Application() {
                     RNArtistButton("fas-arrows-alt-h:12", "Mirror mode for brackets", isClickedColor = Color.DARKRED)
                 val pasteBnButton = RNArtistButton("fas-paste:12", "Paste from clipboard") {
                     with(Clipboard.getSystemClipboard()) {
-                        bnField.setBracketNotation(this.string)
+                        bnField.setString(this.string)
                     }
                 }
                 val pasteSeqButton = RNArtistButton("fas-paste:12", "Paste from clipboard") {
                     with(Clipboard.getSystemClipboard()) {
-                        seqField.setSequence(this.string)
+                        seqField.setString(this.string)
                     }
                 }
                 val randomSeqButton = RNArtistButton("fas-dice-d20:12", "Generate random sequence") {
                     val bn = bnField.toBracketNotation()
                     val ss = SecondaryStructure(randomRNA(bn.length), bracketNotation = bn)
                     ss.randomizeSeq()
-                    seqField.setSequence(ss.rna.seq)
+                    seqField.setString(ss.rna.seq)
                 }
                 val fixSeqButton = RNArtistButton("fas-wrench:12", "Fix X residues") {
                     val bn = bnField.toBracketNotation()
@@ -3443,13 +3443,14 @@ class RNArtist : Application() {
                     bnField.characters.children.addListener(ListChangeListener {
                         globalOptionsSubPanel.plot2dButton.isDisable =
                             bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
-                        globalOptionsSubPanel.trashEveythingButton.isDisable = bnField.characters.children.isEmpty()
+                        globalOptionsSubPanel.trashEverythingButton.isDisable = bnField.characters.children.isEmpty()
                         randomSeqButton.isDisable = bnField.characters.children.isEmpty()
                     })
 
                     seqField.characters.children.addListener(ListChangeListener {
                         globalOptionsSubPanel.plot2dButton.isDisable =
                             bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
+                        globalOptionsSubPanel.trashEverythingButton.isDisable = seqField.characters.children.isEmpty()
                         fixSeqButton.isDisable = !seqField.toSequence()
                             .contains("X") && seqField.characters.children.size == bnField.characters.children.size
                     })
@@ -3616,8 +3617,14 @@ class RNArtist : Application() {
                         }
 
                         this.onKeyPressed = EventHandler {
-                            println(it.code)
                             when (it.code) {
+                                KeyCode.V -> {
+                                    if(it.isShortcutDown()) {
+                                        with(Clipboard.getSystemClipboard()) {
+                                            setString(this.string)
+                                        }
+                                    }
+                                }
                                 KeyCode.LEFT -> {
                                     cursorPosition?.let {
                                         val pos = this.characters.children.indexOf(cursorPosition)
@@ -3692,6 +3699,8 @@ class RNArtist : Application() {
                         }
                     }
 
+                    abstract fun setString(string: String)
+
                     abstract fun addCharacter(character: String)
 
                     abstract fun addCharacterAt(index: Int, character: String)
@@ -3751,29 +3760,32 @@ class RNArtist : Application() {
 
                     override fun addCharacterAt(index: Int, character: String) {
                         val charactersPerRow = ((this.width - this.padding.left - this.padding.right) / 20.0).toInt()
-                        val c = when (character.uppercase()) {
-                            "A" -> {
-                                Residue("A")
-                            }
+                        var c:Residue? = null
+                        if (character.uppercase().matches(Regex("[A-UW-Z]"))) { //not the V to avoid to have an X after a paste
+                            c = when (character.uppercase()) {
+                                "A" -> {
+                                    Residue("A")
+                                }
 
-                            "T" -> {
-                                Residue("U")
-                            }
+                                "T" -> {
+                                    Residue("U")
+                                }
 
-                            "U" -> {
-                                Residue("U")
-                            }
+                                "U" -> {
+                                    Residue("U")
+                                }
 
-                            "G" -> {
-                                Residue("G")
-                            }
+                                "G" -> {
+                                    Residue("G")
+                                }
 
-                            "C" -> {
-                                Residue("C")
-                            }
+                                "C" -> {
+                                    Residue("C")
+                                }
 
-                            else -> {
-                                Residue("X")
+                                else -> {
+                                    Residue("X")
+                                }
                             }
                         }
                         c?.let {
@@ -3803,9 +3815,9 @@ class RNArtist : Application() {
                                 )
                     }
 
-                    fun setSequence(seq: String) {
+                    override fun setString(string: String) {
                         this.clear()
-                        seq.forEach {
+                        string.forEach {
                             this.addCharacter("$it")
                             cursorPosition = null
                         }
@@ -3909,7 +3921,7 @@ class RNArtist : Application() {
                         }
                     }
 
-                    fun setBracketNotation(bn: String) {
+                    override fun setString(string: String) {
                         colorHelicesTask?.cancel()
                         launchColorHelicesTask.stop()
 
@@ -3917,7 +3929,7 @@ class RNArtist : Application() {
                         mirrorModeButton.isClicked =
                             false //to avoid to mirror some characters and then to modify the original bn
                         this.clear()
-                        bn.forEach {
+                        string.forEach {
                             this.addCharacter("$it")
                             cursorPosition = null
                         }
