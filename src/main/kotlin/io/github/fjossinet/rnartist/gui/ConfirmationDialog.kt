@@ -51,13 +51,13 @@ class ConfirmationDialog(val mediator: Mediator, message:String, helpDocName: St
 
         content.children.add(buttonsPanel)
 
-        var button = buttonsPanel.addButton("fas-times:15") {
+        var button = buttonsPanel.addButton("fas-times:15", "") {
             isConfirmed = false
             stage.close()
         }
         button.isDisable = false
 
-        button = buttonsPanel.addButton("fas-check:15") {
+        button = buttonsPanel.addButton("fas-check:15", "") {
             isConfirmed = true
             stage.close()
         }

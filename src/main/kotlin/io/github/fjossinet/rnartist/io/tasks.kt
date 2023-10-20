@@ -52,7 +52,7 @@ class Save2D(mediator: Mediator) : RNArtistTask<File?>(mediator) {
             mediator.currentDrawing.get()?.let { currentDrawing ->
                 //if the dslScriptInvariantSeparatorsPath for this 2D doesn't start with the current DB folder, this means that the user wants to add a 2D coming from elsewhere
                 if (!File(currentDrawing.dslScriptInvariantSeparatorsPath).parentFile.invariantSeparatorsPath.equals(mediator.rnartist.currentDBFolderAbsPath.get())) {
-                    val scriptFile = mediator.currentDB!!.addAndPlot2D(currentDrawing.secondaryStructureDrawing.name, File(mediator.rnartist.currentDBFolderAbsPath.get()), currentDrawing.secondaryStructureDrawing.secondaryStructure, currentDrawing.rnArtistEl)
+                    val scriptFile = mediator.currentDB!!.addNewStructure(File(mediator.rnartist.currentDBFolderAbsPath.get()), currentDrawing.secondaryStructureDrawing.secondaryStructure, currentDrawing.rnArtistEl)
                     mediator.scriptEngine.eval(scriptFile.readText())
                     currentDrawing.dslScriptInvariantSeparatorsPath = scriptFile.invariantSeparatorsPath
 
@@ -109,18 +109,19 @@ class Save2DSelection(mediator: Mediator) : RNArtistTask<File?>(mediator) {
             mediator.currentDrawing.get()?.let { currentDrawing ->
                 val selectedLoc = Location(mediator.canvas2D.getSelectedPositions().toIntArray())
                 val dataDir = File(mediator.rnartist.currentDBFolderAbsPath.get())
-                val partsAlreadySaved = dataDir.listFiles().count { it.name.endsWith(".vienna") && it.name.startsWith("${currentDrawing.secondaryStructureDrawing.name}_part_") }
-                val fileName = "${currentDrawing.secondaryStructureDrawing.name}_part_${partsAlreadySaved+1}"
+                val current2DFileName = File(currentDrawing.dslScriptInvariantSeparatorsPath).name.split(".kts").first()
+                val domainsAlreadySaved = dataDir.listFiles().count {it.name.endsWith(".kts") && it.name.startsWith("${current2DFileName}_domain")}
+                val fileName = "${current2DFileName}_domain_${domainsAlreadySaved+1}"
                 val ss = SecondaryStructure(
                     RNA(
                         fileName,
                         currentDrawing.secondaryStructureDrawing.secondaryStructure.rna.subSequence(selectedLoc)
                     ), currentDrawing.secondaryStructureDrawing.secondaryStructure.toBracketNotation(selectedLoc)
                 )
-                scriptFile = mediator.currentDB?.addAndPlot2D(
-                    fileName,
+                scriptFile = mediator.currentDB?.addNewStructure(
                     dataDir,
                     ss
+
                 )
                 scriptFile?.let {
                     mediator.scriptEngine.eval(it.readText())
@@ -176,7 +177,7 @@ class AddStructureFromURL(
                     updateMessage("Downloading data....")
                     RNACentral().fetch(entryID)?.let { ss ->
                         updateMessage("Saving data....")
-                        val scriptFile = rootDB.addAndPlot2D(entryID, File(dataDir), ss)
+                        val scriptFile = rootDB.addNewStructure(File(dataDir), ss)
                         updateMessage("Computing 2D....")
                         mediator.scriptEngine.eval(scriptFile.readText())
                         return Pair(scriptFile,null)
@@ -282,19 +283,26 @@ class CreateDBFolder(mediator: Mediator, val absPathFolder: String) : RNArtistTa
 
 }
 
-class LoadDBFolder(mediator: Mediator) : RNArtistTask<Int?>(mediator) {
+class LoadDBFolder(mediator: Mediator) : RNArtistTask<List<File>?>(mediator) {
     init {
         setOnSucceeded { _ ->
             this.resultNow().second?.let {
                 this.rnartistDialog.displayException(it)
             } ?: run {
                 this.resultNow().first?.let {
-                    this.rnartistDialog.stage.close()
-                    if (it == 0 && mediator.helpModeOn) {
-                        HelpDialog(mediator, "This folder is empty. You can create and save 2D structures from the bracket notation panel",
-                            "bracket_notation_panel.html"
-                        )
+                    mediator.rnartist.lowerPanel.dbExplorerPanel.dbExplorerSubPanel.dbTreeView.selectionModel.selectedItem?.let { selectedDBFolder ->
+                        val dataDir = File(selectedDBFolder.value.absPath)
+                        it.forEach {
+                            mediator.rnartist.addThumbnail(
+                                it,
+                                File(
+                                    dataDir,
+                                    "${it.name.split(".png").first()}.kts"
+                                ).invariantSeparatorsPath
+                            )
+                        }
                     }
+                    this.rnartistDialog.stage.close()
                 }
 
             }
@@ -304,9 +312,11 @@ class LoadDBFolder(mediator: Mediator) : RNArtistTask<Int?>(mediator) {
         }
     }
 
-    override fun call(): Pair<Int?, Exception?> {
+    override fun call(): Pair<List<File>?, Exception?> {
         try {
             var fullTotalStructures = 0
+
+            val pictures = mutableListOf<File>()
 
             mediator.currentDB?.let { rootDB ->
 
@@ -350,29 +360,11 @@ class LoadDBFolder(mediator: Mediator) : RNArtistTask<Int?>(mediator) {
                         ?.forEach {
                             if (this.isCancelled)
                                 return Pair(null, null)
-                            updateMessage(
-                                "Loading 2D for ${
-                                    it.name.split(".png").first()
-                                } in ${dataDir.name}"
-                            )
-                            val t = RNArtist.Thumbnail(
-                                this.mediator,
-                                it,
-                                File(
-                                    dataDir,
-                                    "${it.name.split(".png").first()}.kts"
-                                ).invariantSeparatorsPath
-                            )
-                            Platform.runLater() {
-                                mediator.rnartist.thumbnails.items.add(t)
-                            }
-                            updateProgress((++i).toDouble(), totalPNGFiles.toDouble())
-                            stepProperty.value = Pair(i, totalPNGFiles)
-
+                            pictures.add(it)
                         }
                 }
             }
-            return Pair(fullTotalStructures, null)
+            return Pair(pictures, null)
         } catch (e: Exception) {
             return Pair(null, e)
         }

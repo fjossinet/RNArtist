@@ -30,38 +30,50 @@
             </figure>
         </div>
         <div style="display: inline-block;vertical-align:top; padding-left:30px; max-width: 800px">
-            <p>This panel targets the rna objects selected in <a href="canvas.html">the canvas</a>. To target the full 2D, you need to use <a href="left_theme_panel.html">this panel</a></p>
+            <p>With this panel you can select RNA objects in the 2D drawing and modify their features (color, line width, details level). If you prefer to act on the full 2D, you need to use <a href="left_theme_panel.html">the theme panel on the left side</a></p>
             <p>
-                You have two different ways to make a selection with RNArtist:
+                In fact, RNArtist provides two different ways to make a selection:
             </p>
             <ul>
                 <li>using <a href="#" onclick="return false;" id="all_selection_buttons"
                              class="linkedToUI">the selection buttons</a> in this panel</li>
-                <li>by clicking on the drawing surface of <a href="canvas.html">the canvas 2D</a></li>
+                <li>using mouse clicks on the drawing surface of <a href="canvas.html">the canvas 2D</a></li>
             </ul>
             <h3>Selection</h3>
             <ul>
                 <li><a href="#" onclick="return false;" id="select_button" class="linkedToUI">this button</a> makes a selection according to the type defined <a href="#" onclick="return false;" id="type_menu"
-                                                                                                                                                                     class="linkedToUI">here</a>. If a prior selection exists, the search is be restricted to the location defined by the current selection.
-                </li>
-                <li><a href="#" onclick="return false;" id="reverse_selection_button" class="linkedToUI">this
-                    button</a> reverses the current selection. It selects the rna objects not present in the current selection, and corresponding to the type defined <a href="#" onclick="return false;" id="type_menu" class="linkedToUI">here</a>.
+                                                                                                                                                                     class="linkedToUI">here</a>.
+                    The search is restricted to the location defined by the current selection in the 2D canvas (if any) or defined in the location subpanel below.
                 </li>
                 <li>
                     <a href="#"
                        onclick="return false;"
                        id="add_to_selection_button"
                        class="linkedToUI">this button</a> makes a selection according to the type defined <a href="#" onclick="return false;" id="type_menu"
-                                                                                                                 class="linkedToUI">here</a> and adds it to the current selection (if any)
+                                                                                                             class="linkedToUI">in this list</a> and adds it to the current selection (if any). The search is done on the full 2D.
+                </li>
+                <li><a href="#" onclick="return false;" id="reverse_selection_button" class="linkedToUI">this
+                    button</a> reverses the current selection. It selects the RNA objects not present in the current selection, and corresponding to the type defined <a href="#" onclick="return false;" id="type_menu" class="linkedToUI">in this list</a>. The search is done on the full 2D.
                 </li>
                 <li><a href="#" onclick="return false;"
                        id="clear_selection_button"
                        class="linkedToUI">this button</a> clears the current selection.</li>
+                <li>
+                    <a href="#" onclick="return false;" id="user-defined location panel" class="linkedToUI">this subpanel</a> allows to restrict the selection to a user-defined location. It has the priority over any selection made directly in the 2D canvas (if any). The location is computed from the current list of intervals.
+                    <ul>
+                        <li><a href="#" onclick="return false;" id="Add a new interval" class="linkedToUI">this
+                            button</a> adds a new interval to the list</li>
+                        <li><a href="#" onclick="return false;" id="Recover the location from the current selection" class="linkedToUI">this
+                            button</a> recovers the location from the current selection in the 2D canvas and add it to the list of intervals</li>
+                        <li><a href="#" onclick="return false;" id="Remove all intervals" class="linkedToUI">this
+                            button</a> clear the list of intervals</li>
+                    </ul>
+                </li>
             </ul>
             <h3>Details level</h3>
             <ul>
-                <li>with <a href="#" onclick="return false;" id="selection_lowly_rendered" class="linkedToUI">this button</a>, the selected rna objects become lowly rendered. Each additional click does the same for the next parent of the selected elements.</li>
-                <li>with <a href="#" onclick="return false;" id="selection_highly_rendered" class="linkedToUI">this button</a>, the selected rna objects become highly rendered Each additional click wdoes the same for the next children of the selected elements.</li>
+                <li>with <a href="#" onclick="return false;" id="selection_lowly_rendered" class="linkedToUI">this button</a>, the selected RNA objects become lowly rendered. Each additional click does the same for the next parent of the selected elements.</li>
+                <li>with <a href="#" onclick="return false;" id="selection_highly_rendered" class="linkedToUI">this button</a>, the selected RNA objects become highly rendered. Each additional click does the same for the next children of the selected elements.</li>
             </ul>
             <p>For more details about the concept of details level, check <a href="rna2d_concept.html">this documentation page</a><p>
             <h3>Color & Lines</h3>
@@ -69,7 +81,7 @@
                 <li>by clicking on <a href="#" onclick="return false;" id="selection_colorwheel"
                                        class="linkedToUI">the color wheel</a>, you define a new color for all the selected objects. This adds the color to the last colors panel below the wheel, along with colors with different levels of saturation and brightness.</li>
                 <li>click on <a href="#" onclick="return false;" id="selection_colorwheel_color_letters" class="linkedToUI">this button</a> before to choose the color to apply it to the residue characters/letters</li>
-                <li>click on <a href="#" onclick="return false;" id="pickcolor" class="linkedToUI">this button</a> before to pick the color of the rna object highlighted</li>
+                <li>click on <a href="#" onclick="return false;" id="pickcolor" class="linkedToUI">this button</a> to recover the color of the RNA object highlighted</li>
                 <li>by clicking on <a href="#" onclick="return false;" id="selection_colorwheel_lineWidth_knob"
                                       class="linkedToUI">the knob surrounding the color wheel</a>, you rotate it and define the new line width for all the selected objects</li>
                 <li>by clicking on <a href="#" onclick="return false;" id="selection_colorwheel_currentlineWidth_button"

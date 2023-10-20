@@ -29,11 +29,8 @@ class LargeButtonsPanel(
         this.alignment = Pos.CENTER_LEFT
     }
 
-    fun addButton(icon: String, toolTip: String? = null, onActionEventHandler: EventHandler<ActionEvent>? = null): RNArtistButton {
-        val rnArtistButton = RNArtistButton(icon, buttonRadius =  buttonRadius, onActionEventHandler = onActionEventHandler)
-        toolTip?.let {
-            rnArtistButton.button.tooltip = Tooltip(it)
-        }
+    fun addButton(icon: String, toolTip: String, onActionEventHandler: EventHandler<ActionEvent>? = null): RNArtistButton {
+        val rnArtistButton = RNArtistButton(icon, toolTip, buttonRadius =  buttonRadius, onActionEventHandler = onActionEventHandler)
         rnArtistButton.isDisable = true
         this.children.add(rnArtistButton)
         return rnArtistButton

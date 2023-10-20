@@ -5,6 +5,7 @@ import javafx.event.EventHandler
 import javafx.geometry.Insets
 import javafx.scene.Group
 import javafx.scene.control.Button
+import javafx.scene.control.Tooltip
 import javafx.scene.effect.InnerShadow
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.Background
@@ -14,12 +15,13 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Circle
 import org.kordamp.ikonli.javafx.FontIcon
 
-open class RNArtistButton(icon: String, clickable: Boolean = true, iconColor: Color = Color.WHITE, buttonRadius:Double = 12.0, isClickedColor: Color? = null, onActionEventHandler: EventHandler<ActionEvent>? = null): Group() {
+open class RNArtistButton(icon: String, toolTip: String, clickable: Boolean = true, iconColor: Color = Color.WHITE, buttonRadius:Double = 12.0, isClickedColor: Color? = null, onActionEventHandler: EventHandler<ActionEvent>? = null): Group() {
     var isClicked: Boolean = false
     val button = Button(null, FontIcon(icon))
     init {
         with(this.button) {
             this.background = null
+            this.tooltip = Tooltip(toolTip)
             (this.graphic as FontIcon).iconColor = iconColor
             val c = Circle(0.0, 0.0, buttonRadius)
             c.fill = Color.TRANSPARENT

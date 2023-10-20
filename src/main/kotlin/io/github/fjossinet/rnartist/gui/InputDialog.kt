@@ -55,13 +55,13 @@ class InputDialog(val mediator: Mediator, message:String, helpDocName: String? =
 
         content.children.add(buttonsPanel)
 
-        var button = buttonsPanel.addButton("fas-times:15") {
+        var button = buttonsPanel.addButton("fas-times:15", "") {
             input.text = ""
             stage.close()
         }
         button.isDisable = false
 
-        button = buttonsPanel.addButton("fas-check:15") {
+        button = buttonsPanel.addButton("fas-check:15", "") {
             stage.close()
         }
         button.isDisable = false

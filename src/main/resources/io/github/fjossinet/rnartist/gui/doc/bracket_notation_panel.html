@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <link href="css/doc.css" rel="stylesheet">
@@ -23,9 +23,87 @@
 <body>
 <main>
     <section id="main">
-        <h2></h2>
+        <h2>The bracket notation panel</h2>
+        <figure>
+            <img src="images/bracket_notation_panel.png"/>
+        </figure>
         <p>
-            <i>to come....</i>
+            This panel allows you to easily define a 2D using the dot-bracket notation.
+        </p>
+        <h3>How to define a bracket notation?</h3>
+        <p>
+            You have different ways to do it:
+        </p>
+        <ul>
+            <li>
+                use <a href="#" onclick="return false;"
+                       id="load_file_as_bn_button" class="linkedToUI">this
+                button</a> to open a structural file (Vienna, Bpseq,...) and to load its 2D into this panel as a bracket notation
+            </li>
+            <li>
+                use <a href="#" onclick="return false;"
+                       id="generate_random_2d_button" class="linkedToUI">this
+                button</a> to generate a random 2D according to the parameters just below (length, pairing density, mean helix size)
+            </li>
+            <li>
+                use <a href="#" onclick="return false;"
+                       id="load_current_drawing_as_bn_button" class="linkedToUI">this
+                button</a> to recover the current 2D drawing (if any) as a bracket notation. If any selection is available in the canvas 2D, only the selected parts will be processed. This allows you to extract domains from your 2D and to edit/save them independently
+            </li>
+            <li>
+                use <a href="#" onclick="return false;"
+                       id="paste_bn_button" class="linkedToUI">this
+                button</a> to paste a bracket notation you have copied from another application.
+            </li>
+        </ul>
+        <p>
+            You can erase everything and restart from scratch using <a href="#" onclick="return false;"
+                                                                       id="trash_everything_in_bn_button" class="linkedToUI">this
+            button</a>
+        </p>
+        <p>
+            As soon as a bracket notation is loaded in this panel, it will highlights the helices with random colors.
+            The different colors used are listed as circles below the bracket notation field.
+            They are listed according to the helices position in the 2D (first color for the first helix and so on).
+            You can click on a circle to get a different random color and to update the bracket notation.
+        </p>
+        <h3>How to modify a bracket notation?</h3>
+        <p>
+            Once a bracket notation loaded and colored, you can modify it with a left mouse click on one of its symbols. You will see a blinking cursor which allows you to remove (backspace) or add characters at this location (only characters ".", "(" and ")" are allowed).
+                Few milliseconds after your last modification, the panel will update the colors according to the new list of helices. If you see some brackets without any color, this means that your bracket notation is unbalanced.
+        </p>
+        <p>
+            If you click on this <a href="#" onclick="return false;"
+                                    id="mirror_mode_bn_button" class="linkedToUI">this
+            button</a>, you activate/desactivate the mirroring mode. If activated, any new left bracket added will automatically be followed with a right bracket.
+        </p>
+        <p>
+            If you remove symbols from your 2D, the same positions are also removed from the RNA sequence. If you add symbols to your 2D, X residues are added at the same positions in the RNA sequence.
+        </p>
+        <figure>
+            <img src="images/x_residues_added_in_bn.png"/>
+            <figcaption>X residues automatically added to the sequence after the addition of a new helix</figcaption>
+        </figure>
+        <p>
+            You can either decide to keep these X residues or ask RNArtist to replace them with residues that match the structural constraints.
+            To do so, you need to click on <a href="#" onclick="return false;"
+                                              id="fix_seq_button" class="linkedToUI">this
+            button</a>.
+        </p>
+        <figure>
+            <img src="images/x_residues_fixed_in_bn.png"/>
+            <figcaption>Residues fixed and matching the structural constraints</figcaption>
+        </figure>
+        <p>
+            You can also generate a new full random sequence that match the structural constraints with <a href="#" onclick="return false;" id="random_seq_button" class="linkedToUI">this
+            button</a>
+        </p>
+        <h3>How to plot and save my bracket notation?</h3>
+        <p>
+            To plot your bracket notation in the <a href="canvas.html">2D canvas</a>, you need to use <a href="#" onclick="return false;"
+                                     id="plot_2d_from_bn_button" class="linkedToUI">this
+                button</a>. To save your drawing, you need to save it in a folder defined as an RNArtist database. This is done through the <a href="db_panel.html">database panel</a>. Without saving it, you can  export it in an SVG file using <a href="#" onclick="return false;"
+                     id="export_2d_as_svg" class="linkedToUI">this button</a>.
         </p>
     </section>
 </main>
