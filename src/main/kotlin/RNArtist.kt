@@ -3,6 +3,7 @@ package io.github.fjossinet.rnartist
 import io.github.fjossinet.rnartist.core.RnartistConfig
 import io.github.fjossinet.rnartist.core.RnartistConfig.load
 import io.github.fjossinet.rnartist.core.RnartistConfig.save
+import io.github.fjossinet.rnartist.core.io.parseBPSeq
 import io.github.fjossinet.rnartist.core.io.parseCT
 import io.github.fjossinet.rnartist.core.io.parseVienna
 import io.github.fjossinet.rnartist.core.io.randomColor
@@ -75,7 +76,7 @@ class RNArtist : Application() {
     val verticalSplitPane: SplitPane
     val upperPanel: UpperPanel
     val lowerPanel: LowerPanel
-    private val manageCurrent2DBar:ManageCurrentDrawing
+    private val manageCurrent2DBar: ManageCurrentDrawing
     private val navigationBar: NavigationBar
     private val undoredoThemeBar: UndoRedoThemeBar
     private val undoredoLayoutBar: UndoRedoLayoutBar
@@ -85,6 +86,7 @@ class RNArtist : Application() {
     private val root: BorderPane
 
     var currentThumbnail: SimpleObjectProperty<Thumbnail?> = SimpleObjectProperty(null)
+
     //we explicitly create the observable list of thumbnails to link it to an extractor that will automatically update the picture when the layout and/or theme of the current drawing is saved back in the DSL script.
     private val thumbnailsList: ObservableList<Thumbnail> =
         FXCollections.observableArrayList { thumbnail: Thumbnail ->
@@ -121,7 +123,7 @@ class RNArtist : Application() {
         leftComputingBar.isOn = true
         rightComputingBar.isOn = !rightComputingBar.isOn
     }*/
-    fun blinkUINode(name:String) {
+    fun blinkUINode(name: String) {
         this.upperPanel.blinkUINode(name)
         this.lowerPanel.blinkUINode(name)
         this.manageCurrent2DBar.blinkUINode(name)
@@ -132,7 +134,7 @@ class RNArtist : Application() {
         this.lateralPanelsBar.blinkUINode(name)
     }
 
-    private fun blinkWithGlow(node:Node) {
+    private fun blinkWithGlow(node: Node) {
         val formerEffect = node.effect
         val colorChange = SimpleObjectProperty<Color?>(null)
         colorChange.addListener { _, _, newValue ->
@@ -150,14 +152,14 @@ class RNArtist : Application() {
         blink.keyFrames.add(KeyFrame(Duration.seconds(0.2), KeyValue(colorChange, Color.DARKORANGE)))
         blink.keyFrames.add(KeyFrame(Duration.seconds(0.4), KeyValue(colorChange, null)))
         blink.keyFrames.add(KeyFrame(Duration.seconds(0.6), KeyValue(colorChange, Color.DARKORANGE)))
-        blink.keyFrames.add(KeyFrame(Duration.seconds(0.8), KeyValue(colorChange,null)))
+        blink.keyFrames.add(KeyFrame(Duration.seconds(0.8), KeyValue(colorChange, null)))
         blink.play()
         blink.setOnFinished {
             node.effect = formerEffect
         }
     }
 
-    private fun blinkWithColorInput(node:Node) {
+    private fun blinkWithColorInput(node: Node) {
         val colorChange = SimpleObjectProperty<Color?>(null)
         colorChange.addListener { _, _, newValue ->
             newValue?.let {
@@ -174,11 +176,11 @@ class RNArtist : Application() {
         blink.keyFrames.add(KeyFrame(Duration.seconds(0.2), KeyValue(colorChange, Color.DARKORANGE)))
         blink.keyFrames.add(KeyFrame(Duration.seconds(0.4), KeyValue(colorChange, null)))
         blink.keyFrames.add(KeyFrame(Duration.seconds(0.6), KeyValue(colorChange, Color.DARKORANGE)))
-        blink.keyFrames.add(KeyFrame(Duration.seconds(0.8), KeyValue(colorChange,null)))
+        blink.keyFrames.add(KeyFrame(Duration.seconds(0.8), KeyValue(colorChange, null)))
         blink.play()
     }
 
-    private fun blinkWithColorBackGround(rnArtistButton:RNArtistButton) {
+    private fun blinkWithColorBackGround(rnArtistButton: RNArtistButton) {
         val colorChange = SimpleObjectProperty<Color?>(null)
         colorChange.addListener { _, _, newValue ->
             newValue?.let {
@@ -193,7 +195,7 @@ class RNArtist : Application() {
         blink.keyFrames.add(KeyFrame(Duration.seconds(0.2), KeyValue(colorChange, Color.DARKORANGE)))
         blink.keyFrames.add(KeyFrame(Duration.seconds(0.4), KeyValue(colorChange, null)))
         blink.keyFrames.add(KeyFrame(Duration.seconds(0.6), KeyValue(colorChange, Color.DARKORANGE)))
-        blink.keyFrames.add(KeyFrame(Duration.seconds(0.8), KeyValue(colorChange,null)))
+        blink.keyFrames.add(KeyFrame(Duration.seconds(0.8), KeyValue(colorChange, null)))
         blink.play()
     }
 
@@ -207,7 +209,10 @@ class RNArtist : Application() {
         thumbnails.items.clear()
     }
 
-    fun searchFolder(path:String, start:TreeItem<DBFolder> = lowerPanel.dbExplorerPanel.dbExplorerSubPanel.dbTreeView.root):TreeItem<DBFolder>? {
+    fun searchFolder(
+        path: String,
+        start: TreeItem<DBFolder> = lowerPanel.dbExplorerPanel.dbExplorerSubPanel.dbTreeView.root
+    ): TreeItem<DBFolder>? {
         return if (start.value.absPath.equals(path))
             start
         else if (start.children.isNotEmpty())
@@ -218,8 +223,10 @@ class RNArtist : Application() {
 
     fun addFolderToTreeView(invariantSeparatorsPath2StructuralFiles: String): TreeItem<DBFolder>? {
         currentDB.get()?.let { currentDB ->
-            val inBetweenDirs = invariantSeparatorsPath2StructuralFiles.split(currentDB.rootInvariantSeparatorsPath).last().removePrefix("/").removeSuffix("/")
-                .split("/")
+            val inBetweenDirs =
+                invariantSeparatorsPath2StructuralFiles.split(currentDB.rootInvariantSeparatorsPath).last()
+                    .removePrefix("/").removeSuffix("/")
+                    .split("/")
             var currentParent = lowerPanel.dbExplorerPanel.dbExplorerSubPanel.dbTreeView.root
             for (i in 0 until inBetweenDirs.size) {
                 if (i == inBetweenDirs.size - 1) {
@@ -273,7 +280,7 @@ class RNArtist : Application() {
         lowerPanel.dbExplorerPanel.dbExplorerSubPanel.dbTreeView.selectionModel.select(item)
     }
 
-    fun displayDocPage(docPage:String) {
+    fun displayDocPage(docPage: String) {
         this.lowerPanel.documentationPanelButton.fire()
         this.lowerPanel.documentationPanel.loadDocPage(docPage)
     }
@@ -684,7 +691,7 @@ class RNArtist : Application() {
             this.add(this.upr, 2, 0, 1, 2)
         }
 
-        fun blinkUINode(name:String) {
+        fun blinkUINode(name: String) {
             this.upl.blinkUINode(name)
             this.upr.blinkUINode(name)
         }
@@ -706,30 +713,35 @@ class RNArtist : Application() {
         private inner class UpperLeftPanel() : VerticalMainPanel() {
 
             val drawingConfigurationPanel = DrawingConfigurationPanel()
-            val settingsPanel =  SettingsPanel()
+            val settingsPanel = SettingsPanel()
 
             init {
                 this.addMenuBarButton("fas-paint-brush:15", "Theme panel for the full 2D", drawingConfigurationPanel)
                 //this.addMenuBarButton("fas-tools:15", settingsPanel)
             }
 
-            override fun blinkUINode(name:String) {
+            override fun blinkUINode(name: String) {
                 when (name) {
                     "choose_scheme" -> {
                         blinkWithColorInput(drawingConfigurationPanel.colorLineWidthSubPanel.schemeLabel)
                     }
+
                     "full_2D_colorwheel" -> {
                         drawingConfigurationPanel.colorLineWidthSubPanel.blinkUINode("colorwheel")
                     }
+
                     "full_2D_color_letters" -> {
                         drawingConfigurationPanel.colorLineWidthSubPanel.blinkUINode("colorletters")
                     }
+
                     "full_2D_lineWidth_knob" -> {
                         drawingConfigurationPanel.colorLineWidthSubPanel.blinkUINode("lineWidth_knob")
                     }
+
                     "full_2D_currentlineWidth_button" -> {
                         drawingConfigurationPanel.colorLineWidthSubPanel.blinkUINode("currentlineWidth_button")
                     }
+
                     else -> {
                         drawingConfigurationPanel.blinkUINode(name)
                         settingsPanel.blinkUINode(name)
@@ -741,6 +753,7 @@ class RNArtist : Application() {
 
                 val detailsLevelSubPanel = DetailsLevelSubPanel()
                 val colorLineWidthSubPanel = ColorLineWidthSubPanel()
+
                 init {
 
                     val vbox = VBox()
@@ -758,7 +771,7 @@ class RNArtist : Application() {
                     this.children.add(sp)
                 }
 
-                override fun blinkUINode(name:String) {
+                override fun blinkUINode(name: String) {
                     this.detailsLevelSubPanel.blinkUINode(name)
                     this.colorLineWidthSubPanel.blinkUINode(name)
                 }
@@ -833,70 +846,70 @@ class RNArtist : Application() {
                         }
 
                         buttonsPanel.addButton("fas-expand-arrows-alt:15", "Fit 2D to View") {
-                                mediator.canvas2D.fitStructure(null)
-                            }
+                            mediator.canvas2D.fitStructure(null)
+                        }
 
                         buttonsPanel.addButton("fas-chevron-left:15", "Highlight former Selection") {
-                                val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
-                                    ?.sortedBy { (it as? JunctionDrawing)?.junction?.location?.end ?: it.location.end }
-                                mediator.drawingHighlighted.get()?.let {
-                                    val currentPos = sortedSelection?.indexOf(it)!!
-                                    val newPos =
-                                        if (currentPos == 0) sortedSelection.size - 1 else currentPos - 1
-                                    mediator.drawingHighlighted.set(
-                                        sortedSelection.get(newPos)
-                                    )
-                                } ?: run {
-                                    mediator.drawingHighlighted.set(sortedSelection?.last())
-                                }
-                                mediator.drawingHighlighted.get()?.let {
-                                    it.selectionShape?.let {
-                                        mediator.canvas2D.centerDisplayOn(
-                                            it.bounds2D
-                                        )
-                                    }
-                                }
-
+                            val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
+                                ?.sortedBy { (it as? JunctionDrawing)?.junction?.location?.end ?: it.location.end }
+                            mediator.drawingHighlighted.get()?.let {
+                                val currentPos = sortedSelection?.indexOf(it)!!
+                                val newPos =
+                                    if (currentPos == 0) sortedSelection.size - 1 else currentPos - 1
+                                mediator.drawingHighlighted.set(
+                                    sortedSelection.get(newPos)
+                                )
+                            } ?: run {
+                                mediator.drawingHighlighted.set(sortedSelection?.last())
                             }
+                            mediator.drawingHighlighted.get()?.let {
+                                it.selectionShape?.let {
+                                    mediator.canvas2D.centerDisplayOn(
+                                        it.bounds2D
+                                    )
+                                }
+                            }
+
+                        }
 
                         buttonsPanel.addButton("fas-chevron-right:15", "Highlight next Selection") {
-                                val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
-                                    ?.sortedBy {
-                                        (it as? JunctionDrawing)?.junction?.location?.start ?: it.location.start
-                                    }
-                                mediator.drawingHighlighted.get()?.let {
-                                    val currentPos = sortedSelection?.indexOf(it)!!
-                                    val newPos =
-                                        if (currentPos == sortedSelection.size - 1) 0 else currentPos + 1
-                                    mediator.drawingHighlighted.set(
-                                        sortedSelection.get(newPos)
-                                    )
-                                } ?: run {
-                                    mediator.drawingHighlighted.set(sortedSelection?.first())
+                            val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
+                                ?.sortedBy {
+                                    (it as? JunctionDrawing)?.junction?.location?.start ?: it.location.start
                                 }
-                                mediator.drawingHighlighted.get()?.let {
-                                    it.selectionShape?.let {
-                                        mediator.canvas2D.centerDisplayOn(
-                                            it.bounds2D
-                                        )
-                                    }
+                            mediator.drawingHighlighted.get()?.let {
+                                val currentPos = sortedSelection?.indexOf(it)!!
+                                val newPos =
+                                    if (currentPos == sortedSelection.size - 1) 0 else currentPos + 1
+                                mediator.drawingHighlighted.set(
+                                    sortedSelection.get(newPos)
+                                )
+                            } ?: run {
+                                mediator.drawingHighlighted.set(sortedSelection?.first())
+                            }
+                            mediator.drawingHighlighted.get()?.let {
+                                it.selectionShape?.let {
+                                    mediator.canvas2D.centerDisplayOn(
+                                        it.bounds2D
+                                    )
                                 }
                             }
+                        }
 
                     }
 
-                    override fun blinkUINode(name:String) {}
+                    override fun blinkUINode(name: String) {}
 
                 }
 
                 inner class DetailsLevelSubPanel() : SubPanel("Details Level") {
 
                     val buttonsPanel = LargeButtonsPanel()
-                    val detailsLvl1:RNArtistButton
-                    val detailsLvl2:RNArtistButton
-                    val detailsLvl3:RNArtistButton
-                    val detailsLvl4:RNArtistButton
-                    val detailsLvl5:RNArtistButton
+                    val detailsLvl1: RNArtistButton
+                    val detailsLvl2: RNArtistButton
+                    val detailsLvl3: RNArtistButton
+                    val detailsLvl4: RNArtistButton
+                    val detailsLvl5: RNArtistButton
 
                     init {
 
@@ -908,149 +921,154 @@ class RNArtist : Application() {
                             }
                         }
 
-                        detailsLvl1 = buttonsPanel.addButton("met-number-one:25", "Use details level 1 for the full 2D") {
-                            mediator.currentDrawing.get()?.let { currentDrawing ->
+                        detailsLvl1 =
+                            buttonsPanel.addButton("met-number-one:25", "Use details level 1 for the full 2D") {
+                                mediator.currentDrawing.get()?.let { currentDrawing ->
+                                    val t = Theme()
+                                    t.addConfiguration(
+                                        ThemeProperty.fulldetails,
+                                        { el -> "false" }
+                                    )
+                                    currentDrawing.secondaryStructureDrawing.applyTheme(t)
+                                    mediator.canvas2D.repaint()
+                                    setDetailsLvlForFull2D(currentDrawing.rnArtistEl, 1)
+                                }
+
+                            }
+
+                        detailsLvl2 =
+                            buttonsPanel.addButton("met-number-two:25", "Use details level 2 for the full 2D") {
                                 val t = Theme()
                                 t.addConfiguration(
                                     ThemeProperty.fulldetails,
-                                    { el -> "false" }
+                                    { _ -> "true" },
+                                    listOf(
+                                        SecondaryStructureType.Helix,
+                                        SecondaryStructureType.SecondaryInteraction,
+                                        SecondaryStructureType.Junction,
+                                        SecondaryStructureType.SingleStrand,
+                                        SecondaryStructureType.PhosphodiesterBond
+                                    )
                                 )
-                                currentDrawing.secondaryStructureDrawing.applyTheme(t)
-                                mediator.canvas2D.repaint()
-                                setDetailsLvlForFull2D(currentDrawing.rnArtistEl, 1)
-                            }
 
-                        }
-
-                        detailsLvl2 = buttonsPanel.addButton("met-number-two:25", "Use details level 2 for the full 2D") {
-                            val t = Theme()
-                            t.addConfiguration(
-                                ThemeProperty.fulldetails,
-                                { _ -> "true" },
-                                listOf(
-                                    SecondaryStructureType.Helix,
-                                    SecondaryStructureType.SecondaryInteraction,
-                                    SecondaryStructureType.Junction,
-                                    SecondaryStructureType.SingleStrand,
-                                    SecondaryStructureType.PhosphodiesterBond
+                                t.addConfiguration(
+                                    ThemeProperty.fulldetails,
+                                    { _ -> "false" },
+                                    listOf(
+                                        SecondaryStructureType.InteractionSymbol,
+                                        SecondaryStructureType.AShape,
+                                        SecondaryStructureType.UShape,
+                                        SecondaryStructureType.GShape,
+                                        SecondaryStructureType.CShape,
+                                        SecondaryStructureType.XShape
+                                    )
                                 )
-                            )
 
-                            t.addConfiguration(
-                                ThemeProperty.fulldetails,
-                                { _ -> "false" },
-                                listOf(
-                                    SecondaryStructureType.InteractionSymbol,
-                                    SecondaryStructureType.AShape,
-                                    SecondaryStructureType.UShape,
-                                    SecondaryStructureType.GShape,
-                                    SecondaryStructureType.CShape,
-                                    SecondaryStructureType.XShape
-                                )
-                            )
-
-                            mediator.currentDrawing.get()?.let { currentDrawing ->
-                                currentDrawing.secondaryStructureDrawing.applyTheme(t)
-                                mediator.canvas2D.repaint()
-                                currentDrawing.rnArtistEl?.let {
-                                    setDetailsLvlForFull2D(it, 2)
+                                mediator.currentDrawing.get()?.let { currentDrawing ->
+                                    currentDrawing.secondaryStructureDrawing.applyTheme(t)
+                                    mediator.canvas2D.repaint()
+                                    currentDrawing.rnArtistEl?.let {
+                                        setDetailsLvlForFull2D(it, 2)
+                                    }
                                 }
                             }
-                        }
 
-                        detailsLvl3 = buttonsPanel.addButton("met-number-three:25", "Use details level 3 for the full 2D") {
-                            val t = Theme()
-                            t.addConfiguration(
-                                ThemeProperty.fulldetails,
-                                { _ -> "true" },
-                                listOf(
-                                    SecondaryStructureType.Helix,
-                                    SecondaryStructureType.SecondaryInteraction,
-                                    SecondaryStructureType.Junction,
-                                    SecondaryStructureType.SingleStrand,
-                                    SecondaryStructureType.PhosphodiesterBond,
-                                    SecondaryStructureType.AShape,
-                                    SecondaryStructureType.UShape,
-                                    SecondaryStructureType.GShape,
-                                    SecondaryStructureType.CShape,
-                                    SecondaryStructureType.XShape
+                        detailsLvl3 =
+                            buttonsPanel.addButton("met-number-three:25", "Use details level 3 for the full 2D") {
+                                val t = Theme()
+                                t.addConfiguration(
+                                    ThemeProperty.fulldetails,
+                                    { _ -> "true" },
+                                    listOf(
+                                        SecondaryStructureType.Helix,
+                                        SecondaryStructureType.SecondaryInteraction,
+                                        SecondaryStructureType.Junction,
+                                        SecondaryStructureType.SingleStrand,
+                                        SecondaryStructureType.PhosphodiesterBond,
+                                        SecondaryStructureType.AShape,
+                                        SecondaryStructureType.UShape,
+                                        SecondaryStructureType.GShape,
+                                        SecondaryStructureType.CShape,
+                                        SecondaryStructureType.XShape
+                                    )
                                 )
-                            )
 
-                            t.addConfiguration(
-                                ThemeProperty.fulldetails,
-                                { _ -> "false" },
-                                listOf(
-                                    SecondaryStructureType.InteractionSymbol,
-                                    SecondaryStructureType.A,
-                                    SecondaryStructureType.U,
-                                    SecondaryStructureType.G,
-                                    SecondaryStructureType.C,
-                                    SecondaryStructureType.X
+                                t.addConfiguration(
+                                    ThemeProperty.fulldetails,
+                                    { _ -> "false" },
+                                    listOf(
+                                        SecondaryStructureType.InteractionSymbol,
+                                        SecondaryStructureType.A,
+                                        SecondaryStructureType.U,
+                                        SecondaryStructureType.G,
+                                        SecondaryStructureType.C,
+                                        SecondaryStructureType.X
+                                    )
                                 )
-                            )
 
-                            mediator.currentDrawing.get()?.let { currentDrawing ->
-                                currentDrawing.secondaryStructureDrawing.applyTheme(t)
-                                mediator.canvas2D.repaint()
-                                setDetailsLvlForFull2D(currentDrawing.rnArtistEl, 3)
+                                mediator.currentDrawing.get()?.let { currentDrawing ->
+                                    currentDrawing.secondaryStructureDrawing.applyTheme(t)
+                                    mediator.canvas2D.repaint()
+                                    setDetailsLvlForFull2D(currentDrawing.rnArtistEl, 3)
+                                }
                             }
-                        }
 
-                        detailsLvl4 = buttonsPanel.addButton("met-number-four:25", "Use details level 4 for the full 2D") {
-                            val t = Theme()
-                            t.addConfiguration(
-                                ThemeProperty.fulldetails,
-                                { _ -> "true" },
-                                listOf(
-                                    SecondaryStructureType.Helix,
-                                    SecondaryStructureType.SecondaryInteraction,
-                                    SecondaryStructureType.Junction,
-                                    SecondaryStructureType.SingleStrand,
-                                    SecondaryStructureType.PhosphodiesterBond,
-                                    SecondaryStructureType.AShape,
-                                    SecondaryStructureType.UShape,
-                                    SecondaryStructureType.GShape,
-                                    SecondaryStructureType.CShape,
-                                    SecondaryStructureType.XShape,
-                                    SecondaryStructureType.A,
-                                    SecondaryStructureType.U,
-                                    SecondaryStructureType.G,
-                                    SecondaryStructureType.C,
-                                    SecondaryStructureType.X
+                        detailsLvl4 =
+                            buttonsPanel.addButton("met-number-four:25", "Use details level 4 for the full 2D") {
+                                val t = Theme()
+                                t.addConfiguration(
+                                    ThemeProperty.fulldetails,
+                                    { _ -> "true" },
+                                    listOf(
+                                        SecondaryStructureType.Helix,
+                                        SecondaryStructureType.SecondaryInteraction,
+                                        SecondaryStructureType.Junction,
+                                        SecondaryStructureType.SingleStrand,
+                                        SecondaryStructureType.PhosphodiesterBond,
+                                        SecondaryStructureType.AShape,
+                                        SecondaryStructureType.UShape,
+                                        SecondaryStructureType.GShape,
+                                        SecondaryStructureType.CShape,
+                                        SecondaryStructureType.XShape,
+                                        SecondaryStructureType.A,
+                                        SecondaryStructureType.U,
+                                        SecondaryStructureType.G,
+                                        SecondaryStructureType.C,
+                                        SecondaryStructureType.X
+                                    )
                                 )
-                            )
 
-                            t.addConfiguration(
-                                ThemeProperty.fulldetails,
-                                { _ -> "false" },
-                                listOf(SecondaryStructureType.InteractionSymbol)
-                            )
+                                t.addConfiguration(
+                                    ThemeProperty.fulldetails,
+                                    { _ -> "false" },
+                                    listOf(SecondaryStructureType.InteractionSymbol)
+                                )
 
-                            mediator.currentDrawing.get()?.let { currentDrawing ->
-                                currentDrawing.secondaryStructureDrawing.applyTheme(t)
-                                mediator.canvas2D.repaint()
-                                setDetailsLvlForFull2D(currentDrawing.rnArtistEl, 4)
+                                mediator.currentDrawing.get()?.let { currentDrawing ->
+                                    currentDrawing.secondaryStructureDrawing.applyTheme(t)
+                                    mediator.canvas2D.repaint()
+                                    setDetailsLvlForFull2D(currentDrawing.rnArtistEl, 4)
+                                }
                             }
-                        }
 
-                        detailsLvl5 = buttonsPanel.addButton("met-number-five:25", "Use details level 5 for the full 2D") {
-                            val t = Theme()
-                            t.addConfiguration(
-                                ThemeProperty.fulldetails,
-                                { _ -> "true" },
-                                SecondaryStructureType.entries
-                            )
+                        detailsLvl5 =
+                            buttonsPanel.addButton("met-number-five:25", "Use details level 5 for the full 2D") {
+                                val t = Theme()
+                                t.addConfiguration(
+                                    ThemeProperty.fulldetails,
+                                    { _ -> "true" },
+                                    SecondaryStructureType.entries
+                                )
 
-                            mediator.currentDrawing.get()?.let { currentDrawing ->
-                                currentDrawing.secondaryStructureDrawing.applyTheme(t)
-                                mediator.canvas2D.repaint()
-                                setDetailsLvlForFull2D(currentDrawing.rnArtistEl, 5)
+                                mediator.currentDrawing.get()?.let { currentDrawing ->
+                                    currentDrawing.secondaryStructureDrawing.applyTheme(t)
+                                    mediator.canvas2D.repaint()
+                                    setDetailsLvlForFull2D(currentDrawing.rnArtistEl, 5)
+                                }
                             }
-                        }
                     }
 
-                    override fun blinkUINode(name:String) {
+                    override fun blinkUINode(name: String) {
                         when (name) {
                             "details_lvl_1" -> blinkWithColorBackGround(this.detailsLvl1)
                             "details_lvl_2" -> blinkWithColorBackGround(this.detailsLvl2)
@@ -1145,8 +1163,12 @@ class RNArtist : Application() {
                 inner class ColorLineWidthSubPanel() : AbstractColorLineWidthSubPanel() {
 
                     val schemesComboBox = ComboBox<String>()
-                    val schemeLabel:Label
-                    val unselectedColor = RNArtistButton("fas-search:12", "Color for unselected 2D objects", isClickedColor = Color.DARKRED)
+                    val schemeLabel: Label
+                    val unselectedColor = RNArtistButton(
+                        "fas-search:12",
+                        "Color for unselected 2D objects",
+                        isClickedColor = Color.DARKRED
+                    )
 
                     init {
 
@@ -1200,7 +1222,7 @@ class RNArtist : Application() {
                             colorsFromWheel.forEach {
                                 val color = Color.hsb(it.value[0], it.value[1], it.value[2])
                                 if (event.x >= it.key.x && event.x <= it.key.x + 1.0 && event.y >= it.key.y && event.y <= it.key.y + 1.0) {
-                                    if (unselectedColor.isClicked){
+                                    if (unselectedColor.isClicked) {
                                         RnartistConfig.nonSelectedColor = javaFXToAwt(color)
                                         mediator.canvas2D.repaint()
                                     } else {
@@ -1317,7 +1339,7 @@ class RNArtist : Application() {
                         val r = Circle(0.0, 0.0, 10.0)
                         val color = Color.hsb(c[0], c[1], c[2])
                         r.onMouseClicked = EventHandler { event ->
-                            if (unselectedColor.isClicked){
+                            if (unselectedColor.isClicked) {
                                 RnartistConfig.nonSelectedColor = javaFXToAwt(color)
                                 mediator.canvas2D.repaint()
                             } else {
@@ -1465,12 +1487,16 @@ class RNArtist : Application() {
             val junctionPanel = JunctionPanel()
 
             init {
-                this.addMenuBarButton("fas-paint-brush:15", "Theme panel for the 2D selections", drawingConfigurationPanel)
+                this.addMenuBarButton(
+                    "fas-paint-brush:15",
+                    "Theme panel for the 2D selections",
+                    drawingConfigurationPanel
+                )
                 //this.addMenuBarButton("fas-sitemap:15", StructureExplorerPanel())
                 this.addMenuBarButton("fas-drafting-compass:15", "Junction layout panel", junctionPanel)
             }
 
-            override fun blinkUINode(name:String) {
+            override fun blinkUINode(name: String) {
                 when (name) {
                     "selection_colorwheel" -> {
                         drawingConfigurationPanel.colorLineWidthSubPanel.blinkUINode("colorwheel")
@@ -1500,6 +1526,7 @@ class RNArtist : Application() {
                 val selectionSubPanel = SelectionSubPanel()
                 val detailsLevelSubPanel = DetailsLevelSubPanel()
                 val colorLineWidthSubPanel = ColorLineWidthSubPanel()
+
                 init {
 
                     val vbox = VBox()
@@ -1528,7 +1555,7 @@ class RNArtist : Application() {
                     leftToolBar.children.add(this.junctionSelectionKnob)*/
                 }
 
-                override fun blinkUINode(name:String) {
+                override fun blinkUINode(name: String) {
                     this.selectionSubPanel.blinkUINode(name)
                     this.detailsLevelSubPanel.blinkUINode(name)
                     this.colorLineWidthSubPanel.blinkUINode(name)
@@ -1540,17 +1567,17 @@ class RNArtist : Application() {
                     val typesComboBox = ComboBox<String>()
                     val typeLabel = Label("Type")
                     val locationLabel = Label("Location")
-                    val select:RNArtistButton
-                    val trashSelection:RNArtistButton
-                    val reverseSelection:RNArtistButton
-                    val addToSelection:RNArtistButton
-                    val getCurrentSelectionLocationButton:RNArtistButton
-                    val trashAllBlocksButton:RNArtistButton
-                    val addBlockButton:RNArtistButton
+                    val select: RNArtistButton
+                    val trashSelection: RNArtistButton
+                    val reverseSelection: RNArtistButton
+                    val addToSelection: RNArtistButton
+                    val getCurrentSelectionLocationButton: RNArtistButton
+                    val trashAllBlocksButton: RNArtistButton
+                    val addBlockButton: RNArtistButton
 
-                    val locationHeader:HBox
+                    val locationHeader: HBox
                     val blocks = VBox()
-                    val blocksScrollPane:ScrollPane
+                    val blocksScrollPane: ScrollPane
 
                     init {
                         val buttonsPanel = LargeButtonsPanel()
@@ -1567,12 +1594,13 @@ class RNArtist : Application() {
                             icon = "fas-search:15", "Select in the full 2D or inside the current selection"
                         ) {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
-                                val selectedLocation = getUserLocation() ?: with(mediator.canvas2D.getSelectedPositions()) {
-                                    if (this.isEmpty())
-                                        null
-                                    else
-                                        Location(this.toIntArray())
-                                }
+                                val selectedLocation =
+                                    getUserLocation() ?: with(mediator.canvas2D.getSelectedPositions()) {
+                                        if (this.isEmpty())
+                                            null
+                                        else
+                                            Location(this.toIntArray())
+                                    }
 
                                 val selector = getSelector(selectedLocation)
 
@@ -1612,7 +1640,10 @@ class RNArtist : Application() {
                             }
                         }
 
-                        addToSelection = buttonsPanel.addButton(icon = "fas-search-plus:15", "Select and add to the current selection") {
+                        addToSelection = buttonsPanel.addButton(
+                            icon = "fas-search-plus:15",
+                            "Select and add to the current selection"
+                        ) {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
                                 val selector = getSelector()
                                 val allElements = mutableSetOf<DrawingElement>()
@@ -1749,11 +1780,13 @@ class RNArtist : Application() {
 
                         this.blocks.alignment = Pos.TOP_LEFT
                         this.blocks.spacing = 5.0
-                        this.blocks.background = Background(BackgroundFill(
-                            RNArtistGUIColor,
-                            CornerRadii.EMPTY,
-                            Insets.EMPTY
-                        ))
+                        this.blocks.background = Background(
+                            BackgroundFill(
+                                RNArtistGUIColor,
+                                CornerRadii.EMPTY,
+                                Insets.EMPTY
+                            )
+                        )
 
                         this.blocksScrollPane = ScrollPane(this.blocks)
                         this.blocksScrollPane.isFitToWidth = true
@@ -1762,7 +1795,14 @@ class RNArtist : Application() {
                         this.blocksScrollPane.minHeight = 100.0
                         this.blocksScrollPane.prefHeight = 100.0
                         this.blocksScrollPane.maxHeight = 100.0
-                        this.blocksScrollPane.border = Border(BorderStroke(Color.WHITE, BorderStrokeStyle.SOLID, CornerRadii(5.0), BorderWidths(0.5)))
+                        this.blocksScrollPane.border = Border(
+                            BorderStroke(
+                                Color.WHITE,
+                                BorderStrokeStyle.SOLID,
+                                CornerRadii(5.0),
+                                BorderWidths(0.5)
+                            )
+                        )
                         this.blocksScrollPane.padding = Insets(5.0)
 
                         this.locationHeader = HBox()
@@ -1775,13 +1815,14 @@ class RNArtist : Application() {
                         }
                         this.locationHeader.children.add(this.addBlockButton)
 
-                        this.getCurrentSelectionLocationButton = RNArtistButton("fas-eye-dropper:12", "Recover the location from the current selection") {
-                            Location(mediator.canvas2D.getSelectedPositions().toIntArray()).blocks.forEach {
-                                this.addBlock(it.start, it.end)
+                        this.getCurrentSelectionLocationButton =
+                            RNArtistButton("fas-eye-dropper:12", "Recover the location from the current selection") {
+                                Location(mediator.canvas2D.getSelectedPositions().toIntArray()).blocks.forEach {
+                                    this.addBlock(it.start, it.end)
+                                }
                             }
-                        }
                         this.getCurrentSelectionLocationButton.isDisable = true
-                        mediator.currentDrawing.addListener {  _, _, newValue ->
+                        mediator.currentDrawing.addListener { _, _, newValue ->
                             newValue?.let {
                                 it.selectedDrawings.addListener(ListChangeListener {
                                     if (it.list.isEmpty())
@@ -1803,14 +1844,16 @@ class RNArtist : Application() {
 
                     }
 
-                    fun addBlock(startPos:Int?=null, endPos:Int?=null) {
+                    fun addBlock(startPos: Int? = null, endPos: Int? = null) {
                         val block = HBox()
                         block.alignment = Pos.CENTER
-                        block.background = Background(BackgroundFill(
-                            RNArtistGUIColor,
-                            CornerRadii.EMPTY,
-                            Insets.EMPTY
-                        ))
+                        block.background = Background(
+                            BackgroundFill(
+                                RNArtistGUIColor,
+                                CornerRadii.EMPTY,
+                                Insets.EMPTY
+                            )
+                        )
                         block.spacing = 10.0
                         val start = TextField(startPos?.toString() ?: "")
                         start.maxWidth = 50.0
@@ -1821,21 +1864,21 @@ class RNArtist : Application() {
                         val stop = TextField(endPos?.toString() ?: "")
                         stop.maxWidth = 50.0
                         block.children.add(stop)
-                        val trash = RNArtistButton( "fas-times:12", "Remove this interval", buttonRadius = 10.0) {
+                        val trash = RNArtistButton("fas-times:12", "Remove this interval", buttonRadius = 10.0) {
                             blocks.children.remove(block)
                         }
                         block.children.add(trash)
                         blocks.children.add(block)
                     }
 
-                    fun getUserLocation():Location? {
+                    fun getUserLocation(): Location? {
                         return if (blocks.children.isNotEmpty()) {
                             val l = Location()
                             blocks.children.forEach {
                                 val textFields = (it as HBox).children.filterIsInstance<TextField>()
                                 textFields.first().text.trim().toIntOrNull()?.let { start ->
                                     textFields.last().text.trim().toIntOrNull()?.let { end ->
-                                        l.blocks.add(Block(start,end))
+                                        l.blocks.add(Block(start, end))
                                     }
                                 }
                             }
@@ -1847,7 +1890,7 @@ class RNArtist : Application() {
                             null
                     }
 
-                    override fun blinkUINode(name:String) {
+                    override fun blinkUINode(name: String) {
                         when (name) {
                             "type_menu" -> {
                                 blinkWithColorInput(this.typeLabel)
@@ -1978,8 +2021,8 @@ class RNArtist : Application() {
                     SubPanel("Details Level") {
 
                     val buttonsPanel = LargeButtonsPanel()
-                    val lowlyRenderedButton:RNArtistButton
-                    val highlyRenderedButton:RNArtistButton
+                    val lowlyRenderedButton: RNArtistButton
+                    val highlyRenderedButton: RNArtistButton
 
                     init {
 
@@ -2002,69 +2045,72 @@ class RNArtist : Application() {
                             }
                         }
 
-                        this.lowlyRenderedButton = this.buttonsPanel.addButton("fas-minus:15", "Decrease the details level") {
-                            mediator.currentDrawing.get()?.let { currentDrawing ->
-                                val elements = mutableListOf<DrawingElement>()
-                                mediator.drawingHighlighted.get()?.let {
-                                    elements.addAll(it.hideDetailsUntilNextLevel())
-                                } ?: run {
-                                    currentDrawing.selectedDrawings.forEach {
+                        this.lowlyRenderedButton =
+                            this.buttonsPanel.addButton("fas-minus:15", "Decrease the details level") {
+                                mediator.currentDrawing.get()?.let { currentDrawing ->
+                                    val elements = mutableListOf<DrawingElement>()
+                                    mediator.drawingHighlighted.get()?.let {
                                         elements.addAll(it.hideDetailsUntilNextLevel())
+                                    } ?: run {
+                                        currentDrawing.selectedDrawings.forEach {
+                                            elements.addAll(it.hideDetailsUntilNextLevel())
+                                        }
+                                    }
+                                    val typesAndLocation =
+                                        dumpIntoTypeAndLocation(elements, currentDrawing.secondaryStructureDrawing)
+
+                                    val step = currentDrawing.rnArtistEl.getThemeOrNew().lastStep + 1
+
+                                    typesAndLocation.forEach {
+                                        setDetailsLvl(
+                                            currentDrawing.rnArtistEl,
+                                            false,
+                                            it.second,
+                                            it.first,
+                                            step
+                                        )
                                     }
                                 }
-                                val typesAndLocation =
-                                    dumpIntoTypeAndLocation(elements, currentDrawing.secondaryStructureDrawing)
-
-                                val step = currentDrawing.rnArtistEl.getThemeOrNew().lastStep + 1
-
-                                typesAndLocation.forEach {
-                                    setDetailsLvl(
-                                        currentDrawing.rnArtistEl,
-                                        false,
-                                        it.second,
-                                        it.first,
-                                        step
-                                    )
-                                }
+                                mediator.canvas2D.repaint()
                             }
-                            mediator.canvas2D.repaint()
-                        }
 
-                        this.highlyRenderedButton = this.buttonsPanel.addButton("fas-plus:15", "Increase the details level") {
-                            mediator.currentDrawing.get()?.let { currentDrawing ->
-                                val elements = mutableListOf<DrawingElement>()
-                                mediator.drawingHighlighted.get()?.let {
-                                    elements.addAll(it.showUntilNextLevel())
-                                } ?: run {
-                                    currentDrawing.selectedDrawings.forEach {
+                        this.highlyRenderedButton =
+                            this.buttonsPanel.addButton("fas-plus:15", "Increase the details level") {
+                                mediator.currentDrawing.get()?.let { currentDrawing ->
+                                    val elements = mutableListOf<DrawingElement>()
+                                    mediator.drawingHighlighted.get()?.let {
                                         elements.addAll(it.showUntilNextLevel())
+                                    } ?: run {
+                                        currentDrawing.selectedDrawings.forEach {
+                                            elements.addAll(it.showUntilNextLevel())
+                                        }
+                                    }
+                                    val typesAndLocation =
+                                        dumpIntoTypeAndLocation(elements, currentDrawing.secondaryStructureDrawing)
+
+                                    val step = currentDrawing.rnArtistEl.getThemeOrNew().lastStep + 1
+
+                                    typesAndLocation.forEach {
+                                        setDetailsLvl(
+                                            currentDrawing.rnArtistEl,
+                                            true,
+                                            it.second,
+                                            it.first,
+                                            step
+                                        )
                                     }
                                 }
-                                val typesAndLocation =
-                                    dumpIntoTypeAndLocation(elements, currentDrawing.secondaryStructureDrawing)
-
-                                val step = currentDrawing.rnArtistEl.getThemeOrNew().lastStep + 1
-
-                                typesAndLocation.forEach {
-                                    setDetailsLvl(
-                                        currentDrawing.rnArtistEl,
-                                        true,
-                                        it.second,
-                                        it.first,
-                                        step
-                                    )
-                                }
+                                mediator.canvas2D.repaint()
                             }
-                            mediator.canvas2D.repaint()
-                        }
 
                     }
 
-                    override fun blinkUINode(name:String) {
+                    override fun blinkUINode(name: String) {
                         when (name) {
                             "selection_lowly_rendered" -> {
                                 blinkWithColorBackGround(lowlyRenderedButton)
                             }
+
                             "selection_highly_rendered" -> {
                                 blinkWithColorBackGround(highlyRenderedButton)
                             }
@@ -2143,20 +2189,21 @@ class RNArtist : Application() {
 
                 inner class ColorLineWidthSubPanel() : AbstractColorLineWidthSubPanel() {
 
-                    val pickColor = RNArtistButton("fas-eye-dropper:13", "Recover the color of the selected 2D object") {
-                        mediator.drawingHighlighted.get()?.let {
-                            val javafxColor = awtColorToJavaFX(it.getColor())
-                            val _c = doubleArrayOf(javafxColor.hue, javafxColor.saturation, javafxColor.brightness)
-                            this.repaintBrightness(_c)
-                            this.repaintSaturation(_c)
-                            addLastColor(_c)
-                        }
+                    val pickColor =
+                        RNArtistButton("fas-eye-dropper:13", "Recover the color of the selected 2D object") {
+                            mediator.drawingHighlighted.get()?.let {
+                                val javafxColor = awtColorToJavaFX(it.getColor())
+                                val _c = doubleArrayOf(javafxColor.hue, javafxColor.saturation, javafxColor.brightness)
+                                this.repaintBrightness(_c)
+                                this.repaintSaturation(_c)
+                                addLastColor(_c)
+                            }
 
-                    }
+                        }
 
                     init {
                         fontButton.isDisable = true
-                        mediator.currentDrawing.addListener {  _, _, newValue ->
+                        mediator.currentDrawing.addListener { _, _, newValue ->
                             newValue?.let {
                                 it.selectedDrawings.addListener(ListChangeListener {
                                     if (it.list.isEmpty())
@@ -2518,61 +2565,61 @@ class RNArtist : Application() {
                         }
 
                         buttonsPanel.addButton("fas-chevron-left:15", "Highlight former Junction") {
-                                val sortedSelectedJunctions =
-                                    mediator.currentDrawing.get()?.selectedDrawings?.filter { it is JunctionDrawing }
-                                        ?.map { it }?.sortedBy { (it as JunctionDrawing).junction.location.end }
-                                mediator.drawingHighlighted.get()?.let {
-                                    if (it is JunctionDrawing) {
-                                        val currentPos = sortedSelectedJunctions?.indexOf(it)!!
-                                        val newPos =
-                                            if (currentPos == 0) sortedSelectedJunctions.size - 1 else currentPos - 1
-                                        mediator.drawingHighlighted.set(
-                                            sortedSelectedJunctions.get(newPos)
-                                        )
-                                    } else {
-                                        mediator.drawingHighlighted.set(sortedSelectedJunctions?.last())
-                                    }
-                                } ?: run {
+                            val sortedSelectedJunctions =
+                                mediator.currentDrawing.get()?.selectedDrawings?.filter { it is JunctionDrawing }
+                                    ?.map { it }?.sortedBy { (it as JunctionDrawing).junction.location.end }
+                            mediator.drawingHighlighted.get()?.let {
+                                if (it is JunctionDrawing) {
+                                    val currentPos = sortedSelectedJunctions?.indexOf(it)!!
+                                    val newPos =
+                                        if (currentPos == 0) sortedSelectedJunctions.size - 1 else currentPos - 1
+                                    mediator.drawingHighlighted.set(
+                                        sortedSelectedJunctions.get(newPos)
+                                    )
+                                } else {
                                     mediator.drawingHighlighted.set(sortedSelectedJunctions?.last())
                                 }
-                                mediator.drawingHighlighted.get()?.let {
-                                    it.selectionShape?.let {
-                                        mediator.canvas2D.centerDisplayOn(
-                                            it.bounds2D
-                                        )
-                                    }
+                            } ?: run {
+                                mediator.drawingHighlighted.set(sortedSelectedJunctions?.last())
+                            }
+                            mediator.drawingHighlighted.get()?.let {
+                                it.selectionShape?.let {
+                                    mediator.canvas2D.centerDisplayOn(
+                                        it.bounds2D
+                                    )
                                 }
                             }
+                        }
 
                         buttonsPanel.addButton("fas-chevron-right:15", "Highlight next Junction") {
-                                val sortedSelectedJunctions =
-                                    mediator.currentDrawing.get()?.selectedDrawings?.filter { it is JunctionDrawing }
-                                        ?.map { it }?.sortedBy { (it as JunctionDrawing).junction.location.start }
-                                mediator.drawingHighlighted.get()?.let {
-                                    if (it is JunctionDrawing) {
-                                        val currentPos = sortedSelectedJunctions?.indexOf(it)!!
-                                        val newPos =
-                                            if (currentPos == sortedSelectedJunctions.size - 1) 0 else currentPos + 1
-                                        mediator.drawingHighlighted.set(
-                                            sortedSelectedJunctions.get(newPos)
-                                        )
-                                    } else
-                                        mediator.drawingHighlighted.set(sortedSelectedJunctions?.first())
-                                } ?: run {
+                            val sortedSelectedJunctions =
+                                mediator.currentDrawing.get()?.selectedDrawings?.filter { it is JunctionDrawing }
+                                    ?.map { it }?.sortedBy { (it as JunctionDrawing).junction.location.start }
+                            mediator.drawingHighlighted.get()?.let {
+                                if (it is JunctionDrawing) {
+                                    val currentPos = sortedSelectedJunctions?.indexOf(it)!!
+                                    val newPos =
+                                        if (currentPos == sortedSelectedJunctions.size - 1) 0 else currentPos + 1
+                                    mediator.drawingHighlighted.set(
+                                        sortedSelectedJunctions.get(newPos)
+                                    )
+                                } else
                                     mediator.drawingHighlighted.set(sortedSelectedJunctions?.first())
-                                }
-                                mediator.drawingHighlighted.get()?.let {
-                                    it.selectionShape?.let {
-                                        mediator.canvas2D.centerDisplayOn(
-                                            it.bounds2D
-                                        )
-                                    }
+                            } ?: run {
+                                mediator.drawingHighlighted.set(sortedSelectedJunctions?.first())
+                            }
+                            mediator.drawingHighlighted.get()?.let {
+                                it.selectionShape?.let {
+                                    mediator.canvas2D.centerDisplayOn(
+                                        it.bounds2D
+                                    )
                                 }
                             }
+                        }
 
                     }
 
-                    override fun blinkUINode(name:String) {}
+                    override fun blinkUINode(name: String) {}
 
                 }
 
@@ -2590,7 +2637,7 @@ class RNArtist : Application() {
                         }
                     }
 
-                    override fun blinkUINode(name:String) {}
+                    override fun blinkUINode(name: String) {}
 
                 }
             }
@@ -2604,19 +2651,21 @@ class RNArtist : Application() {
         val chartsPanel = ChartsPanel()
         val documentationPanel = DocumentationPanel()
 
-        val bracketNotationPanelButton:Button
-        val dbExplorerPanelButton:Button
-        val chartsPanelButton:Button
-        val documentationPanelButton:Button
+        val bracketNotationPanelButton: Button
+        val dbExplorerPanelButton: Button
+        val chartsPanelButton: Button
+        val documentationPanelButton: Button
 
         init {
-            this.bracketNotationPanelButton = this.addMenuBarButton("fas-file:15", "Bracket Notation Panel", bracketNotationPanel)
+            this.bracketNotationPanelButton =
+                this.addMenuBarButton("fas-file:15", "Bracket Notation Panel", bracketNotationPanel)
             this.dbExplorerPanelButton = this.addMenuBarButton("fas-database:15", "Database Panel", dbExplorerPanel)
             this.chartsPanelButton = this.addMenuBarButton("fas-chart-area:15", "Charts Panel", chartsPanel)
-            this.documentationPanelButton = this.addMenuBarButton("fas-book:15", "Documentation Panel", documentationPanel)
+            this.documentationPanelButton =
+                this.addMenuBarButton("fas-book:15", "Documentation Panel", documentationPanel)
         }
 
-        fun blinkUINode(name:String) {
+        fun blinkUINode(name: String) {
             this.bracketNotationPanel.blinkUINode(name)
             this.dbExplorerPanel.blinkUINode(name)
             this.chartsPanel.blinkUINode(name)
@@ -2649,13 +2698,19 @@ class RNArtist : Application() {
 
                     this.loadDB = buttonsPanel.addButton("fas-folder-open", "Load database") {
                         if (mediator.helpModeOn)
-                            HelpDialog(mediator, "This button allows you to choose a folder as the current RNArtist database", "rnartist_db.html")
+                            HelpDialog(
+                                mediator,
+                                "This button allows you to choose a folder as the current RNArtist database",
+                                "rnartist_db.html"
+                            )
                         val directoryChooser = DirectoryChooser()
                         directoryChooser.showDialog(stage)?.let {
-                            var rootDBAbsPath:String? = null
+                            var rootDBAbsPath: String? = null
                             if (!File(it, ".rnartist_db_index").exists()) {
-                                val dialog = ConfirmationDialog(mediator,
-                                    "Would you like to use the folder ${it.name} as an RNArtist database?")
+                                val dialog = ConfirmationDialog(
+                                    mediator,
+                                    "Would you like to use the folder ${it.name} as an RNArtist database?"
+                                )
                                 if (dialog.isConfirmed)
                                     rootDBAbsPath = it.invariantSeparatorsPath
                             } else
@@ -2670,7 +2725,11 @@ class RNArtist : Application() {
 
                     this.createDBFolder = buttonsPanel.addButton("fas-folder-plus", "Create new folder") {
                         if (mediator.helpModeOn)
-                            HelpDialog(mediator, "This button allows you to create a new subfolder in your database", "db_panel.html")
+                            HelpDialog(
+                                mediator,
+                                "This button allows you to create a new subfolder in your database",
+                                "db_panel.html"
+                            )
 
                         this.dbTreeView.selectionModel.selectedItem?.let { selectedItem ->
                             val dialog = InputDialog(mediator, "Enter your folder name")
@@ -2682,7 +2741,8 @@ class RNArtist : Application() {
                                 )
                             }
                         } ?: run {
-                            HelpDialog(mediator, "No folder selected in your database!",
+                            HelpDialog(
+                                mediator, "No folder selected in your database!",
                                 "db_panel.html"
                             )
                         }
@@ -2690,13 +2750,20 @@ class RNArtist : Application() {
 
                     this.reloadDB = buttonsPanel.addButton("fas-sync:15", "Reload database") {
                         if (mediator.helpModeOn)
-                            HelpDialog(mediator, "This button allows you to reload the current database in order to display and index new subfolders", "db_panel.html")
+                            HelpDialog(
+                                mediator,
+                                "This button allows you to reload the current database in order to display and index new subfolders",
+                                "db_panel.html"
+                            )
 
                         val w = TaskDialog(mediator)
-                        w.task = LoadDB(mediator, currentDB.get()!!.rootInvariantSeparatorsPath) //we force since this button is enabled if we have loaded a DB before
+                        w.task = LoadDB(
+                            mediator,
+                            currentDB.get()!!.rootInvariantSeparatorsPath
+                        ) //we force since this button is enabled if we have loaded a DB before
                     }
 
-                    currentDB.addListener { _,_, newValue ->
+                    currentDB.addListener { _, _, newValue ->
                         //first we clean
                         clearThumbnails()
                         dbTreeView.root =
@@ -2708,7 +2775,12 @@ class RNArtist : Application() {
                             reloadDB.isDisable = false
                             createDBFolder.isDisable = false
                             dbTreeView.root =
-                                TreeItem(DBFolder(Path.of(newValue.rootInvariantSeparatorsPath).name, newValue.rootInvariantSeparatorsPath))
+                                TreeItem(
+                                    DBFolder(
+                                        Path.of(newValue.rootInvariantSeparatorsPath).name,
+                                        newValue.rootInvariantSeparatorsPath
+                                    )
+                                )
                         }
                     }
 
@@ -2763,16 +2835,18 @@ class RNArtist : Application() {
 
                 }
 
-                override fun blinkUINode(name:String) {
+                override fun blinkUINode(name: String) {
                     when (name) {
                         "load_database_button" -> {
                             lowerPanel.dbExplorerPanelButton.fire()
                             blinkWithColorBackGround(loadDB)
                         }
+
                         "reload_database_button" -> {
                             lowerPanel.dbExplorerPanelButton.fire()
                             blinkWithColorBackGround(reloadDB)
                         }
+
                         "create_db_folder_button" -> {
                             lowerPanel.dbExplorerPanelButton.fire()
                             blinkWithColorBackGround(createDBFolder)
@@ -2874,14 +2948,7 @@ class RNArtist : Application() {
                         if (!empty && thumbnail != null) {
                             icon.image = thumbnail.image
                             val scriptName = thumbnail.dslScriptInvariantSeparatorsPath.split("/").last()
-                            val scriptDir = thumbnail.dslScriptInvariantSeparatorsPath.split(scriptName).first()
-                            //the title in the thumbnail will be the name stored in the header of the vienna file
-                            val title = File(File(scriptDir), "${scriptName.removeSuffix(".kts")}.vienna").useLines { it.firstOrNull() }
-                                ?.split(">")?.last()
-                                ?: run {
-                                "?"
-                            }
-                            titlePanel.setTitle(title)
+                            titlePanel.setTitle(scriptName.removeSuffix(".kts"))
                             graphic = content
                         }
                     }
@@ -2981,43 +3048,57 @@ class RNArtist : Application() {
 
                 this.children.add(sp)
             }
-            override fun blinkUINode(name:String) {
+
+            override fun blinkUINode(name: String) {
                 this.globalOptionsSubPanel.blinkUINode(name)
                 this.bracketNotationSubPanel.blinkUINode(name)
             }
 
-            inner class GlobalOptionsSubPanel():SubPanel() {
+            inner class GlobalOptionsSubPanel() : SubPanel() {
 
                 val buttonsPanel = LargeButtonsPanel()
-                val loadFileButton:RNArtistButton
-                val random2dButton:RNArtistButton
-                val current2dAsBnButton:RNArtistButton
-                val plot2dButton:RNArtistButton
-                val trashEveythingButton:RNArtistButton
+                val loadFileButton: RNArtistButton
+                val random2dButton: RNArtistButton
+                val current2dAsBnButton: RNArtistButton
+                val plot2dButton: RNArtistButton
+                val trashEveythingButton: RNArtistButton
 
                 init {
                     this.children.add(buttonsPanel)
                     this.loadFileButton = buttonsPanel.addButton("fas-file:15", "Bracket notation from a file") {
                         with(FileChooser()) {
                             this.getExtensionFilters()
-                                .add(FileChooser.ExtensionFilter("Structural Files", "*.bpseq", "*.ct", "*.vienna", "*.pdb"))
+                                .add(
+                                    FileChooser.ExtensionFilter(
+                                        "Structural Files (*.bpseq, *.ct, *.vienna)",
+                                        "*.bpseq",
+                                        "*.ct",
+                                        "*.vienna"
+                                    )
+                                )
                             val file = this.showOpenDialog(mediator.rnartist.stage)
                             file?.let {
-                                 when (file.name.split(".").last()) {
+                                when (file.name.split(".").last()) {
                                     "vienna" -> {
                                         parseVienna(FileReader(it))
                                     }
+
                                     "ct" -> {
                                         parseCT(FileReader(it))
                                     }
-                                     else -> {
+
+                                    "bpseq" -> {
+                                        parseBPSeq(FileReader(it))
+                                    }
+
+                                    else -> {
                                         null
                                     }
                                 }?.let { ss ->
-                                     structureParameters.nameField.text = ss.rna.name
-                                     bracketNotationSubPanel.seqField.setSequence(ss.rna.seq)
-                                     bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
-                                 }
+                                    structureParameters.nameField.text = ss.rna.name
+                                    bracketNotationSubPanel.seqField.setSequence(ss.rna.seq)
+                                    bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
+                                }
                             }
                         }
                     }
@@ -3026,9 +3107,14 @@ class RNArtist : Application() {
                     this.random2dButton = buttonsPanel.addButton("fas-dice-d20:15", "Random bracket notation") {
                         if (structureParameters.meanHelixSizeField.text.toInt() < 2) //an helix size cannot be lower than 2 (2 stacked bps)
                             structureParameters.meanHelixSizeField.text = "2"
-                        val bn = randomBn(structureParameters.lengthField.text.toInt(), structureParameters.pairingDensityField.text.toDouble(), structureParameters.meanHelixSizeField.text.toInt())
+                        val bn = randomBn(
+                            structureParameters.lengthField.text.toInt(),
+                            structureParameters.pairingDensityField.text.toDouble(),
+                            structureParameters.meanHelixSizeField.text.toInt()
+                        )
                         val ss = SecondaryStructure(
-                            randomRNA(structureParameters.lengthField.text.toInt()), bn.first)
+                            randomRNA(structureParameters.lengthField.text.toInt()), bn.first
+                        )
                         bracketNotationSubPanel.bnField.setBracketNotation(ss.toBracketNotation())
                         ss.randomizeSeq() //to have a seq that fit the structural constraints
                         ss.rna.name = structureParameters.nameField.text
@@ -3036,9 +3122,12 @@ class RNArtist : Application() {
                     }
                     this.random2dButton.isDisable = false
 
-                    this.current2dAsBnButton = buttonsPanel.addButton("fas-arrow-down:15", "2D drawing or its selection as a bracket notation") {
+                    this.current2dAsBnButton = buttonsPanel.addButton(
+                        "fas-arrow-down:15",
+                        "2D drawing or its selection as a bracket notation"
+                    ) {
                         mediator.currentDrawing.get()?.let { drawing ->
-                            with (drawing.secondaryStructureDrawing) {
+                            with(drawing.secondaryStructureDrawing) {
                                 structureParameters.nameField.text = this.secondaryStructure.name
                                 val selectedPositions = mediator.canvas2D.getSelectedPositions()
                                 if (selectedPositions.isEmpty()) {
@@ -3046,8 +3135,16 @@ class RNArtist : Application() {
                                     bracketNotationSubPanel.bnField.setBracketNotation(this.secondaryStructure.toBracketNotation())
                                 } else {
                                     val selectedLocation = Location(selectedPositions.toIntArray())
-                                    bracketNotationSubPanel.seqField.setSequence(this.secondaryStructure.rna.subSequence(selectedLocation))
-                                    bracketNotationSubPanel.bnField.setBracketNotation(this.secondaryStructure.toBracketNotation(selectedLocation))
+                                    bracketNotationSubPanel.seqField.setSequence(
+                                        this.secondaryStructure.rna.subSequence(
+                                            selectedLocation
+                                        )
+                                    )
+                                    bracketNotationSubPanel.bnField.setBracketNotation(
+                                        this.secondaryStructure.toBracketNotation(
+                                            selectedLocation
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -3068,9 +3165,9 @@ class RNArtist : Application() {
                             with(rnArtistEl.addTheme()) {
                                 bracketNotationSubPanel.helixColorPickers.helixColors.forEach {
                                     it.second?.let { helixLocation ->
-                                        with (this.addColor()) {
+                                        with(this.addColor()) {
                                             this.setValue(getHTMLColorString(javaFXToAwt(it.first)))
-                                            with (this.addLocation()) {
+                                            with(this.addLocation()) {
                                                 this.setLocation(helixLocation)
                                             }
                                             this.setType("secondary_interaction helix N phosphodiester_bond interaction_symbol")
@@ -3078,12 +3175,12 @@ class RNArtist : Application() {
                                         }
                                     }
                                 }
-                                with (this.addDetails()) {
+                                with(this.addDetails()) {
                                     this.setValue(4)
                                     this.setStep(1)
                                 }
                             }
-                            val tmpScriptFile = kotlin.io.path.createTempFile(suffix= ".kts")
+                            val tmpScriptFile = kotlin.io.path.createTempFile(suffix = ".kts")
                             tmpScriptFile.writeText(rnArtistEl.dump().toString())
                             val dialog = TaskDialog(mediator)
                             dialog.task =
@@ -3091,12 +3188,13 @@ class RNArtist : Application() {
                         }
                     }
 
-                    this.trashEveythingButton = buttonsPanel.addButton("fas-trash:15", "Erase bracket notation and sequence") {
-                        structureParameters.nameField.text = "My RNA"
-                        bracketNotationSubPanel.bnField.clear()
-                        bracketNotationSubPanel.seqField.clear()
+                    this.trashEveythingButton =
+                        buttonsPanel.addButton("fas-trash:15", "Erase bracket notation and sequence") {
+                            structureParameters.nameField.text = "My RNA"
+                            bracketNotationSubPanel.bnField.clear()
+                            bracketNotationSubPanel.seqField.clear()
 
-                    }
+                        }
                     this.trashEveythingButton.isDisable = true
                 }
 
@@ -3106,18 +3204,22 @@ class RNArtist : Application() {
                             lowerPanel.bracketNotationPanelButton.fire()
                             blinkWithColorBackGround(this.loadFileButton)
                         }
+
                         "generate_random_2d_button" -> {
                             lowerPanel.bracketNotationPanelButton.fire()
                             blinkWithColorBackGround(this.random2dButton)
                         }
+
                         "load_current_drawing_as_bn_button" -> {
                             lowerPanel.bracketNotationPanelButton.fire()
                             blinkWithColorBackGround(this.current2dAsBnButton)
                         }
+
                         "plot_2d_from_bn_button" -> {
                             lowerPanel.bracketNotationPanelButton.fire()
                             blinkWithColorBackGround(this.plot2dButton)
                         }
+
                         "trash_everything_in_bn_button" -> {
                             lowerPanel.bracketNotationPanelButton.fire()
                             blinkWithColorBackGround(this.trashEveythingButton)
@@ -3127,7 +3229,7 @@ class RNArtist : Application() {
                 }
             }
 
-            inner class StructureParameters():HBox() {
+            inner class StructureParameters() : HBox() {
 
                 val nameField = TextField("My RNA")
                 val lengthField = TextField("100")
@@ -3186,40 +3288,43 @@ class RNArtist : Application() {
                 }
             }
 
-            inner class BracketNotationSubPanel():SubPanel() {
+            inner class BracketNotationSubPanel() : SubPanel() {
 
                 val bnField = BracketNotationField()
                 val helixColorPickers = HelixColorPickers()
                 val seqField = SequenceField()
-                val mirrorModeButton = RNArtistButton("fas-arrows-alt-h:12", "Mirror mode for brackets", isClickedColor = Color.DARKRED)
+                val mirrorModeButton =
+                    RNArtistButton("fas-arrows-alt-h:12", "Mirror mode for brackets", isClickedColor = Color.DARKRED)
                 val pasteBnButton = RNArtistButton("fas-paste:12", "Paste from clipboard") {
-                    with (Clipboard.getSystemClipboard()) {
+                    with(Clipboard.getSystemClipboard()) {
                         bnField.setBracketNotation(this.string)
                     }
                 }
                 val pasteSeqButton = RNArtistButton("fas-paste:12", "Paste from clipboard") {
-                    with (Clipboard.getSystemClipboard()) {
+                    with(Clipboard.getSystemClipboard()) {
                         seqField.setSequence(this.string)
                     }
                 }
                 val randomSeqButton = RNArtistButton("fas-dice-d20:12", "Generate random sequence") {
                     val bn = bnField.toBracketNotation()
-                    val ss = SecondaryStructure(randomRNA(bn.length), bracketNotation =  bn)
+                    val ss = SecondaryStructure(randomRNA(bn.length), bracketNotation = bn)
                     ss.randomizeSeq()
                     seqField.setSequence(ss.rna.seq)
                 }
                 val fixSeqButton = RNArtistButton("fas-wrench:12", "Fix X residues") {
                     val bn = bnField.toBracketNotation()
-                    val ss = SecondaryStructure(randomRNA(bn.length), bracketNotation =  bn)
+                    val ss = SecondaryStructure(randomRNA(bn.length), bracketNotation = bn)
                     ss.randomizeSeq()
-                    seqField.characters.children.filter { (it as SequenceField.Residue).residueLetter == "X" }.forEach { c ->
-                        val index = seqField.characters.children.indexOf(c)
-                        (seqField.characters.children.get(index) as SequenceField.Residue).residueLetter = ss.rna.seq.get(index).toString()
-                    }
+                    seqField.characters.children.filter { (it as SequenceField.Residue).residueLetter == "X" }
+                        .forEach { c ->
+                            val index = seqField.characters.children.indexOf(c)
+                            (seqField.characters.children.get(index) as SequenceField.Residue).residueLetter =
+                                ss.rna.seq.get(index).toString()
+                        }
                     seqField.cursorPosition = null
                 }
 
-                inner class ColorHelicesTask: Task<Pair<Any?, Exception?>>() {
+                inner class ColorHelicesTask : Task<Pair<Any?, Exception?>>() {
 
                     init {
                         setOnSucceeded {
@@ -3228,6 +3333,7 @@ class RNArtist : Application() {
                             }
                         }
                     }
+
                     override fun call(): Pair<Any?, Exception?> {
                         bnField.characters.children.forEach {
                             (it as Field.Character).background = null
@@ -3236,17 +3342,29 @@ class RNArtist : Application() {
                             helixColorPickers.helixColors[i] = Pair(helixColorPickers.helixColors[i].first, null)
                         }
 
-                            val helices = SecondaryStructure(
-                                randomRNA(bnField.characters.children.size), bnField.toBracketNotation()
-                            ).helices
-                            helices.forEach { helix ->
-                                if (helices.indexOf(helix) >= helixColorPickers.helixColors.size)
-                                    helixColorPickers.add(awtColorToJavaFX(randomColor()), helix.location)
-                                else
-                                    helixColorPickers.helixColors[helices.indexOf(helix)] = Pair(helixColorPickers.helixColors.get(helices.indexOf(helix)).first, helix.location)
-                                val color = helixColorPickers.helixColors.get(helices.indexOf(helix)).first
-                                helix.location.positions.forEach { pos ->
-                                    (bnField.characters.children.get(pos - 1) as Field.Character).background =
+                        val helices = SecondaryStructure(
+                            randomRNA(bnField.characters.children.size), bnField.toBracketNotation()
+                        ).helices
+                        helices.forEach { helix ->
+                            if (helices.indexOf(helix) >= helixColorPickers.helixColors.size)
+                                helixColorPickers.add(awtColorToJavaFX(randomColor()), helix.location)
+                            else
+                                helixColorPickers.helixColors[helices.indexOf(helix)] = Pair(
+                                    helixColorPickers.helixColors.get(helices.indexOf(helix)).first,
+                                    helix.location
+                                )
+                            val color = helixColorPickers.helixColors.get(helices.indexOf(helix)).first
+                            helix.location.positions.forEach { pos ->
+                                (bnField.characters.children.get(pos - 1) as Field.Character).background =
+                                    Background(
+                                        BackgroundFill(
+                                            color,
+                                            CornerRadii(5.0),
+                                            Insets.EMPTY
+                                        )
+                                    )
+                                if (seqField.characters.children.size >= pos)
+                                    (seqField.characters.children.get(pos - 1) as Field.Character).background =
                                         Background(
                                             BackgroundFill(
                                                 color,
@@ -3254,31 +3372,24 @@ class RNArtist : Application() {
                                                 Insets.EMPTY
                                             )
                                         )
-                                    if (seqField.characters.children.size >= pos)
-                                        (seqField.characters.children.get(pos - 1) as Field.Character).background =
-                                            Background(
-                                                BackgroundFill(
-                                                    color,
-                                                    CornerRadii(5.0),
-                                                    Insets.EMPTY
-                                                )
-                                            )
-                                }
                             }
+                        }
 
                         return Pair(null, null)
                     }
 
                 }
 
-                var colorHelicesTask:ColorHelicesTask? = null
+                var colorHelicesTask: ColorHelicesTask? = null
 
-                val launchColorHelicesTask = Timeline(KeyFrame(
-                    Duration.millis(500.0),
-                    {e ->
-                        colorHelicesTask = ColorHelicesTask()
-                        colorHelicesTask?.run()
-                    }))
+                val launchColorHelicesTask = Timeline(
+                    KeyFrame(
+                        Duration.millis(500.0),
+                        { e ->
+                            colorHelicesTask = ColorHelicesTask()
+                            colorHelicesTask?.run()
+                        })
+                )
 
                 init {
                     this.spacing = 15.0
@@ -3330,14 +3441,17 @@ class RNArtist : Application() {
                     this.children.add(vbox)
 
                     bnField.characters.children.addListener(ListChangeListener {
-                        globalOptionsSubPanel.plot2dButton.isDisable = bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
+                        globalOptionsSubPanel.plot2dButton.isDisable =
+                            bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
                         globalOptionsSubPanel.trashEveythingButton.isDisable = bnField.characters.children.isEmpty()
                         randomSeqButton.isDisable = bnField.characters.children.isEmpty()
                     })
 
                     seqField.characters.children.addListener(ListChangeListener {
-                        globalOptionsSubPanel.plot2dButton.isDisable = bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
-                        fixSeqButton.isDisable = !seqField.toSequence().contains("X") && seqField.characters.children.size == bnField.characters.children.size
+                        globalOptionsSubPanel.plot2dButton.isDisable =
+                            bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
+                        fixSeqButton.isDisable = !seqField.toSequence()
+                            .contains("X") && seqField.characters.children.size == bnField.characters.children.size
                     })
                 }
 
@@ -3347,14 +3461,17 @@ class RNArtist : Application() {
                             lowerPanel.bracketNotationPanelButton.fire()
                             blinkWithColorBackGround(this.pasteBnButton)
                         }
+
                         "fix_seq_button" -> {
                             lowerPanel.bracketNotationPanelButton.fire()
                             blinkWithColorBackGround(this.fixSeqButton)
                         }
+
                         "random_seq_button" -> {
                             lowerPanel.bracketNotationPanelButton.fire()
                             blinkWithColorBackGround(this.randomSeqButton)
                         }
+
                         "mirror_mode_bn_button" -> {
                             lowerPanel.bracketNotationPanelButton.fire()
                             blinkWithColorBackGround(this.mirrorModeButton)
@@ -3362,9 +3479,14 @@ class RNArtist : Application() {
                     }
                 }
 
-                inner class HelixColorPickers():FlowPane() {
+                inner class HelixColorPickers() : FlowPane() {
 
-                    val helixColors = mutableListOf<Pair<Color, Location?>>(*(1..10).map { Pair(awtColorToJavaFX(randomColor()), null) }.toTypedArray())
+                    val helixColors = mutableListOf<Pair<Color, Location?>>(*(1..10).map {
+                        Pair(
+                            awtColorToJavaFX(randomColor()),
+                            null
+                        )
+                    }.toTypedArray())
 
                     init {
                         this.alignment = Pos.TOP_LEFT
@@ -3374,7 +3496,7 @@ class RNArtist : Application() {
                         }
 
                         this.children.addListener(ListChangeListener {
-                            val circlesPerRow = (this.width/20.0+this.hgap).toInt()
+                            val circlesPerRow = (this.width / 20.0 + this.hgap).toInt()
                             val lines = (this.children.size) / circlesPerRow
                             this.prefHeight = Math.max(25.0, (lines + 1) * 25.0 + 10.0)
                             this.layout()
@@ -3383,12 +3505,12 @@ class RNArtist : Application() {
 
                     }
 
-                    fun add(color:Color, location:Location?) {
-                        this.helixColors.add(Pair(color,location))
+                    fun add(color: Color, location: Location?) {
+                        this.helixColors.add(Pair(color, location))
                         this.addCircle(color)
                     }
 
-                    private fun addCircle(color:Color) {
+                    private fun addCircle(color: Color) {
                         val c = Circle(0.0, 0.0, 10.0)
                         c.fill = color
                         c.stroke = Color.BLACK
@@ -3396,22 +3518,22 @@ class RNArtist : Application() {
                         this.children.add(c)
 
                         c.onMouseClicked = EventHandler {
-                             val color = awtColorToJavaFX(randomColor())
-                             c.fill = color
-                             val helixColor = helixColors.get(children.indexOf(c))
-                             helixColors[ helixColors.indexOf(helixColor)] = Pair(color, helixColor.second)
-                             helixColor.second?.let { //if a location was associated to this color, we recolor everything
-                                 launchColorHelicesTask.play()
-                             }
+                            val color = awtColorToJavaFX(randomColor())
+                            c.fill = color
+                            val helixColor = helixColors.get(children.indexOf(c))
+                            helixColors[helixColors.indexOf(helixColor)] = Pair(color, helixColor.second)
+                            helixColor.second?.let { //if a location was associated to this color, we recolor everything
+                                launchColorHelicesTask.play()
+                            }
                         }
                     }
                 }
 
-                inner abstract class Field():HBox() {
+                inner abstract class Field() : HBox() {
 
                     val characters = FlowPane()
 
-                    var cursorPosition:Character? = null
+                    var cursorPosition: Character? = null
                         set(value) {
                             field?.let { c ->
                                 cursorBlinkTimer.stop()
@@ -3450,18 +3572,26 @@ class RNArtist : Application() {
                         this.spacing = 2.0
                         this.padding = Insets(10.0)
                         this.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-                        this.border = Border(BorderStroke(Color.WHITE, BorderStrokeStyle.SOLID, CornerRadii(5.0), BorderWidths(1.0)))
+                        this.border = Border(
+                            BorderStroke(
+                                Color.WHITE,
+                                BorderStrokeStyle.SOLID,
+                                CornerRadii(5.0),
+                                BorderWidths(1.0)
+                            )
+                        )
                         this.alignment = Pos.TOP_LEFT
                         this.children.add(prompt)
                         this.children.add(this.characters)
-                        this.characters.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                        this.characters.background =
+                            Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
                         this.characters.prefHeight = 100.0
                         setHgrow(this.characters, Priority.ALWAYS)
 
                         this.characters.widthProperty().addListener { _, _, _ ->
-                            val charactersPerRow = (this.characters.width/20.0).toInt()
-                            val lines = (this.characters.children.size)/charactersPerRow
-                            this.characters.prefHeight = Math.max(100.0, (lines+1)*20.0+10.0)
+                            val charactersPerRow = (this.characters.width / 20.0).toInt()
+                            val lines = (this.characters.children.size) / charactersPerRow
+                            this.characters.prefHeight = Math.max(100.0, (lines + 1) * 20.0 + 10.0)
                             this.layout()
                         }
 
@@ -3492,19 +3622,21 @@ class RNArtist : Application() {
                                     cursorPosition?.let {
                                         val pos = this.characters.children.indexOf(cursorPosition)
                                         cursorPosition = if (pos > 0) {
-                                            this.characters.children.get(pos-1) as Character
+                                            this.characters.children.get(pos - 1) as Character
                                         } else
                                             prompt
                                     }
                                 }
+
                                 KeyCode.RIGHT -> {
                                     cursorPosition?.let {
                                         val pos = this.characters.children.indexOf(cursorPosition)
-                                        if (pos < this.characters.children.size-1) {
-                                            cursorPosition = this.characters.children.get(pos+1) as Character
+                                        if (pos < this.characters.children.size - 1) {
+                                            cursorPosition = this.characters.children.get(pos + 1) as Character
                                         }
                                     }
                                 }
+
                                 KeyCode.BACK_SPACE -> {
                                     cursorPosition?.let {
                                         val pos = this.characters.children.indexOf(cursorPosition)
@@ -3524,6 +3656,7 @@ class RNArtist : Application() {
                                         }
                                     }
                                 }
+
                                 KeyCode.ENTER -> {
                                     val bn = bnField.toBracketNotation()
                                     if (bn.length > 1) {
@@ -3546,6 +3679,7 @@ class RNArtist : Application() {
                                             LoadStructure(mediator, tmpScriptFile.invariantSeparatorsPathString)
                                     }
                                 }
+
                                 else -> {
 
                                 }
@@ -3558,9 +3692,9 @@ class RNArtist : Application() {
                         }
                     }
 
-                    abstract fun addCharacter(character:String)
+                    abstract fun addCharacter(character: String)
 
-                    abstract fun addCharacterAt(index:Int, character:String)
+                    abstract fun addCharacterAt(index: Int, character: String)
 
                     fun clear() {
                         this.characters.children.clear()
@@ -3568,9 +3702,9 @@ class RNArtist : Application() {
                         this.characters.layout()
                     }
 
-                    inner abstract class Character():Region() {
+                    inner abstract class Character() : Region() {
 
-                        var button:Button
+                        var button: Button
                         var cursor = Line(20.0, 0.0, 20.0, 20.0)
 
                         init {
@@ -3598,7 +3732,7 @@ class RNArtist : Application() {
                         }
                     }
 
-                    inner class Prompt():Character() {
+                    inner class Prompt() : Character() {
 
                         init {
                             val prompt = FontIcon("fas-chevron-right")
@@ -3610,31 +3744,36 @@ class RNArtist : Application() {
 
                 }
 
-                inner class SequenceField(): Field() {
+                inner class SequenceField() : Field() {
 
                     init {
                     }
 
-                    override fun addCharacterAt(index:Int, character: String) {
-                        val charactersPerRow = ((this.width-this.padding.left-this.padding.right)/20.0).toInt()
-                        val c =  when (character.uppercase()) {
+                    override fun addCharacterAt(index: Int, character: String) {
+                        val charactersPerRow = ((this.width - this.padding.left - this.padding.right) / 20.0).toInt()
+                        val c = when (character.uppercase()) {
                             "A" -> {
-                               Residue("A")
+                                Residue("A")
                             }
+
+                            "T" -> {
+                                Residue("U")
+                            }
+
                             "U" -> {
                                 Residue("U")
                             }
+
                             "G" -> {
                                 Residue("G")
                             }
+
                             "C" -> {
                                 Residue("C")
                             }
-                            "X" -> {
-                                Residue("X")
-                            }
+
                             else -> {
-                                null
+                                Residue("X")
                             }
                         }
                         c?.let {
@@ -3654,17 +3793,17 @@ class RNArtist : Application() {
                         }
                         val pos = this.characters.children.size
                         if (bnField.characters.children.size >= pos)
-                            (this.characters.children.get(pos-1) as Field.Character).background =
+                            (this.characters.children.get(pos - 1) as Field.Character).background =
                                 Background(
                                     BackgroundFill(
-                                        (bnField.characters.children.get(pos-1) as Field.Character).background?.fills?.firstOrNull()?.fill,
+                                        (bnField.characters.children.get(pos - 1) as Field.Character).background?.fills?.firstOrNull()?.fill,
                                         CornerRadii(5.0),
                                         Insets.EMPTY
                                     )
                                 )
                     }
 
-                    fun setSequence(seq:String) {
+                    fun setSequence(seq: String) {
                         this.clear()
                         seq.forEach {
                             this.addCharacter("$it")
@@ -3672,7 +3811,7 @@ class RNArtist : Application() {
                         }
                     }
 
-                    fun toSequence():String {
+                    fun toSequence(): String {
                         return this.characters.children.map {
                             when (it) {
                                 is Residue -> it.residueLetter
@@ -3682,13 +3821,14 @@ class RNArtist : Application() {
                         }.joinToString(separator = "")
                     }
 
-                    inner class Residue(residueLetter:String): Character() {
+                    inner class Residue(residueLetter: String) : Character() {
 
-                        var residueLetter:String
+                        var residueLetter: String
                             get() = (this.button.graphic as Text).text
                             set(value) {
                                 (this.button.graphic as Text).text = value
                             }
+
                         init {
                             val t = Text(residueLetter)
                             t.font = Font.font("Courier New", FontWeight.BOLD, 20.0)
@@ -3699,7 +3839,7 @@ class RNArtist : Application() {
 
                 }
 
-                inner class BracketNotationField(): Field() {
+                inner class BracketNotationField() : Field() {
 
                     init {
                         this.onKeyTyped = EventHandler {
@@ -3724,17 +3864,20 @@ class RNArtist : Application() {
                     }
 
                     override fun addCharacterAt(index: Int, character: String) {
-                        val charactersPerRow = (this.characters.width/20.0).toInt()
-                        val c =  when (character) {
+                        val charactersPerRow = (this.characters.width / 20.0).toInt()
+                        val c = when (character) {
                             "(" -> {
                                 LeftBasePair()
                             }
+
                             ")" -> {
                                 RightBasePair()
                             }
+
                             "." -> {
                                 SingleStrand()
                             }
+
                             else -> {
                                 null
                             }
@@ -3748,28 +3891,31 @@ class RNArtist : Application() {
                         }
                     }
 
-                    override fun addCharacter(character:String) {
+                    override fun addCharacter(character: String) {
                         cursorPosition?.let {
                             this.addCharacterAt(this.characters.children.indexOf(cursorPosition) + 1, character)
                             if (mirrorModeButton.isClicked && character == "(") {
                                 this.addCharacterAt(this.characters.children.indexOf(cursorPosition) + 1, ")")
-                                cursorPosition = characters.children.get(this.characters.children.indexOf(cursorPosition)-1) as Character
+                                cursorPosition =
+                                    characters.children.get(this.characters.children.indexOf(cursorPosition) - 1) as Character
                             }
                         } ?: run {
                             this.addCharacterAt(this.characters.children.size, character)
                             if (mirrorModeButton.isClicked && character == "(") {
                                 this.addCharacterAt(this.characters.children.size, ")")
-                                cursorPosition = characters.children.get(this.characters.children.indexOf(cursorPosition)-1) as Character
+                                cursorPosition =
+                                    characters.children.get(this.characters.children.indexOf(cursorPosition) - 1) as Character
                             }
                         }
                     }
 
-                    fun setBracketNotation(bn:String) {
+                    fun setBracketNotation(bn: String) {
                         colorHelicesTask?.cancel()
                         launchColorHelicesTask.stop()
 
                         val isClicked = mirrorModeButton.isClicked
-                        mirrorModeButton.isClicked = false //to avoid to mirror some characters and then to modify the original bn
+                        mirrorModeButton.isClicked =
+                            false //to avoid to mirror some characters and then to modify the original bn
                         this.clear()
                         bn.forEach {
                             this.addCharacter("$it")
@@ -3781,7 +3927,7 @@ class RNArtist : Application() {
                         launchColorHelicesTask.play()
                     }
 
-                    fun toBracketNotation():String {
+                    fun toBracketNotation(): String {
                         return this.characters.children.map {
                             when (it) {
                                 is LeftBasePair -> "("
@@ -3792,7 +3938,7 @@ class RNArtist : Application() {
                         }.joinToString(separator = "")
                     }
 
-                    inner class LeftBasePair(): Character() {
+                    inner class LeftBasePair() : Character() {
 
                         var svgPath = SVGPath()
 
@@ -3804,7 +3950,7 @@ class RNArtist : Application() {
                         }
                     }
 
-                    inner class RightBasePair():Character() {
+                    inner class RightBasePair() : Character() {
 
                         var svgPath = SVGPath()
 
@@ -3817,7 +3963,7 @@ class RNArtist : Application() {
                         }
                     }
 
-                    inner class SingleStrand():Character() {
+                    inner class SingleStrand() : Character() {
                         init {
                             val circle = Circle(2.5)
                             circle.fill = Color.WHITE
@@ -3832,7 +3978,7 @@ class RNArtist : Application() {
         }
 
         inner class ChartsPanel() : Panel() {
-            override fun blinkUINode(name:String) {}
+            override fun blinkUINode(name: String) {}
         }
 
     }
@@ -3867,9 +4013,9 @@ class RNArtist : Application() {
             this.children.add(MenuBar(true))
         }
 
-        abstract fun blinkUINode(name:String)
+        abstract fun blinkUINode(name: String)
 
-        fun addMenuBarButton(icon: String, tooolTip:String, panel: Panel): Button {
+        fun addMenuBarButton(icon: String, tooolTip: String, panel: Panel): Button {
             val b = this.menuBar.addButton(icon, tooolTip)
             setVgrow(panel, Priority.ALWAYS)
             b.onMouseClicked = EventHandler { mouseEvent ->
@@ -3893,7 +4039,7 @@ class RNArtist : Application() {
             this.children.add(MenuBar(false))
         }
 
-        fun addMenuBarButton(icon: String, tooltip:String, panel: Panel): Button {
+        fun addMenuBarButton(icon: String, tooltip: String, panel: Panel): Button {
             val b = this.menuBar.addButton(icon, tooltip)
             setHgrow(panel, Priority.ALWAYS)
             b.onAction = EventHandler { mouseEvent ->
@@ -3906,7 +4052,7 @@ class RNArtist : Application() {
             return b
         }
 
-        fun displayPanel(panel:Panel) {
+        fun displayPanel(panel: Panel) {
             this.children.removeAt(1)
             this.children.add(panel)
         }
@@ -3933,7 +4079,7 @@ class RNArtist : Application() {
 
         }
 
-        fun addButton(icon: String, tooltip:String): Button {
+        fun addButton(icon: String, tooltip: String): Button {
             return this.buttons.addButton(icon, tooltip)
         }
 
@@ -3963,7 +4109,7 @@ class RNArtist : Application() {
                 this.children.add(this.group)
             }
 
-            fun addButton(icon: String, tooltip:String): Button {
+            fun addButton(icon: String, tooltip: String): Button {
                 val button = Button(null, FontIcon(icon))
                 button.tooltip = Tooltip(tooltip)
                 button.background = null
@@ -4042,7 +4188,7 @@ class RNArtist : Application() {
             this.effect = DropShadow()
         }
 
-        abstract fun blinkUINode(name:String)
+        abstract fun blinkUINode(name: String)
 
     }
 
@@ -4068,7 +4214,7 @@ class RNArtist : Application() {
             }
         }
 
-        abstract fun blinkUINode(name:String)
+        abstract fun blinkUINode(name: String)
     }
 
     /*private class TopToolBar(mediator: Mediator) : HBox() {
@@ -4222,8 +4368,8 @@ class RNArtist : Application() {
             innerShadow.offsetY = 0.0
             innerShadow.color = Color.BLACK
             this.currentLineWidth.effect = innerShadow*/
-            this.currentLineWidth.layoutX = 90.0-7.0
-            this.currentLineWidth.layoutY = 18.0-9.0
+            this.currentLineWidth.layoutX = 90.0 - 7.0
+            this.currentLineWidth.layoutY = 18.0 - 9.0
             this.currentLineWidth.onMousePressed = EventHandler {
                 currentLineWidth.fill = Color.DARKORANGE
             }
@@ -4292,7 +4438,7 @@ class RNArtist : Application() {
             colorWheel.graphicsContext2D.strokeOval(centerX - radius, centerX - radius, radius * 2, radius * 2)
         }
 
-        override fun blinkUINode(name:String) {
+        override fun blinkUINode(name: String) {
             when (name) {
                 "colorwheel" -> {
                     blinkWithColorInput(colorWheel)
@@ -4834,14 +4980,28 @@ class RNArtist : Application() {
             this.children.add(this.group)
         }
 
-        abstract fun blinkUINode(name:String)
+        abstract fun blinkUINode(name: String)
 
-        fun addButton(icon: String, toolTip:String, clickable: Boolean = true, onActionEventHandler: EventHandler<ActionEvent>? = null): RNArtistButton {
-            val button = RNArtistButton("$icon:${buttonRadius.toInt()}", toolTip, buttonRadius = this.buttonRadius, clickable = clickable, onActionEventHandler = onActionEventHandler)
+        fun addButton(
+            icon: String,
+            toolTip: String,
+            clickable: Boolean = true,
+            onActionEventHandler: EventHandler<ActionEvent>? = null
+        ): RNArtistButton {
+            val button = RNArtistButton(
+                "$icon:${buttonRadius.toInt()}",
+                toolTip,
+                buttonRadius = this.buttonRadius,
+                clickable = clickable,
+                onActionEventHandler = onActionEventHandler
+            )
             val p = if (this.group.children.size == 0)
                 Point2D.Double(this.buttonRadius, this.buttonRadius)
             else {
-                Point2D.Double(this.group.children[this.group.children.size - 1].layoutX + 3.5 * this.buttonRadius, this.buttonRadius)
+                Point2D.Double(
+                    this.group.children[this.group.children.size - 1].layoutX + 3.5 * this.buttonRadius,
+                    this.buttonRadius
+                )
             }
             button.layoutX = p.x - this.buttonRadius
             button.layoutY = p.y - this.buttonRadius
@@ -4853,8 +5013,8 @@ class RNArtist : Application() {
 
     private inner class ManageCurrentDrawing : Canvas2DToolBars() {
 
-        val trashCurrentDrawingButton:RNArtistButton
-        val showDBFolderForCurrentDrawingButton:RNArtistButton
+        val trashCurrentDrawingButton: RNArtistButton
+        val showDBFolderForCurrentDrawingButton: RNArtistButton
 
         init {
             this.showDBFolderForCurrentDrawingButton = addButton("fas-folder", "Open saving folder of current 2D") {
@@ -4869,7 +5029,7 @@ class RNArtist : Application() {
             //this button is enables if the currentThumnail is not null. The current thumbnail becomes not null if:
             // it has been clicked, meaning that its 2D is now the current drawing
             // a 2D has been saved in the current folder
-            currentThumbnail.addListener { _,_,newValue ->
+            currentThumbnail.addListener { _, _, newValue ->
                 showDBFolderForCurrentDrawingButton.isDisable = newValue == null
             }
 
@@ -4933,6 +5093,7 @@ class RNArtist : Application() {
                 "show_2d_folder" -> {
                     blinkWithColorBackGround(this.showDBFolderForCurrentDrawingButton)
                 }
+
                 "trash_2d" -> {
                     blinkWithColorBackGround(this.trashCurrentDrawingButton)
                 }
@@ -4943,11 +5104,11 @@ class RNArtist : Application() {
 
     private inner class NavigationBar : Canvas2DToolBars() {
 
-        val zoomInButton:RNArtistButton
-        val zoomOutButton:RNArtistButton
-        val fitStructureButton:RNArtistButton
-        val centerViewOnFormerSelection:RNArtistButton
-        val centerViewOnNextSelection:RNArtistButton
+        val zoomInButton: RNArtistButton
+        val zoomOutButton: RNArtistButton
+        val fitStructureButton: RNArtistButton
+        val centerViewOnFormerSelection: RNArtistButton
+        val centerViewOnNextSelection: RNArtistButton
 
         init {
             mediator.currentDrawing.addListener { _, _, newValue ->
@@ -5001,10 +5162,11 @@ class RNArtist : Application() {
             }
 
             this.fitStructureButton = addButton("fas-expand-arrows-alt", "Center and fit 2D on view") {
-                    mediator.canvas2D.fitStructure(null)
-                }
+                mediator.canvas2D.fitStructure(null)
+            }
 
-            this.centerViewOnFormerSelection = addButton("fas-chevron-left", "Center view on former selected 2D object") { mouseEvent ->
+            this.centerViewOnFormerSelection =
+                addButton("fas-chevron-left", "Center view on former selected 2D object") { mouseEvent ->
                     val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
                         ?.sortedBy { (it as? JunctionDrawing)?.junction?.location?.end ?: it.location.end }
                     mediator.drawingHighlighted.get()?.let {
@@ -5027,7 +5189,8 @@ class RNArtist : Application() {
 
                 }
 
-            this.centerViewOnNextSelection = addButton("fas-chevron-right", "Center view on next selected 2D object") { mouseEvent ->
+            this.centerViewOnNextSelection =
+                addButton("fas-chevron-right", "Center view on next selected 2D object") { mouseEvent ->
                     val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
                         ?.sortedBy {
                             (it as? JunctionDrawing)?.junction?.location?.start ?: it.location.start
@@ -5061,15 +5224,19 @@ class RNArtist : Application() {
                 "zoom_in" -> {
                     blinkWithColorBackGround(this.zoomInButton)
                 }
+
                 "zoom_out" -> {
                     blinkWithColorBackGround(this.zoomOutButton)
                 }
+
                 "fit_structure" -> {
                     blinkWithColorBackGround(this.fitStructureButton)
                 }
+
                 "center_on_former_selection" -> {
                     blinkWithColorBackGround(this.centerViewOnFormerSelection)
                 }
+
                 "center_on_next_selection" -> {
                     blinkWithColorBackGround(this.centerViewOnNextSelection)
                 }
@@ -5079,9 +5246,9 @@ class RNArtist : Application() {
 
     private inner class SaveBar : Canvas2DToolBars() {
 
-        val saveButton:RNArtistButton
-        val applyToAllButton:RNArtistButton
-        val toSVGButton:RNArtistButton
+        val saveButton: RNArtistButton
+        val applyToAllButton: RNArtistButton
+        val toSVGButton: RNArtistButton
 
 
         init {
@@ -5093,8 +5260,7 @@ class RNArtist : Application() {
                     if (currentDrawing.selectedDrawings.isNotEmpty()) {
                         val w = TaskDialog(mediator)
                         w.task = Save2DSelection(mediator)
-                    }
-                    else {
+                    } else {
                         val alert =
                             Alert(Alert.AlertType.CONFIRMATION)
                         alert.initStyle(StageStyle.TRANSPARENT);
@@ -5133,28 +5299,29 @@ class RNArtist : Application() {
                 this.saveButton.isDisable = newValue == null || currentDBFolderAbsPath.get() == null
             }
 
-            this.applyToAllButton = addButton("fas-th", "Apply theme and layout to all the other 2Ds in current DB folder") {
-                val alert =
-                    Alert(Alert.AlertType.CONFIRMATION)
-                alert.initStyle(StageStyle.TRANSPARENT);
-                alert.initOwner(stage)
-                alert.initModality(Modality.WINDOW_MODAL)
-                alert.dialogPane.background =
-                    Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets.EMPTY))
-                alert.title = "Need Confirmation"
-                alert.headerText = null
-                alert.contentText = "Are you sure to update all the other 2Ds in this folder?"
+            this.applyToAllButton =
+                addButton("fas-th", "Apply theme and layout to all the other 2Ds in current DB folder") {
+                    val alert =
+                        Alert(Alert.AlertType.CONFIRMATION)
+                    alert.initStyle(StageStyle.TRANSPARENT);
+                    alert.initOwner(stage)
+                    alert.initModality(Modality.WINDOW_MODAL)
+                    alert.dialogPane.background =
+                        Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets.EMPTY))
+                    alert.title = "Need Confirmation"
+                    alert.headerText = null
+                    alert.contentText = "Are you sure to update all the other 2Ds in this folder?"
 
-                val alerttStage = alert.dialogPane.scene.window as Stage
-                alerttStage.isAlwaysOnTop = true
-                alerttStage.toFront()
-                val result = alert.showAndWait()
+                    val alerttStage = alert.dialogPane.scene.window as Stage
+                    alerttStage.isAlwaysOnTop = true
+                    alerttStage.toFront()
+                    val result = alert.showAndWait()
 
-                if (result.get() == ButtonType.OK) {
-                    val task = UpdateAll2Ds(mediator)
-                    TaskDialog(mediator).task = task
+                    if (result.get() == ButtonType.OK) {
+                        val task = UpdateAll2Ds(mediator)
+                        TaskDialog(mediator).task = task
+                    }
                 }
-            }
 
             currentDBFolderAbsPath.addListener { _, _, newValue ->
                 this.applyToAllButton.isDisable = newValue == null || mediator.currentDrawing.get() == null
@@ -5226,9 +5393,11 @@ class RNArtist : Application() {
                 "save_2d" -> {
                     blinkWithColorBackGround(this.saveButton)
                 }
+
                 "apply_theme_to_all" -> {
                     blinkWithColorBackGround(this.applyToAllButton)
                 }
+
                 "export_2d_as_svg" -> {
                     blinkWithColorBackGround(this.toSVGButton)
                 }
@@ -5241,10 +5410,10 @@ class RNArtist : Application() {
         val playButton: RNArtistButton
         var animationRunning = false
 
-        val historyStart:RNArtistButton
-        val historyFormer:RNArtistButton
-        val historyNext:RNArtistButton
-        val historyEnd:RNArtistButton
+        val historyStart: RNArtistButton
+        val historyFormer: RNArtistButton
+        val historyNext: RNArtistButton
+        val historyEnd: RNArtistButton
 
         init {
 
@@ -5310,15 +5479,19 @@ class RNArtist : Application() {
                 "undo_redo_theme_start" -> {
                     blinkWithColorBackGround(historyStart)
                 }
+
                 "undo_redo_theme_former" -> {
                     blinkWithColorBackGround(historyFormer)
                 }
+
                 "undo_redo_theme_next" -> {
                     blinkWithColorBackGround(historyNext)
                 }
+
                 "undo_redo_theme_end" -> {
                     blinkWithColorBackGround(historyEnd)
                 }
+
                 "undo_redo_theme_animate" -> {
                     blinkWithGlow(playButton)
                 }
@@ -5370,10 +5543,10 @@ class RNArtist : Application() {
         val playButton: RNArtistButton
         var animationRunning = false
 
-        val historyStart:RNArtistButton
-        val historyFormer:RNArtistButton
-        val historyNext:RNArtistButton
-        val historyEnd:RNArtistButton
+        val historyStart: RNArtistButton
+        val historyFormer: RNArtistButton
+        val historyNext: RNArtistButton
+        val historyEnd: RNArtistButton
 
         init {
 
@@ -5393,7 +5566,7 @@ class RNArtist : Application() {
                 mediator.rollbackToPreviousJunctionLayoutInHistory()
             }
 
-            this.playButton = addButton("fas-drafting-compass", "Animate layout history" ,clickable = false)
+            this.playButton = addButton("fas-drafting-compass", "Animate layout history", clickable = false)
             this.playButton.button.background =
                 Background(BackgroundFill(Color.DARKGRAY, CornerRadii.EMPTY, Insets.EMPTY))
             (this.playButton.button.graphic as FontIcon).iconColor = Color.BLACK
@@ -5433,15 +5606,19 @@ class RNArtist : Application() {
                 "undo_redo_layout_start" -> {
                     blinkWithColorBackGround(historyStart)
                 }
+
                 "undo_redo_layout_former" -> {
                     blinkWithColorBackGround(historyFormer)
                 }
+
                 "undo_redo_layout_next" -> {
                     blinkWithColorBackGround(historyNext)
                 }
+
                 "undo_redo_layout_end" -> {
                     blinkWithColorBackGround(historyEnd)
                 }
+
                 "undo_redo_layout_animate" -> {
                     blinkWithGlow(playButton)
                 }
@@ -5488,16 +5665,26 @@ class RNArtist : Application() {
 
     }
 
-    private inner class HelpBar:Canvas2DToolBars() {
+    private inner class HelpBar : Canvas2DToolBars() {
         init {
             addButton("fas-question", "Help mode") {
                 mediator.helpMode.value = !mediator.helpMode.value
             }
             mediator.helpMode.addListener { _, _, helpModeOn ->
                 this.background =
-                    Background(BackgroundFill(if (helpModeOn) Color.DARKORANGE else RNArtistGUIColor, CornerRadii(5.0), Insets(1.5, 5.0, 5.0, 5.0)))
+                    Background(
+                        BackgroundFill(
+                            if (helpModeOn) Color.DARKORANGE else RNArtistGUIColor,
+                            CornerRadii(5.0),
+                            Insets(1.5, 5.0, 5.0, 5.0)
+                        )
+                    )
                 if (helpModeOn)
-                    HelpDialog(mediator, "You have activated the help mode. Click the button below to get more details.", "help_mode.html")
+                    HelpDialog(
+                        mediator,
+                        "You have activated the help mode. Click the button below to get more details.",
+                        "help_mode.html"
+                    )
             }
         }
 
@@ -5568,7 +5755,7 @@ class RNArtist : Application() {
         root.center = this.verticalSplitPane
     }
 
-    inner class DocumentationPanel(): Panel() {
+    inner class DocumentationPanel() : Panel() {
 
         init {
             this.children.add(mediator.webView)
@@ -5577,11 +5764,11 @@ class RNArtist : Application() {
             this.loadDocPage("toc.html")
         }
 
-        fun loadDocPage(docPage:String) {
+        fun loadDocPage(docPage: String) {
             mediator.webView.engine.load({}.javaClass.getResource("gui/doc/${docPage}").toURI().toString())
         }
 
-        override fun blinkUINode(name:String) {}
+        override fun blinkUINode(name: String) {}
 
     }
 
