@@ -3127,6 +3127,8 @@ class RNArtist : Application() {
                         "2D drawing or its selection as a bracket notation"
                     ) {
                         mediator.currentDrawing.get()?.let { drawing ->
+                            bracketNotationSubPanel.seqField.clear()
+                            bracketNotationSubPanel.bnField.clear()
                             with(drawing.secondaryStructureDrawing) {
                                 structureParameters.nameField.text = this.secondaryStructure.name
                                 val selectedPositions = mediator.canvas2D.getSelectedPositions()
@@ -3656,7 +3658,7 @@ class RNArtist : Application() {
                                         if (this.characters.children.isEmpty())
                                             this.clear()
                                         (this as? BracketNotationField)?.let {
-                                            if (pos != -1)
+                                            if (pos != -1 && pos <= seqField.characters.children.size-1 )
                                                 seqField.characters.children.removeAt(pos)
                                             if (seqField.characters.children.isEmpty())
                                                 seqField.clear()
@@ -3804,7 +3806,7 @@ class RNArtist : Application() {
                             this.addCharacterAt(this.characters.children.size, character)
                         }
                         val pos = this.characters.children.size
-                        if (bnField.characters.children.size >= pos)
+                        if (pos >= 1 && bnField.characters.children.size >= pos)
                             (this.characters.children.get(pos - 1) as Field.Character).background =
                                 Background(
                                     BackgroundFill(
