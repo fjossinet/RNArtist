@@ -5283,8 +5283,24 @@ class RNArtist : Application() {
                 mediator.currentDrawing.get()?.let { currentDrawing ->
 
                     if (currentDrawing.selectedDrawings.isNotEmpty()) {
-                        val w = TaskDialog(mediator)
-                        w.task = Save2DSelection(mediator)
+                        val alert =
+                            Alert(Alert.AlertType.CONFIRMATION)
+                        alert.initStyle(StageStyle.TRANSPARENT);
+                        alert.initOwner(stage)
+                        alert.initModality(Modality.WINDOW_MODAL)
+                        alert.dialogPane.background =
+                            Background(BackgroundFill(RNArtistGUIColor, CornerRadii(10.0), Insets.EMPTY))
+                        alert.title = "Need Confirmation"
+                        alert.headerText = null
+                        alert.contentText = "Are you sure to extract and save this domain in your DB folder?"
+                        val alerttStage = alert.dialogPane.scene.window as Stage
+                        alerttStage.isAlwaysOnTop = true
+                        alerttStage.toFront()
+                        val result = alert.showAndWait()
+                        if (result.get() == ButtonType.OK) {
+                            val w = TaskDialog(mediator)
+                            w.task = Save2DSelection(mediator)
+                        }
                     } else {
                         val alert =
                             Alert(Alert.AlertType.CONFIRMATION)
@@ -5300,7 +5316,7 @@ class RNArtist : Application() {
                             )
                         ) {
                             alert.contentText =
-                                "Are you sure to save a copy of your 2D in this folder (it will become your working copy)?"
+                                "Are you sure to save a copy of your 2D in in your DB folder (it will become your working copy)?"
                         } else {
                             alert.contentText = "Are you sure to update your 2D?"
                         }

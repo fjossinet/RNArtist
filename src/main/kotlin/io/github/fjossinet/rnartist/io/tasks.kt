@@ -109,7 +109,7 @@ class Save2DSelection(mediator: Mediator) : RNArtistTask<File?>(mediator) {
             mediator.currentDrawing.get()?.let { currentDrawing ->
                 val selectedLoc = Location(mediator.canvas2D.getSelectedPositions().toIntArray())
                 val dataDir = File(mediator.rnartist.currentDBFolderAbsPath.get())
-                val current2DFileName = File(currentDrawing.dslScriptInvariantSeparatorsPath).name.split(".kts").first()
+                val current2DFileName = currentDrawing.secondaryStructureDrawing.name
                 val domainsAlreadySaved = dataDir.listFiles().count {it.name.endsWith(".kts") && it.name.startsWith("${current2DFileName}_domain")}
                 val fileName = "${current2DFileName}_domain_${domainsAlreadySaved+1}"
                 val ss = SecondaryStructure(
