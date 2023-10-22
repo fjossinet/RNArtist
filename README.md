@@ -1,12 +1,21 @@
 
 # RNArtist: an interactive tool to construct and manage a collection of RNA 2D structures
 
-![Screen Capture 1](media/screen_capture_1.png)
+# Screenshots
 
-Main features:
-* with RNArtist, you construct a collection of RNA structures that can be gathered into RNA families, projects,....
-* a database explorer allows you to visualize and browse your collections (in the screenshot above, I'm browsing  an "RNArtist-compliant" version of Rfam where each folder is an RNA family)
-* you feed your collections with RNA secondary structures (a.k.a. RNA 2Ds) described with standard file formats like Vienna, bpseq, ct, stockholm and even pdb
+![Screen Capture 1](media/screen_capture_1.png)
+![Screen Capture 1](media/screen_capture_2.png)
+![Screen Capture 3](media/screen_capture_3.png)
+
+# Workflow
+
+![workflow](media/workflow.png)
+
+# Main features
+
+* create and edit single RNA structures with the interactive bracket notation panel
+* gather RNA 2Ds into collections of RNA structures with the database panel
+* fill your collections with RNA secondary structures (a.k.a. RNA 2Ds) described with standard file formats like Vienna, bpseq, ct, stockholm and even pdb
 * you can also drag-and-drop structures described in RNA database entries (RNACentral for now) from your browser into your database in RNArtist. Data will be automatically downloaded, stored and plotted.
 * the RNA objects making the RNA 2Ds constructed with RNArtist integrates the last structural features from the field (Leontis-Westhof classification, classes of junctions (apical loops, inner loops, 3-Way, 4-way junctions,...), tertiary interactions)
 * RNArtist contains a built-in algorithm to produce a first draft of an RNA 2D based on a non-overlapping display
@@ -20,23 +29,13 @@ Main features:
 * the drawings can be exported into an SVG file compatible with tools like Affinity Designer, Inkscape or Adobe Illustrator
 * a documentation and an interactive tutorial are available from within RNArtist (meaning up-to-date and linked to the graphical interface to better guide you)
 
-More to come:
-* link with ChimeraX for RNA 2Ds derived from pdb files
-* the ability to link experimental data to your RNA 2Ds (like quantitative values from high throughput RNA structure determination). This will allow you to produce a display for your 2D according to the values linked to its residues
-* the ability to produce animations
-* the ability to annotate your structure
-* more theme options (shape of a residue: circle, square, polygons,...)
-* a widget to construct and preview your own theme for the full 2D before to apply it
-* more interactive tutorials
-* databases browsable directly from RNArtist. Rfam is quite almost ready to be released.
-
-## Installation and launch
+# Installation and launch
 
 RNArtist can be easily installed on MacOS, Linux and Windows thanks to the [jdeploy](https://www.jdeploy.com). Download the installer for your computer [at this address](https://www.jdeploy.com/~rnartist). These installers provide automatic updates. RNArtist downloads updates automatically at launch time so that you are always up-to-date.
 
 For a summary of what's new for the different releases, you can check [this page](Changelog.md)
 
-## Quickstart and embedded documentation
+# Quickstart and embedded documentation
 
 After its launch, RNArtist shows you the documentation page to quickstart. It is an interactive tutorial to learn the basic use of RNArtist. You will create your first database and download
 your first RNA 2D. Then you will learn how to modify the theme and layout of this structure, how to save it and how to export it as an SVG file. 
@@ -45,7 +44,18 @@ You just need an empty folder to start with this tutorial. And there is no need 
 
 You can also freely browse the documentation (choose "Table of Contents" at the top of the Quickstart page). The documentation is also interactive, with the ability to highlight the graphical widget detailed.
 
-![Screen Capture 2](media/screen_capture_2.png)
+![Screen Capture 3](media/screen_capture_4.png)
+
+# Upcoming features
+
+* link with ChimeraX for RNA 2Ds derived from pdb files
+* the ability to link experimental data to your RNA 2Ds (like quantitative values from high throughput RNA structure determination). This will allow you to produce a display for your 2D according to the values linked to its residues
+* the ability to produce animations
+* the ability to annotate your structure
+* more theme options (shape of a residue: circle, square, polygons,...)
+* a widget to construct and preview your own theme for the full 2D before to apply it
+* more interactive tutorials
+* databases browsable directly from RNArtist. Rfam is quite almost ready to be released.
 
 ## Disclaimer
 

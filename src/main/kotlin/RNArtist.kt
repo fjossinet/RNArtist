@@ -3365,15 +3365,6 @@ class RNArtist : Application() {
                                             Insets.EMPTY
                                         )
                                     )
-                                if (seqField.characters.children.size >= pos)
-                                    (seqField.characters.children.get(pos - 1) as Field.Character).background =
-                                        Background(
-                                            BackgroundFill(
-                                                color,
-                                                CornerRadii(5.0),
-                                                Insets.EMPTY
-                                            )
-                                        )
                             }
                         }
 
@@ -3441,21 +3432,6 @@ class RNArtist : Application() {
                     vbox.children.add(titleBar)
                     vbox.children.add(this.seqField)
                     this.children.add(vbox)
-
-                    bnField.characters.children.addListener(ListChangeListener {
-                        globalOptionsSubPanel.plot2dButton.isDisable =
-                            bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
-                        globalOptionsSubPanel.trashEverythingButton.isDisable = bnField.characters.children.isEmpty()
-                        randomSeqButton.isDisable = bnField.characters.children.isEmpty()
-                    })
-
-                    seqField.characters.children.addListener(ListChangeListener {
-                        globalOptionsSubPanel.plot2dButton.isDisable =
-                            bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
-                        globalOptionsSubPanel.trashEverythingButton.isDisable = seqField.characters.children.isEmpty()
-                        fixSeqButton.isDisable = !seqField.toSequence()
-                            .contains("X") && seqField.characters.children.size == bnField.characters.children.size
-                    })
                 }
 
                 override fun blinkUINode(name: String) {
@@ -3571,6 +3547,9 @@ class RNArtist : Application() {
 
                     }
 
+                    val length:Int
+                        get() = this.characters.children.size
+
                     init {
                         this.spacing = 2.0
                         this.padding = Insets(10.0)
@@ -3593,7 +3572,7 @@ class RNArtist : Application() {
 
                         this.characters.widthProperty().addListener { _, _, _ ->
                             val charactersPerRow = (this.characters.width / 20.0).toInt()
-                            val lines = (this.characters.children.size) / charactersPerRow
+                            val lines = (this.length) / charactersPerRow
                             this.characters.prefHeight = Math.max(100.0, (lines + 1) * 20.0 + 10.0)
                             this.layout()
                         }
@@ -3640,7 +3619,7 @@ class RNArtist : Application() {
                                 KeyCode.RIGHT -> {
                                     cursorPosition?.let {
                                         val pos = this.characters.children.indexOf(cursorPosition)
-                                        if (pos < this.characters.children.size - 1) {
+                                        if (pos < this.length - 1) {
                                             cursorPosition = this.characters.children.get(pos + 1) as Character
                                         }
                                     }
@@ -3658,7 +3637,7 @@ class RNArtist : Application() {
                                         if (this.characters.children.isEmpty())
                                             this.clear()
                                         (this as? BracketNotationField)?.let {
-                                            if (pos != -1 && pos <= seqField.characters.children.size-1 )
+                                            if (pos != -1 && pos <= seqField.length-1 )
                                                 seqField.characters.children.removeAt(pos)
                                             if (seqField.characters.children.isEmpty())
                                                 seqField.clear()
@@ -3758,6 +3737,29 @@ class RNArtist : Application() {
                 inner class SequenceField() : Field() {
 
                     init {
+                        this.characters.children.addListener( ListChangeListener {
+
+                            //we sync the buttons
+                            globalOptionsSubPanel.plot2dButton.isDisable =
+                                bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
+                            globalOptionsSubPanel.trashEverythingButton.isDisable = seqField.characters.children.isEmpty()
+                            fixSeqButton.isDisable = !seqField.toSequence()
+                                .contains("X") && seqField.characters.children.size == bnField.characters.children.size
+
+                            //we sync with the colors of the bnField
+                            characters.children.forEach {
+                                (it as Field.Character).background = null
+                            }
+                            characters.children.forEachIndexed { index, node ->
+                                if (index < bnField.length) {
+                                    (node as Character).background = Background(BackgroundFill(
+                                        (bnField.characters.children.get(index) as Field.Character).background?.fills?.firstOrNull()?.fill,
+                                        CornerRadii(5.0),
+                                        Insets.EMPTY
+                                    ))
+                                }
+                            }
+                        })
                     }
 
                     override fun addCharacterAt(index: Int, character: String) {
@@ -3793,7 +3795,7 @@ class RNArtist : Application() {
                         c?.let {
                             this.characters.children.add(index, c)
                             cursorPosition = c
-                            val lines = (this.characters.children.size) / charactersPerRow
+                            val lines = (this.length) / charactersPerRow
                             this.characters.prefHeight = Math.max(100.0, (lines + 1) * 20.0 + 10.0)
                             this.characters.layout()
                         }
@@ -3803,18 +3805,8 @@ class RNArtist : Application() {
                         cursorPosition?.let {
                             this.addCharacterAt(this.characters.children.indexOf(cursorPosition) + 1, character)
                         } ?: run {
-                            this.addCharacterAt(this.characters.children.size, character)
+                            this.addCharacterAt(this.length, character)
                         }
-                        val pos = this.characters.children.size
-                        if (pos >= 1 && bnField.characters.children.size >= pos)
-                            (this.characters.children.get(pos - 1) as Field.Character).background =
-                                Background(
-                                    BackgroundFill(
-                                        (bnField.characters.children.get(pos - 1) as Field.Character).background?.fills?.firstOrNull()?.fill,
-                                        CornerRadii(5.0),
-                                        Insets.EMPTY
-                                    )
-                                )
                     }
 
                     override fun setString(string: String) {
@@ -3856,12 +3848,20 @@ class RNArtist : Application() {
                 inner class BracketNotationField() : Field() {
 
                     init {
+                        //we sync the buttons
+                        this.characters.children.addListener(ListChangeListener {
+                            globalOptionsSubPanel.plot2dButton.isDisable =
+                                bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
+                            globalOptionsSubPanel.trashEverythingButton.isDisable = bnField.characters.children.isEmpty()
+                            randomSeqButton.isDisable = bnField.characters.children.isEmpty()
+                        })
+
                         this.onKeyTyped = EventHandler {
                             colorHelicesTask?.cancel()
                             launchColorHelicesTask.stop()
-                            val before = this.characters.children.size
+                            val before = this.length
                             this.addCharacter(it.character)
-                            if (this.characters.children.size > before) { //this means that a new character has been added (if this is not tested, an X is added to the sequence if BACK_SPACE is typed
+                            if (this.length > before) { //this means that a new character has been added (if this is not tested, an X is added to the sequence if BACK_SPACE is typed
                                 cursorPosition?.let { c ->
                                     seqField.addCharacterAt(this.characters.children.indexOf(c), "X")
                                     if (mirrorModeButton.isClicked && it.character == "(") {
@@ -3899,9 +3899,20 @@ class RNArtist : Application() {
                         c?.let {
                             this.characters.children.add(index, c)
                             cursorPosition = c
-                            val lines = (this.characters.children.size) / charactersPerRow
+                            val lines = (this.length) / charactersPerRow
                             this.characters.prefHeight = Math.max(100.0, (lines + 1) * 20.0 + 10.0)
                             this.characters.layout()
+
+                            //if the background for this bnfield character change, it will sync the character in the seqfield at the same position
+                            c.backgroundProperty().addListener { _,_, newValue ->
+                                val _index = bnField.characters.children.indexOf(c)
+                                if (_index < seqField.length )
+                                    (seqField.characters.children.get(_index) as Character).background = Background(BackgroundFill(
+                                        c.background?.fills?.firstOrNull()?.fill,
+                                        CornerRadii(5.0),
+                                        Insets.EMPTY
+                                    ))
+                            }
                         }
                     }
 
@@ -3914,9 +3925,9 @@ class RNArtist : Application() {
                                     characters.children.get(this.characters.children.indexOf(cursorPosition) - 1) as Character
                             }
                         } ?: run {
-                            this.addCharacterAt(this.characters.children.size, character)
+                            this.addCharacterAt(this.length, character)
                             if (mirrorModeButton.isClicked && character == "(") {
-                                this.addCharacterAt(this.characters.children.size, ")")
+                                this.addCharacterAt(this.length, ")")
                                 cursorPosition =
                                     characters.children.get(this.characters.children.indexOf(cursorPosition) - 1) as Character
                             }
