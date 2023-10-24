@@ -405,195 +405,109 @@ class RNArtist : Application() {
                 }
             }
             swingNode.onMouseClicked = EventHandler { mouseEvent: MouseEvent ->
+                swingNode.requestFocus()
                 if (mouseEvent.button == MouseButton.PRIMARY) {
-                    mediator.currentDrawing.get()?.let mouseClicked@{ drawingLoaded ->
+                    mediator.currentDrawing.get()?.let mouseClicked@{ drawing ->
                         val at = AffineTransform()
                         at.translate(
-                            drawingLoaded.secondaryStructureDrawing.workingSession.viewX,
-                            drawingLoaded.secondaryStructureDrawing.workingSession.viewY
+                            drawing.secondaryStructureDrawing.workingSession.viewX,
+                            drawing.secondaryStructureDrawing.workingSession.viewY
                         )
                         at.scale(
-                            drawingLoaded.secondaryStructureDrawing.workingSession.zoomLevel,
-                            drawingLoaded.secondaryStructureDrawing.workingSession.zoomLevel
+                            drawing.secondaryStructureDrawing.workingSession.zoomLevel,
+                            drawing.secondaryStructureDrawing.workingSession.zoomLevel
                         )
-                        for (h in drawingLoaded.secondaryStructureDrawing.workingSession.helicesDrawn) {
+                        for (h in drawing.secondaryStructureDrawing.workingSession.helicesDrawn) {
                             var shape = h.selectionShape
                             if (at.createTransformedShape(shape)
                                     .contains(mouseEvent.x, mouseEvent.y)
                             ) {
-                                for (r in h.residues) {
-                                    shape = r.selectionShape
-                                    if (r.isFullDetails() && at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent) && !mediator.canvas2D.isSelected(
-                                                r.parent!!.parent
-                                            )
-                                        ) {
-                                            mediator.canvas2D.addToSelection(r)
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(r.parent) && !mediator.canvas2D.isSelected(
-                                                r.parent!!.parent
-                                            )
-                                        ) {
-                                            mediator.canvas2D.removeFromSelection(r)
-                                            mediator.canvas2D.addToSelection(r.parent)
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(r.parent!!.parent)) {
-                                            mediator.canvas2D.removeFromSelection(r.parent)
-                                            mediator.canvas2D.addToSelection(r.parent!!.parent)
-                                            return@mouseClicked
-                                        }
+                                h.residues.forEach { residue ->
+                                    shape = residue.selectionShape
+                                    if (at.createTransformedShape(shape).contains(mouseEvent.x, mouseEvent.y)) {
+                                        drawing.addToSelection(residue)
+                                        return@mouseClicked
                                     }
                                 }
-                                for (bondDrawing in h.phosphoBonds) {
-                                    shape = bondDrawing.selectionShape
-                                    if (at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(bondDrawing) && !mediator.canvas2D.isSelected(
-                                                bondDrawing.parent
-                                            )
-                                        ) {
-                                            mediator.canvas2D.addToSelection(bondDrawing)
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(bondDrawing.parent)) {
-                                            mediator.canvas2D.removeFromSelection(bondDrawing)
-                                            mediator.canvas2D.addToSelection(bondDrawing.parent)
-                                            return@mouseClicked
-                                        }
+                                h.phosphoBonds.forEach { phosphoBond ->
+                                    shape = phosphoBond.selectionShape
+                                    if (at.createTransformedShape(shape).contains(mouseEvent.x, mouseEvent.y)) {
+                                        drawing.addToSelection(phosphoBond)
+                                        return@mouseClicked
                                     }
                                 }
-                                for (interaction in h.secondaryInteractions) {
-                                    shape = interaction.selectionShape
-                                    if (interaction.isFullDetails() && at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(interaction.interactionSymbol) && !mediator.canvas2D.isSelected(
-                                                interaction
-                                            ) && !mediator.canvas2D.isSelected(
-                                                interaction.parent
-                                            )
-                                        ) {
-                                            mediator.canvas2D.addToSelection(interaction.interactionSymbol)
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(interaction) && !mediator.canvas2D.isSelected(
-                                                interaction.parent
-                                            )
-                                        ) {
-                                            mediator.canvas2D.removeFromSelection(interaction.interactionSymbol)
-                                            mediator.canvas2D.addToSelection(interaction)
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(interaction.parent)) {
-                                            mediator.canvas2D.removeFromSelection(interaction)
-                                            mediator.canvas2D.addToSelection(interaction.parent)
-                                            return@mouseClicked
-                                        }
+                                h.secondaryInteractions.forEach { secondaryInteraction ->
+                                    shape = secondaryInteraction.interactionSymbol.selectionShape
+                                    if (at.createTransformedShape(shape).contains(mouseEvent.x, mouseEvent.y)) {
+                                        drawing.addToSelection(secondaryInteraction.interactionSymbol)
+                                        return@mouseClicked
+                                    }
+                                    shape = secondaryInteraction.selectionShape
+                                    if (at.createTransformedShape(shape).contains(mouseEvent.x, mouseEvent.y)) {
+                                        drawing.addToSelection(secondaryInteraction)
+                                        return@mouseClicked
                                     }
                                 }
-                                if (!mediator.canvas2D.isSelected(h)) {
-                                    mediator.canvas2D.addToSelection(h)
-                                    return@mouseClicked
-                                } else {
-                                    var p = h.parent
-                                    while (p != null && mediator.canvas2D.isSelected(p)) {
-                                        p = p.parent
-                                    }
-                                    if (p == null) {
-                                        mediator.canvas2D.addToSelection(h)
-                                    } else {
-                                        mediator.canvas2D.addToSelection(p)
-                                    }
-                                    return@mouseClicked
-                                }
+                                drawing.addToSelection(h)
+                                return@mouseClicked
                             }
                         }
-                        for (j in drawingLoaded.secondaryStructureDrawing.workingSession.junctionsDrawn) {
+                        for (j in drawing.secondaryStructureDrawing.workingSession.junctionsDrawn) {
                             var shape = j.selectionShape
                             if (at.createTransformedShape(shape)
                                     .contains(mouseEvent.x, mouseEvent.y)
                             ) {
-                                for (r in j.residues) {
-                                    shape = r.selectionShape
-                                    if (r.isFullDetails() && at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
-                                            mediator.canvas2D.addToSelection(r)
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(r.parent)) {
-                                            mediator.canvas2D.removeFromSelection(r)
-                                            mediator.canvas2D.addToSelection(r.parent)
-                                            return@mouseClicked
-                                        }
+                                j.residues.forEach { residue ->
+                                    shape = residue.selectionShape
+                                    if (at.createTransformedShape(shape).contains(mouseEvent.x, mouseEvent.y)) {
+                                        drawing.addToSelection(residue)
+                                        return@mouseClicked
                                     }
                                 }
-
-                                for (bondDrawing in j.phosphoBonds) {
-                                    shape = bondDrawing.selectionShape
-                                    if (at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(bondDrawing) && !mediator.canvas2D.isSelected(
-                                                bondDrawing.parent
-                                            )
-                                        ) {
-                                            mediator.canvas2D.addToSelection(bondDrawing)
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(bondDrawing.parent)) {
-                                            mediator.canvas2D.removeFromSelection(bondDrawing)
-                                            mediator.canvas2D.addToSelection(bondDrawing.parent)
-                                            return@mouseClicked
-                                        }
+                                j.phosphoBonds.forEach { phosphoBond ->
+                                    shape = phosphoBond.selectionShape
+                                    if (at.createTransformedShape(shape).contains(mouseEvent.x, mouseEvent.y)) {
+                                        drawing.addToSelection(phosphoBond)
+                                        return@mouseClicked
                                     }
                                 }
-
-                                if (!mediator.canvas2D.isSelected(j)) {
-                                    mediator.canvas2D.addToSelection(j)
-                                    return@mouseClicked
-                                } else {
-                                    var p = j.parent
-                                    while (p != null && mediator.canvas2D.isSelected(p)) {
-                                        p = p.parent
-                                    }
-                                    if (p == null) {
-                                        mediator.canvas2D.addToSelection(j)
-                                    } else {
-                                        mediator.canvas2D.addToSelection(p)
-                                    }
-                                    return@mouseClicked
-                                }
+                                drawing.addToSelection(j)
+                                return@mouseClicked
                             }
                         }
-                        for (ss in drawingLoaded.secondaryStructureDrawing.workingSession.singleStrandsDrawn) {
+                        for (ss in drawing.secondaryStructureDrawing.workingSession.singleStrandsDrawn) {
                             var shape = ss.selectionShape
                             if (at.createTransformedShape(shape)
                                     .contains(mouseEvent.x, mouseEvent.y)
                             ) {
-                                for (r in ss.residues) {
-                                    shape = r.selectionShape
-                                    if (r.isFullDetails() && at.createTransformedShape(shape)
-                                            .contains(mouseEvent.x, mouseEvent.y)
-                                    ) {
-                                        if (!mediator.canvas2D.isSelected(r) && !mediator.canvas2D.isSelected(r.parent)) {
-                                            mediator.canvas2D.addToSelection(r)
-                                            return@mouseClicked
-                                        } else if (!mediator.canvas2D.isSelected(r.parent)) {
-                                            mediator.canvas2D.removeFromSelection(r)
-                                            mediator.canvas2D.addToSelection(r.parent)
-                                            return@mouseClicked
-                                        }
+                                ss.residues.forEach { residue ->
+                                    shape = residue.selectionShape
+                                    if (at.createTransformedShape(shape).contains(mouseEvent.x, mouseEvent.y)) {
+                                        drawing.addToSelection(residue)
+                                        return@mouseClicked
                                     }
                                 }
-                                if (!mediator.canvas2D.isSelected(ss)) {
-                                    mediator.canvas2D.addToSelection(ss)
-                                    return@mouseClicked
+                                ss.phosphoBonds.forEach { phosphoBond ->
+                                    shape = phosphoBond.selectionShape
+                                    if (at.createTransformedShape(shape).contains(mouseEvent.x, mouseEvent.y)) {
+                                        drawing.addToSelection(phosphoBond)
+                                        return@mouseClicked
+                                    }
                                 }
+                                drawing.addToSelection(ss)
+                                return@mouseClicked
+                            }
+                        }
+                        for (phosphoBond in drawing.secondaryStructureDrawing.workingSession.phosphoBondsLinkingBranchesDrawn) {
+                            var shape = phosphoBond.selectionShape
+                            if (at.createTransformedShape(shape).contains(mouseEvent.x, mouseEvent.y)) {
+                                drawing.addToSelection(phosphoBond)
+                                return@mouseClicked
                             }
                         }
                         if (mouseEvent.clickCount == 2) {
                             //no selection
-                            mediator.canvas2D.clearSelection()
+                            drawing.clearSelection()
                         }
                     }
                 }
@@ -626,6 +540,19 @@ class RNArtist : Application() {
                     mediator.currentDrawing.get()?.let { drawingLoaded ->
                         mediator.canvas2D.transX = mouseEvent.x
                         mediator.canvas2D.transY = mouseEvent.y
+                    }
+                }
+            }
+            swingNode.onKeyPressed = EventHandler {
+                when (it.code) {
+                    KeyCode.UP -> {
+                        mediator.currentDrawing.get()?.extendSelection()
+                    }
+                    KeyCode.DOWN -> {
+                        mediator.currentDrawing.get()?.reduceSelection()
+                    }
+                    else -> {
+
                     }
                 }
             }
@@ -1595,7 +1522,7 @@ class RNArtist : Application() {
                         ) {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
                                 val selectedLocation =
-                                    getUserLocation() ?: with(mediator.canvas2D.getSelectedPositions()) {
+                                    getUserLocation() ?: with(currentDrawing.getSelectedPositions()) {
                                         if (this.isEmpty())
                                             null
                                         else
@@ -1604,8 +1531,8 @@ class RNArtist : Application() {
 
                                 val selector = getSelector(selectedLocation)
 
-                                if (mediator.canvas2D.getSelectedPositions().isNotEmpty()) {
-                                    mediator.canvas2D.clearSelection()
+                                if (currentDrawing.getSelectedPositions().isNotEmpty()) {
+                                    currentDrawing.clearSelection()
                                 }
                                 val allElements = mutableSetOf<DrawingElement>()
                                 val elements = currentDrawing.secondaryStructureDrawing.select({ el ->
@@ -1613,7 +1540,7 @@ class RNArtist : Application() {
                                         el
                                     )
                                 })
-                                mediator.canvas2D.addToSelection(elements)
+                                elements.forEach {currentDrawing.addToSelection(it)}
                                 elements.forEach {
                                     it.show()?.let {
                                         allElements.addAll(it)
@@ -1652,7 +1579,7 @@ class RNArtist : Application() {
                                         el
                                     )
                                 })
-                                mediator.canvas2D.addToSelection(elements)
+                                elements.forEach {currentDrawing.addToSelection(it)}
                                 allElements.addAll(elements)
                                 elements.forEach {
                                     it.show()?.let {
@@ -1682,7 +1609,7 @@ class RNArtist : Application() {
 
                         reverseSelection = buttonsPanel.addButton(icon = "fas-exchange-alt:15", "Reverse selection") {
                             mediator.currentDrawing.get()?.let { currentDrawing ->
-                                val selectedLocation = with(mediator.canvas2D.getSelectedPositions()) {
+                                val selectedLocation = with(currentDrawing.getSelectedPositions()) {
                                     if (this.isEmpty())
                                         null
                                     else
@@ -1692,7 +1619,7 @@ class RNArtist : Application() {
                                 val fullLocation = Location(1, mediator.rna!!.length)
 
                                 val selector = selectedLocation?.let {
-                                    mediator.canvas2D.clearSelection()
+                                    currentDrawing.clearSelection()
                                     getSelector(fullLocation.differenceOf(selectedLocation))
                                 } ?: run {
                                     getSelector(fullLocation)
@@ -1704,7 +1631,7 @@ class RNArtist : Application() {
                                         el
                                     )
                                 })
-                                mediator.canvas2D.addToSelection(elements)
+                                elements.forEach {currentDrawing.addToSelection(it)}
                                 allElements.addAll(elements)
                                 elements.forEach {
                                     it.show()?.let {
@@ -1733,7 +1660,9 @@ class RNArtist : Application() {
                         }
 
                         trashSelection = buttonsPanel.addButton(icon = "fas-trash:15", "Clear selection") {
-                            mediator.canvas2D.clearSelection()
+                            mediator.currentDrawing.get()?.let { currentDrawing ->
+                                currentDrawing.clearSelection()
+                            }
                         }
 
                         val types = listOf(
@@ -1817,8 +1746,10 @@ class RNArtist : Application() {
 
                         this.getCurrentSelectionLocationButton =
                             RNArtistButton("fas-eye-dropper:12", "Recover the location from the current selection") {
-                                Location(mediator.canvas2D.getSelectedPositions().toIntArray()).blocks.forEach {
-                                    this.addBlock(it.start, it.end)
+                                mediator.currentDrawing.get()?.let { currentDrawing ->
+                                    Location(currentDrawing.getSelectedPositions().toIntArray()).blocks.forEach {
+                                        this.addBlock(it.start, it.end)
+                                    }
                                 }
                             }
                         this.getCurrentSelectionLocationButton.isDisable = true
@@ -2124,7 +2055,7 @@ class RNArtist : Application() {
                         checkStopAfter: ((DrawingElement) -> Boolean)? = null
                     ) {
                         mediator.drawingHighlighted.get()?.applyTheme(theme, checkStopBefore, checkStopAfter)
-                            ?: mediator.canvas2D.getSelection().forEach {
+                            ?: mediator.currentDrawing.get()?.getSelection()?.forEach {
                                 it.applyTheme(theme, checkStopBefore, checkStopAfter)
                             }
                         mediator.canvas2D.repaint()
@@ -2159,7 +2090,7 @@ class RNArtist : Application() {
                                 selectedElements.addAll(it)
                             }
                         } ?: run {
-                            mediator.canvas2D.getSelection().forEach {
+                            mediator.currentDrawing.get()?.getSelection()?.forEach {
                                 applicator(it)?.let {
                                     selectedElements.addAll(it)
                                 }
@@ -2396,15 +2327,19 @@ class RNArtist : Application() {
                      * Consequently, any type of DrawingElement is themed if in the selected location
                      */
                     override fun getSelector() = { el: DrawingElement ->
-                        with(mediator.canvas2D.getSelectedPositions()) {
-                            val selectedLocation = Location(this.toIntArray())
-                            if (el is PhosphodiesterBondDrawing && (el.parent is JunctionDrawing || el.parent is SingleStrandDrawing) && selectedLocation.contains(
-                                    el.parent!!.location
-                                ) ?: true
-                            )
-                                true//this is a trick to select all the phospho bonds in a junction drawing. Otherwise, the first and last phospho bonds will not be selected if the selected location is exactly the location of the parent JunctionDrawing (since the location of a JunctionDrawing doesn't contain the surrounding helical base-pairs)
-                            else
-                                selectedLocation.contains(el.location) ?: true
+                        mediator.currentDrawing.get()?.let { currentDrawing ->
+                            with(currentDrawing.getSelectedPositions()) {
+                                val selectedLocation = Location(this.toIntArray())
+                                if (el is PhosphodiesterBondDrawing && (el.parent is JunctionDrawing || el.parent is SingleStrandDrawing) && selectedLocation.contains(
+                                        el.parent!!.location
+                                    ) ?: true
+                                )
+                                    true//this is a trick to select all the phospho bonds in a junction drawing. Otherwise, the first and last phospho bonds will not be selected if the selected location is exactly the location of the parent JunctionDrawing (since the location of a JunctionDrawing doesn't contain the surrounding helical base-pairs)
+                                else
+                                    selectedLocation.contains(el.location) ?: true
+                            }
+                        } ?: run {
+                            false
                         }
 
                     }
@@ -2420,7 +2355,7 @@ class RNArtist : Application() {
                             drawingElement.applyTheme(theme)
                             mediator.canvas2D.repaint()
                         } ?: run {
-                            mediator.canvas2D.getSelection().forEach {
+                            mediator.currentDrawing.get()?.getSelection()?.forEach {
                                 it.applyTheme(theme)
                             }
                             mediator.canvas2D.repaint()
@@ -2439,8 +2374,8 @@ class RNArtist : Application() {
                                         ThemeProperty.color.toString() ->
                                             typesAndLocation.forEach {
                                                 if (fontButton.isClicked) { //the user cannot select ResidueLetter by himself, we search for the first ResidueLetter in the current selection to get the color
-                                                    mediator.canvas2D.getSelection()
-                                                        .firstOrNull()?.allChildren?.firstOrNull { it is ResidueLetterDrawing }
+                                                    mediator.currentDrawing.get()?.getSelection()
+                                                        ?.firstOrNull()?.allChildren?.firstOrNull { it is ResidueLetterDrawing }
                                                         ?.getColor()?.let { color ->
                                                             setColor(
                                                                 currentDrawing.rnArtistEl,
@@ -2451,7 +2386,8 @@ class RNArtist : Application() {
                                                             )
                                                         }
                                                 } else
-                                                    mediator.canvas2D.getSelection().firstOrNull()?.getColor()
+                                                    mediator.currentDrawing.get()?.getSelection()?.firstOrNull()
+                                                        ?.getColor()
                                                         ?.let { color ->
                                                             setColor(
                                                                 currentDrawing.rnArtistEl,
@@ -2465,7 +2401,8 @@ class RNArtist : Application() {
 
                                         ThemeProperty.linewidth.toString() ->
                                             typesAndLocation.forEach {
-                                                mediator.canvas2D.getSelection().firstOrNull()?.getLineWidth()
+                                                mediator.currentDrawing.get()?.getSelection()?.firstOrNull()
+                                                    ?.getLineWidth()
                                                     ?.let { width ->
                                                         setLineWidth(
                                                             currentDrawing.rnArtistEl,
@@ -3131,7 +3068,7 @@ class RNArtist : Application() {
                             bracketNotationSubPanel.bnField.clear()
                             with(drawing.secondaryStructureDrawing) {
                                 structureParameters.nameField.text = this.secondaryStructure.name
-                                val selectedPositions = mediator.canvas2D.getSelectedPositions()
+                                val selectedPositions = drawing.getSelectedPositions()
                                 if (selectedPositions.isEmpty()) {
                                     bracketNotationSubPanel.seqField.setString(this.secondaryStructure.rna.seq)
                                     bracketNotationSubPanel.bnField.setString(this.secondaryStructure.toBracketNotation())
@@ -3547,7 +3484,7 @@ class RNArtist : Application() {
 
                     }
 
-                    val length:Int
+                    val length: Int
                         get() = this.characters.children.size
 
                     init {
@@ -3600,12 +3537,13 @@ class RNArtist : Application() {
                         this.onKeyPressed = EventHandler {
                             when (it.code) {
                                 KeyCode.V -> {
-                                    if(it.isShortcutDown()) {
+                                    if (it.isShortcutDown()) {
                                         with(Clipboard.getSystemClipboard()) {
                                             setString(this.string)
                                         }
                                     }
                                 }
+
                                 KeyCode.LEFT -> {
                                     cursorPosition?.let {
                                         val pos = this.characters.children.indexOf(cursorPosition)
@@ -3637,7 +3575,7 @@ class RNArtist : Application() {
                                         if (this.characters.children.isEmpty())
                                             this.clear()
                                         (this as? BracketNotationField)?.let {
-                                            if (pos != -1 && pos <= seqField.length-1 )
+                                            if (pos != -1 && pos <= seqField.length - 1)
                                                 seqField.characters.children.removeAt(pos)
                                             if (seqField.characters.children.isEmpty())
                                                 seqField.clear()
@@ -3737,12 +3675,13 @@ class RNArtist : Application() {
                 inner class SequenceField() : Field() {
 
                     init {
-                        this.characters.children.addListener( ListChangeListener {
+                        this.characters.children.addListener(ListChangeListener {
 
                             //we sync the buttons
                             globalOptionsSubPanel.plot2dButton.isDisable =
                                 bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
-                            globalOptionsSubPanel.trashEverythingButton.isDisable = seqField.characters.children.isEmpty()
+                            globalOptionsSubPanel.trashEverythingButton.isDisable =
+                                seqField.characters.children.isEmpty()
                             fixSeqButton.isDisable = !seqField.toSequence()
                                 .contains("X") && seqField.characters.children.size == bnField.characters.children.size
 
@@ -3752,11 +3691,13 @@ class RNArtist : Application() {
                             }
                             characters.children.forEachIndexed { index, node ->
                                 if (index < bnField.length) {
-                                    (node as Character).background = Background(BackgroundFill(
-                                        (bnField.characters.children.get(index) as Field.Character).background?.fills?.firstOrNull()?.fill,
-                                        CornerRadii(5.0),
-                                        Insets.EMPTY
-                                    ))
+                                    (node as Character).background = Background(
+                                        BackgroundFill(
+                                            (bnField.characters.children.get(index) as Field.Character).background?.fills?.firstOrNull()?.fill,
+                                            CornerRadii(5.0),
+                                            Insets.EMPTY
+                                        )
+                                    )
                                 }
                             }
                         })
@@ -3764,8 +3705,10 @@ class RNArtist : Application() {
 
                     override fun addCharacterAt(index: Int, character: String) {
                         val charactersPerRow = ((this.width - this.padding.left - this.padding.right) / 20.0).toInt()
-                        var c:Residue? = null
-                        if (character.uppercase().matches(Regex("[A-UW-Z]"))) { //not the V to avoid to have an X after a paste
+                        var c: Residue? = null
+                        if (character.uppercase()
+                                .matches(Regex("[A-UW-Z]"))
+                        ) { //not the V to avoid to have an X after a paste
                             c = when (character.uppercase()) {
                                 "A" -> {
                                     Residue("A")
@@ -3852,7 +3795,8 @@ class RNArtist : Application() {
                         this.characters.children.addListener(ListChangeListener {
                             globalOptionsSubPanel.plot2dButton.isDisable =
                                 bnField.characters.children.isEmpty() || bnField.characters.children.size != seqField.characters.children.size
-                            globalOptionsSubPanel.trashEverythingButton.isDisable = bnField.characters.children.isEmpty()
+                            globalOptionsSubPanel.trashEverythingButton.isDisable =
+                                bnField.characters.children.isEmpty()
                             randomSeqButton.isDisable = bnField.characters.children.isEmpty()
                         })
 
@@ -3904,14 +3848,16 @@ class RNArtist : Application() {
                             this.characters.layout()
 
                             //if the background for this bnfield character change, it will sync the character in the seqfield at the same position
-                            c.backgroundProperty().addListener { _,_, newValue ->
+                            c.backgroundProperty().addListener { _, _, newValue ->
                                 val _index = bnField.characters.children.indexOf(c)
-                                if (_index < seqField.length )
-                                    (seqField.characters.children.get(_index) as Character).background = Background(BackgroundFill(
-                                        c.background?.fills?.firstOrNull()?.fill,
-                                        CornerRadii(5.0),
-                                        Insets.EMPTY
-                                    ))
+                                if (_index < seqField.length)
+                                    (seqField.characters.children.get(_index) as Character).background = Background(
+                                        BackgroundFill(
+                                            c.background?.fills?.firstOrNull()?.fill,
+                                            CornerRadii(5.0),
+                                            Insets.EMPTY
+                                        )
+                                    )
                             }
                         }
                     }
@@ -5263,6 +5209,11 @@ class RNArtist : Application() {
                 }
 
                 "center_on_next_selection" -> {
+                    blinkWithColorBackGround(this.centerViewOnNextSelection)
+                }
+
+                "selection_navigation_buttons" -> {
+                    blinkWithColorBackGround(this.centerViewOnFormerSelection)
                     blinkWithColorBackGround(this.centerViewOnNextSelection)
                 }
             }

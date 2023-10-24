@@ -33,31 +33,8 @@
         <figure>
             <img src="images/canvas_panel.png"/>
         </figure>
-        <h3>Quickstart</h3>
-        <ul>
-            <li>use the right mouse button to translate the full 2D</li>
-            <li>use the buttons panel on the left to zoom in/out and recenter on the full 2D</li>
-            <li>use the left mouse button to select a 2D object
-                <ul>
-                    <li>click on the center of an element to select it (residue, junctions, helices, interactions,
-                        phosphodiester bonds,...)
-                    </li>
-                    <li>successive clicks on a residue select the next parent element:
-                        <ul>
-                            <li>residue -> secondary interaction -> helix -> former structural domain in the branch</li>
-                            <li>residue -> junction -> former structural domain in the branch</li>
-                            <li>residue -> single-strand
-                        </ul>
-                    </li>
-                </ul>
-            </li>
-            <li>once a selection done, you can modify its theme with <a href="right_theme_panel.html">the right theme
-                panel</a></li>
-            <li>if you select junctions, you can modify their layout with <a href="junction_layout_panel.html">the
-                layout panel</a></li>
-        </ul>
         <h3><a name="drawing_surface">The drawing surface</a></h3>
-        <h4>Select parts of an RNA 2D</h4>
+        <h4>Make a selection</h4>
         <p>
             You have two different ways to make a selection with RNArtist:
         </p>
@@ -67,25 +44,33 @@
             <li>by clicking on the drawing surface</li>
         </ul>
         <p>
-            You can select any rna objects with a left-click inside its bounds to add it to the current selection. You can do successive left-click on the same residue to enlarge the selection (for example residue -> secondary interaction -> helix -> next structural domain along the branch).
+            You can select any RNA objects with a left-click inside its bounds to add it to the current selection. Once a first element selected, you can:
         </p>
+        <ul>
+            <li>either do successive left-click on the same element to extend the selection</li>
+            <li>or use the up/down arrow keys to extend/reduce the selection</li>
+        </ul>
         <p>
             To clear the selection, you can either double left-click on the blank surface or use <a href="#" onclick="return false;"
                                                                                                     id="clear_selection_button"
                                                                                                     class="linkedToUI">this button</a> in the theme panel on the right
         </p>
-        <h4>The highlight of an RNA object in the current selection</h4>
+        <h4>The highlight of a selected RNA object</h4>
         <p>
-            When several rna objects are selected, choosing theme parameters with <a href="right_theme_panel.html">the theme panel on the right</a> will target all of them at once.
+            When several RNA objects are selected, changing the theme with <a href="right_theme_panel.html">the theme panel on the right</a> will target all of them at once.
             But sometimes, you could need to:
         </p>
         <ul>
             <li>target a single object while keeping the selection as it is</li>
             <li>apply different theme parameters to each object in the selection.</li>
         </ul>
-        <p>This is why RNArtist allows you to highlight an rna object in the selection in order to make it the sole target of your choices.
-            When several rna objects are selected without any one highlighted, all the shapes around them display the same color. When you use <a href="#" onclick="return false;" id="all_selection_buttons" class="linkedToUI">these buttons</a>, you're highlighting one selected object after another one.
-            The shape of the highlighted rna object gets its own color, while the other shapes are drawn with a lighter gray.</p>
+        <p>This is why RNArtist allows you to highlight an RNA object in the selection in order to make it the sole target of your choices. This is how it works:</p>
+        <ul>
+            <li>any RNA object selected is enclosed in a line</li>
+            <li>when you use <a href="#" onclick="return false;" id="selection_navigation_buttons" class="linkedToUI">these buttons</a>, you're highlighting one selected object after another one</li>
+            <li>when no object is highlighted, all the lines are colored differently and all the selected objects can be modified at once</li>
+            <li>if an object is highlighted, all the lines of the other selected objects are colored in light grey and only the highlighted object can be modified</li>
+        </ul>
         <h3><a name="toolbars">The toolbars</a></h3>
         <h4>The current drawing bar</h4>
         <figure>

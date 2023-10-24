@@ -6,7 +6,7 @@
 
     <groupId>io.github.fjossinet.rnartist</groupId>
     <artifactId>rnartist</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
 
     <name>RNArtist</name>
     <url>https://github.com/fjossinet/RNArtist</url>
@@ -130,7 +130,7 @@
         <dependency>
             <groupId>io.github.fjossinet.rnartist</groupId>
             <artifactId>rnartistcore</artifactId>
-            <version>0.3.10-SNAPSHOT</version>
+            <version>0.3.11-SNAPSHOT</version>
         </dependency>
 
     </dependencies>

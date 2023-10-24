@@ -1,3 +1,11 @@
+### RNArtist 1.1.1
+
+* Fixed: sync issues between the sequence and the bracket notation fields
+* Fixed: sync issues between the drawing and its preview in the database panel when some line widths became too thick. Some interactions present in the drawing disappears in the preview. If the 2D was reloaded from this save, these interactions were not drawn anymore. This was an issue in the RNArtistcore engine.
+* Modified: the cumulative mouse clicks on an RNA object in the canvas 2D has a different behavior. After each click, the selection extends further from the first element selected.
+* Added: RNArtist needs now a confirmation before to extract and save a 2D domain in the current folder DB
+* Added: up/down arrow keys allow to extend/reduce a selection
+
 ### RNArtist 1.1.0
 
 * Added: a bracket notation panel to create/edit a 2D as a bracket notation. It can be generated from scratch, from a file or from the current 2D displayed in the canvas (even parts of it).

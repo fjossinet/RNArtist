@@ -22,24 +22,4 @@ interface Canvas2D {
 
     fun fitStructure(selectionFrame: Rectangle2D?, ratio: Double = 1.0)
 
-    fun clearSelection()
-
-    fun getSelection(): List<DrawingElement>
-
-    fun getSelectedPositions(): List<Int>
-
-    fun getSelectedResidues():List<ResidueDrawing>
-
-    fun getSelectionFrame(): Rectangle2D?
-
-    fun isSelected(el: DrawingElement?): Boolean
-
-    fun addToSelection(el: List<DrawingElement>)
-
-    fun addToSelection(el: DrawingElement?)
-
-    fun removeFromSelection(el: DrawingElement?)
-
-    fun structuralDomainsSelected(): List<StructuralDomainDrawing>
-
 }

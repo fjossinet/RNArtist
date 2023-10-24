@@ -27,40 +27,4 @@ class FXCanvas(val mediator: Mediator, override var transX: Double = 0.0, overri
 
     override fun fitStructure(selectionFrame: Rectangle2D?, ratio: Double) {
     }
-
-    override fun clearSelection() {
-    }
-
-    override fun getSelection(): List<DrawingElement> {
-        return listOf()
-    }
-
-    override fun getSelectedPositions(): List<Int> {
-        return listOf()
-    }
-
-    override fun getSelectedResidues(): List<ResidueDrawing> {
-        return listOf()
-    }
-
-    override fun getSelectionFrame(): Rectangle2D? {
-        return null
-    }
-
-    override fun isSelected(el: DrawingElement?): Boolean {
-        return false
-    }
-
-    override fun addToSelection(el: List<DrawingElement>) {
-    }
-
-    override fun addToSelection(el: DrawingElement?) {
-    }
-
-    override fun removeFromSelection(el: DrawingElement?) {
-    }
-
-    override fun structuralDomainsSelected(): List<StructuralDomainDrawing> {
-        return listOf()
-    }
 }
