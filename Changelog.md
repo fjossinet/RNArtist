@@ -1,3 +1,7 @@
+### RNArtist 1.1.2
+
+* Added: RNArtist databases can be moved and shared. When the database is loaded, RNArtist checks if the paths stored in the index file match the current db location. If not, the index file and all the path/file properties in scripts are updated.
+
 ### RNArtist 1.1.1
 
 * Fixed: sync issues between the sequence and the bracket notation fields
