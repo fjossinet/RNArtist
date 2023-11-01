@@ -1,9 +1,10 @@
 package io.github.fjossinet.rnartist.io
 
+import com.google.gson.Gson
+import com.google.gson.internal.LinkedTreeMap
 import io.github.fjossinet.rnartist.Mediator
-import io.github.fjossinet.rnartist.RNArtist
+import io.github.fjossinet.rnartist.core.io.writeVienna
 import io.github.fjossinet.rnartist.core.model.*
-import io.github.fjossinet.rnartist.gui.HelpDialog
 import io.github.fjossinet.rnartist.model.RNArtistDrawing
 import io.github.fjossinet.rnartist.model.RNArtistTask
 import javafx.application.Platform
@@ -199,6 +200,7 @@ class AddStructureFromURL(
 class LoadDB(mediator: Mediator, rootDbInvariantSeparatorsPath:String) : RNArtistTask<Any?>(mediator) {
 
     val reload:Boolean
+    var importDB:Boolean = false
 
     init {
         mediator.rnartist.currentDBFolderAbsPath.set(null)
@@ -230,13 +232,56 @@ class LoadDB(mediator: Mediator, rootDbInvariantSeparatorsPath:String) : RNArtis
             )
 
             mediator.currentDB?.let { currentDB ->
+                File(currentDB.rootInvariantSeparatorsPath).listFiles().forEach {
+                    if (it.name.endsWith(".json")) {
+                        val jsonDir = File(File(currentDB.rootInvariantSeparatorsPath), it.name.removeSuffix(".json"))
+                        if (!jsonDir.exists())
+                            jsonDir.mkdir()
+                        //we have json data to dump
+                        val rnas = Gson().fromJson(it.readText(), Any::class.java)
+                        (rnas as LinkedTreeMap<String,Any>).forEach { rnaName, rnaDetails ->
+                            var rna:RNA? = null
+                            var basePairs:MutableList<BasePair>? = null
+                            (rnaDetails as LinkedTreeMap<Any,Any>).forEach { key, value ->
+                                when (key) {
+                                    "sequence" -> {
+                                        rna = RNA(rnaName, value as String)
+                                    }
+                                    "paired_bases" -> {
+                                        basePairs = mutableListOf()
+                                        (value as ArrayList<ArrayList<Double>>).forEach { basePair ->
+                                            val pos1 = basePair.get(0).toInt()+1 //0-indexed
+                                            val pos2 = basePair.get(1).toInt()+1 //0-indexed
+                                            basePairs!!.add(BasePair(Location(Location(pos1,pos1), Location(pos2,pos2))))
+                                        }
+                                    }
+                                    "dms" -> {}
+                                }
+                            }
+                            rna?.let { rna ->
+                                basePairs?.let {basePairs ->
+                                    val viennaFile = File(jsonDir, "${rnaName}.vienna")
+                                    if (!viennaFile.exists())
+                                        writeVienna(SecondaryStructure(rna = rna, basePairs = basePairs), viennaFile.writer())
+                                }
+                            }
+
+                        }
+                    }
+                }
+
+
                 val dbIndex = currentDB.indexFile
                 dbIndex.readLines().forEach {
-                    mediator.rnartist.addFolderToTreeView(it)
+                    if (!it.startsWith(currentDB.rootInvariantSeparatorsPath)) {//this means that it is a database coming from another location/computer. We set the importMode on
+                        importDB = true
+                        return@forEach // no need to pursue, we will regenerate the index file as a first load
+                    } else
+                        mediator.rnartist.addFolderToTreeView(it)
                 }
 
                 updateMessage("Searching for non-indexed folders, please wait...")
-                val nonIndexedDirs = currentDB.indexDatabase()
+                val nonIndexedDirs = currentDB.indexDatabase(importDB)
                 if (nonIndexedDirs.isNotEmpty()) {
                     updateMessage("Found ${nonIndexedDirs.size} folders!")
                     nonIndexedDirs.forEach {
@@ -391,30 +436,36 @@ class LoadStructure(mediator: Mediator, val dslScriptInvariantSeparatorsPath: St
 
     override fun call(): Pair<Any?, Exception?> {
         try {
-            updateMessage(
-                "Loading 2D for ${
-                    dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
-                        System.getProperty(
-                            "file.separator"
-                        )
-                    ).last()
-                }..."
-            )
 
-            val result =
-                mediator.scriptEngine.eval(File(dslScriptInvariantSeparatorsPath).readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
-            result?.let {
-                val drawing =
-                    RNArtistDrawing(
-                        mediator,
-                        it.first.first(),
-                        dslScriptInvariantSeparatorsPath,
-                        it.second
-                    )
-                mediator.currentDrawing.set(drawing)
-                if (drawing.secondaryStructureDrawing.viewX == 0.0 && drawing.secondaryStructureDrawing.viewY == 0.0 && drawing.secondaryStructureDrawing.zoomLevel == 1.0) {
-                    //it seems it is a first opening, then we fit to the display
-                    mediator.canvas2D.fitStructure(null)
+            mediator.currentDB?.let { currentDB ->
+
+                updateMessage(
+                    "Loading 2D for ${
+                        dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
+                            System.getProperty(
+                                "file.separator"
+                            )
+                        ).last()
+                    }..."
+                )
+
+                val script = File(dslScriptInvariantSeparatorsPath)
+
+                val result =
+                    mediator.scriptEngine.eval(script.readText()) as? Pair<List<SecondaryStructureDrawing>, RNArtistEl>
+                result?.let {
+                    val drawing =
+                        RNArtistDrawing(
+                            mediator,
+                            it.first.first(),
+                            dslScriptInvariantSeparatorsPath,
+                            it.second
+                        )
+                    mediator.currentDrawing.set(drawing)
+                    if (drawing.secondaryStructureDrawing.viewX == 0.0 && drawing.secondaryStructureDrawing.viewY == 0.0 && drawing.secondaryStructureDrawing.zoomLevel == 1.0) {
+                        //it seems it is a first opening, then we fit to the display
+                        mediator.canvas2D.fitStructure(null)
+                    }
                 }
             }
             return Pair(null, null)
