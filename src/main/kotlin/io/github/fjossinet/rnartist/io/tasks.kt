@@ -437,8 +437,6 @@ class LoadStructure(mediator: Mediator, val dslScriptInvariantSeparatorsPath: St
     override fun call(): Pair<Any?, Exception?> {
         try {
 
-            mediator.currentDB?.let { currentDB ->
-
                 updateMessage(
                     "Loading 2D for ${
                         dslScriptInvariantSeparatorsPath.removeSuffix(".kts").split(
@@ -467,7 +465,6 @@ class LoadStructure(mediator: Mediator, val dslScriptInvariantSeparatorsPath: St
                         mediator.canvas2D.fitStructure(null)
                     }
                 }
-            }
             return Pair(null, null)
         } catch (e: Exception) {
             return Pair(null, e)

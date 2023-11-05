@@ -62,6 +62,7 @@ import org.kordamp.ikonli.javafx.FontIcon
 import org.kordamp.ikonli.javafx.Icon
 import java.awt.geom.AffineTransform
 import java.awt.geom.Point2D
+import java.awt.geom.Rectangle2D
 import java.io.*
 import java.nio.file.Path
 import kotlin.io.path.invariantSeparatorsPathString
@@ -399,15 +400,58 @@ class RNArtist : Application() {
 
             //++++++ Canvas2D
             val swingNode = SwingNode()
-            swingNode.onMouseMoved = EventHandler { mouseEvent: MouseEvent? ->
-                mediator.currentDrawing.get()?.secondaryStructureDrawing?.let {
-                    it.quickDraw = false //a trick if after the scroll event the quickdraw is still true
-                }
-            }
             swingNode.onMouseClicked = EventHandler { mouseEvent: MouseEvent ->
                 swingNode.requestFocus()
-                if (mouseEvent.button == MouseButton.PRIMARY) {
-                    mediator.currentDrawing.get()?.let mouseClicked@{ drawing ->
+            }
+            swingNode.onMouseDragged = EventHandler { mouseEvent: MouseEvent ->
+                mediator.currentDrawing.get()?.secondaryStructureDrawing?.let {
+                    if (mouseEvent.button == MouseButton.PRIMARY) {
+                        val ratio = mediator.canvas2D.canvasRatio // ratio = w/h -> w = ratio*h
+                        mediator.canvas2D.zoomArea?.let {
+                            val dragX = mouseEvent.x - it.x
+                            val dragY = mouseEvent.y - it.y
+                            if (dragX > 0 && dragY > 0) {
+                                val diag = Math.sqrt(dragX * dragX + dragY * dragY)
+                                //now we compute the width and height with the same diag and the ratio of the canvas window
+                                //d*d = w*w+h*h
+                                //d*d = w+w+(ratio*w)*(ratio*w)
+                                //w = srqt(d*d/(1+ratio*ratio))
+                                val h = Math.sqrt((diag * diag) / (1 + ratio * ratio))
+                                val w = ratio * h
+                                mediator.canvas2D.zoomArea =
+                                    Rectangle2D.Double(it.x, it.y, w, h)
+                            }
+                        }
+                        mediator.canvas2D.repaint()
+                    } else if (mouseEvent.button == MouseButton.SECONDARY) {
+                        it.quickDraw = true
+                        val transX: Double = mouseEvent.x - mediator.canvas2D.transX
+                        val transY: Double = mouseEvent.y - mediator.canvas2D.transY
+                        it.workingSession.moveView(transX, transY)
+                        mediator.canvas2D.transX = mouseEvent.x
+                        mediator.canvas2D.transY = mouseEvent.y
+                        mediator.canvas2D.repaint()
+                    }
+                }
+            }
+            swingNode.onMouseReleased = EventHandler { mouseEvent: MouseEvent ->
+                mediator.currentDrawing.get()?.let mouseClicked@{ drawing ->
+                    if (mouseEvent.button == MouseButton.PRIMARY) {
+                        mediator.canvas2D.zoomArea?.let {
+                            if (it.width > 0.0 || it.height > 0.0) { //if the user has started to define a zoom area we hide it and return
+                                val zoomLevel = drawing.secondaryStructureDrawing.workingSession.zoomLevel*mediator.canvas2D.canvasWidth.toDouble() / it.width
+
+                                drawing.secondaryStructureDrawing.workingSession.moveView(mediator.canvas2D.getCanvasBounds().centerX - it.centerX, mediator.canvas2D.getCanvasBounds().centerY - it.centerY)
+                                drawing.secondaryStructureDrawing.workingSession.zoomViewOn(
+                                    mediator.canvas2D.getCanvasBounds().centerX,
+                                    mediator.canvas2D.getCanvasBounds().centerY,
+                                    zoomLevel)
+
+                                mediator.canvas2D.zoomArea = null
+                                mediator.canvas2D.repaint()
+                                return@mouseClicked
+                            }
+                        }
                         val at = AffineTransform()
                         at.translate(
                             drawing.secondaryStructureDrawing.workingSession.viewX,
@@ -505,30 +549,13 @@ class RNArtist : Application() {
                                 return@mouseClicked
                             }
                         }
-                        if (mouseEvent.clickCount == 2) {
+                        if (mouseEvent.clickCount == 2) { //need to be at the end otherwise if the user accumulate single-mouse clicks too quickly, it will clear the selection
                             //no selection
                             drawing.clearSelection()
+                            return@mouseClicked
                         }
-                    }
-                }
-            }
-            swingNode.onMouseDragged = EventHandler { mouseEvent: MouseEvent ->
-                if (mouseEvent.button == MouseButton.SECONDARY) {
-                    mediator.currentDrawing.get()?.secondaryStructureDrawing?.let {
-                        it.quickDraw = true
-                        val transX: Double = mouseEvent.x - mediator.canvas2D.transX
-                        val transY: Double = mouseEvent.y - mediator.canvas2D.transY
-                        it.workingSession.moveView(transX, transY)
-                        mediator.canvas2D.transX = mouseEvent.x
-                        mediator.canvas2D.transY = mouseEvent.y
-                        mediator.canvas2D.repaint()
-                    }
-                }
-            }
-            swingNode.onMouseReleased = EventHandler { mouseEvent: MouseEvent ->
-                if (mouseEvent.button == MouseButton.SECONDARY) {
-                    mediator.currentDrawing.get()?.secondaryStructureDrawing?.let {
-                        it.quickDraw = false
+                    } else if (mouseEvent.button == MouseButton.SECONDARY) {
+                        drawing.secondaryStructureDrawing.quickDraw = false
                         mediator.canvas2D.transX = 0.0
                         mediator.canvas2D.transY = 0.0
                         mediator.canvas2D.repaint()
@@ -536,8 +563,10 @@ class RNArtist : Application() {
                 }
             }
             swingNode.onMousePressed = EventHandler { mouseEvent: MouseEvent ->
-                if (mouseEvent.button == MouseButton.SECONDARY) {
-                    mediator.currentDrawing.get()?.let { drawingLoaded ->
+                mediator.currentDrawing.get()?.let { drawingLoaded ->
+                    if (mouseEvent.button == MouseButton.PRIMARY) {
+                        mediator.canvas2D.zoomArea = Rectangle2D.Double(mouseEvent.x, mouseEvent.y, 0.0, 0.0)
+                    } else if (mouseEvent.button == MouseButton.SECONDARY) {
                         mediator.canvas2D.transX = mouseEvent.x
                         mediator.canvas2D.transY = mouseEvent.y
                     }
@@ -548,9 +577,11 @@ class RNArtist : Application() {
                     KeyCode.UP -> {
                         mediator.currentDrawing.get()?.extendSelection()
                     }
+
                     KeyCode.DOWN -> {
                         mediator.currentDrawing.get()?.reduceSelection()
                     }
+
                     else -> {
 
                     }
@@ -701,132 +732,6 @@ class RNArtist : Application() {
                 override fun blinkUINode(name: String) {
                     this.detailsLevelSubPanel.blinkUINode(name)
                     this.colorLineWidthSubPanel.blinkUINode(name)
-                }
-
-                private inner class NavigationSubPanel() : SubPanel("Navigation") {
-
-                    init {
-                        val buttonsPanel = LargeButtonsPanel()
-                        this.children.add(buttonsPanel)
-
-                        mediator.currentDrawing.addListener { _, _, newValue ->
-                            buttonsPanel.buttons.forEach {
-                                if (it.button.tooltip.text in listOf("Zoom +", "Zoom -", "Fit 2D to View"))
-                                    it.isDisable = newValue == null
-                            }
-                        }
-
-                        mediator.currentDrawing.addListener { _, oldValue, newValue ->
-                            newValue?.let {
-                                it.selectedDrawings.addListener(ListChangeListener {
-                                    if (it.list.isEmpty()) {
-                                        mediator.drawingHighlighted.set(null)
-                                        buttonsPanel.buttons.forEach {
-                                            if (it.button.tooltip.text in listOf(
-                                                    "Highlight former Selection",
-                                                    "Highlight next Selection"
-                                                )
-                                            )
-                                                it.isDisable = true
-                                        }
-                                    } else if (it.list.size == 1) {
-                                        mediator.drawingHighlighted.set(it.list.first())
-                                        buttonsPanel.buttons.forEach {
-                                            if (it.button.tooltip.text in listOf(
-                                                    "Highlight former Selection",
-                                                    "Highlight next Selection"
-                                                )
-                                            )
-                                                it.isDisable = false
-                                        }
-                                    } else {
-                                        mediator.drawingHighlighted.set(null)
-                                        buttonsPanel.buttons.forEach {
-                                            if (it.button.tooltip.text in listOf(
-                                                    "Highlight former Selection",
-                                                    "Highlight next Selection"
-                                                )
-                                            )
-                                                it.isDisable = false
-                                        }
-                                    }
-                                })
-                            }
-                        }
-
-                        buttonsPanel.addButton("fas-plus:15", "Zoom +") {
-                            mediator.workingSession?.zoomView(
-                                mediator.canvas2D.getCanvasBounds().centerX,
-                                mediator.canvas2D.getCanvasBounds().centerY,
-                                true
-                            )
-                            mediator.canvas2D.repaint()
-                        }
-
-                        buttonsPanel.addButton("fas-minus:15", "Zoom -") {
-                            mediator.workingSession?.zoomView(
-                                mediator.canvas2D.getCanvasBounds().centerX,
-                                mediator.canvas2D.getCanvasBounds().centerY,
-                                false
-                            )
-                            mediator.canvas2D.repaint()
-                        }
-
-                        buttonsPanel.addButton("fas-expand-arrows-alt:15", "Fit 2D to View") {
-                            mediator.canvas2D.fitStructure(null)
-                        }
-
-                        buttonsPanel.addButton("fas-chevron-left:15", "Highlight former Selection") {
-                            val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
-                                ?.sortedBy { (it as? JunctionDrawing)?.junction?.location?.end ?: it.location.end }
-                            mediator.drawingHighlighted.get()?.let {
-                                val currentPos = sortedSelection?.indexOf(it)!!
-                                val newPos =
-                                    if (currentPos == 0) sortedSelection.size - 1 else currentPos - 1
-                                mediator.drawingHighlighted.set(
-                                    sortedSelection.get(newPos)
-                                )
-                            } ?: run {
-                                mediator.drawingHighlighted.set(sortedSelection?.last())
-                            }
-                            mediator.drawingHighlighted.get()?.let {
-                                it.selectionShape?.let {
-                                    mediator.canvas2D.centerDisplayOn(
-                                        it.bounds2D
-                                    )
-                                }
-                            }
-
-                        }
-
-                        buttonsPanel.addButton("fas-chevron-right:15", "Highlight next Selection") {
-                            val sortedSelection = mediator.currentDrawing.get()?.selectedDrawings?.map { it }
-                                ?.sortedBy {
-                                    (it as? JunctionDrawing)?.junction?.location?.start ?: it.location.start
-                                }
-                            mediator.drawingHighlighted.get()?.let {
-                                val currentPos = sortedSelection?.indexOf(it)!!
-                                val newPos =
-                                    if (currentPos == sortedSelection.size - 1) 0 else currentPos + 1
-                                mediator.drawingHighlighted.set(
-                                    sortedSelection.get(newPos)
-                                )
-                            } ?: run {
-                                mediator.drawingHighlighted.set(sortedSelection?.first())
-                            }
-                            mediator.drawingHighlighted.get()?.let {
-                                it.selectionShape?.let {
-                                    mediator.canvas2D.centerDisplayOn(
-                                        it.bounds2D
-                                    )
-                                }
-                            }
-                        }
-
-                    }
-
-                    override fun blinkUINode(name: String) {}
-
                 }
 
                 inner class DetailsLevelSubPanel() : SubPanel("Details Level") {
@@ -1540,7 +1445,7 @@ class RNArtist : Application() {
                                         el
                                     )
                                 })
-                                elements.forEach {currentDrawing.addToSelection(it)}
+                                elements.forEach { currentDrawing.addToSelection(it) }
                                 elements.forEach {
                                     it.show()?.let {
                                         allElements.addAll(it)
@@ -1579,7 +1484,7 @@ class RNArtist : Application() {
                                         el
                                     )
                                 })
-                                elements.forEach {currentDrawing.addToSelection(it)}
+                                elements.forEach { currentDrawing.addToSelection(it) }
                                 allElements.addAll(elements)
                                 elements.forEach {
                                     it.show()?.let {
@@ -1631,7 +1536,7 @@ class RNArtist : Application() {
                                         el
                                     )
                                 })
-                                elements.forEach {currentDrawing.addToSelection(it)}
+                                elements.forEach { currentDrawing.addToSelection(it) }
                                 allElements.addAll(elements)
                                 elements.forEach {
                                     it.show()?.let {
@@ -5115,21 +5020,26 @@ class RNArtist : Application() {
             }
 
             this.zoomInButton = addButton("fas-plus", "Zoom In") {
-                mediator.workingSession?.zoomView(
-                    mediator.canvas2D.getCanvasBounds().centerX,
-                    mediator.canvas2D.getCanvasBounds().centerY,
-                    true
-                )
-                mediator.canvas2D.repaint()
+                mediator.currentDrawing.get()?.let { drawing ->
+                    drawing.secondaryStructureDrawing.workingSession.zoomViewOn(
+                        mediator.canvas2D.getCanvasBounds().centerX,
+                        mediator.canvas2D.getCanvasBounds().centerY,
+                        drawing.secondaryStructureDrawing.workingSession.zoomLevel * 1.25
+                    )
+                    mediator.canvas2D.repaint()
+                }
+
             }
 
             this.zoomOutButton = addButton("fas-minus", "Zoom out") {
-                mediator.workingSession?.zoomView(
-                    mediator.canvas2D.getCanvasBounds().centerX,
-                    mediator.canvas2D.getCanvasBounds().centerY,
-                    false
-                )
-                mediator.canvas2D.repaint()
+                mediator.currentDrawing.get()?.let { drawing ->
+                    drawing.secondaryStructureDrawing.workingSession.zoomViewOn(
+                        mediator.canvas2D.getCanvasBounds().centerX,
+                        mediator.canvas2D.getCanvasBounds().centerY,
+                        drawing.secondaryStructureDrawing.workingSession.zoomLevel/ 1.25
+                    )
+                    mediator.canvas2D.repaint()
+                }
             }
 
             this.fitStructureButton = addButton("fas-expand-arrows-alt", "Center and fit 2D on view") {

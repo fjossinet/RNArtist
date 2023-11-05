@@ -9,8 +9,9 @@ import javafx.scene.canvas.Canvas
 import java.awt.Rectangle
 import java.awt.geom.Rectangle2D
 
-class FXCanvas(val mediator: Mediator, override var transX: Double = 0.0, override var transY: Double = 0.0) :Canvas(), Canvas2D {
+abstract class FXCanvas(val mediator: Mediator, override var transX: Double = 0.0, override var transY: Double = 0.0) :Canvas(), Canvas2D {
 
+    override var zoomArea: Rectangle2D? = null
     init {
         mediator.canvas2D = this
     }

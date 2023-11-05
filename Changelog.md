@@ -1,3 +1,7 @@
+### RNArtist 1.1.3
+* Fixed: due to the previous commit, it was not anymore possible to load a 2D from the bracket notation panel without a database loaded at first
+* Added: left mouse button pressed and dragged allows to define a zoom area with the same shape than the canvas 2D (same width/height ratio)
+
 ### RNArtist 1.1.2
 
 * Added: RNArtist databases can be moved and shared. When the database is loaded, RNArtist checks if the paths stored in the index file match the current db location. If not, the index file and all the path/file properties in scripts are updated.

@@ -34,6 +34,15 @@
             <img src="images/canvas_panel.png"/>
         </figure>
         <h3><a name="drawing_surface">The drawing surface</a></h3>
+        <h4>Zoom/translate the structure</h4>
+        <p>
+            To translate the structure, keep the right-mouse button pressed and drag.
+            To zoom in/out you can:
+        </p>
+        <ul>
+            <li>either use the buttons of the navigation bar (see below)</li>
+            <li>or keep the left-mouse button pressed and drag. This will display a rectangle area with the same width/height ratio than the canvas 2D. This allows you to preview what you will get once the left-mouse button released.</li>
+        </ul>
         <h4>Make a selection</h4>
         <p>
             You have two different ways to make a selection with RNArtist:
@@ -85,11 +94,11 @@
             <img src="images/canvas_toolbar_2.png"/>
         </figure>
         <ul>
-            <li>use <a href="#" onclick="return false;" id="zoom_in" class="linkedToUI">this button</a> to zoom in</li>
-            <li>use <a href="#" onclick="return false;" id="zoom_out" class="linkedToUI">this button</a> to zoom out
+            <li>use <a href="#" onclick="return false;" id="zoom_in" class="linkedToUI">this button</a> to zoom in on the center of the current view</li>
+            <li>use <a href="#" onclick="return false;" id="zoom_out" class="linkedToUI">this button</a> to zoom out from the center of the current view
             </li>
-            <li>use <a href="#" onclick="return false;" id="fit_structure" class="linkedToUI">this button</a> to fit the
-                full 2D into the current view
+            <li>using <a href="#" onclick="return false;" id="fit_structure" class="linkedToUI">this button</a>, RNArtist will compute the zoom level needed to fit the
+                full 2D into the bounds of the canvas 2D
             </li>
             <li>use <a href="#" onclick="return false;" id="center_on_former_selection" class="linkedToUI">this
                 button</a> highlights and centers the view on the former selected element

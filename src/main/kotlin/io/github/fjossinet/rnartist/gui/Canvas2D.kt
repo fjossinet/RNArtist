@@ -1,8 +1,5 @@
 package io.github.fjossinet.rnartist.gui
 
-import io.github.fjossinet.rnartist.core.model.DrawingElement
-import io.github.fjossinet.rnartist.core.model.ResidueDrawing
-import io.github.fjossinet.rnartist.core.model.StructuralDomainDrawing
 import java.awt.Rectangle
 import java.awt.geom.Rectangle2D
 
@@ -13,6 +10,10 @@ interface Canvas2D {
 
     var transX:Double
     var transY:Double
+    var zoomArea:Rectangle2D?
+    var canvasWidth:Int
+    var canvasHeight:Int
+    var canvasRatio:Double
 
     fun getCanvasBounds(): Rectangle
 

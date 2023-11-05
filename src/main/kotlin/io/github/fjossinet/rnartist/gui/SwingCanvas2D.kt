@@ -16,6 +16,13 @@ class SwingCanvas2D(val mediator: Mediator) : JPanel(), Canvas2D {
     lateinit private var offScreenBuffer: Image
     override var transX = 0.0
     override var transY = 0.0
+    override var zoomArea: Rectangle2D? = null
+    override var canvasWidth: Int = 0
+        get() = this.getWidth()
+    override var canvasHeight: Int = 0
+        get() = this.getHeight()
+    override var canvasRatio = 1.0
+        get() = this.getWidth().toDouble()/this.getHeight().toDouble()
 
     init {
         this.mediator.canvas2D = this
@@ -59,6 +66,11 @@ class SwingCanvas2D(val mediator: Mediator) : JPanel(), Canvas2D {
         g2.fillRect(0, 0, getWidth(), getHeight());
         g2.color = Color.BLACK
         this.mediator.currentDrawing.get()?.let { rnArtistDrawing ->
+            zoomArea?.let {
+                g2.stroke = BasicStroke(2.0f, BasicStroke.CAP_BUTT,
+                    BasicStroke.JOIN_MITER)
+                g2.draw(zoomArea)
+            }
             val start = System.currentTimeMillis()
             val at = AffineTransform()
             at.translate(rnArtistDrawing.secondaryStructureDrawing.viewX, rnArtistDrawing.secondaryStructureDrawing.viewY)
