@@ -5,8 +5,10 @@ import io.github.fjossinet.rnartist.io.github.fjossinet.rnartist.gui.RNArtistBut
 import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import javafx.geometry.Insets
+import javafx.geometry.Orientation
 import javafx.geometry.Pos
 import javafx.scene.Group
+import javafx.scene.Node
 import javafx.scene.control.Button
 import javafx.scene.control.Tooltip
 import javafx.scene.layout.*
@@ -16,25 +18,41 @@ import org.kordamp.ikonli.javafx.FontIcon
 import java.awt.geom.Point2D
 
 class LargeButtonsPanel(
+    orientation:Orientation = Orientation.HORIZONTAL,
+    alignment:Pos = Pos.CENTER_LEFT,
+    padding:Insets = Insets(0.0, 0.0, 15.0, 0.0),
     val buttonRadius: Double = 15.0,
     val buttomsPerRow: Int = 5
-) : HBox() {
+) : Pane() {
 
+    val content: Pane
     val buttons
-        get() = this.children.filterIsInstance<RNArtistButton>()
+        get() = this.content.children.filterIsInstance<RNArtistButton>()
 
     init {
-        this.padding = Insets(0.0, 0.0, 15.0, 0.0)
-        this.spacing = 10.0
-        this.alignment = Pos.CENTER_LEFT
+        if (orientation == Orientation.HORIZONTAL) {
+            content = HBox()
+            content.spacing = 10.0
+            content.alignment = alignment
+        } else {
+            content = VBox()
+            content.spacing = 10.0
+            content.alignment = alignment
+        }
+        content.padding = padding
+        this.children.add(content)
+        this.minHeightProperty().bind(content.heightProperty())
+        this.minWidthProperty().bind(content.widthProperty())
     }
 
-    fun addButton(icon: String, toolTip: String, onActionEventHandler: EventHandler<ActionEvent>? = null): RNArtistButton {
+    fun addButton(icon: String, toolTip: String, disabled:Boolean = true, onActionEventHandler: EventHandler<ActionEvent>? = null): RNArtistButton {
         val rnArtistButton = RNArtistButton(icon, toolTip, buttonRadius =  buttonRadius, onActionEventHandler = onActionEventHandler)
-        rnArtistButton.isDisable = true
-        this.children.add(rnArtistButton)
+        rnArtistButton.isDisable = disabled
+        content.children.add(rnArtistButton)
         return rnArtistButton
     }
+
+    fun add(node:Node) = content.children.add(node)
 
 
 }

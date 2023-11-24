@@ -1,3 +1,9 @@
+### RNArtist 1.1.4
+* Fixed: a 2D drawing cannot be saved if the root folder of the current database is selected (the save button is disabled)
+* Fixed: the zoom area doesn't have the same shape than the canvas 2D anymore (was not so practical)
+* Added: 
+* Improved: for a given 2D, the RNArtistCore drawing engine is testing more layout combinations and select the best one according to an overlapping score
+
 ### RNArtist 1.1.3
 * Fixed: due to the previous commit, it was not anymore possible to load a 2D from the bracket notation panel without a database loaded at first
 * Added: left mouse button pressed and dragged allows to define a zoom area with the same shape than the canvas 2D (same width/height ratio)

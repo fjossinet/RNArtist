@@ -49,22 +49,18 @@ class InputDialog(val mediator: Mediator, message:String, helpDocName: String? =
 
         rootContent.children.add(content)
 
-        val buttonsPanel = LargeButtonsPanel()
-        buttonsPanel.padding = Insets(10.0)
-        buttonsPanel.alignment = Pos.CENTER_RIGHT
+        val buttonsPanel = LargeButtonsPanel(padding = Insets(10.0), alignment = Pos.CENTER_RIGHT)
 
         content.children.add(buttonsPanel)
 
-        var button = buttonsPanel.addButton("fas-times:15", "") {
+        buttonsPanel.addButton("fas-times:15", "", disabled = false) {
             input.text = ""
             stage.close()
         }
-        button.isDisable = false
 
-        button = buttonsPanel.addButton("fas-check:15", "") {
+        buttonsPanel.addButton("fas-check:15", "", disabled = false) {
             stage.close()
         }
-        button.isDisable = false
 
         helpDocName?.let {
             mediator.webView.engine.load({}.javaClass.getResource("doc/${helpDocName}").toURI().toString())

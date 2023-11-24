@@ -67,7 +67,7 @@ class Mediator(val rnartist: RNArtist) {
         }
 
     init {
-        this.currentDrawing.addListener { _, _, _ ->
+        this.currentDrawing.addListener { _, _, newValue ->
             canvas2D.repaint()
         }
         this.webView.getEngine().getLoadWorker().stateProperty().addListener { o, old, state ->

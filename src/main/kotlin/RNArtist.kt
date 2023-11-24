@@ -69,6 +69,7 @@ import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.name
 import kotlin.io.path.writeText
 import kotlin.random.Random
+import kotlin.math.round
 
 
 class RNArtist : Application() {
@@ -86,20 +87,19 @@ class RNArtist : Application() {
     lateinit var stage: Stage
     private val root: BorderPane
 
-    var currentThumbnail: SimpleObjectProperty<Thumbnail?> = SimpleObjectProperty(null)
-
-    //we explicitly create the observable list of thumbnails to link it to an extractor that will automatically update the picture when the layout and/or theme of the current drawing is saved back in the DSL script.
-    private val thumbnailsList: ObservableList<Thumbnail> =
-        FXCollections.observableArrayList { thumbnail: Thumbnail ->
-            arrayOf(
-                thumbnail.layoutAndThemeUpdated
-            )
-        }
-
-    val thumbnails = GridView<Thumbnail>(thumbnailsList)
-
     var currentDB: SimpleObjectProperty<RNArtistDB?> = SimpleObjectProperty(null)
     var currentDBFolderAbsPath = SimpleStringProperty(null)
+    //we explicitly create the observable list of thumbnails to link it to an extractor that will automatically update the picture when the layout and/or theme of the current drawing is saved back in the DSL script.
+    private val dbThumbnailsList: ObservableList<DBThumbnail> =
+        FXCollections.observableArrayList { DBThumbnail: DBThumbnail ->
+            arrayOf(
+                DBThumbnail.layoutAndThemeUpdated
+            )
+        }
+    val dbThumbnails = GridView<DBThumbnail>(dbThumbnailsList)
+    var currentDBDBThumbnail: SimpleObjectProperty<DBThumbnail?> = SimpleObjectProperty(null)
+
+    val layoutsThumbnails = GridView<LayoutThumbnail>()
 
     companion object {
         val RNArtistGUIColor = Color(51.0 / 255.0, 51.0 / 255.0, 51.0 / 255.0, 1.0)
@@ -200,14 +200,20 @@ class RNArtist : Application() {
         blink.play()
     }
 
-    fun addThumbnail(pngFile: File, dslScriptInvariantSeparatorsPath: String): Thumbnail {
-        val t = Thumbnail(this.mediator, pngFile, dslScriptInvariantSeparatorsPath)
-        thumbnails.items.add(t)
+    fun addLayoutThumbnail(pngFile: File, dslScriptInvariantSeparatorsPath: String, overlappingScore: Int, junctionsImproved:List<Location>? = null): LayoutThumbnail {
+        val t = LayoutThumbnail(this.mediator, pngFile, dslScriptInvariantSeparatorsPath, overlappingScore, junctionsImproved)
+        layoutsThumbnails.items.add(t)
         return t
     }
 
-    fun clearThumbnails() {
-        thumbnails.items.clear()
+    fun addDBThumbnail(pngFile: File, dslScriptInvariantSeparatorsPath: String): DBThumbnail {
+        val t = DBThumbnail(this.mediator, pngFile, dslScriptInvariantSeparatorsPath)
+        dbThumbnailsList.add(t)
+        return t
+    }
+
+    fun clearDBThumbnails() {
+        dbThumbnailsList.clear()
     }
 
     fun searchFolder(
@@ -406,20 +412,20 @@ class RNArtist : Application() {
             swingNode.onMouseDragged = EventHandler { mouseEvent: MouseEvent ->
                 mediator.currentDrawing.get()?.secondaryStructureDrawing?.let {
                     if (mouseEvent.button == MouseButton.PRIMARY) {
-                        val ratio = mediator.canvas2D.canvasRatio // ratio = w/h -> w = ratio*h
                         mediator.canvas2D.zoomArea?.let {
                             val dragX = mouseEvent.x - it.x
                             val dragY = mouseEvent.y - it.y
                             if (dragX > 0 && dragY > 0) {
+                            /*val ratio = mediator.canvas2D.canvasRatio // ratio = w/h -> w = ratio*h
                                 val diag = Math.sqrt(dragX * dragX + dragY * dragY)
                                 //now we compute the width and height with the same diag and the ratio of the canvas window
                                 //d*d = w*w+h*h
                                 //d*d = w+w+(ratio*w)*(ratio*w)
                                 //w = srqt(d*d/(1+ratio*ratio))
                                 val h = Math.sqrt((diag * diag) / (1 + ratio * ratio))
-                                val w = ratio * h
+                                val w = ratio * h*/
                                 mediator.canvas2D.zoomArea =
-                                    Rectangle2D.Double(it.x, it.y, w, h)
+                                    Rectangle2D.Double(it.x, it.y, dragX, dragY)
                             }
                         }
                         mediator.canvas2D.repaint()
@@ -439,7 +445,9 @@ class RNArtist : Application() {
                     if (mouseEvent.button == MouseButton.PRIMARY) {
                         mediator.canvas2D.zoomArea?.let {
                             if (it.width > 0.0 || it.height > 0.0) { //if the user has started to define a zoom area we hide it and return
-                                val zoomLevel = drawing.secondaryStructureDrawing.workingSession.zoomLevel*mediator.canvas2D.canvasWidth.toDouble() / it.width
+                                val zoomLevel = Math.min(
+                                    drawing.secondaryStructureDrawing.workingSession.zoomLevel*mediator.canvas2D.canvasWidth.toDouble() / it.width,
+                                    drawing.secondaryStructureDrawing.workingSession.zoomLevel*mediator.canvas2D.canvasHeight.toDouble() / it.height)
 
                                 drawing.secondaryStructureDrawing.workingSession.moveView(mediator.canvas2D.getCanvasBounds().centerX - it.centerX, mediator.canvas2D.getCanvasBounds().centerY - it.centerY)
                                 drawing.secondaryStructureDrawing.workingSession.zoomViewOn(
@@ -1412,12 +1420,11 @@ class RNArtist : Application() {
                     val blocksScrollPane: ScrollPane
 
                     init {
-                        val buttonsPanel = LargeButtonsPanel()
-                        buttonsPanel.padding = Insets(0.0)
+                        val buttonsPanel = LargeButtonsPanel(padding = Insets(0.0))
                         this.children.add(buttonsPanel)
 
                         mediator.currentDrawing.addListener { _, _, newValue ->
-                            buttonsPanel.children.forEach {
+                            buttonsPanel.buttons.forEach {
                                 it.isDisable = newValue == null
                             }
                         }
@@ -1856,24 +1863,23 @@ class RNArtist : Application() {
                 inner class DetailsLevelSubPanel() :
                     SubPanel("Details Level") {
 
-                    val buttonsPanel = LargeButtonsPanel()
+                    val buttonsPanel = LargeButtonsPanel(alignment = Pos.CENTER)
                     val lowlyRenderedButton: RNArtistButton
                     val highlyRenderedButton: RNArtistButton
 
                     init {
 
-                        this.buttonsPanel.alignment = Pos.CENTER
                         this.children.add(buttonsPanel)
 
                         mediator.currentDrawing.addListener { _, _, newValue ->
                             newValue?.let {
                                 it.selectedDrawings.addListener(ListChangeListener {
                                     if (it.list.isEmpty()) {
-                                        buttonsPanel.children.forEach {
+                                        buttonsPanel.buttons.forEach {
                                             it.isDisable = true
                                         }
                                     } else {
-                                        buttonsPanel.children.forEach {
+                                        buttonsPanel.buttons.forEach {
                                             it.isDisable = false
                                         }
                                     }
@@ -2367,8 +2373,7 @@ class RNArtist : Application() {
                 inner class NavigationSubPanel() : SubPanel("Navigation") {
 
                     init {
-                        val buttonsPanel = LargeButtonsPanel()
-                        buttonsPanel.alignment = Pos.CENTER
+                        val buttonsPanel = LargeButtonsPanel(alignment = Pos.CENTER)
                         this.children.add(buttonsPanel)
 
                         mediator.currentDrawing.addListener { _, oldValue, newValue ->
@@ -2489,11 +2494,13 @@ class RNArtist : Application() {
     inner class LowerPanel() : HorizontalMainPanel() {
 
         val dbExplorerPanel = DBExplorerPanel()
+        //val layoutsExplorerPanel = LayoutsExplorerPanel()
         val bracketNotationPanel = BracketNotationPanel()
         val chartsPanel = ChartsPanel()
         val documentationPanel = DocumentationPanel()
 
         val bracketNotationPanelButton: Button
+        //val layoutExplorerPanelButton: Button
         val dbExplorerPanelButton: Button
         val chartsPanelButton: Button
         val documentationPanelButton: Button
@@ -2501,6 +2508,7 @@ class RNArtist : Application() {
         init {
             this.bracketNotationPanelButton =
                 this.addMenuBarButton("fas-file:15", "Bracket Notation Panel", bracketNotationPanel)
+            //this.layoutExplorerPanelButton = this.addMenuBarButton("fas-drafting-compass:15", "Layouts Panel", layoutsExplorerPanel)
             this.dbExplorerPanelButton = this.addMenuBarButton("fas-database:15", "Database Panel", dbExplorerPanel)
             this.chartsPanelButton = this.addMenuBarButton("fas-chart-area:15", "Charts Panel", chartsPanel)
             this.documentationPanelButton =
@@ -2511,358 +2519,6 @@ class RNArtist : Application() {
             this.bracketNotationPanel.blinkUINode(name)
             this.dbExplorerPanel.blinkUINode(name)
             this.chartsPanel.blinkUINode(name)
-        }
-
-        inner class DBExplorerPanel() : Panel() {
-
-            val dbExplorerSubPanel = DBExplorerSubPanel()
-
-            init {
-                this.children.add(this.dbExplorerSubPanel)
-                setVgrow(this.dbExplorerSubPanel, Priority.ALWAYS)
-            }
-
-            override fun blinkUINode(name: String) {
-                this.dbExplorerSubPanel.blinkUINode(name)
-            }
-
-            inner class DBExplorerSubPanel() : SubPanel() {
-
-                private val loadDB: RNArtistButton
-                private val createDBFolder: RNArtistButton
-                private val reloadDB: RNArtistButton
-                val dbTreeView = TreeView<DBFolder>()
-                private val buttonsPanel = LargeButtonsPanel()
-
-                init {
-                    this.spacing = 10.0
-                    this.children.add(buttonsPanel)
-
-                    this.loadDB = buttonsPanel.addButton("fas-folder-open", "Load database") {
-                        if (mediator.helpModeOn)
-                            HelpDialog(
-                                mediator,
-                                "This button allows you to choose a folder as the current RNArtist database",
-                                "rnartist_db.html"
-                            )
-                        val directoryChooser = DirectoryChooser()
-                        directoryChooser.showDialog(stage)?.let {
-                            var rootDBAbsPath: String? = null
-                            if (!File(it, ".rnartist_db_index").exists()) {
-                                val dialog = ConfirmationDialog(
-                                    mediator,
-                                    "Would you like to use the folder ${it.name} as an RNArtist database?"
-                                )
-                                if (dialog.isConfirmed)
-                                    rootDBAbsPath = it.invariantSeparatorsPath
-                            } else
-                                rootDBAbsPath = it.invariantSeparatorsPath
-                            rootDBAbsPath?.let {
-                                val w = TaskDialog(mediator)
-                                w.task = LoadDB(mediator, it)
-                            }
-                        }
-                    }
-                    this.loadDB.isDisable = false
-
-                    this.createDBFolder = buttonsPanel.addButton("fas-folder-plus", "Create new folder") {
-                        if (mediator.helpModeOn)
-                            HelpDialog(
-                                mediator,
-                                "This button allows you to create a new subfolder in your database",
-                                "db_panel.html"
-                            )
-
-                        this.dbTreeView.selectionModel.selectedItem?.let { selectedItem ->
-                            val dialog = InputDialog(mediator, "Enter your folder name")
-                            if (dialog.input.text.length != 0) {
-                                val w = TaskDialog(mediator)
-                                w.task = CreateDBFolder(
-                                    mediator,
-                                    Path.of(selectedItem.value.absPath, dialog.input.text).invariantSeparatorsPathString
-                                )
-                            }
-                        } ?: run {
-                            HelpDialog(
-                                mediator, "No folder selected in your database!",
-                                "db_panel.html"
-                            )
-                        }
-                    }
-
-                    this.reloadDB = buttonsPanel.addButton("fas-sync:15", "Reload database") {
-                        if (mediator.helpModeOn)
-                            HelpDialog(
-                                mediator,
-                                "This button allows you to reload the current database in order to display and index new subfolders",
-                                "db_panel.html"
-                            )
-
-                        val w = TaskDialog(mediator)
-                        w.task = LoadDB(
-                            mediator,
-                            currentDB.get()!!.rootInvariantSeparatorsPath
-                        ) //we force since this button is enabled if we have loaded a DB before
-                    }
-
-                    currentDB.addListener { _, _, newValue ->
-                        //first we clean
-                        clearThumbnails()
-                        dbTreeView.root =
-                            TreeItem(DBFolder("No database selected", ""))
-                        reloadDB.isDisable = true
-                        createDBFolder.isDisable = true
-
-                        newValue?.let {
-                            reloadDB.isDisable = false
-                            createDBFolder.isDisable = false
-                            dbTreeView.root =
-                                TreeItem(
-                                    DBFolder(
-                                        Path.of(newValue.rootInvariantSeparatorsPath).name,
-                                        newValue.rootInvariantSeparatorsPath
-                                    )
-                                )
-                        }
-                    }
-
-                    dbTreeView.selectionModel.selectedItemProperty().addListener { _, _, newSelectedItem ->
-                        newSelectedItem?.let {
-                            if (newSelectedItem.value.absPath != currentDB.get()!!.rootInvariantSeparatorsPath) { //we dont load the root folder of a DB (no structural data are allowed)
-                                currentDBFolderAbsPath.set(newSelectedItem.value.absPath)
-                                clearThumbnails()
-                                val w = TaskDialog(mediator)
-                                w.task = LoadDBFolder(mediator)
-                            }
-                        }
-
-                    }
-
-                    thumbnails.padding = Insets(10.0)
-                    thumbnails.background =
-                        Background(BackgroundFill(Color.WHITE, CornerRadii(10.0), Insets.EMPTY))
-                    thumbnails.horizontalCellSpacing = 5.0
-                    thumbnails.verticalCellSpacing = 5.0
-                    thumbnails.cellWidth = 250.0
-                    thumbnails.cellHeight = 300.0
-                    thumbnails.setCellFactory { ThumbnailCell() }
-
-                    this.dbTreeView.padding = Insets(10.0)
-                    this.dbTreeView.background =
-                        Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-                    this.dbTreeView.border = Border(
-                        BorderStroke(
-                            Color.LIGHTGRAY,
-                            BorderStrokeStyle.SOLID, CornerRadii(10.0), BorderWidths(1.5)
-                        )
-                    )
-                    this.dbTreeView.isEditable = true
-                    this.dbTreeView.root = TreeItem(DBFolder("No database selected", ""))
-                    this.dbTreeView.setCellFactory { DBFolderCell() }
-
-                    val splitPane = SplitPane()
-                    splitPane.orientation = Orientation.HORIZONTAL
-                    splitPane.background =
-                        Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
-                    val s = ScrollPane(this.dbTreeView)
-                    s.isFitToHeight = true
-                    s.isFitToWidth = true
-                    s.vbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
-                    s.hbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
-                    splitPane.items.add(s)
-                    splitPane.items.add(thumbnails)
-                    splitPane.setDividerPositions(0.15)
-                    setVgrow(splitPane, Priority.ALWAYS)
-                    this.children.add(splitPane)
-
-                }
-
-                override fun blinkUINode(name: String) {
-                    when (name) {
-                        "load_database_button" -> {
-                            lowerPanel.dbExplorerPanelButton.fire()
-                            blinkWithColorBackGround(loadDB)
-                        }
-
-                        "reload_database_button" -> {
-                            lowerPanel.dbExplorerPanelButton.fire()
-                            blinkWithColorBackGround(reloadDB)
-                        }
-
-                        "create_db_folder_button" -> {
-                            lowerPanel.dbExplorerPanelButton.fire()
-                            blinkWithColorBackGround(createDBFolder)
-                        }
-                    }
-                }
-
-                fun count() = thumbnails.items.size
-
-                fun removeItem(thumbnail: Thumbnail) {
-                    val index = thumbnails.items.indexOfFirst { it == thumbnail }
-                    thumbnails.items.removeAt(index)
-                }
-
-                private inner class DBFolderCell : TreeCell<DBFolder>() {
-
-                    override fun updateItem(dbFolder: DBFolder?, empty: Boolean) {
-                        super.updateItem(dbFolder, empty)
-                        graphic = null
-                        text = null
-                        if (!empty && dbFolder != null) {
-                            text = dbFolder.name
-                        }
-                    }
-
-                    init {
-                        this.onDragDetected = EventHandler { event ->
-                            this@DBFolderCell.startDragAndDrop(TransferMode.LINK)
-                        }
-                        this.onDragOver = EventHandler { event ->
-                            this@DBFolderCell.treeItem?.let {
-                                currentDB.get()?.let { currentDB ->
-                                    if (!it.value.absPath.equals(currentDB.rootInvariantSeparatorsPath)) {
-                                        this@DBFolderCell.text = null
-                                        val hbox = HBox()
-                                        hbox.alignment = Pos.CENTER_LEFT
-                                        val icon = FontIcon("far-arrow-alt-circle-down:20")
-                                        icon.iconColor = Color.WHITE
-                                        hbox.children.add(icon)
-                                        val label = Label("Drop in ${it.value.name}")
-                                        label.textFill = Color.WHITE
-                                        hbox.children.add(label)
-                                        this@DBFolderCell.graphic = hbox
-                                        if (event.getDragboard().hasUrl()) {
-                                            event.acceptTransferModes(TransferMode.LINK)
-                                        }
-                                    }
-                                }
-                            }
-                            event.consume();
-                        }
-                        this.onDragExited = EventHandler { event ->
-                            this@DBFolderCell.treeItem?.let {
-                                currentDB.get()?.let { currentDB ->
-                                    if (!it.value.absPath.equals(currentDB.rootInvariantSeparatorsPath)) {
-                                        this@DBFolderCell.text = it.value.name
-                                        this@DBFolderCell.graphic = null
-                                    }
-                                }
-                            }
-                            event.consume();
-                        }
-                        this.onDragDropped = EventHandler { event ->
-                            this@DBFolderCell.treeItem?.let {
-                                currentDB.get()?.let { currentDB ->
-                                    if (!it.value.absPath.equals(currentDB.rootInvariantSeparatorsPath)) {
-                                        val w = TaskDialog(mediator)
-                                        w.task = AddStructureFromURL(
-                                            mediator,
-                                            event.getDragboard().url,
-                                            it.value.absPath
-                                        )
-                                    }
-                                }
-                            }
-                            event.consume()
-                        }
-                    }
-
-                }
-
-                inner class ThumbnailCell : GridCell<Thumbnail>() {
-                    private val icon = ImageView()
-                    private val content: VBox = VBox()
-                    private val titlePanel = TitlePanel()
-
-                    init {
-                        this.onMouseClicked = EventHandler { event ->
-                            currentThumbnail.set(this.item)
-                            val w = TaskDialog(mediator)
-                            w.task = LoadStructure(mediator, item.dslScriptInvariantSeparatorsPath)
-                        }
-                    }
-
-                    override fun updateItem(thumbnail: Thumbnail?, empty: Boolean) {
-                        super.updateItem(thumbnail, empty)
-                        graphic = null
-                        text = null
-                        if (!empty && thumbnail != null) {
-                            icon.image = thumbnail.image
-                            val scriptName = thumbnail.dslScriptInvariantSeparatorsPath.split("/").last()
-                            titlePanel.setTitle(scriptName.removeSuffix(".kts"))
-                            graphic = content
-                        }
-                    }
-
-                    init {
-                        content.alignment = Pos.BOTTOM_CENTER
-                        content.children.add(icon)
-                        content.children.add(titlePanel)
-                    }
-
-                    /**
-                     * Test if this thumbnail cell (more precisely its title) matches the name of the drawing displayed.
-                     * Used to disable or not some stuff in this thumbnail cell
-                     */
-                    private fun matchCurrentDrawing(drawing: RNArtistDrawing?): Boolean {
-                        return drawing?.let {
-                            drawing.rnArtistEl.getSSOrNull()?.let { ssEl ->
-                                var match = false
-                                ssEl.getViennaOrNull()?.getFile()?.let { fileProperty ->
-                                    match = File(fileProperty.value).name.removeSuffix(".vienna")
-                                        .equals(titlePanel.getTitle())
-                                }
-                                ssEl.getBPSeqOrNull()?.getFile()?.let { fileProperty ->
-                                    match = File(fileProperty.value).name.removeSuffix(".bpseq")
-                                        .equals(titlePanel.getTitle())
-                                }
-                                ssEl.getCTOrNull()?.getFile()?.let { fileProperty ->
-                                    match =
-                                        File(fileProperty.value).name.removeSuffix(".ct").equals(titlePanel.getTitle())
-                                }
-                                ssEl.getPDBOrNull()?.getFile()?.let { fileProperty ->
-                                    match =
-                                        File(fileProperty.value).name.removeSuffix(".pdb").equals(titlePanel.getTitle())
-                                }
-                                match
-                            } ?: run {
-                                false
-                            }
-                        } ?: run {
-                            false
-                        }
-                    }
-
-                    private inner class TitlePanel() : VBox() {
-                        private val title = Label()
-
-                        init {
-                            this.alignment = Pos.CENTER
-                            this.padding = Insets(10.0)
-                            this.background =
-                                Background(
-                                    BackgroundFill(
-                                        RNArtistGUIColor,
-                                        CornerRadii.EMPTY,
-                                        Insets(5.0, 0.0, 5.0, 0.0)
-                                    )
-                                )
-                            this.effect = DropShadow()
-                            this.children.add(this.title)
-                        }
-
-                        fun setTitle(title: String) {
-                            this.title.text = title
-                        }
-
-                        fun getTitle() = this.title.text
-
-                    }
-                }
-
-            }
-
         }
 
         inner class BracketNotationPanel() : Panel() {
@@ -2907,7 +2563,7 @@ class RNArtist : Application() {
 
                 init {
                     this.children.add(buttonsPanel)
-                    this.loadFileButton = buttonsPanel.addButton("fas-file:15", "Bracket notation from a file") {
+                    this.loadFileButton = buttonsPanel.addButton("fas-file:15", "Bracket notation from a file", disabled = false) {
                         with(FileChooser()) {
                             this.getExtensionFilters()
                                 .add(
@@ -2944,12 +2600,22 @@ class RNArtist : Application() {
                             }
                         }
                     }
-                    this.loadFileButton.isDisable = false
 
                     this.random2dButton = buttonsPanel.addButton("fas-dice-d20:15", "Random bracket notation") {
                         if (structureParameters.meanHelixSizeField.text.toInt() < 2) //an helix size cannot be lower than 2 (2 stacked bps)
                             structureParameters.meanHelixSizeField.text = "2"
-                        val bn = randomBn(
+                        val bn = if (structureParameters.typesComboBox.value.lowercase().equals("circular")) {
+                            //we compute a random closing helix size
+                            var closingHelixSize = Random.nextInt(2, (structureParameters.meanHelixSizeField.text.toInt()*2-2)+1)
+                            //we generate a bn whose length is reduced by this helix size
+                            val _bn = randomBn(
+                                structureParameters.lengthField.text.toInt()-closingHelixSize*2,
+                                structureParameters.pairingDensityField.text.toDouble(),
+                                structureParameters.meanHelixSizeField.text.toInt()
+                            )
+                            Pair("${(1..closingHelixSize).map { "(" }.joinToString(separator = "")}${_bn.first}${(1..closingHelixSize).map { ")" }.joinToString(separator = "")}", _bn.second)
+                        }
+                        else randomBn(
                             structureParameters.lengthField.text.toInt(),
                             structureParameters.pairingDensityField.text.toDouble(),
                             structureParameters.meanHelixSizeField.text.toInt()
@@ -3037,9 +2703,7 @@ class RNArtist : Application() {
                             structureParameters.nameField.text = "My RNA"
                             bracketNotationSubPanel.bnField.clear()
                             bracketNotationSubPanel.seqField.clear()
-
                         }
-                    this.trashEverythingButton.isDisable = true
                 }
 
                 override fun blinkUINode(name: String) {
@@ -3079,6 +2743,7 @@ class RNArtist : Application() {
                 val lengthField = TextField("100")
                 val pairingDensityField = TextField("0.5")
                 val meanHelixSizeField = TextField("5")
+                val typesComboBox = ComboBox<String>()
 
                 init {
                     this.alignment = Pos.CENTER_LEFT
@@ -3091,9 +2756,7 @@ class RNArtist : Application() {
                     field.spacing = 5.0
                     field.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
                     var label = Label("Name")
-                    label.font = Font.font(label.font.name, 15.0)
                     field.children.add(label)
-                    this.nameField.font = Font.font(this.nameField.font.name, 15.0)
                     field.children.add(this.nameField)
                     this.children.add(field)
 
@@ -3102,9 +2765,7 @@ class RNArtist : Application() {
                     field.spacing = 5.0
                     field.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
                     label = Label("Length")
-                    label.font = Font.font(label.font.name, 15.0)
                     field.children.add(label)
-                    this.lengthField.font = Font.font(this.nameField.font.name, 15.0)
                     field.children.add(lengthField)
                     this.children.add(field)
 
@@ -3113,9 +2774,7 @@ class RNArtist : Application() {
                     field.spacing = 5.0
                     field.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
                     label = Label("Pairing density")
-                    label.font = Font.font(label.font.name, 15.0)
                     field.children.add(label)
-                    this.pairingDensityField.font = Font.font(this.pairingDensityField.font.name, 15.0)
                     field.children.add(pairingDensityField)
                     this.children.add(field)
 
@@ -3124,10 +2783,19 @@ class RNArtist : Application() {
                     field.spacing = 5.0
                     field.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
                     label = Label("Mean Helix Size")
-                    label.font = Font.font(label.font.name, 15.0)
                     field.children.add(label)
-                    this.meanHelixSizeField.font = Font.font(this.meanHelixSizeField.font.name, 15.0)
                     field.children.add(meanHelixSizeField)
+                    this.children.add(field)
+
+                    field = HBox()
+                    field.alignment = Pos.CENTER_LEFT
+                    field.spacing = 5.0
+                    field.background = Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                    label = Label("Type")
+                    field.children.add(label)
+                    this.typesComboBox.items.addAll("Linear", "Circular")
+                    this.typesComboBox.selectionModel.select(0)
+                    field.children.add(typesComboBox)
                     this.children.add(field)
                 }
             }
@@ -3849,8 +3517,587 @@ class RNArtist : Application() {
 
                 }
 
+            }
+        }
+
+        inner class LayoutsExplorerPanel() : Panel() {
+
+            val layoutsExplorerSubPanel = LayoutsExplorerSubPanel()
+
+            init {
+                this.children.add(this.layoutsExplorerSubPanel)
+                setVgrow(this.layoutsExplorerSubPanel, Priority.ALWAYS)
+            }
+
+            override fun blinkUINode(name: String) {
+                this.layoutsExplorerSubPanel.blinkUINode(name)
+            }
+
+            inner class LayoutsExplorerSubPanel() : SubPanel() {
+
+                private val loadLayoutsButton: RNArtistButton
+                private val buttonsPanel = LargeButtonsPanel()
+                private val unbalancedCutoffStart = TextField("0.0")
+                private val unbalancedCutoffEnd = TextField("1.0")
+                private val unbalancedCutoffSteps = TextField("5")
+                private val junctionSizeStart = TextField("0.0")
+                private val junctionSizeEnd = TextField("0.15")
+                private val junctionSizeSteps = TextField("1")
+
+                init {
+                    this.spacing = 5.0
+                    this.children.add(buttonsPanel)
+                    this.alignment = Pos.TOP_LEFT
+
+                    this.loadLayoutsButton = buttonsPanel.addButton("fas-cog:15", "Compute Layouts", disabled = true) {
+                        layoutsThumbnails.items.clear()
+                        val junctionSizes = mutableListOf(junctionSizeStart.text.toFloat())
+                        val sizeEnd = junctionSizeEnd.text.toFloat()
+                        val sizeSteps = junctionSizeSteps.text.toInt()
+                        if (sizeSteps >= 1 && junctionSizes.get(0) < sizeEnd) {
+                            val step = (sizeEnd-junctionSizes.get(0)) / sizeSteps.toFloat()
+                            (1..sizeSteps).forEach {
+                                junctionSizes.add(round((junctionSizes.last() + step)*100)/100)
+                            }
+                        }
+
+                        //we recompte the overlap for all junctions since the 2D could have been modified
+                        mediator.currentDrawing.get()!!.secondaryStructureDrawing.recomputeOverlapping()
+                        //we highlight the junctions that need to be improved
+                        var junctionsToImprove = mediator.currentDrawing.get()!!.secondaryStructureDrawing.junctionsToImprove()
+
+                        if (junctionsToImprove.isNotEmpty()) {
+                            val themeEl = ThemeEl()
+                            themeEl.addDetails().setValue(1)
+                            themeEl.addLine().setValue(5.0)
+                            //to highlight the junctions to improve to compare their layouts in the previews
+                            junctionsToImprove.forEach {
+                                with(themeEl.addLine()) {
+                                    this.setValue(10.0)
+                                    this.addLocation().setLocation(it)
+                                }
+                                with(themeEl.addColor()) {
+                                    this.setValue("red")
+                                    this.addLocation().setLocation(it)
+                                }
+                            }
+                            mediator.currentDrawing.get()!!.secondaryStructureDrawing.clearTheme()
+                            mediator.currentDrawing.get()!!.secondaryStructureDrawing.applyTheme(themeEl.toTheme())
+                            mediator.canvas2D.repaint()
+                            val w = TaskDialog(mediator)
+                            w.task = ComputeLayouts(
+                                mediator, junctionSizes
+                            )
+                        } else {
+                            val themeEl = ThemeEl()
+                            themeEl.addDetails().setValue(1)
+                            themeEl.addLine().setValue(5.0)
+                            mediator.currentDrawing.get()!!.secondaryStructureDrawing.clearTheme()
+                            mediator.currentDrawing.get()!!.secondaryStructureDrawing.applyTheme(themeEl.toTheme())
+                            mediator.canvas2D.repaint()
+                        }
+                    }
+
+                    mediator.currentDrawing.addListener { _,_,newValue ->
+                        this.loadLayoutsButton.isDisable = newValue == null
+                        layoutsThumbnails.items.clear()
+                    }
+
+                    var s = Separator()
+                    s.orientation = Orientation.VERTICAL
+                    s.id = "sub"
+                    s.padding = Insets(0.0, 5.0, 0.0, 5.0)
+                    buttonsPanel.add(s)
+
+                    var pane = GridPane()
+                    pane.alignment = Pos.TOP_CENTER
+                    pane.hgap = 5.0
+                    pane.vgap = 5.0
+                    var l = Label("Helix placement")
+                    l.setMinWidth(Region.USE_PREF_SIZE)
+                    l.padding = Insets(0.0, 0.0, 10.0, 0.0)
+                    l.isUnderline = true
+                    pane.add(l,0,0,2,1)
+                    GridPane.setHgrow(l, Priority.ALWAYS)
+                    GridPane.setHalignment(l, HPos.CENTER)
+                    l = Label("Min")
+                    GridPane.setHalignment(l, HPos.RIGHT)
+                    pane.add(l,0,1,1,1)
+                    unbalancedCutoffStart.prefColumnCountProperty().bind(unbalancedCutoffStart.textProperty().length())
+                    pane.add(unbalancedCutoffStart,1,1,1,1)
+                    l = Label("Max")
+                    GridPane.setHalignment(l, HPos.RIGHT)
+                    pane.add(l,0,2,1,1)
+                    unbalancedCutoffEnd.prefColumnCountProperty().bind(unbalancedCutoffEnd.textProperty().length())
+                    pane.add(unbalancedCutoffEnd,1,2,1,1)
+                    pane.add(Label("# Steps"),0,3,1,1)
+                    unbalancedCutoffSteps.prefColumnCountProperty().bind(unbalancedCutoffSteps.textProperty().length())
+                    pane.add(unbalancedCutoffSteps,1,3,1,1)
+                    //buttonsPanel.add(pane)
+
+                    s = Separator()
+                    s.orientation = Orientation.VERTICAL
+                    s.id = "sub"
+                    s.padding = Insets(0.0, 5.0, 0.0, 5.0)
+                    //buttonsPanel.add(s)
+
+                    pane = GridPane()
+                    pane.alignment = Pos.TOP_CENTER
+                    pane.hgap = 5.0
+                    pane.vgap = 5.0
+                    l = Label("Junction Size")
+                    l.padding = Insets(0.0, 0.0, 10.0, 0.0)
+                    l.isUnderline = true
+                    pane.add(l,0,0,2,1)
+                    GridPane.setHgrow(l, Priority.ALWAYS)
+                    GridPane.setHalignment(l, HPos.CENTER)
+                    l = Label("Min")
+                    GridPane.setHalignment(l, HPos.RIGHT)
+                    pane.add(l,0,1,1,1)
+                    junctionSizeStart.prefColumnCountProperty().bind(junctionSizeStart.textProperty().length())
+                    pane.add(junctionSizeStart,1,1,1,1)
+                    l = Label("Max")
+                    GridPane.setHalignment(l, HPos.RIGHT)
+                    pane.add(l,0,2,1,1)
+                    junctionSizeEnd.prefColumnCountProperty().bind(junctionSizeEnd.textProperty().length())
+                    pane.add(junctionSizeEnd,1,2,1,1)
+                    pane.add(Label("# Steps"),0,3,1,1)
+                    junctionSizeSteps.prefColumnCountProperty().bind(junctionSizeSteps.textProperty().length())
+                    pane.add(junctionSizeSteps,1,3,1,1)
+                    buttonsPanel.add(pane)
+
+                    s = Separator()
+                    s.orientation = Orientation.VERTICAL
+                    s.id = "sub"
+                    s.padding = Insets(0.0, 5.0, 0.0, 5.0)
+                    buttonsPanel.add(s)
+
+                    layoutsThumbnails.padding = Insets(10.0)
+                    layoutsThumbnails.background =
+                        Background(BackgroundFill(Color.WHITE, CornerRadii(10.0), Insets.EMPTY))
+                    layoutsThumbnails.horizontalCellSpacing = 5.0
+                    layoutsThumbnails.verticalCellSpacing = 5.0
+                    layoutsThumbnails.cellWidth = 350.0
+                    layoutsThumbnails.cellHeight = 400.0
+                    layoutsThumbnails.setCellFactory { ThumbnailCell() }
+                    setVgrow(layoutsThumbnails, Priority.ALWAYS)
+                    this.children.add(layoutsThumbnails)
+
+                }
+
+                override fun blinkUINode(name: String) {
+
+                }
+
+                inner class ThumbnailCell : GridCell<LayoutThumbnail>() {
+                    private val icon = ImageView()
+                    private val content: VBox = VBox()
+                    private val titlePanel = TitlePanel()
+
+                    init {
+                        this.onMouseClicked = EventHandler { event ->
+                            val w = TaskDialog(mediator)
+                            w.task = ApplyLayout(mediator, item as LayoutThumbnail)
+                        }
+                    }
+
+                    override fun updateItem(layoutThumbnail: LayoutThumbnail?, empty: Boolean) {
+                        super.updateItem(layoutThumbnail, empty)
+                        graphic = null
+                        text = null
+                        if (!empty && layoutThumbnail != null) {
+                            icon.image = layoutThumbnail.image
+                            titlePanel.setTitle("Layout ${layoutsThumbnails.items.indexOf(layoutThumbnail)+1} (score: ${layoutThumbnail.overlappingScore})")
+                            graphic = content
+                        }
+                    }
+
+                    init {
+                        content.alignment = Pos.BOTTOM_CENTER
+                        content.children.add(icon)
+                        content.children.add(titlePanel)
+                    }
+
+                    private inner class TitlePanel() : VBox() {
+                        private val title = Label()
+
+                        init {
+                            this.alignment = Pos.CENTER
+                            this.padding = Insets(10.0)
+                            this.background =
+                                Background(
+                                    BackgroundFill(
+                                        RNArtistGUIColor,
+                                        CornerRadii.EMPTY,
+                                        Insets(5.0, 0.0, 5.0, 0.0)
+                                    )
+                                )
+                            this.effect = DropShadow()
+                            this.children.add(this.title)
+                        }
+
+                        fun setTitle(title: String) {
+                            this.title.text = title
+                        }
+
+                        fun getTitle() = this.title.text
+
+                    }
+                }
 
             }
+
+        }
+
+        inner class DBExplorerPanel() : Panel() {
+
+            val dbExplorerSubPanel = DBExplorerSubPanel()
+
+            init {
+                this.children.add(this.dbExplorerSubPanel)
+                setVgrow(this.dbExplorerSubPanel, Priority.ALWAYS)
+            }
+
+            override fun blinkUINode(name: String) {
+                this.dbExplorerSubPanel.blinkUINode(name)
+            }
+
+            inner class DBExplorerSubPanel() : SubPanel() {
+
+                private val loadDB: RNArtistButton
+                private val createDBFolder: RNArtistButton
+                private val reloadDB: RNArtistButton
+                val dbTreeView = TreeView<DBFolder>()
+                private val buttonsPanel = LargeButtonsPanel()
+
+                init {
+                    this.spacing = 10.0
+                    this.children.add(buttonsPanel)
+
+                    this.loadDB = buttonsPanel.addButton("fas-folder-open", "Load database", disabled = false) {
+                        if (mediator.helpModeOn)
+                            HelpDialog(
+                                mediator,
+                                "This button allows you to choose a folder as the current RNArtist database",
+                                "rnartist_db.html"
+                            )
+                        val directoryChooser = DirectoryChooser()
+                        directoryChooser.showDialog(stage)?.let {
+                            var rootDBAbsPath: String? = null
+                            if (!File(it, ".rnartist_db_index").exists()) {
+                                val dialog = ConfirmationDialog(
+                                    mediator,
+                                    "Would you like to use the folder ${it.name} as an RNArtist database?"
+                                )
+                                if (dialog.isConfirmed)
+                                    rootDBAbsPath = it.invariantSeparatorsPath
+                            } else
+                                rootDBAbsPath = it.invariantSeparatorsPath
+                            rootDBAbsPath?.let {
+                                val w = TaskDialog(mediator)
+                                w.task = LoadDB(mediator, it)
+                            }
+                        }
+                    }
+
+                    this.createDBFolder = buttonsPanel.addButton("fas-folder-plus", "Create new folder") {
+                        if (mediator.helpModeOn)
+                            HelpDialog(
+                                mediator,
+                                "This button allows you to create a new subfolder in your database",
+                                "db_panel.html"
+                            )
+
+                        this.dbTreeView.selectionModel.selectedItem?.let { selectedItem ->
+                            val dialog = InputDialog(mediator, "Enter your folder name")
+                            if (dialog.input.text.length != 0) {
+                                val w = TaskDialog(mediator)
+                                w.task = CreateDBFolder(
+                                    mediator,
+                                    Path.of(selectedItem.value.absPath, dialog.input.text).invariantSeparatorsPathString
+                                )
+                            }
+                        } ?: run {
+                            HelpDialog(
+                                mediator, "No folder selected in your database!",
+                                "db_panel.html"
+                            )
+                        }
+                    }
+
+                    this.reloadDB = buttonsPanel.addButton("fas-sync:15", "Reload database") {
+                        if (mediator.helpModeOn)
+                            HelpDialog(
+                                mediator,
+                                "This button allows you to reload the current database in order to display and index new subfolders",
+                                "db_panel.html"
+                            )
+
+                        val w = TaskDialog(mediator)
+                        w.task = LoadDB(
+                            mediator,
+                            currentDB.get()!!.rootInvariantSeparatorsPath
+                        ) //we force since this button is enabled if we have loaded a DB before
+                    }
+
+                    currentDB.addListener { _, _, newValue ->
+                        //first we clean
+                        clearDBThumbnails()
+                        dbTreeView.root =
+                            TreeItem(DBFolder("No database selected", ""))
+                        reloadDB.isDisable = true
+                        createDBFolder.isDisable = true
+
+                        newValue?.let {
+                            reloadDB.isDisable = false
+                            createDBFolder.isDisable = false
+                            dbTreeView.root =
+                                TreeItem(
+                                    DBFolder(
+                                        Path.of(newValue.rootInvariantSeparatorsPath).name,
+                                        newValue.rootInvariantSeparatorsPath
+                                    )
+                                )
+                        }
+                    }
+
+                    dbTreeView.selectionModel.selectedItemProperty().addListener { _, _, newSelectedItem ->
+                        newSelectedItem?.let {
+                                currentDBFolderAbsPath.set(newSelectedItem.value.absPath)
+                                clearDBThumbnails()
+                            if (newSelectedItem.value.absPath != currentDB.get()!!.rootInvariantSeparatorsPath) { //we dont load the root folder of a DB (no structural data are allowed)
+                                val w = TaskDialog(mediator)
+                                w.task = LoadDBFolder(mediator)
+                            }
+                        }
+
+                    }
+
+                    dbThumbnails.padding = Insets(10.0)
+                    dbThumbnails.background =
+                        Background(BackgroundFill(Color.WHITE, CornerRadii(10.0), Insets.EMPTY))
+                    dbThumbnails.horizontalCellSpacing = 5.0
+                    dbThumbnails.verticalCellSpacing = 5.0
+                    dbThumbnails.cellWidth = 250.0
+                    dbThumbnails.cellHeight = 300.0
+                    dbThumbnails.setCellFactory { ThumbnailCell() }
+
+                    this.dbTreeView.padding = Insets(10.0)
+                    this.dbTreeView.background =
+                        Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                    this.dbTreeView.border = Border(
+                        BorderStroke(
+                            Color.LIGHTGRAY,
+                            BorderStrokeStyle.SOLID, CornerRadii(10.0), BorderWidths(1.5)
+                        )
+                    )
+                    this.dbTreeView.isEditable = true
+                    this.dbTreeView.root = TreeItem(DBFolder("No database selected", ""))
+                    this.dbTreeView.setCellFactory { DBFolderCell() }
+
+                    val splitPane = SplitPane()
+                    splitPane.orientation = Orientation.HORIZONTAL
+                    splitPane.background =
+                        Background(BackgroundFill(RNArtistGUIColor, CornerRadii.EMPTY, Insets.EMPTY))
+                    val s = ScrollPane(this.dbTreeView)
+                    s.isFitToHeight = true
+                    s.isFitToWidth = true
+                    s.vbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
+                    s.hbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
+                    splitPane.items.add(s)
+                    splitPane.items.add(dbThumbnails)
+                    splitPane.setDividerPositions(0.15)
+                    setVgrow(splitPane, Priority.ALWAYS)
+                    this.children.add(splitPane)
+
+                }
+
+                override fun blinkUINode(name: String) {
+                    when (name) {
+                        "load_database_button" -> {
+                            lowerPanel.dbExplorerPanelButton.fire()
+                            blinkWithColorBackGround(loadDB)
+                        }
+
+                        "reload_database_button" -> {
+                            lowerPanel.dbExplorerPanelButton.fire()
+                            blinkWithColorBackGround(reloadDB)
+                        }
+
+                        "create_db_folder_button" -> {
+                            lowerPanel.dbExplorerPanelButton.fire()
+                            blinkWithColorBackGround(createDBFolder)
+                        }
+                    }
+                }
+
+                fun count() = dbThumbnails.items.size
+
+                fun removeItem(DBThumbnail: DBThumbnail) {
+                    val index = dbThumbnails.items.indexOfFirst { it == DBThumbnail }
+                    dbThumbnails.items.removeAt(index)
+                }
+
+                private inner class DBFolderCell : TreeCell<DBFolder>() {
+
+                    override fun updateItem(dbFolder: DBFolder?, empty: Boolean) {
+                        super.updateItem(dbFolder, empty)
+                        graphic = null
+                        text = null
+                        if (!empty && dbFolder != null) {
+                            text = dbFolder.name
+                        }
+                    }
+
+                    init {
+                        this.onDragDetected = EventHandler { event ->
+                            this@DBFolderCell.startDragAndDrop(TransferMode.LINK)
+                        }
+                        this.onDragOver = EventHandler { event ->
+                            this@DBFolderCell.treeItem?.let {
+                                currentDB.get()?.let { currentDB ->
+                                    if (!it.value.absPath.equals(currentDB.rootInvariantSeparatorsPath)) {
+                                        this@DBFolderCell.text = null
+                                        val hbox = HBox()
+                                        hbox.alignment = Pos.CENTER_LEFT
+                                        val icon = FontIcon("far-arrow-alt-circle-down:20")
+                                        icon.iconColor = Color.WHITE
+                                        hbox.children.add(icon)
+                                        val label = Label("Drop in ${it.value.name}")
+                                        label.textFill = Color.WHITE
+                                        hbox.children.add(label)
+                                        this@DBFolderCell.graphic = hbox
+                                        if (event.getDragboard().hasUrl()) {
+                                            event.acceptTransferModes(TransferMode.LINK)
+                                        }
+                                    }
+                                }
+                            }
+                            event.consume();
+                        }
+                        this.onDragExited = EventHandler { event ->
+                            this@DBFolderCell.treeItem?.let {
+                                currentDB.get()?.let { currentDB ->
+                                    if (!it.value.absPath.equals(currentDB.rootInvariantSeparatorsPath)) {
+                                        this@DBFolderCell.text = it.value.name
+                                        this@DBFolderCell.graphic = null
+                                    }
+                                }
+                            }
+                            event.consume();
+                        }
+                        this.onDragDropped = EventHandler { event ->
+                            this@DBFolderCell.treeItem?.let {
+                                currentDB.get()?.let { currentDB ->
+                                    if (!it.value.absPath.equals(currentDB.rootInvariantSeparatorsPath)) {
+                                        val w = TaskDialog(mediator)
+                                        w.task = AddStructureFromURL(
+                                            mediator,
+                                            event.getDragboard().url,
+                                            it.value.absPath
+                                        )
+                                    }
+                                }
+                            }
+                            event.consume()
+                        }
+                    }
+
+                }
+
+                inner class ThumbnailCell : GridCell<DBThumbnail>() {
+                    private val icon = ImageView()
+                    private val content: VBox = VBox()
+                    private val titlePanel = TitlePanel()
+
+                    init {
+                        this.onMouseClicked = EventHandler { event ->
+                            currentDBDBThumbnail.set(this.item)
+                            val w = TaskDialog(mediator)
+                            w.task = LoadStructure(mediator, item.dslScriptInvariantSeparatorsPath)
+                        }
+                    }
+
+                    override fun updateItem(DBThumbnail: DBThumbnail?, empty: Boolean) {
+                        super.updateItem(DBThumbnail, empty)
+                        graphic = null
+                        text = null
+                        if (!empty && DBThumbnail != null) {
+                            icon.image = DBThumbnail.image
+                            val scriptName = DBThumbnail.dslScriptInvariantSeparatorsPath.split("/").last()
+                            titlePanel.setTitle(scriptName.removeSuffix(".kts"))
+                            graphic = content
+                        }
+                    }
+
+                    init {
+                        content.alignment = Pos.BOTTOM_CENTER
+                        content.children.add(icon)
+                        content.children.add(titlePanel)
+                    }
+
+                    /**
+                     * Test if this thumbnail cell (more precisely its title) matches the name of the drawing displayed.
+                     * Used to disable or not some stuff in this thumbnail cell
+                     */
+                    private fun matchCurrentDrawing(drawing: RNArtistDrawing?): Boolean {
+                        return drawing?.let {
+                            drawing.rnArtistEl.getSSOrNull()?.let { ssEl ->
+                                var match = false
+                                ssEl.getViennaOrNull()?.getFile()?.let { fileProperty ->
+                                    match = File(fileProperty.value).name.removeSuffix(".vienna")
+                                        .equals(titlePanel.getTitle())
+                                }
+                                ssEl.getBPSeqOrNull()?.getFile()?.let { fileProperty ->
+                                    match = File(fileProperty.value).name.removeSuffix(".bpseq")
+                                        .equals(titlePanel.getTitle())
+                                }
+                                ssEl.getCTOrNull()?.getFile()?.let { fileProperty ->
+                                    match =
+                                        File(fileProperty.value).name.removeSuffix(".ct").equals(titlePanel.getTitle())
+                                }
+                                ssEl.getPDBOrNull()?.getFile()?.let { fileProperty ->
+                                    match =
+                                        File(fileProperty.value).name.removeSuffix(".pdb").equals(titlePanel.getTitle())
+                                }
+                                match
+                            } ?: run {
+                                false
+                            }
+                        } ?: run {
+                            false
+                        }
+                    }
+
+                    private inner class TitlePanel() : VBox() {
+                        private val title = Label()
+
+                        init {
+                            this.alignment = Pos.CENTER
+                            this.padding = Insets(10.0)
+                            this.background =
+                                Background(
+                                    BackgroundFill(
+                                        RNArtistGUIColor,
+                                        CornerRadii.EMPTY,
+                                        Insets(5.0, 0.0, 5.0, 0.0)
+                                    )
+                                )
+                            this.effect = DropShadow()
+                            this.children.add(this.title)
+                        }
+
+                        fun setTitle(title: String) {
+                            this.title.text = title
+                        }
+
+                        fun getTitle() = this.title.text
+
+                    }
+                }
+
+            }
+
         }
 
         inner class ChartsPanel() : Panel() {
@@ -3859,7 +4106,7 @@ class RNArtist : Application() {
 
     }
 
-    class Thumbnail(
+    class DBThumbnail(
         val mediator: Mediator,
         pngFile: File,
         val dslScriptInvariantSeparatorsPath: String
@@ -3873,6 +4120,22 @@ class RNArtist : Application() {
             this.layoutAndThemeUpdated.addListener { _, _, _ ->
                 image = Image(pngFile.toPath().toUri().toString())
             }
+        }
+
+    }
+
+    class LayoutThumbnail(
+        val mediator: Mediator,
+        pngFile: File,
+        val dslScriptInvariantSeparatorsPath: String,
+        val overlappingScore: Int,
+        val junctionsImproved:List<Location>? = null
+    ) {
+
+        var image: Image? = null
+
+        init {
+            image = Image(pngFile.toPath().toUri().toString())
         }
 
     }
@@ -4905,7 +5168,7 @@ class RNArtist : Application() {
             //this button is enables if the currentThumnail is not null. The current thumbnail becomes not null if:
             // it has been clicked, meaning that its 2D is now the current drawing
             // a 2D has been saved in the current folder
-            currentThumbnail.addListener { _, _, newValue ->
+            currentDBDBThumbnail.addListener { _, _, newValue ->
                 showDBFolderForCurrentDrawingButton.isDisable = newValue == null
             }
 
@@ -5194,11 +5457,11 @@ class RNArtist : Application() {
                 }
             }
             currentDBFolderAbsPath.addListener { _, _, newValue ->
-                this.saveButton.isDisable = newValue == null || mediator.currentDrawing.get() == null
+                this.saveButton.isDisable = newValue == null || newValue == currentDB.get()?.rootInvariantSeparatorsPath || mediator.currentDrawing.get() == null
             }
 
             mediator.currentDrawing.addListener { _, _, newValue ->
-                this.saveButton.isDisable = newValue == null || currentDBFolderAbsPath.get() == null
+                this.saveButton.isDisable = newValue == null || currentDBFolderAbsPath.get() == null || currentDBFolderAbsPath.get() == currentDB.get()?.rootInvariantSeparatorsPath
             }
 
             this.applyToAllButton =
@@ -5226,11 +5489,11 @@ class RNArtist : Application() {
                 }
 
             currentDBFolderAbsPath.addListener { _, _, newValue ->
-                this.applyToAllButton.isDisable = newValue == null || mediator.currentDrawing.get() == null
+                this.applyToAllButton.isDisable = newValue == null || newValue == currentDB.get()?.rootInvariantSeparatorsPath || mediator.currentDrawing.get() == null
             }
 
             mediator.currentDrawing.addListener { _, _, newValue ->
-                this.applyToAllButton.isDisable = newValue == null || currentDBFolderAbsPath.get() == null
+                this.applyToAllButton.isDisable = newValue == null || currentDBFolderAbsPath.get() == null || currentDBFolderAbsPath.get() == currentDB.get()?.rootInvariantSeparatorsPath
             }
 
             this.toSVGButton = addButton("fas-file-download", "Export 2D in SVG file") {
